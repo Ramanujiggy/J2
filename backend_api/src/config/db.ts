@@ -1,5 +1,10 @@
 import { Pool } from 'pg';
-import dotenv from 'dotenv'; 
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url'; 
+
+
+
 import test from 'node:test';
 
 
@@ -9,7 +14,7 @@ dotenv.config();
 
 // 2. configure the connection pool 
 const pool = new Pool({
-    connectionString: process.env.DATABSE_URL,
+    connectionString: process.env.DATABASE_URL,
     ssl: { 
         rejectUnauthorized: false //this allow the connection to supabase/cloud providers
     }
