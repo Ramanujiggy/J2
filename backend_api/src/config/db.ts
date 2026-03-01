@@ -2,10 +2,6 @@ import { Pool } from 'pg';
 import dotenv from 'dotenv';
 
 
-
-import test from 'node:test';
-
-
 //loading variables from .env file 
 dotenv.config(); 
 
