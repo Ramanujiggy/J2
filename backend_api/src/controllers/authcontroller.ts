@@ -4,8 +4,11 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcrypt'; 
 import * as userModel from '../models/userModel.js';
 
-
-//register a new user 
+//things to add 
+// logaudit event
+// Session token, access token, verify token, etc. 
+// request pw reset, reset password, logout, login, etc. 
+// register a new user 
 
 export const register = async (req: Request, res: Response) => {
     try {
@@ -34,8 +37,9 @@ export const register = async (req: Request, res: Response) => {
             user: {id: newUser.id, email: newUser.email}
         });
 
-
     }
+
+
     catch (error){
         console.error("❌ Error during user registration:", error);
         res.status(500).json({ message: 'Server error' })
