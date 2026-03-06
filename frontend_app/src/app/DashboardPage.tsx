@@ -1,11 +1,31 @@
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.ts';
-import TrainingHeatmap from '../components/TrainingHeatmap.tsx';
+import { api } from '../lib/api.ts';
+import TrainingHeatmap, { type SessionSummary } from '../components/TrainingHeatmap.tsx';
 import LogSessionForm from '../components/LogSessionForm.tsx';
+
+interface SessionsResponse {
+  sessions: SessionSummary[];
+}
 
 export default function DashboardPage() {
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const [sessions, setSessions] = useState<SessionSummary[]>([]);
+
+  const fetchSessions = useCallback(async () => {
+    try {
+      const data = await api.get<SessionsResponse>('/api/sessions');
+      setSessions(data.sessions);
+    } catch {
+      // silently fail — heatmap shows empty state
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSessions();
+  }, [fetchSessions]);
 
   const handleLogout = () => {
     logout();
@@ -36,7 +56,7 @@ export default function DashboardPage() {
           <h2 className="text-lg font-semibold text-white mb-4">
             Log a Training Session
           </h2>
-          <LogSessionForm />
+          <LogSessionForm onSuccess={fetchSessions} />
         </section>
 
         {/* Training history heatmap */}
@@ -44,7 +64,7 @@ export default function DashboardPage() {
           <h2 className="text-lg font-semibold text-white mb-4">
             Training History
           </h2>
-          <TrainingHeatmap />
+          <TrainingHeatmap sessions={sessions} />
         </section>
 
       </main>

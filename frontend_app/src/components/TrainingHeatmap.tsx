@@ -1,167 +1,262 @@
-// Training Heatmap — a GitHub-style grid showing the full year.
-// Each cell = one day. Color intensity = number of sessions that day.
+// Training Calendar — unified scrollable grid, one row per week.
+// Columns: Month label | Mon–Sun (7 day cells) | Notes | Journal
+// Sticky header keeps day labels visible. Month label appears at month boundaries.
 
-const DAYS_IN_WEEK = 7;
-const WEEKS_IN_YEAR = 53; // enough to cover any full year
+const GRID_COLS = '5rem repeat(7, minmax(0, 1fr)) 13rem 7rem';
 
-const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-const DAY_LABELS = ['', 'Mon', '', 'Wed', '', 'Fri', ''];
+const MONTH_FULL = [
+  'January','February','March','April','May','June',
+  'July','August','September','October','November','December',
+];
 
-// Color scale based on session count
-function cellColor(count: number): string {
-  if (count === 0) return '#1a3040';        // empty — slightly lighter than bg
-  if (count === 1) return '#CDDFA0';        // light green
-  if (count <= 3)  return '#6FD08C';        // green
-  return '#DA7422';                         // orange — high intensity
+const LEGEND = [
+  { color: '#1a3040', label: 'Rest' },
+  { color: '#CDDFA0', label: 'Easy' },
+  { color: '#6FD08C', label: 'Moderate' },
+  { color: '#DA7422', label: 'High' },
+] as const;
+
+// Local-time date key — avoids UTC shift from toISOString()
+function localDateKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-// Build a map of "YYYY-MM-DD" -> session count from a flat list of date strings
-function buildSessionMap(dates: string[]): Map<string, number> {
-  const map = new Map<string, number>();
-  for (const d of dates) {
-    map.set(d, (map.get(d) ?? 0) + 1);
+// Normalize whatever the API sends for a date field into YYYY-MM-DD.
+// pg returns DATE columns as "YYYY-MM-DD" strings via JSON, but this guards
+// against TIMESTAMP columns coming back as Date objects or other formats.
+function toDateKey(raw: unknown): string {
+  if (raw instanceof Date) return localDateKey(raw);
+  const s = String(raw);
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[1]}-${m[2]}-${m[3]}` : s.slice(0, 10);
+}
+
+export interface SessionSummary {
+  date: string;
+  duration: number;
+  intensity: number;
+  notes?: string;
+}
+
+interface DayData {
+  count: number;
+  totalMinutes: number;
+  maxIntensity: number;
+  notes: string[];
+}
+
+const EMPTY_DAY: DayData = { count: 0, totalMinutes: 0, maxIntensity: 0, notes: [] };
+
+function cellColor(day: DayData): string {
+  if (day.count === 0)          return '#1a3040';
+  if (day.maxIntensity <= 2)    return '#CDDFA0';
+  if (day.maxIntensity === 3)   return '#6FD08C';
+  return '#DA7422';
+}
+
+function buildDayMap(sessions: SessionSummary[]): Map<string, DayData> {
+  const map = new Map<string, DayData>();
+  for (const s of sessions) {
+    const key = toDateKey(s.date);
+    const prev = map.get(key) ?? { ...EMPTY_DAY, notes: [] };
+    map.set(key, {
+      count: prev.count + 1,
+      totalMinutes: prev.totalMinutes + Number(s.duration),
+      maxIntensity: Math.max(prev.maxIntensity, Number(s.intensity)),
+      notes: s.notes?.trim() ? [...prev.notes, s.notes.trim()] : prev.notes,
+    });
   }
   return map;
 }
 
-// Generate the grid: array of 53 columns, each column is 7 days.
-// We always start from the first Sunday on or before Jan 1 of the current year.
-function buildGrid(sessionMap: Map<string, number>) {
+interface WeekRow {
+  days: { date: Date; day: DayData }[];
+  monthLabel: string;
+  isMonthStart: boolean;
+}
+
+function buildWeekRows(dayMap: Map<string, DayData>): { rows: WeekRow[]; year: number } {
   const now = new Date();
   const year = now.getFullYear();
 
-  // Find the Sunday on or before Jan 1
   const jan1 = new Date(year, 0, 1);
-  const startOffset = jan1.getDay(); // 0 = Sunday
-  const gridStart = new Date(year, 0, 1 - startOffset);
+  const dow = jan1.getDay();
+  const offsetToMonday = dow === 0 ? 6 : dow - 1;
+  const gridStart = new Date(year, 0, 1 - offsetToMonday);
 
-  const weeks: { date: Date; count: number }[][] = [];
-
-  for (let w = 0; w < WEEKS_IN_YEAR; w++) {
-    const week: { date: Date; count: number }[] = [];
-    for (let d = 0; d < DAYS_IN_WEEK; d++) {
-      const date = new Date(gridStart);
-      date.setDate(gridStart.getDate() + w * 7 + d);
-      const key = date.toISOString().slice(0, 10);
-      week.push({ date, count: sessionMap.get(key) ?? 0 });
-    }
-    weeks.push(week);
-  }
-
-  return { weeks, year };
-}
-
-// Find which week column each month label should sit above
-function buildMonthPositions(weeks: { date: Date }[][]): { label: string; col: number }[] {
-  const positions: { label: string; col: number }[] = [];
+  const dec31 = new Date(year, 11, 31);
+  const rows: WeekRow[] = [];
+  let cursor = new Date(gridStart);
   let lastMonth = -1;
 
-  weeks.forEach((week, col) => {
-    const firstDay = week[0];
-    if (!firstDay) return;
-    const month = firstDay.date.getMonth();
-    if (month !== lastMonth) {
-      positions.push({ label: MONTH_LABELS[month] ?? '', col });
-      lastMonth = month;
+  while (cursor <= dec31) {
+    const days: WeekRow['days'] = [];
+    for (let d = 0; d < 7; d++) {
+      const date = new Date(cursor);
+      date.setDate(cursor.getDate() + d);
+      days.push({ date, day: dayMap.get(localDateKey(date)) ?? { ...EMPTY_DAY, notes: [] } });
     }
-  });
 
-  return positions;
+    const firstMonth = days[0]!.date.getMonth();
+    const isMonthStart = firstMonth !== lastMonth;
+    if (isMonthStart) lastMonth = firstMonth;
+
+    rows.push({
+      days,
+      monthLabel: isMonthStart ? (MONTH_FULL[firstMonth] ?? '') : '',
+      isMonthStart,
+    });
+
+    cursor.setDate(cursor.getDate() + 7);
+  }
+
+  return { rows, year };
 }
 
-// --- Props ---
+function computeStats(sessions: SessionSummary[], year: number) {
+  const thisYear = sessions.filter(s => toDateKey(s.date).slice(0, 4) === String(year));
+  const totalSessions = thisYear.length;
+  const totalMinutes = thisYear.reduce((sum, s) => sum + Number(s.duration), 0);
+
+  const daySet = new Set(sessions.map(s => toDateKey(s.date)));
+  const cursor = new Date();
+  if (!daySet.has(localDateKey(cursor))) cursor.setDate(cursor.getDate() - 1);
+  let streak = 0;
+  while (daySet.has(localDateKey(cursor))) {
+    streak++;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  return { totalSessions, totalMinutes, streak };
+}
+
 interface TrainingHeatmapProps {
-  // Array of ISO date strings ("2025-03-14") for each logged session.
-  // A date appearing twice means two sessions that day.
-  sessionDates?: string[];
+  sessions?: SessionSummary[];
 }
 
-export default function TrainingHeatmap({ sessionDates = [] }: TrainingHeatmapProps) {
-  const sessionMap = buildSessionMap(sessionDates);
-  const { weeks, year } = buildGrid(sessionMap);
-  const monthPositions = buildMonthPositions(weeks);
+export default function TrainingHeatmap({ sessions = [] }: TrainingHeatmapProps) {
+  const now = new Date();
+  const dayMap = buildDayMap(sessions);
+  const { rows, year } = buildWeekRows(dayMap);
+  const { totalSessions, totalMinutes, streak } = computeStats(sessions, year);
+  const hours = totalMinutes > 0 ? (totalMinutes / 60).toFixed(1) : '0';
 
-  const cellSize = 13;
-  const cellGap = 3;
-  const step = cellSize + cellGap;
+  // Diagnostic — open browser DevTools → Console to see this
+  if (sessions.length > 0) {
+    console.log('[Heatmap] sessions loaded:', sessions.length,
+      '| dayMap size:', dayMap.size,
+      '| sample session:', JSON.stringify(sessions[0]));
+  } else {
+    console.log('[Heatmap] sessions array is empty — check network tab for GET /api/sessions');
+  }
 
   return (
     <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-      <div className="overflow-x-auto">
-        <div className="inline-block">
 
-          {/* Month labels row */}
-          <div className="flex mb-1 ml-8">
-            {monthPositions.map(({ label, col }) => (
-              <div
-                key={`${label}-${col}`}
-                className="text-xs text-white/40 absolute"
-                style={{ marginLeft: col * step }}
-              >
-                {label}
-              </div>
-            ))}
-            {/* invisible spacer so the flex container is the right width */}
-            <div style={{ width: weeks.length * step }} />
-          </div>
-
-          {/* Grid */}
-          <div className="flex gap-0.5">
-
-            {/* Day-of-week labels */}
-            <div className="flex flex-col mr-1" style={{ gap: cellGap }}>
-              {DAY_LABELS.map((label, i) => (
-                <div
-                  key={i}
-                  className="text-xs text-white/40 flex items-center justify-end pr-1"
-                  style={{ height: cellSize, fontSize: 10, lineHeight: `${cellSize}px` }}
-                >
-                  {label}
-                </div>
-              ))}
-            </div>
-
-            {/* Week columns */}
-            {weeks.map((week, wi) => (
-              <div key={wi} className="flex flex-col" style={{ gap: cellGap }}>
-                {week.map(({ date, count }, di) => {
-                  const isCurrentYear = date.getFullYear() === year;
-                  const isFuture = date > new Date();
-                  const label = `${date.toDateString()}: ${count} session${count !== 1 ? 's' : ''}`;
-                  return (
-                    <div
-                      key={di}
-                      title={label}
-                      className="rounded-sm cursor-default transition-opacity"
-                      style={{
-                        width: cellSize,
-                        height: cellSize,
-                        backgroundColor: (!isCurrentYear || isFuture) ? '#111e26' : cellColor(count),
-                        opacity: (!isCurrentYear || isFuture) ? 0.3 : 1,
-                      }}
-                    />
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-
+      {/* Stats */}
+      <div className="flex gap-8 mb-6 pb-5 border-b border-white/10">
+        <div>
+          <p className="text-2xl font-bold text-white">{totalSessions}</p>
+          <p className="text-xs text-white/40 mt-0.5">Sessions {year}</p>
+        </div>
+        <div>
+          <p className="text-2xl font-bold text-white">{hours}h</p>
+          <p className="text-xs text-white/40 mt-0.5">Hours trained</p>
+        </div>
+        <div>
+          <p className="text-2xl font-bold text-white">{streak}</p>
+          <p className="text-xs text-white/40 mt-0.5">Day streak</p>
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="flex items-center gap-2 mt-4 text-xs text-white/40">
-        <span>Less</span>
-        {[0, 1, 2, 4].map(n => (
-          <div
-            key={n}
-            className="rounded-sm"
-            style={{ width: cellSize, height: cellSize, backgroundColor: cellColor(n) }}
-          />
-        ))}
-        <span>More</span>
+      {/* Scrollable calendar */}
+      <div className="overflow-y-auto" style={{ maxHeight: 480 }}>
+
+        {/* Sticky column headers */}
+        <div
+          className="grid sticky top-0 z-10 border-b border-white/10 mb-0.5"
+          style={{ gridTemplateColumns: GRID_COLS, backgroundColor: '#1d3040' }}
+        >
+          <div className="py-2" />
+          {DOW.map(d => (
+            <div key={d} className="py-2 text-center text-xs font-medium text-white/40">
+              {d}
+            </div>
+          ))}
+          <div className="py-2 pl-4 text-xs font-medium text-white/40">Notes</div>
+          <div className="py-2 pl-3 text-xs font-medium text-white/40">Journal</div>
+        </div>
+
+        {/* Week rows */}
+        {rows.map((row, ri) => {
+          const weekNotes = row.days.flatMap(({ day }) => day.notes).filter(Boolean);
+          const noteText = weekNotes[0] ?? '';
+          const extraNotes = weekNotes.length > 1 ? ` +${weekNotes.length - 1}` : '';
+
+          return (
+            <div
+              key={ri}
+              className={`grid items-center${row.isMonthStart && ri > 0 ? ' mt-1 border-t border-white/10 pt-1' : ''}`}
+              style={{ gridTemplateColumns: GRID_COLS, minHeight: 40 }}
+            >
+              {/* Month label */}
+              <div className="pr-2 text-xs font-semibold text-white/55 truncate">
+                {row.monthLabel}
+              </div>
+
+              {/* Day cells */}
+              {row.days.map(({ date, day }) => {
+                const key = localDateKey(date);
+                const isFuture = date > now;
+                const isCurrentYear = date.getFullYear() === year;
+                const dateStr = date.toDateString();
+                const tooltip = day.count === 0
+                  ? dateStr
+                  : `${dateStr}: ${day.count} session${day.count !== 1 ? 's' : ''} · ${day.totalMinutes} min · intensity ${day.maxIntensity}/5`;
+                return (
+                  <div key={key} className="px-0.5 py-1">
+                    <div
+                      title={tooltip}
+                      className="h-7 rounded cursor-default"
+                      style={{
+                        backgroundColor: (!isCurrentYear || isFuture) ? '#111e26' : cellColor(day),
+                        opacity: (!isCurrentYear || isFuture) ? 0.18 : 1,
+                      }}
+                    />
+                  </div>
+                );
+              })}
+
+              {/* Notes */}
+              <div
+                className="pl-4 text-xs text-white/40 truncate"
+                title={weekNotes.join(' · ')}
+              >
+                {noteText}
+                {extraNotes && <span className="text-white/20">{extraNotes}</span>}
+              </div>
+
+              {/* Journal — placeholder */}
+              <div className="pl-3 text-xs text-white/15 italic select-none">—</div>
+            </div>
+          );
+        })}
+
       </div>
+
+      {/* Legend */}
+      <div className="flex items-center gap-4 mt-5 pt-4 border-t border-white/10 text-xs text-white/40">
+        <span>Intensity</span>
+        {LEGEND.map(({ color, label }) => (
+          <div key={label} className="flex items-center gap-1.5">
+            <div className="rounded-sm w-3 h-3" style={{ backgroundColor: color }} />
+            <span>{label}</span>
+          </div>
+        ))}
+      </div>
+
     </div>
   );
 }

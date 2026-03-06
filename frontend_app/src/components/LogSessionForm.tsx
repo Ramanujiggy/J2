@@ -17,7 +17,9 @@ interface SessionFormData {
   session_type: SessionType;
 }
 
-const today = new Date().toISOString().slice(0, 10);
+// Use local date components — toISOString() is UTC and can return tomorrow's date at night
+const _d = new Date();
+const today = `${_d.getFullYear()}-${String(_d.getMonth() + 1).padStart(2, '0')}-${String(_d.getDate()).padStart(2, '0')}`;
 
 const SESSION_TYPES: { value: SessionType; label: string }[] = [
   { value: 'class', label: 'Class' },
@@ -29,7 +31,7 @@ const btnBase = 'px-4 py-2 rounded-lg text-sm font-medium transition-colors curs
 const btnActive = 'bg-brand-orange text-white';
 const btnInactive = 'bg-white/10 text-white/60 hover:bg-white/20';
 
-export default function LogSessionForm() {
+export default function LogSessionForm({ onSuccess }: { onSuccess?: () => void }) {
   const [form, setForm] = useState<SessionFormData>({
     date: today,
     duration: '',
@@ -69,6 +71,7 @@ export default function LogSessionForm() {
       setSubmitted(true);
       setForm({ date: today, duration: '', notes: '', gi_nogi: 'gi', intensity: 3, session_type: 'class' });
       setTimeout(() => setSubmitted(false), 3000);
+      onSuccess?.();
     } catch {
       setError('Something went wrong. Please try again.');
     } finally {
