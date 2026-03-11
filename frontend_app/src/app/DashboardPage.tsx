@@ -97,7 +97,7 @@ export default function DashboardPage() {
         {/* Training history */}
         <section>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-white">Training History</h2>
+            <h2 className="text-2xl font-bold tracking-tight text-white">{new Date().getFullYear()} Mat Time</h2>
             <button
               onClick={() => setLogOpen(true)}
               className="bg-brand-orange hover:bg-brand-orange/90 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
@@ -113,7 +113,8 @@ export default function DashboardPage() {
       {/* Log session modal */}
       {logOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
+          className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm px-4"
+          style={{ backgroundColor: 'rgba(38, 70, 83, 0.85)' }}
           onClick={() => setLogOpen(false)}
         >
           <div onClick={e => e.stopPropagation()} className="w-full max-w-lg">

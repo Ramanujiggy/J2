@@ -187,7 +187,7 @@ export default function TrainingHeatmap({ sessions = [], loading = false }: Trai
       <div className="flex gap-8 mb-6 pb-5 border-b border-white/10">
         <div>
           <p className="text-2xl font-bold text-white">{totalSessions}</p>
-          <p className="text-xs text-white/40 mt-0.5">Sessions {year}</p>
+          <p className="text-xs text-white/40 mt-0.5">Sessions in {year}</p>
         </div>
         <div>
           <p className="text-2xl font-bold text-white">{hours}h</p>
