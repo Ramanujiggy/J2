@@ -2,6 +2,12 @@
 // Columns: Month label | Mon–Sun (7 day cells) | Notes | Journal
 // Sticky header keeps day labels visible. Month label appears at month boundaries.
 
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+
 const GRID_COLS = '5rem repeat(7, minmax(0, 1fr)) 13rem 7rem';
 
 const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -143,15 +149,6 @@ export default function TrainingHeatmap({ sessions = [] }: TrainingHeatmapProps)
   const { totalSessions, totalMinutes, streak } = computeStats(sessions, year);
   const hours = totalMinutes > 0 ? (totalMinutes / 60).toFixed(1) : '0';
 
-  // Diagnostic — open browser DevTools → Console to see this
-  if (sessions.length > 0) {
-    console.log('[Heatmap] sessions loaded:', sessions.length,
-      '| dayMap size:', dayMap.size,
-      '| sample session:', JSON.stringify(sessions[0]));
-  } else {
-    console.log('[Heatmap] sessions array is empty — check network tab for GET /api/sessions');
-  }
-
   return (
     <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
 
@@ -216,16 +213,22 @@ export default function TrainingHeatmap({ sessions = [] }: TrainingHeatmapProps)
                   ? dateStr
                   : `${dateStr}: ${day.count} session${day.count !== 1 ? 's' : ''} · ${day.totalMinutes} min · intensity ${day.maxIntensity}/5`;
                 return (
-                  <div key={key} className="px-0.5 py-1">
-                    <div
-                      title={tooltip}
-                      className="h-7 rounded cursor-default"
-                      style={{
-                        backgroundColor: (!isCurrentYear || isFuture) ? '#111e26' : cellColor(day),
-                        opacity: (!isCurrentYear || isFuture) ? 0.18 : 1,
-                      }}
-                    />
-                  </div>
+                  <Tooltip key={key}>
+                    <TooltipTrigger asChild>
+                      <div className="px-0.5 py-1">
+                        <div
+                          className="h-7 rounded cursor-default"
+                          style={{
+                            backgroundColor: (!isCurrentYear || isFuture) ? '#111e26' : cellColor(day),
+                            opacity: (!isCurrentYear || isFuture) ? 0.18 : 1,
+                          }}
+                        />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <p>{tooltip}</p>
+                    </TooltipContent>
+                  </Tooltip>
                 );
               })}
 

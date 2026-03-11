@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api } from '../lib/api.ts';
+import { toast } from '../hooks/use-toast.ts';
 
 interface LogSessionResponse {
   message: string;
@@ -40,7 +41,6 @@ export default function LogSessionForm({ onSuccess }: { onSuccess?: () => void }
     intensity: 3,
     session_type: 'class',
   });
-  const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -68,9 +68,8 @@ export default function LogSessionForm({ onSuccess }: { onSuccess?: () => void }
         return;
       }
 
-      setSubmitted(true);
       setForm({ date: today, duration: '', notes: '', gi_nogi: 'gi', intensity: 3, session_type: 'class' });
-      setTimeout(() => setSubmitted(false), 3000);
+      toast({ title: 'Session logged!' });
       onSuccess?.();
     } catch {
       setError('Something went wrong. Please try again.');
@@ -187,10 +186,6 @@ export default function LogSessionForm({ onSuccess }: { onSuccess?: () => void }
         >
           {loading ? 'Saving...' : 'Log Session'}
         </button>
-
-        {submitted && (
-          <p className="text-brand-green text-sm">Session logged!</p>
-        )}
 
       </form>
     </div>

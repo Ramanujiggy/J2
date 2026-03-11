@@ -3,6 +3,47 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Surfaces — based on brand-dark (#264653) */
+    --background:          200 29% 24%;
+    --foreground:          0 0% 100%;
+
+    --card:                200 29% 20%;
+    --card-foreground:     0 0% 100%;
+
+    --popover:             200 29% 18%;
+    --popover-foreground:  0 0% 100%;
+
+    /* Primary action — brand-orange (#DA7422) */
+    --primary:             25 73% 48%;
+    --primary-foreground:  0 0% 100%;
+
+    /* Secondary — brand-green (#6FD08C) */
+    --secondary:           143 52% 63%;
+    --secondary-foreground: 200 29% 15%;
+
+    /* Muted — slightly lighter than background */
+    --muted:               200 20% 32%;
+    --muted-foreground:    0 0% 55%;
+
+    /* Accent — same hue as muted */
+    --accent:              200 20% 32%;
+    --accent-foreground:   0 0% 100%;
+
+    /* Destructive — standard red */
+    --destructive:         0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Border / input */
+    --border:              200 20% 38%;
+    --input:               200 20% 28%;
+
+    /* Focus ring — brand-orange */
+    --ring:                25 73% 48%;
+
+    --radius: 0.5rem;
+  }
+
   body {
     @apply bg-brand-dark text-white font-sans antialiased;
   }

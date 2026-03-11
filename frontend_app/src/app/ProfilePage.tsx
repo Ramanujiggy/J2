@@ -1,8 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader } from '@googlemaps/js-api-loader';
+import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 import { api } from '../lib/api.ts';
 import BeltBar, { type BeltRank } from '../components/BeltBar.tsx';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select.tsx';
+import { toast } from '../hooks/use-toast.ts';
 
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
 
@@ -52,7 +60,6 @@ export default function ProfilePage() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
 
   // Load existing profile
@@ -79,15 +86,10 @@ export default function ProfilePage() {
   const initAutocomplete = useCallback(async () => {
     if (!MAPS_KEY || !gymInputRef.current) return;
 
-    const loader = new Loader({
-      apiKey: MAPS_KEY,
-      version: 'weekly',
-      libraries: ['places'],
-    });
+    setOptions({ key: MAPS_KEY, v: 'weekly' });
+    const { Autocomplete } = await importLibrary('places') as google.maps.PlacesLibrary;
 
-    await loader.load();
-
-    autocompleteRef.current = new google.maps.places.Autocomplete(gymInputRef.current, {
+    autocompleteRef.current = new Autocomplete(gymInputRef.current, {
       types: ['establishment'],
       fields: ['name', 'formatted_address', 'place_id'],
     });
@@ -123,8 +125,7 @@ export default function ProfilePage() {
         home_gym_address: form.home_gym_address || null,
         home_gym_place_id: form.home_gym_place_id || null,
       });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+      toast({ title: 'Profile saved!' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save profile.');
     } finally {
@@ -172,19 +173,23 @@ export default function ProfilePage() {
             {/* Belt rank */}
             <div>
               <label className="block text-sm text-white/70 mb-1">Belt Rank</label>
-              <select
+              <Select
                 value={form.belt_rank ?? ''}
-                onChange={e => setForm(prev => ({
+                onValueChange={val => setForm(prev => ({
                   ...prev,
-                  belt_rank: (e.target.value as BeltRank) || null,
+                  belt_rank: (val as BeltRank) || null,
+                  stripes: val ? prev.stripes : 0,
                 }))}
-                className={inputCls}
               >
-                <option value="">— Select belt rank —</option>
-                {BELT_RANKS.map(({ value, label }) => (
-                  <option key={value} value={value}>{label}</option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full bg-white/10 border-white/10 text-white focus:ring-brand-orange">
+                  <SelectValue placeholder="— Select belt rank —" />
+                </SelectTrigger>
+                <SelectContent>
+                  {BELT_RANKS.map(({ value, label }) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Stripes */}
@@ -244,18 +249,13 @@ export default function ProfilePage() {
 
             {error && <p className="text-red-400 text-sm">{error}</p>}
 
-            <div className="flex items-center gap-4">
-              <button
-                type="submit"
-                disabled={saving}
-                className="bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50"
-              >
-                {saving ? 'Saving…' : 'Save Profile'}
-              </button>
-              {saved && (
-                <p className="text-brand-green text-sm">Profile saved!</p>
-              )}
-            </div>
+            <button
+              type="submit"
+              disabled={saving}
+              className="bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50"
+            >
+              {saving ? 'Saving…' : 'Save Profile'}
+            </button>
 
           </form>
         )}
