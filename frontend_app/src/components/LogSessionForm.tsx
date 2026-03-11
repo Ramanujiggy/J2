@@ -79,7 +79,8 @@ export default function LogSessionForm({ onSuccess }: { onSuccess?: () => void }
   };
 
   return (
-    <div className="bg-white/5 border border-white/10 rounded-2xl p-6 max-w-lg">
+    <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+      <h2 className="text-lg font-semibold text-white mb-5">Log a Training Session</h2>
       <form onSubmit={handleSubmit} className="space-y-5">
 
         {/* Date */}

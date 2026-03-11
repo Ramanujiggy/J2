@@ -140,9 +140,40 @@ function computeStats(sessions: SessionSummary[], year: number) {
 
 interface TrainingHeatmapProps {
   sessions?: SessionSummary[];
+  loading?: boolean;
 }
 
-export default function TrainingHeatmap({ sessions = [] }: TrainingHeatmapProps) {
+// Skeleton shimmer shown while sessions are fetching.
+function HeatmapSkeleton() {
+  return (
+    <div className="bg-white/5 border border-white/10 rounded-2xl p-6 animate-pulse">
+      {/* Shimmer stats row */}
+      <div className="flex gap-8 mb-6 pb-5 border-b border-white/10">
+        {[80, 64, 56].map(w => (
+          <div key={w}>
+            <div className="h-8 rounded bg-white/10 mb-1" style={{ width: w }} />
+            <div className="h-3 w-20 rounded bg-white/10" />
+          </div>
+        ))}
+      </div>
+      {/* Shimmer week rows */}
+      <div className="space-y-2">
+        {Array.from({ length: 10 }).map((_, i) => (
+          <div key={i} className="flex gap-1 items-center">
+            <div className="w-16 h-5 rounded bg-white/10 shrink-0" />
+            {Array.from({ length: 7 }).map((__, j) => (
+              <div key={j} className="flex-1 h-7 rounded bg-white/10" />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function TrainingHeatmap({ sessions = [], loading = false }: TrainingHeatmapProps) {
+  if (loading) return <HeatmapSkeleton />;
+
   const now = new Date();
   const dayMap = buildDayMap(sessions);
   const { rows, year } = buildWeekRows(dayMap);
@@ -168,8 +199,16 @@ export default function TrainingHeatmap({ sessions = [] }: TrainingHeatmapProps)
         </div>
       </div>
 
-      {/* Scrollable calendar */}
-      <div className="overflow-y-auto" style={{ maxHeight: 480 }}>
+      {/* Empty state */}
+      {sessions.length === 0 && (
+        <div className="py-12 text-center">
+          <p className="text-white/60 text-sm font-medium">No sessions logged yet.</p>
+          <p className="text-white/30 text-sm mt-1">Log your first session above to start tracking your year.</p>
+        </div>
+      )}
+
+      {/* Scrollable calendar — hidden when empty */}
+      {sessions.length > 0 && <div className="overflow-y-auto" style={{ maxHeight: 480 }}>
 
         {/* Sticky column headers */}
         <div
@@ -247,10 +286,10 @@ export default function TrainingHeatmap({ sessions = [] }: TrainingHeatmapProps)
           );
         })}
 
-      </div>
+      </div>}
 
-      {/* Legend */}
-      <div className="flex items-center gap-4 mt-5 pt-4 border-t border-white/10 text-xs text-white/40">
+      {/* Legend — hidden when empty */}
+      {sessions.length > 0 && <div className="flex items-center gap-4 mt-5 pt-4 border-t border-white/10 text-xs text-white/40">
         <span>Intensity</span>
         {LEGEND.map(({ color, label }) => (
           <div key={label} className="flex items-center gap-1.5">
@@ -258,7 +297,7 @@ export default function TrainingHeatmap({ sessions = [] }: TrainingHeatmapProps)
             <span>{label}</span>
           </div>
         ))}
-      </div>
+      </div>}
 
     </div>
   );

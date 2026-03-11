@@ -18,9 +18,11 @@ export default function DashboardPage() {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [beltRank, setBeltRank] = useState<BeltRank | null>(null);
   const [stripes, setStripes] = useState(0);
+  const [logOpen, setLogOpen] = useState(false);
 
   const fetchSessions = useCallback(async () => {
     try {
@@ -33,6 +35,8 @@ export default function DashboardPage() {
       if (!(err instanceof ApiError && err.status === 401)) {
         setFetchError('Could not load sessions. Please refresh.');
       }
+    } finally {
+      setSessionsLoading(false);
     }
   }, []);
 
@@ -86,27 +90,37 @@ export default function DashboardPage() {
       {/* Main content */}
       <main className="flex-1 max-w-5xl w-full mx-auto px-6 py-10 space-y-10">
 
-        {/* Log a session */}
-        <section>
-          <h2 className="text-lg font-semibold text-white mb-4">
-            Log a Training Session
-          </h2>
-          <LogSessionForm onSuccess={fetchSessions} />
-        </section>
-
         {fetchError && (
           <p className="text-sm text-red-400">{fetchError}</p>
         )}
 
-        {/* Training history heatmap */}
+        {/* Training history */}
         <section>
-          <h2 className="text-lg font-semibold text-white mb-4">
-            Training History
-          </h2>
-          <TrainingHeatmap sessions={sessions} />
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-white">Training History</h2>
+            <button
+              onClick={() => setLogOpen(true)}
+              className="bg-brand-orange hover:bg-brand-orange/90 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+            >
+              + Mat Time
+            </button>
+          </div>
+          <TrainingHeatmap sessions={sessions} loading={sessionsLoading} />
         </section>
 
       </main>
+
+      {/* Log session modal */}
+      {logOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
+          onClick={() => setLogOpen(false)}
+        >
+          <div onClick={e => e.stopPropagation()} className="w-full max-w-lg">
+            <LogSessionForm onSuccess={() => { fetchSessions(); setLogOpen(false); }} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
