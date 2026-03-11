@@ -1,0 +1,62 @@
+import type { Request, Response } from 'express';
+import { z } from 'zod';
+import { getProfile, updateProfile } from '../models/profileModel.js';
+
+const BELT_RANKS = ['white', 'blue', 'purple', 'brown', 'black'] as const;
+
+const ProfileSchema = z.object({
+    name: z.string().max(100).nullable().optional(),
+    belt_rank: z.enum(BELT_RANKS).nullable().optional(),
+    stripes: z.number().int().min(0).max(4).optional(),
+    home_gym_name: z.string().max(200).nullable().optional(),
+    home_gym_address: z.string().max(500).nullable().optional(),
+    home_gym_place_id: z.string().max(200).nullable().optional(),
+});
+
+export const fetchProfile = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            res.status(401).json({ message: 'Unauthorized.' });
+            return;
+        }
+
+        const profile = await getProfile(userId);
+        res.json({ profile });
+    } catch (err) {
+        console.error('❌ Error fetching profile:', err);
+        res.status(500).json({ message: 'Server error.' });
+    }
+};
+
+export const saveProfile = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            res.status(401).json({ message: 'Unauthorized.' });
+            return;
+        }
+
+        const parsed = ProfileSchema.safeParse(req.body);
+        if (!parsed.success) {
+            res.status(400).json({ message: 'Invalid profile data.', errors: parsed.error.flatten() });
+            return;
+        }
+
+        const current = await getProfile(userId);
+
+        const updated = await updateProfile(userId, {
+            name: parsed.data.name ?? current?.name ?? null,
+            belt_rank: parsed.data.belt_rank ?? current?.belt_rank ?? null,
+            stripes: parsed.data.stripes ?? current?.stripes ?? 0,
+            home_gym_name: parsed.data.home_gym_name ?? current?.home_gym_name ?? null,
+            home_gym_address: parsed.data.home_gym_address ?? current?.home_gym_address ?? null,
+            home_gym_place_id: parsed.data.home_gym_place_id ?? current?.home_gym_place_id ?? null,
+        });
+
+        res.json({ message: 'Profile saved.', profile: updated });
+    } catch (err) {
+        console.error('❌ Error saving profile:', err);
+        res.status(500).json({ message: 'Server error.' });
+    }
+};

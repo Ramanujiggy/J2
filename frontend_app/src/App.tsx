@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import HomePage from './app/HomePage.tsx';
 import DashboardPage from './app/DashboardPage.tsx';
+import ProfilePage from './app/ProfilePage.tsx';
 import { useAuth } from './hooks/useAuth.ts';
 
 function App() {
@@ -12,6 +13,10 @@ function App() {
       <Route
         path="/dashboard"
         element={isAuthenticated ? <DashboardPage /> : <Navigate to="/" replace />}
+      />
+      <Route
+        path="/profile"
+        element={isAuthenticated ? <ProfilePage /> : <Navigate to="/" replace />}
       />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

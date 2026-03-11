@@ -1,7 +1,8 @@
 // AuthContext — single source of truth for auth state across the entire app.
 // Wrap the app with <AuthProvider> so every component reads from the same state.
 
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { api } from '../lib/api.ts';
 
 interface AuthContextValue {
   token: string | null;
@@ -26,6 +27,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('token');
     setToken(null);
   };
+
+  useEffect(() => {
+    api.setAuthErrorHandler(logout);
+  }, []);
 
   return (
     <AuthContext.Provider value={{ token, isAuthenticated: token !== null, login, logout }}>

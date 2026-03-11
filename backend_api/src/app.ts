@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import cors from 'cors';
 import authRoutes from './routes/authRoutes.js';
 import sessionRoutes from './routes/sessionRoutes.js';
+import profileRoutes from './routes/profileRoutes.js';
 
 
 //import the db config -- CRITICAL, because the type is module we are using the .js extension
@@ -31,6 +32,9 @@ app.use('/auth', authRoutes);
 
 // session routes: POST /api/sessions, GET /api/sessions
 app.use('/api', sessionRoutes);
+
+// profile routes: GET /api/profile, PUT /api/profile
+app.use('/api', profileRoutes);
 
 
 // start the server
