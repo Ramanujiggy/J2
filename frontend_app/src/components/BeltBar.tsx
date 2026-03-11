@@ -9,11 +9,17 @@ const BELT_COLORS: Record<BeltRank, string> = {
   blue:   '#1E4D8C',
   purple: '#6B2D8B',
   brown:  '#7B4A2D',
-  black:  '#2A2828',  // near-black — distinct from the app background
+  black:  '#1C1C1C',  // near-black — distinct from app background
 };
 
-// The stripe patch is always near-black so white stripes read clearly.
-const PATCH_BG = '#0D0D0D';
+// Patch color per rank — black belt gets a red patch, all others near-black.
+const PATCH_COLORS: Record<BeltRank, string> = {
+  white:  '#0D0D0D',
+  blue:   '#0D0D0D',
+  purple: '#0D0D0D',
+  brown:  '#0D0D0D',
+  black:  '#C41E3A',
+};
 
 interface BeltBarProps {
   rank?: string | null;
@@ -21,7 +27,9 @@ interface BeltBarProps {
 }
 
 export default function BeltBar({ rank, stripes = 0 }: BeltBarProps) {
-  const beltColor = rank ? (BELT_COLORS[rank as BeltRank] ?? null) : null;
+  const beltRank = rank as BeltRank | null;
+  const beltColor = beltRank ? (BELT_COLORS[beltRank] ?? null) : null;
+  const patchColor = beltRank ? (PATCH_COLORS[beltRank] ?? '#0D0D0D') : '#0D0D0D';
 
   // Don't render anything until a rank is set.
   if (!beltColor) return null;
@@ -41,11 +49,11 @@ export default function BeltBar({ rank, stripes = 0 }: BeltBarProps) {
       {/* Main belt — fills available width */}
       <div style={{ flex: 1, backgroundColor: beltColor }} />
 
-      {/* Stripe patch — fixed proportion, dark rectangle */}
+      {/* Stripe patch — fixed proportion; red for black belt, near-black otherwise */}
       <div
         style={{
           width: '22%',
-          backgroundColor: PATCH_BG,
+          backgroundColor: patchColor,
           position: 'relative',
           flexShrink: 0,
         }}

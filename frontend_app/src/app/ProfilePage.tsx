@@ -6,12 +6,12 @@ import BeltBar, { type BeltRank } from '../components/BeltBar.tsx';
 
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
 
-const BELT_RANKS: { value: BeltRank; label: string; color: string }[] = [
-  { value: 'white',  label: 'White',  color: '#C8C4BF' },
-  { value: 'blue',   label: 'Blue',   color: '#1E4D8C' },
-  { value: 'purple', label: 'Purple', color: '#6B2D8B' },
-  { value: 'brown',  label: 'Brown',  color: '#7B4A2D' },
-  { value: 'black',  label: 'Black',  color: '#2A2828' },
+const BELT_RANKS: { value: BeltRank; label: string }[] = [
+  { value: 'white',  label: 'White'  },
+  { value: 'blue',   label: 'Blue'   },
+  { value: 'purple', label: 'Purple' },
+  { value: 'brown',  label: 'Brown'  },
+  { value: 'black',  label: 'Black'  },
 ];
 
 interface ProfileData {
@@ -115,7 +115,7 @@ export default function ProfilePage() {
     setSaving(true);
 
     try {
-      await api.post('/api/profile', {
+      await api.put('/api/profile', {
         name: form.name || null,
         belt_rank: form.belt_rank,
         stripes: form.stripes,
@@ -131,8 +131,6 @@ export default function ProfilePage() {
       setSaving(false);
     }
   };
-
-  const btnBase = 'px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer';
 
   return (
     <div className="min-h-screen bg-brand-dark flex flex-col">
@@ -173,29 +171,20 @@ export default function ProfilePage() {
 
             {/* Belt rank */}
             <div>
-              <label className="block text-sm text-white/70 mb-2">Belt Rank</label>
-              <div className="flex gap-2 flex-wrap">
-                {BELT_RANKS.map(({ value, label, color }) => {
-                  const isActive = form.belt_rank === value;
-                  return (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => setForm(prev => ({ ...prev, belt_rank: value }))}
-                      className={`${btnBase} border-2 font-semibold`}
-                      style={{
-                        borderColor: color,
-                        backgroundColor: isActive ? color : 'transparent',
-                        color: isActive
-                          ? value === 'white' ? '#1a1a1a' : '#ffffff'
-                          : color,
-                      }}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
+              <label className="block text-sm text-white/70 mb-1">Belt Rank</label>
+              <select
+                value={form.belt_rank ?? ''}
+                onChange={e => setForm(prev => ({
+                  ...prev,
+                  belt_rank: (e.target.value as BeltRank) || null,
+                }))}
+                className={inputCls}
+              >
+                <option value="">— Select belt rank —</option>
+                {BELT_RANKS.map(({ value, label }) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
             </div>
 
             {/* Stripes */}
@@ -217,16 +206,6 @@ export default function ProfilePage() {
                       {n}
                     </button>
                   ))}
-                </div>
-              </div>
-            )}
-
-            {/* Belt preview */}
-            {form.belt_rank && (
-              <div>
-                <label className="block text-sm text-white/70 mb-2">Belt Preview</label>
-                <div className="w-48">
-                  <BeltBar rank={form.belt_rank} stripes={form.stripes} />
                 </div>
               </div>
             )}
