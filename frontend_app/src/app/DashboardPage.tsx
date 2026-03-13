@@ -105,7 +105,7 @@ export default function DashboardPage() {
               + Mat Time
             </button>
           </div>
-          <TrainingHeatmap sessions={sessions} loading={sessionsLoading} />
+          <TrainingHeatmap sessions={sessions} loading={sessionsLoading} onSessionUpdated={fetchSessions} />
         </section>
 
       </main>

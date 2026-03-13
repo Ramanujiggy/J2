@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { verifyToken } from '../middleware/authMiddleware.js';
-import { logSession, getSessions } from '../controllers/sessionController.js';
+import { logSession, getSessions, updateSession } from '../controllers/sessionController.js';
 
 const router = Router();
 
@@ -9,5 +9,8 @@ router.post('/sessions', verifyToken, logSession);
 
 // GET /api/sessions — fetch all sessions for the logged-in user (protected)
 router.get('/sessions', verifyToken, getSessions);
+
+// PUT /api/sessions/:id — update an existing session (protected)
+router.put('/sessions/:id', verifyToken, updateSession);
 
 export default router;

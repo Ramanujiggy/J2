@@ -2,11 +2,13 @@
 // Columns: Month label | Mon–Sun (7 day cells) | Notes | Journal
 // Sticky header keeps day labels visible. Month label appears at month boundaries.
 
+import { useState } from 'react';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import SessionDetailModal from './SessionDetailModal.tsx';
 
 const GRID_COLS = '5rem repeat(7, minmax(0, 1fr)) 13rem 7rem';
 
@@ -40,9 +42,12 @@ function toDateKey(raw: unknown): string {
 }
 
 export interface SessionSummary {
+  id: string;
   date: string;
   duration: number;
   intensity: number;
+  gi_nogi: 'gi' | 'no_gi';
+  session_type: 'class' | 'drilling' | 'competition_training';
   notes?: string;
 }
 
@@ -141,6 +146,7 @@ function computeStats(sessions: SessionSummary[], year: number) {
 interface TrainingHeatmapProps {
   sessions?: SessionSummary[];
   loading?: boolean;
+  onSessionUpdated?: () => void;
 }
 
 // Skeleton shimmer shown while sessions are fetching.
@@ -171,7 +177,14 @@ function HeatmapSkeleton() {
   );
 }
 
-export default function TrainingHeatmap({ sessions = [], loading = false }: TrainingHeatmapProps) {
+export default function TrainingHeatmap({ sessions = [], loading = false, onSessionUpdated }: TrainingHeatmapProps) {
+  // Ripple: track hovered cell origin and wave counter (toggling name restarts CSS animation)
+  const [rippleOrigin, setRippleOrigin] = useState<{ ri: number; ci: number } | null>(null);
+  const [rippleWave, setRippleWave] = useState(0);
+
+  // Session detail modal
+  const [selectedSession, setSelectedSession] = useState<{ session: SessionSummary; date: Date } | null>(null);
+
   if (loading) return <HeatmapSkeleton />;
 
   const now = new Date();
@@ -243,25 +256,62 @@ export default function TrainingHeatmap({ sessions = [], loading = false }: Trai
               </div>
 
               {/* Day cells */}
-              {row.days.map(({ date, day }) => {
+              {row.days.map(({ date, day }, ci) => {
                 const key = localDateKey(date);
                 const isFuture = date > now;
                 const isCurrentYear = date.getFullYear() === year;
+                const isClickable = isCurrentYear && !isFuture && day.count > 0;
                 const dateStr = date.toDateString();
                 const tooltip = day.count === 0
                   ? dateStr
                   : `${dateStr}: ${day.count} session${day.count !== 1 ? 's' : ''} · ${day.totalMinutes} min · intensity ${day.maxIntensity}/5`;
+
+                // Ripple delay — distance from hovered cell origin
+                const dist = rippleOrigin
+                  ? Math.sqrt(Math.pow(ri - rippleOrigin.ri, 2) + Math.pow(ci - rippleOrigin.ci, 2))
+                  : 0;
+                const rippleDelay = `${(dist * 0.07).toFixed(2)}s`;
+                // Toggle between two identical keyframe names to restart animation on each hover
+                const rippleAnim = rippleWave % 2 === 0 ? 'heatmap-ripple-a' : 'heatmap-ripple-b';
+
+                const handleClick = () => {
+                  if (!isClickable) return;
+                  // Pick the highest-intensity session for this day
+                  const daySessions = sessions
+                    .filter(s => toDateKey(s.date) === key)
+                    .sort((a, b) => b.intensity - a.intensity);
+                  if (daySessions[0]) setSelectedSession({ session: daySessions[0], date });
+                };
+
                 return (
                   <Tooltip key={key}>
                     <TooltipTrigger asChild>
                       <div className="px-0.5 py-1">
                         <div
-                          className="h-7 rounded cursor-default"
+                          className="h-7 rounded relative overflow-hidden"
                           style={{
                             backgroundColor: (!isCurrentYear || isFuture) ? '#111e26' : cellColor(day),
                             opacity: (!isCurrentYear || isFuture) ? 0.18 : 1,
+                            cursor: isClickable ? 'pointer' : 'default',
                           }}
-                        />
+                          onMouseEnter={() => {
+                            setRippleOrigin({ ri, ci });
+                            setRippleWave(w => w + 1);
+                          }}
+                          onClick={handleClick}
+                        >
+                          {/* Ripple overlay — restarts on each hover via toggled animation name */}
+                          {rippleOrigin && (
+                            <div
+                              className="absolute inset-0 rounded pointer-events-none"
+                              style={{
+                                background: 'rgba(111, 208, 140, 0.13)',
+                                animation: `${rippleAnim} 1.1s ease-out 1 forwards`,
+                                animationDelay: rippleDelay,
+                              }}
+                            />
+                          )}
+                        </div>
                       </div>
                     </TooltipTrigger>
                     <TooltipContent side="top">
@@ -298,6 +348,16 @@ export default function TrainingHeatmap({ sessions = [], loading = false }: Trai
           </div>
         ))}
       </div>}
+
+      {/* Session detail / edit modal */}
+      {selectedSession && (
+        <SessionDetailModal
+          session={selectedSession.session}
+          date={selectedSession.date}
+          onClose={() => setSelectedSession(null)}
+          onSaved={() => { onSessionUpdated?.(); setSelectedSession(null); }}
+        />
+      )}
 
     </div>
   );

@@ -48,3 +48,16 @@
     @apply bg-brand-dark text-white font-sans antialiased;
   }
 }
+
+/* Heatmap ripple — triggered by hover, plays once per hover.
+   Two identical keyframes let us toggle names to restart the animation. */
+@keyframes heatmap-ripple-a {
+  0%   { opacity: 0; }
+  30%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes heatmap-ripple-b {
+  0%   { opacity: 0; }
+  30%  { opacity: 1; }
+  100% { opacity: 0; }
+}

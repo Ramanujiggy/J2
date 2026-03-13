@@ -1,6 +1,9 @@
 // BeltBar — renders a BJJ belt accent bar sized to its parent width.
 // Main belt colour on the left, a dark stripe patch on the right,
 // with thin white stripe bars for each degree (0–4).
+// Animates from left: unfurls to full width when first mounted.
+
+import { useState, useEffect } from 'react';
 
 export type BeltRank = 'white' | 'blue' | 'purple' | 'brown' | 'black';
 
@@ -36,6 +39,26 @@ export default function BeltBar({ rank, stripes = 0 }: BeltBarProps) {
 
   const clampedStripes = Math.min(Math.max(Math.round(stripes), 0), 4);
 
+  return <BeltBarInner beltColor={beltColor} patchColor={patchColor} stripes={clampedStripes} />;
+}
+
+function BeltBarInner({
+  beltColor,
+  patchColor,
+  stripes,
+}: {
+  beltColor: string;
+  patchColor: string;
+  stripes: number;
+}) {
+  // Unfurl animation: mount at maxWidth 0, then let CSS transition reveal to 100%.
+  const [unrolled, setUnrolled] = useState(false);
+  useEffect(() => {
+    // Small delay so the browser paints the initial 0-width state first.
+    const id = setTimeout(() => setUnrolled(true), 20);
+    return () => clearTimeout(id);
+  }, []);
+
   return (
     <div
       style={{
@@ -44,6 +67,8 @@ export default function BeltBar({ rank, stripes = 0 }: BeltBarProps) {
         borderRadius: '3px',
         overflow: 'hidden',
         marginTop: '4px',
+        maxWidth: unrolled ? '100%' : '0',
+        transition: 'max-width 0.55s cubic-bezier(0.22, 0.61, 0.36, 1)',
       }}
     >
       {/* Main belt — fills available width */}
@@ -59,7 +84,7 @@ export default function BeltBar({ rank, stripes = 0 }: BeltBarProps) {
         }}
       >
         {/* Stripe bars — evenly distributed vertical lines */}
-        {Array.from({ length: clampedStripes }).map((_, i) => (
+        {Array.from({ length: stripes }).map((_, i) => (
           <div
             key={i}
             style={{
@@ -69,7 +94,7 @@ export default function BeltBar({ rank, stripes = 0 }: BeltBarProps) {
               width: '2px',
               backgroundColor: '#FFFFFF',
               // Evenly space: stripe i of N at position (i+1)/(N+1) * 100%
-              left: `${((i + 1) / (clampedStripes + 1)) * 100}%`,
+              left: `${((i + 1) / (stripes + 1)) * 100}%`,
               transform: 'translateX(-50%)',
             }}
           />
