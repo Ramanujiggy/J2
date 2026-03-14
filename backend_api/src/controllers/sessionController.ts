@@ -1,6 +1,12 @@
 import type { Request, Response } from 'express';
 import { createSession, getSessionsByUser, updateSession as updateSessionModel } from '../models/sessionModel.js';
 
+const VALID_TAGS = new Set(['standup', 'guard_retention', 'submissions', 'pin_escapes', 'guard_passing']);
+
+function isValidTagArray(v: unknown): v is string[] {
+    return Array.isArray(v) && v.length > 0 && v.every(t => VALID_TAGS.has(t as string));
+}
+
 export const logSession = async (req: Request, res: Response): Promise<void> => {
     try {
         const userId = req.user?.id;
@@ -9,14 +15,19 @@ export const logSession = async (req: Request, res: Response): Promise<void> => 
             return;
         }
 
-        const { date, duration, notes, gi_nogi, intensity, session_type } = req.body;
+        const { date, duration, notes, gi_nogi, intensity, session_type, tags } = req.body;
 
         if (!date || !duration || !gi_nogi || !intensity || !session_type) {
             res.status(400).json({ message: 'Date, duration, gi/no-gi, intensity, and session type are required.' });
             return;
         }
 
-        const session = await createSession(userId, date, Number(duration), notes ?? '', gi_nogi, Number(intensity), session_type);
+        if (!isValidTagArray(tags)) {
+            res.status(400).json({ message: 'At least one valid skill tag is required.' });
+            return;
+        }
+
+        const session = await createSession(userId, date, Number(duration), notes ?? '', gi_nogi, Number(intensity), session_type, tags);
         res.status(201).json({ message: 'Session logged.', session });
     } catch (err) {
         console.error('❌ Error logging session:', err);
@@ -49,16 +60,19 @@ export const updateSession = async (req: Request, res: Response): Promise<void> 
         }
 
         const { id } = req.params;
-        const { duration, gi_nogi, intensity, session_type, notes } = req.body;
+        const { duration, gi_nogi, intensity, session_type, notes, tags } = req.body;
 
         if (!duration || !gi_nogi || !intensity || !session_type) {
             res.status(400).json({ message: 'Duration, gi/no-gi, intensity, and session type are required.' });
             return;
         }
 
+        const resolvedTags = isValidTagArray(tags) ? tags : [];
+
         const session = await updateSessionModel(
-            id, userId,
-            Number(duration), gi_nogi, Number(intensity), session_type, notes ?? ''
+            id as string, userId,
+            Number(duration), gi_nogi, Number(intensity), session_type, notes ?? '',
+            resolvedTags
         );
 
         if (!session) {

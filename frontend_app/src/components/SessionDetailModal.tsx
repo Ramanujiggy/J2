@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api } from '../lib/api.ts';
+import { SKILL_TAGS } from '../lib/constants.ts';
 import type { SessionSummary } from './TrainingHeatmap.tsx';
 
 const INTENSITY_COLOR: Record<number, string> = {
@@ -16,6 +17,24 @@ const SESSION_TYPE_LABELS: Record<string, string> = {
   competition_training: 'Competition',
 };
 
+const DURATION_PRESETS = [
+  { label: '1h',      minutes: 60  },
+  { label: '1h 30m', minutes: 90  },
+  { label: '2h',      minutes: 120 },
+  { label: '2h 30m', minutes: 150 },
+  { label: '3h',      minutes: 180 },
+];
+
+const PRESET_MINUTES = new Set(DURATION_PRESETS.map(p => p.minutes));
+
+function formatDuration(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
 interface Props {
   session: SessionSummary;
   date: Date;
@@ -31,7 +50,19 @@ export default function SessionDetailModal({ session, date, onClose, onSaved }: 
     intensity:    session.intensity,
     session_type: session.session_type,
     notes:        session.notes ?? '',
+    tags:         session.tags ?? [],
   });
+
+  // Duration edit state — initialise to matching preset or 'custom'
+  const initialPreset = PRESET_MINUTES.has(session.duration) ? session.duration : 'custom' as const;
+  const [durationPreset, setDurationPreset] = useState<number | 'custom'>(initialPreset);
+  const [customH, setCustomH] = useState(
+    initialPreset === 'custom' ? String(Math.floor(session.duration / 60)) : ''
+  );
+  const [customM, setCustomM] = useState(
+    initialPreset === 'custom' ? String(session.duration % 60) : ''
+  );
+
   const [saving, setSaving] = useState(false);
 
   const intensityColor = INTENSITY_COLOR[session.intensity] ?? '#CDDFA0';
@@ -39,6 +70,27 @@ export default function SessionDetailModal({ session, date, onClose, onSaved }: 
   const dateLabel = date.toLocaleDateString('en-US', {
     weekday: 'long', month: 'long', day: 'numeric',
   });
+
+  const selectPreset = (minutes: number) => {
+    setDurationPreset(minutes);
+    setForm(f => ({ ...f, duration: minutes }));
+  };
+
+  const selectCustom = () => {
+    setDurationPreset('custom');
+  };
+
+  const applyCustom = (h: string, m: string) => {
+    const total = Number(h || 0) * 60 + Number(m || 0);
+    setForm(f => ({ ...f, duration: total }));
+  };
+
+  const toggleTag = (tag: string) => {
+    setForm(f => ({
+      ...f,
+      tags: f.tags.includes(tag) ? f.tags.filter(t => t !== tag) : [...f.tags, tag],
+    }));
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -52,6 +104,10 @@ export default function SessionDetailModal({ session, date, onClose, onSaved }: 
       setSaving(false);
     }
   };
+
+  const chipBase = 'px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer';
+  const chipActive = 'bg-brand-orange text-white';
+  const chipInactive = 'bg-white/8 text-white/55 hover:bg-white/15';
 
   return (
     <div
@@ -70,7 +126,7 @@ export default function SessionDetailModal({ session, date, onClose, onSaved }: 
         </p>
 
         {/* Stat tiles */}
-        <div className="grid grid-cols-2 gap-3 mb-5">
+        <div className="grid grid-cols-2 gap-3 mb-4">
 
           {/* Style */}
           <div className="bg-white/5 rounded-xl p-3">
@@ -142,18 +198,84 @@ export default function SessionDetailModal({ session, date, onClose, onSaved }: 
           <div className="bg-white/5 rounded-xl p-3">
             <p className="text-xs text-white/40 mb-1">Duration</p>
             {isEditing ? (
-              <div className="flex items-baseline gap-1">
-                <input
-                  type="number"
-                  min={1}
-                  className="bg-transparent text-sm font-semibold text-white w-16 outline-none"
-                  value={form.duration}
-                  onChange={e => setForm(f => ({ ...f, duration: Number(e.target.value) }))}
-                />
-                <span className="text-xs text-white/40">min</span>
+              <div>
+                <div className="flex flex-wrap gap-1 mb-1.5">
+                  {DURATION_PRESETS.map(({ label, minutes }) => (
+                    <button
+                      key={minutes}
+                      onClick={() => selectPreset(minutes)}
+                      className={`${chipBase} ${durationPreset === minutes ? chipActive : chipInactive}`}
+                      style={durationPreset !== minutes ? { backgroundColor: 'rgba(255,255,255,0.08)' } : {}}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                  <button
+                    onClick={selectCustom}
+                    className={`${chipBase} ${durationPreset === 'custom' ? chipActive : chipInactive}`}
+                    style={durationPreset !== 'custom' ? { backgroundColor: 'rgba(255,255,255,0.08)' } : {}}
+                  >
+                    Custom
+                  </button>
+                </div>
+                {durationPreset === 'custom' && (
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <input
+                      type="number"
+                      min={0}
+                      max={12}
+                      value={customH}
+                      onChange={e => { setCustomH(e.target.value); applyCustom(e.target.value, customM); }}
+                      className="w-10 bg-white/10 rounded text-xs text-white text-center outline-none px-1 py-1"
+                      placeholder="0"
+                    />
+                    <span className="text-xs text-white/40">h</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={59}
+                      value={customM}
+                      onChange={e => { setCustomM(e.target.value); applyCustom(customH, e.target.value); }}
+                      className="w-10 bg-white/10 rounded text-xs text-white text-center outline-none px-1 py-1"
+                      placeholder="0"
+                    />
+                    <span className="text-xs text-white/40">m</span>
+                  </div>
+                )}
               </div>
             ) : (
-              <p className="text-sm font-semibold text-white">{session.duration} min</p>
+              <p className="text-sm font-semibold text-white">{formatDuration(session.duration)}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Skills */}
+        <div className="mb-4">
+          <p className="text-xs text-white/40 mb-2">Skills</p>
+          <div className="flex flex-wrap gap-1.5">
+            {isEditing ? (
+              SKILL_TAGS.map(({ value, label }) => (
+                <button
+                  key={value}
+                  onClick={() => toggleTag(value)}
+                  className={`${chipBase} ${form.tags.includes(value) ? chipActive : chipInactive}`}
+                  style={!form.tags.includes(value) ? { backgroundColor: 'rgba(255,255,255,0.08)' } : {}}
+                >
+                  {label}
+                </button>
+              ))
+            ) : (
+              session.tags.length > 0
+                ? SKILL_TAGS.filter(({ value }) => session.tags.includes(value)).map(({ value, label }) => (
+                    <span
+                      key={value}
+                      className={`${chipBase} text-white/55`}
+                      style={{ backgroundColor: 'rgba(255,255,255,0.08)', cursor: 'default' }}
+                    >
+                      {label}
+                    </span>
+                  ))
+                : <span className="text-xs text-white/20 italic">None logged</span>
             )}
           </div>
         </div>
@@ -163,7 +285,7 @@ export default function SessionDetailModal({ session, date, onClose, onSaved }: 
           <p className="text-xs text-white/40 mb-2">Journal</p>
           <textarea
             readOnly={!isEditing}
-            rows={5}
+            rows={4}
             placeholder={isEditing ? 'Add a note…' : 'No notes for this session.'}
             value={form.notes}
             onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}

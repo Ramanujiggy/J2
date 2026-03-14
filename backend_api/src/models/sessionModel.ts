@@ -9,6 +9,7 @@ export interface Session {
     gi_nogi: 'gi' | 'no_gi';
     intensity: number;
     session_type: 'drilling' | 'class' | 'competition_training';
+    tags: string[];
     created_at?: Date;
 }
 
@@ -19,11 +20,12 @@ export const createSession = async (
     notes: string,
     gi_nogi: 'gi' | 'no_gi',
     intensity: number,
-    session_type: 'drilling' | 'class' | 'competition_training'
+    session_type: 'drilling' | 'class' | 'competition_training',
+    tags: string[]
 ): Promise<Session> => {
     const result = await query(
-        'INSERT INTO training_sessions (user_id, date, duration, notes, gi_nogi, intensity, session_type) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-        [userId, date, duration, notes || null, gi_nogi, intensity, session_type]
+        'INSERT INTO training_sessions (user_id, date, duration, notes, gi_nogi, intensity, session_type, tags) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+        [userId, date, duration, notes || null, gi_nogi, intensity, session_type, tags]
     );
     return result.rows[0];
 };
@@ -43,14 +45,15 @@ export const updateSession = async (
     gi_nogi: 'gi' | 'no_gi',
     intensity: number,
     session_type: 'drilling' | 'class' | 'competition_training',
-    notes: string
+    notes: string,
+    tags: string[]
 ): Promise<Session | null> => {
     const result = await query(
         `UPDATE training_sessions
-         SET duration = $3, gi_nogi = $4, intensity = $5, session_type = $6, notes = $7
+         SET duration = $3, gi_nogi = $4, intensity = $5, session_type = $6, notes = $7, tags = $8
          WHERE id = $1 AND user_id = $2
          RETURNING *`,
-        [id, userId, duration, gi_nogi, intensity, session_type, notes || null]
+        [id, userId, duration, gi_nogi, intensity, session_type, notes || null, tags]
     );
     return result.rows[0] ?? null;
 };

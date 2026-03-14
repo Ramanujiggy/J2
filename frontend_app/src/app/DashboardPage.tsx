@@ -5,6 +5,7 @@ import { api, ApiError } from '../lib/api.ts';
 import TrainingHeatmap, { type SessionSummary } from '../components/TrainingHeatmap.tsx';
 import LogSessionForm from '../components/LogSessionForm.tsx';
 import BeltBar, { type BeltRank } from '../components/BeltBar.tsx';
+import SkillRadar from '../components/SkillRadar.tsx';
 
 interface SessionsResponse {
   sessions: SessionSummary[];
@@ -106,6 +107,12 @@ export default function DashboardPage() {
             </button>
           </div>
           <TrainingHeatmap sessions={sessions} loading={sessionsLoading} onSessionUpdated={fetchSessions} />
+        </section>
+
+        {/* Analytics */}
+        <section>
+          <h2 className="text-2xl font-bold tracking-tight text-white mb-4">Analytics</h2>
+          <SkillRadar sessions={sessions} />
         </section>
 
       </main>

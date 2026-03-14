@@ -49,6 +49,7 @@ export interface SessionSummary {
   gi_nogi: 'gi' | 'no_gi';
   session_type: 'class' | 'drilling' | 'competition_training';
   notes?: string;
+  tags: string[];
 }
 
 interface DayData {
@@ -130,6 +131,8 @@ function computeStats(sessions: SessionSummary[], year: number) {
   const thisYear = sessions.filter(s => toDateKey(s.date).slice(0, 4) === String(year));
   const totalSessions = thisYear.length;
   const totalMinutes = thisYear.reduce((sum, s) => sum + Number(s.duration), 0);
+  const giMinutes    = thisYear.filter(s => s.gi_nogi === 'gi').reduce((sum, s) => sum + Number(s.duration), 0);
+  const nogiMinutes  = thisYear.filter(s => s.gi_nogi === 'no_gi').reduce((sum, s) => sum + Number(s.duration), 0);
 
   const daySet = new Set(sessions.map(s => toDateKey(s.date)));
   const cursor = new Date();
@@ -140,7 +143,7 @@ function computeStats(sessions: SessionSummary[], year: number) {
     cursor.setDate(cursor.getDate() - 1);
   }
 
-  return { totalSessions, totalMinutes, streak };
+  return { totalSessions, totalMinutes, giMinutes, nogiMinutes, streak };
 }
 
 interface TrainingHeatmapProps {
@@ -190,14 +193,16 @@ export default function TrainingHeatmap({ sessions = [], loading = false, onSess
   const now = new Date();
   const dayMap = buildDayMap(sessions);
   const { rows, year } = buildWeekRows(dayMap);
-  const { totalSessions, totalMinutes, streak } = computeStats(sessions, year);
-  const hours = totalMinutes > 0 ? (totalMinutes / 60).toFixed(1) : '0';
+  const { totalSessions, totalMinutes, giMinutes, nogiMinutes, streak } = computeStats(sessions, year);
+  const hours     = totalMinutes > 0 ? (totalMinutes    / 60).toFixed(1) : '0';
+  const giHours   = giMinutes   > 0 ? (giMinutes   / 60).toFixed(1) : '0';
+  const nogiHours = nogiMinutes > 0 ? (nogiMinutes / 60).toFixed(1) : '0';
 
   return (
     <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
 
       {/* Stats */}
-      <div className="flex gap-8 mb-6 pb-5 border-b border-white/10">
+      <div className="flex gap-6 mb-6 pb-5 border-b border-white/10 flex-wrap">
         <div>
           <p className="text-2xl font-bold text-white">{totalSessions}</p>
           <p className="text-xs text-white/40 mt-0.5">Sessions in {year}</p>
@@ -205,6 +210,14 @@ export default function TrainingHeatmap({ sessions = [], loading = false, onSess
         <div>
           <p className="text-2xl font-bold text-white">{hours}h</p>
           <p className="text-xs text-white/40 mt-0.5">Hours trained</p>
+        </div>
+        <div>
+          <p className="text-2xl font-bold text-white">{giHours}h</p>
+          <p className="text-xs text-white/40 mt-0.5">Gi hours</p>
+        </div>
+        <div>
+          <p className="text-2xl font-bold text-white">{nogiHours}h</p>
+          <p className="text-xs text-white/40 mt-0.5">No-Gi hours</p>
         </div>
         <div>
           <p className="text-2xl font-bold text-white">{streak}</p>
@@ -221,11 +234,11 @@ export default function TrainingHeatmap({ sessions = [], loading = false, onSess
       )}
 
       {/* Scrollable calendar — hidden when empty */}
-      {sessions.length > 0 && <div className="overflow-y-auto" style={{ maxHeight: 480 }}>
+      {sessions.length > 0 && <div className="overflow-y-auto relative" style={{ maxHeight: 480 }}>
 
         {/* Sticky column headers */}
         <div
-          className="grid sticky top-0 z-10 border-b border-white/10 mb-0.5"
+          className="grid sticky top-0 z-20 border-b border-white/10 mb-0.5"
           style={{ gridTemplateColumns: GRID_COLS, backgroundColor: '#1d3040' }}
         >
           <div className="py-2" />
@@ -260,7 +273,7 @@ export default function TrainingHeatmap({ sessions = [], loading = false, onSess
                 const key = localDateKey(date);
                 const isFuture = date > now;
                 const isCurrentYear = date.getFullYear() === year;
-                const isClickable = isCurrentYear && !isFuture && day.count > 0;
+                const isClickable = isCurrentYear && day.count > 0;
                 const dateStr = date.toDateString();
                 const tooltip = day.count === 0
                   ? dateStr
@@ -288,24 +301,36 @@ export default function TrainingHeatmap({ sessions = [], loading = false, onSess
                     <TooltipTrigger asChild>
                       <div className="px-0.5 py-1">
                         <div
-                          className="h-7 rounded relative overflow-hidden"
+                          className="rounded relative overflow-hidden flex items-end px-1"
                           style={{
-                            backgroundColor: (!isCurrentYear || isFuture) ? '#111e26' : cellColor(day),
-                            opacity: (!isCurrentYear || isFuture) ? 0.18 : 1,
+                            height: '32px',
+                            backgroundColor: (!isCurrentYear || (isFuture && day.count === 0)) ? '#111e26' : cellColor(day),
+                            opacity: (!isCurrentYear || (isFuture && day.count === 0)) ? 0.18 : 1,
                             cursor: isClickable ? 'pointer' : 'default',
+                            paddingBottom: '3px',
                           }}
                           onMouseEnter={() => {
-                            setRippleOrigin({ ri, ci });
-                            setRippleWave(w => w + 1);
+                            if (day.count > 0) {
+                              setRippleOrigin({ ri, ci });
+                              setRippleWave(w => w + 1);
+                            }
                           }}
                           onClick={handleClick}
                         >
-                          {/* Ripple overlay — restarts on each hover via toggled animation name */}
-                          {rippleOrigin && (
+                          {/* Date + hours label */}
+                          <span
+                            className="relative z-10 leading-none select-none pointer-events-none whitespace-nowrap"
+                            style={{ fontSize: '9px', fontWeight: 500, color: 'rgba(255,255,255,0.65)' }}
+                          >
+                            {date.getDate()}
+                            {day.count > 0 && ` | ${(day.totalMinutes / 60).toFixed(1)}h`}
+                          </span>
+                          {/* Ripple overlay — only within radius 2, restarts per hover */}
+                          {rippleOrigin && dist <= 2 && (
                             <div
                               className="absolute inset-0 rounded pointer-events-none"
                               style={{
-                                background: 'rgba(111, 208, 140, 0.13)',
+                                background: 'rgba(111, 208, 140, 0.06)',
                                 animation: `${rippleAnim} 1.1s ease-out 1 forwards`,
                                 animationDelay: rippleDelay,
                               }}

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { api } from '../lib/api.ts';
 import { toast } from '../hooks/use-toast.ts';
+import { SKILL_TAGS, type SkillTag } from '../lib/constants.ts';
 
 interface LogSessionResponse {
   message: string;
@@ -11,7 +12,6 @@ type SessionType = 'drilling' | 'class' | 'competition_training';
 
 interface SessionFormData {
   date: string;
-  duration: string;
   notes: string;
   gi_nogi: GiNoGi;
   intensity: number;
@@ -23,9 +23,17 @@ const _d = new Date();
 const today = `${_d.getFullYear()}-${String(_d.getMonth() + 1).padStart(2, '0')}-${String(_d.getDate()).padStart(2, '0')}`;
 
 const SESSION_TYPES: { value: SessionType; label: string }[] = [
-  { value: 'class', label: 'Class' },
-  { value: 'drilling', label: 'Drilling' },
+  { value: 'class',                label: 'Class' },
+  { value: 'drilling',             label: 'Drilling' },
   { value: 'competition_training', label: 'Competition' },
+];
+
+const DURATION_PRESETS = [
+  { label: '1h',      minutes: 60  },
+  { label: '1h 30m', minutes: 90  },
+  { label: '2h',      minutes: 120 },
+  { label: '2h 30m', minutes: 150 },
+  { label: '3h',      minutes: 180 },
 ];
 
 const btnBase = 'px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer';
@@ -34,13 +42,32 @@ const btnInactive = 'bg-white/10 text-white/60 hover:bg-white/20';
 
 export default function LogSessionForm({ onSuccess }: { onSuccess?: () => void }) {
   const [form, setForm] = useState<SessionFormData>({
-    date: today,
-    duration: '',
-    notes: '',
-    gi_nogi: 'gi',
-    intensity: 3,
+    date:         today,
+    notes:        '',
+    gi_nogi:      'gi',
+    intensity:    3,
     session_type: 'class',
   });
+
+  // Duration state — preset (minutes) or 'custom'
+  const [durationPreset, setDurationPreset] = useState<number | 'custom' | null>(null);
+  const [customH, setCustomH] = useState('');
+  const [customM, setCustomM] = useState('');
+
+  const durationMinutes =
+    durationPreset === 'custom'
+      ? Number(customH || 0) * 60 + Number(customM || 0)
+      : (durationPreset ?? 0);
+
+  // Skill tags
+  const [selectedTags, setSelectedTags] = useState<SkillTag[]>([]);
+
+  const toggleTag = (tag: SkillTag) => {
+    setSelectedTags(prev =>
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+    );
+  };
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -48,19 +75,38 @@ export default function LogSessionForm({ onSuccess }: { onSuccess?: () => void }
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  const resetForm = () => {
+    setForm({ date: today, notes: '', gi_nogi: 'gi', intensity: 3, session_type: 'class' });
+    setDurationPreset(null);
+    setCustomH('');
+    setCustomM('');
+    setSelectedTags([]);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
 
+    if (!durationMinutes || durationMinutes < 1) {
+      setError('Please select a duration.');
+      return;
+    }
+
+    if (selectedTags.length === 0) {
+      setError('Please select at least one skill area.');
+      return;
+    }
+
+    setLoading(true);
     try {
       const data = await api.post<LogSessionResponse>('/api/sessions', {
-        date: form.date,
-        duration: Number(form.duration),
-        notes: form.notes,
-        gi_nogi: form.gi_nogi,
-        intensity: form.intensity,
+        date:         form.date,
+        duration:     durationMinutes,
+        notes:        form.notes,
+        gi_nogi:      form.gi_nogi,
+        intensity:    form.intensity,
         session_type: form.session_type,
+        tags:         selectedTags,
       });
 
       if (data.message !== 'Session logged.') {
@@ -68,7 +114,7 @@ export default function LogSessionForm({ onSuccess }: { onSuccess?: () => void }
         return;
       }
 
-      setForm({ date: today, duration: '', notes: '', gi_nogi: 'gi', intensity: 3, session_type: 'class' });
+      resetForm();
       toast({ title: 'Session logged!' });
       onSuccess?.();
     } catch {
@@ -131,19 +177,53 @@ export default function LogSessionForm({ onSuccess }: { onSuccess?: () => void }
           </div>
         </div>
 
-        {/* Duration */}
+        {/* Duration — preset chips + optional custom */}
         <div>
-          <label className="block text-sm text-white/70 mb-1">Duration (minutes)</label>
-          <input
-            type="number"
-            name="duration"
-            required
-            min="1"
-            value={form.duration}
-            onChange={handleChange}
-            placeholder="60"
-            className="w-full bg-white/10 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-orange"
-          />
+          <label className="block text-sm text-white/70 mb-2">Duration</label>
+          <div className="flex flex-wrap gap-2">
+            {DURATION_PRESETS.map(({ label, minutes }) => (
+              <button
+                key={minutes}
+                type="button"
+                onClick={() => setDurationPreset(minutes)}
+                className={`${btnBase} ${durationPreset === minutes ? btnActive : btnInactive}`}
+              >
+                {label}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setDurationPreset('custom')}
+              className={`${btnBase} ${durationPreset === 'custom' ? btnActive : btnInactive}`}
+            >
+              Custom
+            </button>
+          </div>
+
+          {durationPreset === 'custom' && (
+            <div className="flex items-center gap-2 mt-3">
+              <input
+                type="number"
+                min={0}
+                max={12}
+                placeholder="0"
+                value={customH}
+                onChange={e => setCustomH(e.target.value)}
+                className="w-16 bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white text-sm text-center focus:outline-none focus:ring-2 focus:ring-brand-orange"
+              />
+              <span className="text-white/50 text-sm">h</span>
+              <input
+                type="number"
+                min={0}
+                max={59}
+                placeholder="0"
+                value={customM}
+                onChange={e => setCustomM(e.target.value)}
+                className="w-16 bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white text-sm text-center focus:outline-none focus:ring-2 focus:ring-brand-orange"
+              />
+              <span className="text-white/50 text-sm">min</span>
+            </div>
+          )}
         </div>
 
         {/* Intensity */}
@@ -160,6 +240,25 @@ export default function LogSessionForm({ onSuccess }: { onSuccess?: () => void }
                 }`}
               >
                 {n}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Skill tags */}
+        <div>
+          <label className="block text-sm text-white/70 mb-2">
+            Skills Trained <span className="text-white/30">(select all that apply)</span>
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {SKILL_TAGS.map(({ value, label }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => toggleTag(value)}
+                className={`${btnBase} ${selectedTags.includes(value) ? btnActive : btnInactive}`}
+              >
+                {label}
               </button>
             ))}
           </div>
