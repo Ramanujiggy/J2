@@ -9,6 +9,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import SessionDetailModal from './SessionDetailModal.tsx';
+import { type BeltRank, BELT_COLORS, PATCH_COLORS } from './BeltBar.tsx';
 
 const GRID_COLS = '5rem repeat(7, minmax(0, 1fr)) 13rem 7rem';
 
@@ -150,12 +151,14 @@ interface TrainingHeatmapProps {
   sessions?: SessionSummary[];
   loading?: boolean;
   onSessionUpdated?: () => void;
+  beltRank?: BeltRank | null;
+  stripes?: number;
 }
 
 // Skeleton shimmer shown while sessions are fetching.
 function HeatmapSkeleton() {
   return (
-    <div className="bg-white/5 border border-white/10 rounded-2xl p-6 animate-pulse">
+    <div className="rounded-2xl p-6 animate-pulse" style={{ backgroundColor: '#1a3040', border: '1px solid rgba(240,223,160,0.2)', boxShadow: '0 4px 24px rgba(0,0,0,0.4)' }}>
       {/* Shimmer stats row */}
       <div className="flex gap-8 mb-6 pb-5 border-b border-white/10">
         {[80, 64, 56].map(w => (
@@ -180,7 +183,20 @@ function HeatmapSkeleton() {
   );
 }
 
-export default function TrainingHeatmap({ sessions = [], loading = false, onSessionUpdated }: TrainingHeatmapProps) {
+// Build the scrollbar thumb gradient: main belt color + dark patch + evenly-spaced stripe lines.
+function beltThumbGradient(beltColor: string, patchColor: string, stripes: number): string {
+  const patchPct = 24; // bottom 24% = stripe patch zone
+  const beltPct  = 100 - patchPct;
+  // One white line per stripe, evenly distributed within the patch zone
+  const stripeLines = Array.from({ length: stripes }, (_, i) => {
+    const pos = beltPct + ((i + 1) / (stripes + 1)) * patchPct;
+    return `linear-gradient(to bottom, transparent ${pos}%, rgba(255,255,255,0.55) ${pos}%, rgba(255,255,255,0.55) ${pos + 1.8}%, transparent ${pos + 1.8}%)`;
+  });
+  const baseBg = `linear-gradient(to bottom, ${beltColor} ${beltPct}%, ${patchColor} ${beltPct}%)`;
+  return [...stripeLines, baseBg].join(', ');
+}
+
+export default function TrainingHeatmap({ sessions = [], loading = false, onSessionUpdated, beltRank, stripes = 0 }: TrainingHeatmapProps) {
   // Ripple: track hovered cell origin and wave counter (toggling name restarts CSS animation)
   const [rippleOrigin, setRippleOrigin] = useState<{ ri: number; ci: number } | null>(null);
   const [rippleWave, setRippleWave] = useState(0);
@@ -198,30 +214,48 @@ export default function TrainingHeatmap({ sessions = [], loading = false, onSess
   const giHours   = giMinutes   > 0 ? (giMinutes   / 60).toFixed(1) : '0';
   const nogiHours = nogiMinutes > 0 ? (nogiMinutes / 60).toFixed(1) : '0';
 
+  const beltColor  = beltRank ? (BELT_COLORS[beltRank]  ?? null) : null;
+  const patchColor = beltRank ? (PATCH_COLORS[beltRank] ?? '#0D0D0D') : '#0D0D0D';
+  const thumbBg    = beltColor
+    ? beltThumbGradient(beltColor, patchColor, stripes)
+    : 'rgba(255,255,255,0.15)';
+
   return (
-    <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+    <>
+    {/* Belt scrollbar styles — scoped to this component's scroll container */}
+    <style>{`
+      .j2-heatmap-scroll::-webkit-scrollbar { width: 9px; }
+      .j2-heatmap-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.18); border-radius: 5px; }
+      .j2-heatmap-scroll::-webkit-scrollbar-thumb {
+        background: ${thumbBg};
+        border-radius: 5px;
+        border: 1px solid rgba(0,0,0,0.25);
+      }
+      .j2-heatmap-scroll::-webkit-scrollbar-thumb:hover { filter: brightness(1.12); }
+    `}</style>
+    <div className="rounded-2xl p-6" style={{ backgroundColor: '#1a3040', border: '1px solid rgba(240,223,160,0.2)', boxShadow: '0 4px 24px rgba(0,0,0,0.4)' }}>
 
       {/* Stats */}
       <div className="flex gap-6 mb-6 pb-5 border-b border-white/10 flex-wrap">
         <div>
           <p className="text-2xl font-bold text-white">{totalSessions}</p>
-          <p className="text-xs text-white/40 mt-0.5">Sessions in {year}</p>
+          <p className="text-xs mt-0.5" style={{ color: 'rgba(240,223,160,0.5)' }}>Sessions in {year}</p>
         </div>
         <div>
           <p className="text-2xl font-bold text-white">{hours}h</p>
-          <p className="text-xs text-white/40 mt-0.5">Hours trained</p>
+          <p className="text-xs mt-0.5" style={{ color: 'rgba(240,223,160,0.5)' }}>Hours trained</p>
         </div>
         <div>
           <p className="text-2xl font-bold text-white">{giHours}h</p>
-          <p className="text-xs text-white/40 mt-0.5">Gi hours</p>
+          <p className="text-xs mt-0.5" style={{ color: 'rgba(240,223,160,0.5)' }}>Gi hours</p>
         </div>
         <div>
           <p className="text-2xl font-bold text-white">{nogiHours}h</p>
-          <p className="text-xs text-white/40 mt-0.5">No-Gi hours</p>
+          <p className="text-xs mt-0.5" style={{ color: 'rgba(240,223,160,0.5)' }}>No-Gi hours</p>
         </div>
         <div>
           <p className="text-2xl font-bold text-white">{streak}</p>
-          <p className="text-xs text-white/40 mt-0.5">Day streak</p>
+          <p className="text-xs mt-0.5" style={{ color: 'rgba(240,223,160,0.5)' }}>Day streak</p>
         </div>
       </div>
 
@@ -234,21 +268,21 @@ export default function TrainingHeatmap({ sessions = [], loading = false, onSess
       )}
 
       {/* Scrollable calendar — hidden when empty */}
-      {sessions.length > 0 && <div className="overflow-y-auto relative" style={{ maxHeight: 480 }}>
+      {sessions.length > 0 && <div className="overflow-y-auto relative j2-heatmap-scroll" style={{ maxHeight: 480 }}>
 
         {/* Sticky column headers */}
         <div
           className="grid sticky top-0 z-20 border-b border-white/10 mb-0.5"
-          style={{ gridTemplateColumns: GRID_COLS, backgroundColor: '#1d3040' }}
+          style={{ gridTemplateColumns: GRID_COLS, backgroundColor: '#1d3040', boxShadow: '0 3px 10px rgba(0,0,0,0.6)' }}
         >
           <div className="py-2" />
           {DOW.map(d => (
-            <div key={d} className="py-2 text-center text-xs font-medium text-white/40">
+            <div key={d} className="py-2 text-center text-xs font-medium" style={{ color: 'rgba(240,223,160,0.5)' }}>
               {d}
             </div>
           ))}
-          <div className="py-2 pl-4 text-xs font-medium text-white/40">Notes</div>
-          <div className="py-2 pl-3 text-xs font-medium text-white/40">Journal</div>
+          <div className="py-2 pl-4 text-xs font-medium" style={{ color: 'rgba(240,223,160,0.5)' }}>Notes</div>
+          <div className="py-2 pl-3 text-xs font-medium" style={{ color: 'rgba(240,223,160,0.5)' }}>Journal</div>
         </div>
 
         {/* Week rows */}
@@ -264,7 +298,7 @@ export default function TrainingHeatmap({ sessions = [], loading = false, onSess
               style={{ gridTemplateColumns: GRID_COLS, minHeight: 40 }}
             >
               {/* Month label */}
-              <div className="pr-2 text-xs font-semibold text-white/55 truncate">
+              <div className="pr-2 text-xs font-semibold truncate" style={{ color: 'rgba(240,223,160,0.6)' }}>
                 {row.monthLabel}
               </div>
 
@@ -308,6 +342,7 @@ export default function TrainingHeatmap({ sessions = [], loading = false, onSess
                             opacity: (!isCurrentYear || (isFuture && day.count === 0)) ? 0.18 : 1,
                             cursor: isClickable ? 'pointer' : 'default',
                             paddingBottom: '3px',
+                            border: '1px solid rgba(240,223,160,0.08)',
                           }}
                           onMouseEnter={() => {
                             if (day.count > 0) {
@@ -348,7 +383,7 @@ export default function TrainingHeatmap({ sessions = [], loading = false, onSess
 
               {/* Notes */}
               <div
-                className="pl-4 text-xs text-white/40 truncate"
+                className="pl-4 text-xs truncate" style={{ color: 'rgba(240,223,160,0.4)' }}
                 title={weekNotes.join(' · ')}
               >
                 {noteText}
@@ -364,7 +399,7 @@ export default function TrainingHeatmap({ sessions = [], loading = false, onSess
       </div>}
 
       {/* Legend — hidden when empty */}
-      {sessions.length > 0 && <div className="flex items-center gap-4 mt-5 pt-4 border-t border-white/10 text-xs text-white/40">
+      {sessions.length > 0 && <div className="flex items-center gap-4 mt-5 pt-4 border-t border-white/10 text-xs" style={{ color: 'rgba(240,223,160,0.5)' }}>
         <span>Intensity</span>
         {LEGEND.map(({ color, label }) => (
           <div key={label} className="flex items-center gap-1.5">
@@ -385,5 +420,6 @@ export default function TrainingHeatmap({ sessions = [], loading = false, onSess
       )}
 
     </div>
+    </>
   );
 }

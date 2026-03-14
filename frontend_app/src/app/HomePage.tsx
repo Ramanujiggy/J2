@@ -69,7 +69,7 @@ export default function HomePage() {
       </div>
 
       {/* Card */}
-      <div className="w-full max-w-sm bg-white/5 border border-white/10 rounded-2xl p-8 shadow-xl">
+      <div className="w-full max-w-sm rounded-2xl p-8" style={{ backgroundColor: '#1a3040', border: '1px solid rgba(240,223,160,0.2)', boxShadow: '0 4px 24px rgba(0,0,0,0.4)' }}>
 
         {/* Mode toggle */}
         <div className="flex rounded-lg overflow-hidden mb-6 border border-white/10">

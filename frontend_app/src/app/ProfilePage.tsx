@@ -156,7 +156,7 @@ export default function ProfilePage() {
         {loading ? (
           <p className="text-white/40 text-sm">Loading…</p>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl p-6" style={{ backgroundColor: '#1a3040', border: '1px solid rgba(240,223,160,0.2)', boxShadow: '0 4px 24px rgba(0,0,0,0.4)' }}>
 
             {/* Name */}
             <div>
