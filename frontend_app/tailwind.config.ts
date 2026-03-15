@@ -11,7 +11,7 @@ export default {
           orange:        '#DA7422',
           green:         '#6FD08C',
           'light-green': '#CDDFA0',
-          dark:          '#264653',
+          dark:          '#111e2b',
         },
         // shadcn CSS variable tokens
         background:  'hsl(var(--background))',

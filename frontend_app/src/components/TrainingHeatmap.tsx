@@ -21,7 +21,7 @@ const MONTH_FULL = [
 ];
 
 const LEGEND = [
-  { color: '#1a3040', label: 'Rest' },
+  { color: '#0d1a26', label: 'Rest' },
   { color: '#CDDFA0', label: 'Easy' },
   { color: '#6FD08C', label: 'Moderate' },
   { color: '#DA7422', label: 'High' },
@@ -63,7 +63,7 @@ interface DayData {
 const EMPTY_DAY: DayData = { count: 0, totalMinutes: 0, maxIntensity: 0, notes: [] };
 
 function cellColor(day: DayData): string {
-  if (day.count === 0)          return '#1a3040';
+  if (day.count === 0)          return '#0d1a26';
   if (day.maxIntensity <= 2)    return '#CDDFA0';
   if (day.maxIntensity === 3)   return '#6FD08C';
   return '#DA7422';
@@ -158,7 +158,7 @@ interface TrainingHeatmapProps {
 // Skeleton shimmer shown while sessions are fetching.
 function HeatmapSkeleton() {
   return (
-    <div className="rounded-2xl p-6 animate-pulse" style={{ backgroundColor: '#1a3040', border: '1px solid rgba(240,223,160,0.2)', boxShadow: '0 4px 24px rgba(0,0,0,0.4)' }}>
+    <div className="rounded-2xl p-6 animate-pulse" style={{ backgroundColor: '#111e2b', border: '1px solid rgba(184,122,85,0.45)', boxShadow: '0 4px 24px rgba(0,0,0,0.4)' }}>
       {/* Shimmer stats row */}
       <div className="flex gap-8 mb-6 pb-5 border-b border-white/10">
         {[80, 64, 56].map(w => (
@@ -197,11 +197,6 @@ function beltThumbGradient(beltColor: string, patchColor: string, stripes: numbe
 }
 
 export default function TrainingHeatmap({ sessions = [], loading = false, onSessionUpdated, beltRank, stripes = 0 }: TrainingHeatmapProps) {
-  // Ripple: track hovered cell origin and wave counter (toggling name restarts CSS animation)
-  const [rippleOrigin, setRippleOrigin] = useState<{ ri: number; ci: number } | null>(null);
-  const [rippleWave, setRippleWave] = useState(0);
-
-  // Session detail modal
   const [selectedSession, setSelectedSession] = useState<{ session: SessionSummary; date: Date } | null>(null);
 
   if (loading) return <HeatmapSkeleton />;
@@ -233,7 +228,7 @@ export default function TrainingHeatmap({ sessions = [], loading = false, onSess
       }
       .j2-heatmap-scroll::-webkit-scrollbar-thumb:hover { filter: brightness(1.12); }
     `}</style>
-    <div className="rounded-2xl p-6" style={{ backgroundColor: '#1a3040', border: '1px solid rgba(240,223,160,0.2)', boxShadow: '0 4px 24px rgba(0,0,0,0.4)' }}>
+    <div className="rounded-2xl p-6" style={{ backgroundColor: '#111e2b', border: '1px solid rgba(184,122,85,0.45)', boxShadow: '0 4px 24px rgba(0,0,0,0.4)' }}>
 
       {/* Stats */}
       <div className="flex gap-6 mb-6 pb-5 border-b border-white/10 flex-wrap">
@@ -273,7 +268,7 @@ export default function TrainingHeatmap({ sessions = [], loading = false, onSess
         {/* Sticky column headers */}
         <div
           className="grid sticky top-0 z-20 border-b border-white/10 mb-0.5"
-          style={{ gridTemplateColumns: GRID_COLS, backgroundColor: '#1d3040', boxShadow: '0 3px 10px rgba(0,0,0,0.6)' }}
+          style={{ gridTemplateColumns: GRID_COLS, backgroundColor: '#141e2b', boxShadow: '0 3px 10px rgba(0,0,0,0.6)' }}
         >
           <div className="py-2" />
           {DOW.map(d => (
@@ -313,14 +308,6 @@ export default function TrainingHeatmap({ sessions = [], loading = false, onSess
                   ? dateStr
                   : `${dateStr}: ${day.count} session${day.count !== 1 ? 's' : ''} · ${day.totalMinutes} min · intensity ${day.maxIntensity}/5`;
 
-                // Ripple delay — distance from hovered cell origin
-                const dist = rippleOrigin
-                  ? Math.sqrt(Math.pow(ri - rippleOrigin.ri, 2) + Math.pow(ci - rippleOrigin.ci, 2))
-                  : 0;
-                const rippleDelay = `${(dist * 0.07).toFixed(2)}s`;
-                // Toggle between two identical keyframe names to restart animation on each hover
-                const rippleAnim = rippleWave % 2 === 0 ? 'heatmap-ripple-a' : 'heatmap-ripple-b';
-
                 const handleClick = () => {
                   if (!isClickable) return;
                   // Pick the highest-intensity session for this day
@@ -335,42 +322,26 @@ export default function TrainingHeatmap({ sessions = [], loading = false, onSess
                     <TooltipTrigger asChild>
                       <div className="px-0.5 py-1">
                         <div
-                          className="rounded relative overflow-hidden flex items-end px-1"
+                          className="rounded flex items-end px-1"
                           style={{
                             height: '32px',
-                            backgroundColor: (!isCurrentYear || (isFuture && day.count === 0)) ? '#111e26' : cellColor(day),
-                            opacity: (!isCurrentYear || (isFuture && day.count === 0)) ? 0.18 : 1,
+                            backgroundColor: !isCurrentYear ? '#111e26'
+                              : (isFuture && day.count === 0) ? '#0a1620'
+                              : cellColor(day),
+                            opacity: !isCurrentYear ? 0.18 : 1,
                             cursor: isClickable ? 'pointer' : 'default',
                             paddingBottom: '3px',
                             border: '1px solid rgba(240,223,160,0.08)',
                           }}
-                          onMouseEnter={() => {
-                            if (day.count > 0) {
-                              setRippleOrigin({ ri, ci });
-                              setRippleWave(w => w + 1);
-                            }
-                          }}
                           onClick={handleClick}
                         >
-                          {/* Date + hours label */}
                           <span
-                            className="relative z-10 leading-none select-none pointer-events-none whitespace-nowrap"
+                            className="leading-none select-none pointer-events-none whitespace-nowrap"
                             style={{ fontSize: '9px', fontWeight: 500, color: 'rgba(255,255,255,0.65)' }}
                           >
                             {date.getDate()}
                             {day.count > 0 && ` | ${(day.totalMinutes / 60).toFixed(1)}h`}
                           </span>
-                          {/* Ripple overlay — only within radius 2, restarts per hover */}
-                          {rippleOrigin && dist <= 2 && (
-                            <div
-                              className="absolute inset-0 rounded pointer-events-none"
-                              style={{
-                                background: 'rgba(111, 208, 140, 0.06)',
-                                animation: `${rippleAnim} 1.1s ease-out 1 forwards`,
-                                animationDelay: rippleDelay,
-                              }}
-                            />
-                          )}
                         </div>
                       </div>
                     </TooltipTrigger>

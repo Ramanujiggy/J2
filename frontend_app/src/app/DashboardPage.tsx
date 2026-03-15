@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.ts';
 import { api, ApiError } from '../lib/api.ts';
+import WaveBackground from '../components/WaveBackground.tsx';
 import TrainingHeatmap, { type SessionSummary } from '../components/TrainingHeatmap.tsx';
 import LogSessionForm from '../components/LogSessionForm.tsx';
 import BeltBar, { type BeltRank } from '../components/BeltBar.tsx';
@@ -67,21 +68,26 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-brand-dark flex flex-col">
 
       {/* Nav */}
-      <header className="border-b border-white/10 px-6 py-4 flex items-center justify-between">
-        <div className="w-fit">
-          <h1 className="text-xl font-bold tracking-tight text-white">Journada</h1>
+      <header className="border-b border-white/10 px-6 py-4 flex items-center justify-between relative overflow-hidden">
+        <WaveBackground />
+        {/* Fade the wave out downward into the page background */}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 20%, #111e2b 90%)', pointerEvents: 'none' }} />
+        <div className="w-fit relative z-10">
+          <h1 className="text-xl font-bold tracking-tight" style={{ color: '#F0DFA0', textShadow: '0 0 12px rgba(240,223,160,0.4), 0 0 28px rgba(240,223,160,0.18)' }}>Journada</h1>
           <BeltBar rank={beltRank} stripes={stripes} />
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 relative z-10">
           <button
             onClick={() => navigate('/profile')}
-            className="text-sm text-white/50 hover:text-white transition-colors"
+            className="text-sm transition-colors"
+            style={{ color: '#F0DFA0', textShadow: '0 0 10px rgba(240,223,160,0.5), 0 0 22px rgba(240,223,160,0.2)' }}
           >
             Profile
           </button>
           <button
             onClick={handleLogout}
-            className="text-sm text-white/50 hover:text-white transition-colors"
+            className="text-sm transition-colors"
+            style={{ color: '#F0DFA0', textShadow: '0 0 10px rgba(240,223,160,0.5), 0 0 22px rgba(240,223,160,0.2)' }}
           >
             Log out
           </button>
@@ -98,7 +104,7 @@ export default function DashboardPage() {
         {/* Training history */}
         <section>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold tracking-tight text-white">{new Date().getFullYear()} Mat Time</h2>
+            <h2 className="text-2xl font-bold tracking-tight" style={{ color: '#F0DFA0' }}>{new Date().getFullYear()} Mat Time</h2>
             <button
               onClick={() => setLogOpen(true)}
               className="bg-brand-orange hover:bg-brand-orange/90 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"

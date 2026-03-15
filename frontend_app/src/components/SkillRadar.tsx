@@ -114,15 +114,15 @@ export default function SkillRadar({ sessions }: SkillRadarProps) {
     <div
       className="rounded-2xl p-5"
       style={{
-        backgroundColor: '#1a3040',
-        border: `1px solid rgba(240,223,160,0.2)`,
+        backgroundColor: '#111e2b',
+        border: `1px solid rgba(184,122,85,0.45)`,
         boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
       }}
     >
       {/* Header row */}
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h2 className="text-lg font-semibold text-white">Skills Span</h2>
+          <h2 className="text-lg font-semibold" style={{ color: '#F0DFA0' }}>Skills Span</h2>
           <div className="flex items-center gap-1.5 mt-0.5">
             <span className="text-sm font-medium" style={{ color: PALE_YELLOW }}>
               The Grappling Prism
@@ -186,7 +186,7 @@ export default function SkillRadar({ sessions }: SkillRadarProps) {
           <svg viewBox="-20 -20 140 140" width="100%" aria-label="Skill radar chart">
 
             {/* Background */}
-            <rect x="-20" y="-20" width="140" height="140" fill="#1a3040" rx="12" />
+            <rect x="-20" y="-20" width="140" height="140" fill="#111e2b" rx="12" />
 
             {/* Grid rings */}
             {gridRings.map((pts, ri) => (
