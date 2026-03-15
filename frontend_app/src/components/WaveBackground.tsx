@@ -7,8 +7,8 @@
 //
 // Each motif: three concentric upward-facing semicircular arcs (outer r=20, mid r=14, inner r=8).
 
-const BG     = '#111e2b'; // brand-dark — matches app palette
-const COPPER = '#B87A55'; // muted copper / clay
+import { useId } from 'react';
+import { PAGE_BG as BG, COPPER } from '../lib/theme.ts';
 
 const ARCS = [
   { r: 18, strokeWidth: 1.8, strokeOpacity: 0.70 },
@@ -28,6 +28,11 @@ const ANCHORS = [
 ] as const;
 
 export default function WaveBackground() {
+  // useId() guarantees a unique ID per instance, preventing pattern collision
+  // when multiple WaveBackground components are in the DOM simultaneously.
+  const uid = useId();
+  const patternId = `jw-tile-${uid}`;
+
   return (
     <svg
       aria-hidden="true"
@@ -35,7 +40,7 @@ export default function WaveBackground() {
       style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
     >
       <defs>
-        <pattern id="jw-tile" width="36" height="36" patternUnits="userSpaceOnUse">
+        <pattern id={patternId} width="36" height="36" patternUnits="userSpaceOnUse">
 
           {/* Tile background */}
           <rect width="36" height="36" fill={BG} />
@@ -57,7 +62,17 @@ export default function WaveBackground() {
         </pattern>
       </defs>
 
-      <rect width="100%" height="100%" fill="url(#jw-tile)" />
+      {/* Oversized rect so the 36px translate never reveals a gap at any edge */}
+      <g style={{ animation: 'jw-drift 14s linear infinite' }}>
+        <rect x="-36" y="-36" width="10000" height="3000" fill={`url(#${patternId})`} />
+      </g>
+
+      <style>{`
+        @keyframes jw-drift {
+          from { transform: translate(0px,   0px); }
+          to   { transform: translate(36px, -36px); }
+        }
+      `}</style>
     </svg>
   );
 }

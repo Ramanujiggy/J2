@@ -1,28 +1,27 @@
 import { useState } from 'react';
-import { Info, Triangle } from 'lucide-react';
+import { Info, Triangle, Target, BarChart2, Layers, BookOpen, type LucideIcon } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { SKILL_TAGS } from '../lib/constants.ts';
+import { CARD_BG, COPPER, COPPER_BORDER, CARD_SHADOW, PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
 import type { SessionSummary } from './TrainingHeatmap.tsx';
 
-// SVG coordinate space
+// ─── Pentagon math (Grappling Prism) ─────────────────────────────────────────
+
 const CX = 50;
 const CY = 50;
-const R  = 38; // outer radius — leaves room for labels in 100×100 space
+const R  = 38;
+const N  = SKILL_TAGS.length; // 5
+const LABEL_R = R + 11;
 
-const N = SKILL_TAGS.length; // 5
-
-// Pentagon vertex at axis i, scaled by fraction t (0–1)
 function vertex(i: number, t: number): [number, number] {
   const angle = (2 * Math.PI / N) * i - Math.PI / 2;
   return [CX + R * t * Math.cos(angle), CY + R * t * Math.sin(angle)];
 }
 
-// Convert array of [x,y] pairs to SVG points string
 function toPoints(pts: [number, number][]): string {
   return pts.map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`).join(' ');
 }
 
-// Label anchor attributes based on angle position
 function labelAttrs(i: number): {
   textAnchor: 'start' | 'end' | 'middle';
   dominantBaseline: 'auto' | 'hanging' | 'middle';
@@ -30,27 +29,17 @@ function labelAttrs(i: number): {
   const angle = (2 * Math.PI / N) * i - Math.PI / 2;
   const cos = Math.cos(angle);
   const sin = Math.sin(angle);
-  const textAnchor: 'start' | 'end' | 'middle' =
-    cos > 0.15  ? 'start' :
-    cos < -0.15 ? 'end'   : 'middle';
-  const dominantBaseline: 'auto' | 'hanging' | 'middle' =
-    sin < -0.15 ? 'auto'    :
-    sin > 0.15  ? 'hanging' : 'middle';
-  return { textAnchor, dominantBaseline };
+  return {
+    textAnchor: cos > 0.15 ? 'start' : cos < -0.15 ? 'end' : 'middle',
+    dominantBaseline: sin < -0.15 ? 'auto' : sin > 0.15 ? 'hanging' : 'middle',
+  };
 }
 
-// Split multi-word labels onto two lines for the SVG chart
 function labelLines(label: string): string[] {
-  const spaceIdx = label.indexOf(' ');
-  return spaceIdx !== -1 ? [label.slice(0, spaceIdx), label.slice(spaceIdx + 1)] : [label];
+  const i = label.indexOf(' ');
+  return i !== -1 ? [label.slice(0, i), label.slice(i + 1)] : [label];
 }
 
-const LABEL_R = R + 11; // label ring radius — slight extra room for stacked lines
-
-// Pale yellow accent — matches the app's light color aesthetic
-const PALE_YELLOW = '#F0DFA0';
-
-// Prism fill colors keyed to the dominant skill
 const SKILL_COLORS: Record<string, { fill: string; stroke: string; dot: string }> = {
   standup:         { fill: 'rgba(255,190,50,0.25)',  stroke: 'rgba(255,190,50,0.75)',  dot: 'rgba(255,190,50,0.9)'  },
   guard_retention: { fill: 'rgba(50,200,200,0.25)',  stroke: 'rgba(50,200,200,0.75)',  dot: 'rgba(50,200,200,0.9)'  },
@@ -60,74 +49,233 @@ const SKILL_COLORS: Record<string, { fill: string; stroke: string; dot: string }
 };
 const DEFAULT_COLORS = { fill: 'rgba(111,208,140,0.22)', stroke: 'rgba(176,214,100,0.75)', dot: 'rgba(176,214,100,0.9)' };
 
-type Window = '90d' | 'all';
+// ─── Donut chart (Split + Format views) ──────────────────────────────────────
+
+interface DonutSegment { value: number; color: string; }
+
+function DonutChart({ segments }: { segments: DonutSegment[] }) {
+  const cx = 70, cy = 70, R = 46, innerR = 28;
+  const total = segments.reduce((s, x) => s + x.value, 0);
+
+  if (total === 0) return (
+    <svg viewBox="0 0 140 140" width="100%">
+      <rect x="0" y="0" width="140" height="140" fill={CARD_BG} rx="12" />
+      <circle cx={cx} cy={cy} r={(R + innerR) / 2} fill="none"
+        stroke="rgba(255,255,255,0.06)" strokeWidth={R - innerR} />
+    </svg>
+  );
+
+  const GAP = 0.06;
+  let angle = -Math.PI / 2;
+
+  const arcs = segments.map((seg, idx) => {
+    const frac   = seg.value / total;
+    const sweep  = frac * 2 * Math.PI - GAP;
+    const start  = angle + GAP / 2;
+    angle += frac * 2 * Math.PI;
+    if (sweep <= 0) return null;
+    const end   = start + sweep;
+    const large = sweep > Math.PI ? 1 : 0;
+    const [c1x, c1y] = [Math.cos(start), Math.sin(start)];
+    const [c2x, c2y] = [Math.cos(end),   Math.sin(end)];
+    const d = [
+      `M ${(cx + R * c1x).toFixed(2)} ${(cy + R * c1y).toFixed(2)}`,
+      `A ${R} ${R} 0 ${large} 1 ${(cx + R * c2x).toFixed(2)} ${(cy + R * c2y).toFixed(2)}`,
+      `L ${(cx + innerR * c2x).toFixed(2)} ${(cy + innerR * c2y).toFixed(2)}`,
+      `A ${innerR} ${innerR} 0 ${large} 0 ${(cx + innerR * c1x).toFixed(2)} ${(cy + innerR * c1y).toFixed(2)}`,
+      'Z',
+    ].join(' ');
+    return <path key={idx} d={d} fill={seg.color} />;
+  });
+
+  return (
+    <svg viewBox="0 0 140 140" width="100%">
+      <rect x="0" y="0" width="140" height="140" fill={CARD_BG} rx="12" />
+      {arcs}
+    </svg>
+  );
+}
+
+// ─── Volume bar chart ─────────────────────────────────────────────────────────
+
+const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function sessionMonth(raw: unknown): number {
+  if (raw instanceof Date) return raw.getMonth();
+  const str = String(raw);
+  const match = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return match ? parseInt(match[2], 10) - 1 : NaN;
+}
+
+function VolumeChart({ sessions }: { sessions: SessionSummary[] }) {
+  const monthlyHours = Array(12).fill(0) as number[];
+  for (const s of sessions) {
+    const m = sessionMonth(s.date);
+    if (isNaN(m)) continue;
+    monthlyHours[m] += s.duration / 60;
+  }
+  const maxH = Math.max(...monthlyHours, 0.001);
+  const currentMonth = new Date().getMonth();
+  const barW = 7;
+  const betweenGap = (140 - 8 - 12 * barW) / 11;
+  const chartH = 72;
+  const baseY  = 84;
+
+  return (
+    <svg viewBox="0 0 140 100" width="100%" aria-label="Monthly training volume">
+      <rect x="0" y="0" width="140" height="100" fill={CARD_BG} rx="12" />
+      {monthlyHours.map((h, m) => {
+        const barH = Math.max((h / maxH) * chartH, h > 0 ? 2 : 0);
+        const x = 4 + m * (barW + betweenGap);
+        const isCurrent = m === currentMonth;
+        const fill = isCurrent ? 'rgba(218,116,34,0.75)' : 'rgba(111,208,140,0.55)';
+        return (
+          <g key={m}>
+            {h > 0
+              ? <rect x={x} y={baseY - barH} width={barW} height={barH} rx="1.5" fill={fill} />
+              : <rect x={x} y={baseY - 1}    width={barW} height={1}    rx="0.5" fill="rgba(255,255,255,0.07)" />
+            }
+            <text x={x + barW / 2} y={94} textAnchor="middle"
+              fill={isCurrent ? PALE_YELLOW : 'rgba(240,223,160,0.25)'}
+              fontSize="4.5" fontFamily="sans-serif">
+              {MONTH_SHORT[m].slice(0, 1)}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+// ─── Segment colors ───────────────────────────────────────────────────────────
+
+const SEG_GI    = 'rgba(111,208,140,0.80)';
+const SEG_NOGI  = 'rgba(218,116,34,0.80)';
+const SEG_CLASS = 'rgba(111,208,140,0.80)';
+const SEG_DRILL = 'rgba(240,223,160,0.65)';
+const SEG_COMP  = 'rgba(220,90,80,0.80)';
+
+// ─── Rail config ──────────────────────────────────────────────────────────────
+
+type ViewMode = 'prism' | 'volume' | 'split' | 'format';
+type TimeWindow = '90d' | 'all';
+
+const RAIL_VIEWS: { id: ViewMode; label: string; Icon: LucideIcon }[] = [
+  { id: 'prism',  label: 'Grappling Prism',  Icon: Target    },
+  { id: 'volume', label: 'Volume by Month',   Icon: BarChart2 },
+  { id: 'split',  label: 'The Two Worlds',    Icon: Layers    },
+  { id: 'format', label: 'Session Format',    Icon: BookOpen  },
+];
+
+const VIEW_META: Record<ViewMode, { title: string; subtitle: string }> = {
+  prism: {
+    title: 'The Grappling Prism',
+    subtitle: 'Your training is a single source of effort that refracts into five distinct pillars of mastery. The Grappling Prism visualizes the balance of your mat time, revealing the unique spectrum of your game.',
+  },
+  volume: {
+    title: 'Volume by Month',
+    subtitle: 'Hours Logged — track your consistency and pinpoint exactly when your momentum peaks or dips.',
+  },
+  split: {
+    title: 'The Two Worlds',
+    subtitle: 'Gi vs. No-Gi — a clear division of your mat time between the traditional kimono and the submission grappling ruleset.',
+  },
+  format: {
+    title: 'Session Format',
+    subtitle: 'A breakdown of your labor across structured classes, focused drilling, and live competition.',
+  },
+};
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 interface SkillRadarProps {
   sessions: SessionSummary[];
 }
 
 export default function SkillRadar({ sessions }: SkillRadarProps) {
-  const [window, setWindow] = useState<Window>('90d');
-  const [prismRevealed, setPrismRevealed] = useState(false);
+  const [timeWindow, setTimeWindow] = useState<TimeWindow>('90d');
+  const [subtitleRevealed, setSubtitleRevealed] = useState(false);
+  const [displayMode, setDisplayMode] = useState<'hours' | 'pct'>('hours');
+  const [viewMode, setViewMode] = useState<ViewMode>('prism');
 
-  // Filter by time window
-  const cutoff = window === '90d'
+
+  // ── Filtered sessions ──
+  const cutoff = timeWindow === '90d'
     ? new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
     : null;
+  const filtered = cutoff ? sessions.filter(s => new Date(s.date) >= cutoff) : sessions;
 
-  const filtered = cutoff
-    ? sessions.filter(s => new Date(s.date) >= cutoff)
-    : sessions;
-
-  // Accumulate hours per skill
-  const hoursMap: Record<string, number> = Object.fromEntries(
-    SKILL_TAGS.map(({ value }) => [value, 0])
-  );
+  // ── Prism data ──
+  const hoursMap: Record<string, number> = Object.fromEntries(SKILL_TAGS.map(({ value }) => [value, 0]));
   for (const s of filtered) {
     for (const tag of s.tags ?? []) {
       if (tag in hoursMap) hoursMap[tag] += s.duration / 60;
     }
   }
+  const hours            = SKILL_TAGS.map(({ value }) => hoursMap[value]);
+  const maxHours         = Math.max(...hours, 0.001);
+  const normalized       = hours.map(h => h / maxHours);
+  const totalTaggedHours = hours.reduce((a, b) => a + b, 0);
+  const hasData          = hours.some(h => h > 0);
+  const dominantIndex    = hours.indexOf(Math.max(...hours));
+  const dominantSkill    = hasData ? SKILL_TAGS[dominantIndex].value : null;
+  const polygonColors    = dominantSkill ? (SKILL_COLORS[dominantSkill] ?? DEFAULT_COLORS) : DEFAULT_COLORS;
+  const gridRings        = [0.25, 0.5, 0.75, 1].map(t => SKILL_TAGS.map((_, i) => vertex(i, t)) as [number, number][]);
+  const dataPolygon      = SKILL_TAGS.map((_, i) => vertex(i, Math.max(normalized[i], 0.02))) as [number, number][];
 
-  const hours = SKILL_TAGS.map(({ value }) => hoursMap[value]);
-  const maxHours = Math.max(...hours, 0.001); // avoid ÷0
-  const normalized = hours.map(h => h / maxHours);
+  // ── Split data ──
+  const giHours    = filtered.filter(s => s.gi_nogi === 'gi').reduce((sum, s) => sum + s.duration / 60, 0);
+  const nogiHours  = filtered.filter(s => s.gi_nogi === 'no_gi').reduce((sum, s) => sum + s.duration / 60, 0);
+  const splitTotal = giHours + nogiHours;
 
-  const hasData = hours.some(h => h > 0);
+  // ── Format data ──
+  const classHours  = filtered.filter(s => s.session_type === 'class').reduce((sum, s) => sum + s.duration / 60, 0);
+  const drillHours  = filtered.filter(s => s.session_type === 'drilling').reduce((sum, s) => sum + s.duration / 60, 0);
+  const compHours   = filtered.filter(s => s.session_type === 'competition_training').reduce((sum, s) => sum + s.duration / 60, 0);
+  const formatTotal = classHours + drillHours + compHours;
 
-  // Dominant skill drives the prism color
-  const dominantIndex = hours.indexOf(Math.max(...hours));
-  const dominantSkill = hasData ? SKILL_TAGS[dominantIndex].value : null;
-  const polygonColors = dominantSkill ? (SKILL_COLORS[dominantSkill] ?? DEFAULT_COLORS) : DEFAULT_COLORS;
+  // ── Volume stats (right panel) ──
+  const monthlyHoursArr = Array(12).fill(0) as number[];
+  for (const s of sessions) {
+    const m = sessionMonth(s.date);
+    if (!isNaN(m)) monthlyHoursArr[m] += s.duration / 60;
+  }
+  const totalVolHours = monthlyHoursArr.reduce((a, b) => a + b, 0);
+  const peakMonthIdx  = monthlyHoursArr.indexOf(Math.max(...monthlyHoursArr));
+  const trainedMonths = monthlyHoursArr.filter(h => h > 0).length;
+  const avgPerMonth   = trainedMonths > 0 ? totalVolHours / trainedMonths : 0;
 
-  // Build polygon point arrays
-  const gridRings = [0.25, 0.5, 0.75, 1].map(t =>
-    SKILL_TAGS.map((_, i) => vertex(i, t)) as [number, number][]
-  );
-  const dataPolygon = SKILL_TAGS.map((_, i) => vertex(i, Math.max(normalized[i], 0.02))) as [number, number][];
+  // ── Helpers ──
+  function fmtVal(h: number, total: number): string {
+    if (h <= 0) return '—';
+    return displayMode === 'hours'
+      ? `${h.toFixed(1)}h`
+      : `${total > 0 ? ((h / total) * 100).toFixed(0) : 0}%`;
+  }
 
-  const btnBase = 'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors';
-  const btnActive = 'bg-brand-orange text-white';
+  const breakdownRows =
+    viewMode === 'prism'  ? SKILL_TAGS.map(({ value, label }, i) => ({ label, h: hours[i],   total: totalTaggedHours })) :
+    viewMode === 'split'  ? [{ label: 'Gi', h: giHours, total: splitTotal }, { label: 'No-Gi', h: nogiHours, total: splitTotal }] :
+    viewMode === 'format' ? [
+      { label: 'Class',       h: classHours, total: formatTotal },
+      { label: 'Drilling',    h: drillHours, total: formatTotal },
+      { label: 'Competition', h: compHours,  total: formatTotal },
+    ] : [];
+
+  const btnBase     = 'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors';
+  const btnActive   = 'bg-brand-orange text-white';
   const btnInactive = 'bg-white/10 text-white/60 hover:bg-white/20';
 
   return (
-    <div
-      className="rounded-2xl p-5"
-      style={{
-        backgroundColor: '#111e2b',
-        border: `1px solid rgba(184,122,85,0.45)`,
-        boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
-      }}
-    >
-      {/* Header row */}
+    <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
+
+      {/* ── Header ── */}
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h2 className="text-lg font-semibold" style={{ color: '#F0DFA0' }}>Skills Span</h2>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="text-sm font-medium" style={{ color: PALE_YELLOW }}>
-              The Grappling Prism
-            </span>
-            {/* How it Works tooltip — unchanged */}
+          <div className="flex items-center gap-1.5">
+            <h2 className="text-lg font-semibold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
+              {VIEW_META[viewMode].title}
+            </h2>
             <Tooltip>
               <TooltipTrigger asChild>
                 <button className="text-white/40 hover:text-white/70 transition-colors leading-none">
@@ -137,170 +285,207 @@ export default function SkillRadar({ sessions }: SkillRadarProps) {
               <TooltipContent side="right" className="max-w-xs">
                 <p className="font-semibold mb-1">How it Works</p>
                 <p className="text-xs leading-relaxed text-popover-foreground/80">
-                  This chart maps your total accumulated hours across the five core skills of jiu jitsu.
-                  As you log hours in specific categories, your Prism expands outward. If your
-                  map looks thin in one direction, it's a visual cue to reallocate your training
-                  to broaden your technical footprint.
+                  This instrument maps your training across four lenses: skill balance, monthly
+                  volume, Gi vs No-Gi split, and session format. Use the rail on the right to
+                  switch views. All data reflects the selected time window.
                 </p>
               </TooltipContent>
             </Tooltip>
           </div>
-          {/* Prism icon — hover once to permanently reveal the description */}
-          <div className="mt-2 relative flex items-start gap-3">
+
+          {/* Subtitle — triangle hover reveal, consistent across all views */}
+          <div className="mt-2 flex items-start gap-3">
             <button
-              className="flex-shrink-0 transition-opacity leading-none"
-              style={{ color: PALE_YELLOW, opacity: prismRevealed ? 0.8 : 0.4 }}
-              aria-label="About the Grappling Prism"
-              onMouseEnter={() => setPrismRevealed(true)}
+              className="flex-shrink-0 leading-none pt-px transition-all duration-300"
+              style={{ color: PALE_YELLOW, opacity: subtitleRevealed ? 1 : 0.4 }}
+              aria-label="About this view"
+              onMouseEnter={() => setSubtitleRevealed(true)}
             >
-              <Triangle size={11} fill="currentColor" strokeWidth={0} />
+              <Triangle
+                size={11}
+                fill={subtitleRevealed ? CARD_BG : 'currentColor'}
+                stroke={subtitleRevealed ? PALE_YELLOW : 'none'}
+                strokeWidth={subtitleRevealed ? 1.5 : 0}
+              />
             </button>
             <p
               className="text-xs leading-relaxed transition-opacity duration-700 ease-in-out"
-              style={{ color: `rgba(240,223,160,0.7)`, opacity: prismRevealed ? 1 : 0 }}
+              style={{ color: 'rgba(240,223,160,0.7)', opacity: subtitleRevealed ? 1 : 0 }}
             >
-              Your training is a single source of effort that refracts into five distinct pillars
-              of mastery. The Grappling Prism visualizes the balance of your mat time, revealing
-              the unique spectrum of your game.
+              {VIEW_META[viewMode].subtitle}
             </p>
           </div>
         </div>
+
         <div className="flex gap-2 flex-shrink-0 mt-0.5">
-          {(['90d', 'all'] as Window[]).map(w => (
-            <button
-              key={w}
-              onClick={() => setWindow(w)}
-              className={`${btnBase} ${window === w ? btnActive : btnInactive}`}
-            >
+          {(['90d', 'all'] as TimeWindow[]).map(w => (
+            <button key={w} onClick={() => setTimeWindow(w)} className={`${btnBase} ${timeWindow === w ? btnActive : btnInactive}`}>
               {w === '90d' ? 'Last 90 Days' : 'All Time'}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Chart + legend side-by-side on wider screens — always visible */}
-      <div className="flex flex-col sm:flex-row items-center gap-6">
+      {/* ── Body: chart | breakdown | rail ── */}
+      <div className="flex flex-col sm:flex-row items-start gap-4">
 
-        {/* SVG radar */}
-        <div className="w-full" style={{ maxWidth: 280 }}>
-          <svg viewBox="-20 -20 140 140" width="100%" aria-label="Skill radar chart">
-
-            {/* Background */}
-            <rect x="-20" y="-20" width="140" height="140" fill="#111e2b" rx="12" />
-
-            {/* Grid rings */}
-            {gridRings.map((pts, ri) => (
-              <polygon
-                key={ri}
-                points={toPoints(pts)}
-                fill="none"
-                stroke={PALE_YELLOW}
-                strokeOpacity={ri === 3 ? 0.25 : 0.12}
-                strokeWidth="0.5"
-              />
-            ))}
-
-            {/* Axis spokes */}
-            {SKILL_TAGS.map((_, i) => {
-              const [x, y] = vertex(i, 1);
-              return (
-                <line
-                  key={i}
-                  x1={CX} y1={CY}
-                  x2={x} y2={y}
-                  stroke={PALE_YELLOW}
-                  strokeOpacity="0.18"
-                  strokeWidth="0.5"
-                />
-              );
-            })}
-
-            {/* Data polygon — color driven by dominant skill */}
-            <polygon
-              points={toPoints(dataPolygon)}
-              fill={polygonColors.fill}
-              stroke={polygonColors.stroke}
-              strokeWidth="1"
-              strokeLinejoin="round"
-            />
-
-            {/* Vertex dots */}
-            {dataPolygon.map(([x, y], i) => (
-              normalized[i] > 0.02 && (
-                <circle
-                  key={i}
-                  cx={x} cy={y} r="1.5"
-                  fill={polygonColors.dot}
-                />
-              )
-            ))}
-
-            {/* Labels — stacked for multi-word, bold */}
-            {SKILL_TAGS.map(({ label }, i) => {
-              const angle = (2 * Math.PI / N) * i - Math.PI / 2;
-              const lx = CX + LABEL_R * Math.cos(angle);
-              const ly = CY + LABEL_R * Math.sin(angle);
-              const { textAnchor, dominantBaseline } = labelAttrs(i);
-              const lines = labelLines(label);
-              const yOffset = lines.length > 1 ? -3 : 0;
-              return (
-                <text
-                  key={i}
-                  x={lx.toFixed(2)}
-                  y={(ly + yOffset).toFixed(2)}
-                  textAnchor={textAnchor}
-                  dominantBaseline={dominantBaseline}
-                  fill={PALE_YELLOW}
-                  fontSize="5"
-                  fontWeight="700"
-                  fontFamily="sans-serif"
-                >
-                  {lines.map((line, li) => (
-                    <tspan key={li} x={lx.toFixed(2)} dy={li === 0 ? '0' : '6'}>
-                      {line}
-                    </tspan>
-                  ))}
-                </text>
-              );
-            })}
-
-          </svg>
-        </div>
-
-        {/* Skill breakdown list */}
-        <div className="flex-1 w-full space-y-3">
-          {SKILL_TAGS.map(({ value, label }, i) => {
-            const h = hours[i];
-            const pct = maxHours > 0 ? (h / maxHours) * 100 : 0;
-            return (
-              <div key={value}>
-                <div className="flex justify-between items-baseline mb-1">
-                  <span className="text-xs font-bold" style={{ color: PALE_YELLOW }}>
-                    {label}
-                  </span>
-                  <span className="text-xs text-white/40">
-                    {h > 0 ? `${h.toFixed(1)}h` : '—'}
-                  </span>
+        {/* Volume view: chart left + large stats right */}
+        {viewMode === 'volume' && (
+          <>
+            <div className="w-full flex-shrink-0" style={{ maxWidth: 260 }}>
+              <VolumeChart sessions={sessions} />
+            </div>
+            <div className="flex-1 w-full flex flex-col justify-center gap-4 pl-6">
+              {[
+                { label: 'Total',    value: totalVolHours > 0 ? `${totalVolHours.toFixed(1)}h` : '—', active: totalVolHours > 0 },
+                { label: 'Peak',     value: totalVolHours > 0 ? MONTH_SHORT[peakMonthIdx]        : '—', active: totalVolHours > 0 },
+                { label: 'Avg / mo', value: avgPerMonth   > 0 ? `${avgPerMonth.toFixed(1)}h`     : '—', active: avgPerMonth   > 0 },
+              ].map(({ label, value, active }) => (
+                <div key={label} className="flex items-baseline gap-2">
+                  <span className="text-xs font-bold" style={{ color: PALE_YELLOW }}>{label}</span>
+                  <span className="text-xs" style={{ color: 'rgba(240,223,160,0.25)' }}>|</span>
+                  <span className="text-2xl font-bold" style={{
+                    color: active ? PALE_YELLOW : 'rgba(255,255,255,0.15)',
+                    textShadow: active ? GLOW_SOFT : 'none',
+                  }}>{value}</span>
                 </div>
-                <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.07)' }}>
-                  <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{
-                      width: `${pct}%`,
-                      backgroundColor: pct > 0 ? 'rgba(111,208,140,0.75)' : 'transparent',
-                    }}
-                  />
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Prism / Split / Format: side-by-side chart + breakdown */}
+        {viewMode !== 'volume' && (
+          <>
+            {/* Left: chart panel */}
+            <div className="w-full flex-shrink-0" style={{ maxWidth: 260 }}>
+
+              {viewMode === 'prism' && (
+                <svg viewBox="-20 -20 140 140" width="100%" aria-label="Skill radar chart">
+                  <rect x="-20" y="-20" width="140" height="140" fill={CARD_BG} rx="12" />
+                  {gridRings.map((pts, ri) => (
+                    <polygon key={ri} points={toPoints(pts)} fill="none"
+                      stroke={PALE_YELLOW} strokeOpacity={ri === 3 ? 0.25 : 0.12} strokeWidth="0.5" />
+                  ))}
+                  {SKILL_TAGS.map((_, i) => {
+                    const [x, y] = vertex(i, 1);
+                    return <line key={i} x1={CX} y1={CY} x2={x} y2={y}
+                      stroke={PALE_YELLOW} strokeOpacity="0.18" strokeWidth="0.5" />;
+                  })}
+                  <polygon points={toPoints(dataPolygon)} fill={polygonColors.fill}
+                    stroke={polygonColors.stroke} strokeWidth="1" strokeLinejoin="round" />
+                  {dataPolygon.map(([x, y], i) => normalized[i] > 0.02 && (
+                    <circle key={i} cx={x} cy={y} r="1.5" fill={polygonColors.dot} />
+                  ))}
+                  {SKILL_TAGS.map(({ label }, i) => {
+                    const angle = (2 * Math.PI / N) * i - Math.PI / 2;
+                    const lx = CX + LABEL_R * Math.cos(angle);
+                    const ly = CY + LABEL_R * Math.sin(angle);
+                    const { textAnchor, dominantBaseline } = labelAttrs(i);
+                    const lines = labelLines(label);
+                    const yOffset = lines.length > 1 ? -3 : 0;
+                    return (
+                      <text key={i} x={lx.toFixed(2)} y={(ly + yOffset).toFixed(2)}
+                        textAnchor={textAnchor} dominantBaseline={dominantBaseline}
+                        fill={PALE_YELLOW} fontSize="5" fontWeight="700" fontFamily="sans-serif">
+                        {lines.map((line, li) => (
+                          <tspan key={li} x={lx.toFixed(2)} dy={li === 0 ? '0' : '6'}>{line}</tspan>
+                        ))}
+                      </text>
+                    );
+                  })}
+                </svg>
+              )}
+
+              {viewMode === 'split' && (
+                <DonutChart segments={[
+                  { value: giHours,   color: SEG_GI   },
+                  { value: nogiHours, color: SEG_NOGI  },
+                ]} />
+              )}
+
+              {viewMode === 'format' && (
+                <DonutChart segments={[
+                  { value: classHours, color: SEG_CLASS },
+                  { value: drillHours, color: SEG_DRILL },
+                  { value: compHours,  color: SEG_COMP  },
+                ]} />
+              )}
+
+            </div>
+
+            {/* Right: breakdown panel */}
+            <div className="flex-1 w-full flex flex-col justify-center gap-3 pl-6">
+
+              {/* h / % toggle */}
+              <div className="flex justify-end">
+                <div className="flex rounded-md overflow-hidden border border-white/10 text-xs">
+                  <button
+                    onClick={() => setDisplayMode('hours')}
+                    className={`px-3 py-1.5 transition-colors ${displayMode === 'hours' ? 'bg-brand-orange text-white' : 'text-white/40 hover:text-white/60'}`}
+                  >h</button>
+                  <button
+                    onClick={() => setDisplayMode('pct')}
+                    className={`px-3 py-1.5 transition-colors ${displayMode === 'pct' ? 'bg-brand-orange text-white' : 'text-white/40 hover:text-white/60'}`}
+                  >%</button>
                 </div>
               </div>
+
+              <div className="space-y-3">
+                {breakdownRows.map(({ label, h, total }) => (
+                  <div key={label} className="flex items-baseline gap-2">
+                    <span className="text-xs font-bold" style={{ color: PALE_YELLOW }}>{label}</span>
+                    <span className="text-xs" style={{ color: 'rgba(240,223,160,0.25)' }}>|</span>
+                    <span className="text-sm font-bold" style={{
+                      color: h > 0 ? PALE_YELLOW : 'rgba(255,255,255,0.2)',
+                      textShadow: h > 0 ? GLOW_SOFT : 'none',
+                    }}>
+                      {fmtVal(h, total)}
+                    </span>
+                  </div>
+                ))}
+                {breakdownRows.every(r => r.h === 0) && (
+                  <p className="text-xs text-white/25 italic pt-1">No tagged sessions in this window.</p>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ── View rail ── */}
+        <div className="flex flex-col gap-1 self-stretch border-l border-white/10 pl-2 justify-center">
+          {RAIL_VIEWS.map(({ id, label, Icon }) => {
+            const active = viewMode === id;
+            return (
+              <Tooltip key={id}>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setViewMode(id)}
+                    className="relative w-8 h-8 flex items-center justify-center rounded-md transition-all"
+                    style={{
+                      color: active ? PALE_YELLOW : 'rgba(240,223,160,0.2)',
+                      backgroundColor: active ? 'rgba(240,223,160,0.06)' : 'transparent',
+                    }}
+                  >
+                    {active && (
+                      <div
+                        className="absolute top-1.5 bottom-1.5 w-0.5 rounded-full"
+                        style={{ left: '-9px', backgroundColor: COPPER }}
+                      />
+                    )}
+                    <Icon
+                      size={14}
+                      strokeWidth={active ? 2 : 1.5}
+                      style={{ filter: active ? `drop-shadow(0 0 4px ${PALE_YELLOW}88)` : 'none' }}
+                    />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="left"><p>{label}</p></TooltipContent>
+              </Tooltip>
             );
           })}
-
-          {!hasData && (
-            <p className="text-xs text-white/25 italic pt-1">
-              No tagged sessions in this window.
-            </p>
-          )}
         </div>
+
       </div>
     </div>
   );

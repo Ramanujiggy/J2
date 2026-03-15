@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.ts';
 import { api } from '../lib/api.ts';
 import WaveBackground from '../components/WaveBackground.tsx';
+import { CARD_BG, COPPER_BORDER, CARD_SHADOW, PALE_YELLOW, GLOW_TITLE, GLOW_NAV } from '../lib/theme.ts';
 
 type Mode = 'login' | 'register';
 
@@ -64,16 +65,16 @@ export default function HomePage() {
 
       {/* Logo / Title */}
       <div className="mb-10 text-center relative z-10">
-        <h1 className="text-5xl font-bold tracking-tight" style={{ color: '#F0DFA0', textShadow: '0 0 18px rgba(240,223,160,0.45), 0 0 40px rgba(240,223,160,0.2)' }}>
+        <h1 className="text-5xl font-bold tracking-tight" style={{ color: PALE_YELLOW, textShadow: GLOW_TITLE }}>
           Journada
         </h1>
-        <p className="mt-3 text-brand-light-green text-lg">
-          Track your training. Earn your rank.
+        <p className="mt-3 text-lg" style={{ color: PALE_YELLOW, textShadow: GLOW_NAV }}>
+          For Intentional Grappling
         </p>
       </div>
 
       {/* Card */}
-      <div className="w-full max-w-sm rounded-2xl p-8 relative z-10" style={{ backgroundColor: '#111e2b', border: '1px solid rgba(184,122,85,0.45)', boxShadow: '0 4px 24px rgba(0,0,0,0.4)' }}>
+      <div className="w-full max-w-sm rounded-2xl p-8 relative z-10" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
 
         {/* Mode toggle */}
         <div className="flex rounded-lg overflow-hidden mb-6 border border-white/10">

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { api } from '../lib/api.ts';
 import { toast } from '../hooks/use-toast.ts';
 import { SKILL_TAGS, type SkillTag } from '../lib/constants.ts';
+import { CARD_BG, COPPER_BORDER } from '../lib/theme.ts';
 
 interface LogSessionResponse {
   message: string;
@@ -125,7 +126,7 @@ export default function LogSessionForm({ onSuccess }: { onSuccess?: () => void }
   };
 
   return (
-    <div className="rounded-2xl p-6" style={{ backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(184,122,85,0.45)' }}>
+    <div className="rounded-2xl p-6" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}` }}>
       <h2 className="text-lg font-semibold text-white mb-5">Log a Training Session</h2>
       <form onSubmit={handleSubmit} className="space-y-5">
 

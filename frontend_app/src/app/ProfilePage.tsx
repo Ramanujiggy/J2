@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 import { api } from '../lib/api.ts';
 import WaveBackground from '../components/WaveBackground.tsx';
+import { CARD_BG, COPPER_BORDER, CARD_SHADOW, PAGE_BG, PALE_YELLOW, GLOW_TITLE, GLOW_NAV } from '../lib/theme.ts';
 import BeltBar, { type BeltRank } from '../components/BeltBar.tsx';
 import {
   Select,
@@ -140,15 +141,15 @@ export default function ProfilePage() {
       {/* Nav */}
       <header className="border-b border-white/10 px-6 py-4 flex items-center justify-between relative overflow-hidden">
         <WaveBackground />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 20%, #111e2b 90%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(to bottom, transparent 20%, ${PAGE_BG} 90%)`, pointerEvents: 'none' }} />
         <div className="w-fit relative z-10">
-          <h1 className="text-xl font-bold tracking-tight" style={{ color: '#F0DFA0', textShadow: '0 0 12px rgba(240,223,160,0.4), 0 0 28px rgba(240,223,160,0.18)' }}>Journada</h1>
+          <h1 className="text-xl font-bold tracking-tight" style={{ color: PALE_YELLOW, textShadow: GLOW_TITLE }}>Journada</h1>
           <BeltBar rank={form.belt_rank} stripes={form.stripes} />
         </div>
         <button
           onClick={() => navigate('/dashboard')}
           className="text-sm transition-colors relative z-10"
-          style={{ color: '#F0DFA0', textShadow: '0 0 10px rgba(240,223,160,0.5), 0 0 22px rgba(240,223,160,0.2)' }}
+          style={{ color: PALE_YELLOW, textShadow: GLOW_NAV }}
         >
           ← Dashboard
         </button>
@@ -160,7 +161,7 @@ export default function ProfilePage() {
         {loading ? (
           <p className="text-white/40 text-sm">Loading…</p>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl p-6" style={{ backgroundColor: '#111e2b', border: '1px solid rgba(184,122,85,0.45)', boxShadow: '0 4px 24px rgba(0,0,0,0.4)' }}>
+          <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl p-6" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
 
             {/* Name */}
             <div>

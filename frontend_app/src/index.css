@@ -11,8 +11,8 @@
     --card:                200 29% 20%;
     --card-foreground:     0 0% 100%;
 
-    --popover:             200 29% 18%;
-    --popover-foreground:  0 0% 100%;
+    --popover:             207 42% 18%;   /* CARD_BG #1a2f40 */
+    --popover-foreground:  47 73% 78%;   /* PALE_YELLOW #F0DFA0 */
 
     /* Primary action — brand-orange (#DA7422) */
     --primary:             25 73% 48%;
@@ -49,15 +49,3 @@
   }
 }
 
-/* Heatmap ripple — triggered by hover, plays once per hover.
-   Two identical keyframes let us toggle names to restart the animation. */
-@keyframes heatmap-ripple-a {
-  0%   { opacity: 0; }
-  30%  { opacity: 1; }
-  100% { opacity: 0; }
-}
-@keyframes heatmap-ripple-b {
-  0%   { opacity: 0; }
-  30%  { opacity: 1; }
-  100% { opacity: 0; }
-}

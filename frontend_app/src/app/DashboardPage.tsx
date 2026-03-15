@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.ts';
 import { api, ApiError } from '../lib/api.ts';
 import WaveBackground from '../components/WaveBackground.tsx';
+import { PAGE_BG, PALE_YELLOW, GLOW_TITLE, GLOW_SOFT, GLOW_NAV } from '../lib/theme.ts';
 import TrainingHeatmap, { type SessionSummary } from '../components/TrainingHeatmap.tsx';
 import LogSessionForm from '../components/LogSessionForm.tsx';
 import BeltBar, { type BeltRank } from '../components/BeltBar.tsx';
 import SkillRadar from '../components/SkillRadar.tsx';
+import ErrorBoundary from '../components/ErrorBoundary.tsx';
 
 interface SessionsResponse {
   sessions: SessionSummary[];
@@ -71,23 +73,23 @@ export default function DashboardPage() {
       <header className="border-b border-white/10 px-6 py-4 flex items-center justify-between relative overflow-hidden">
         <WaveBackground />
         {/* Fade the wave out downward into the page background */}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 20%, #111e2b 90%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(to bottom, transparent 20%, ${PAGE_BG} 90%)`, pointerEvents: 'none' }} />
         <div className="w-fit relative z-10">
-          <h1 className="text-xl font-bold tracking-tight" style={{ color: '#F0DFA0', textShadow: '0 0 12px rgba(240,223,160,0.4), 0 0 28px rgba(240,223,160,0.18)' }}>Journada</h1>
+          <h1 className="text-xl font-bold tracking-tight" style={{ color: PALE_YELLOW, textShadow: GLOW_TITLE }}>Journada</h1>
           <BeltBar rank={beltRank} stripes={stripes} />
         </div>
         <div className="flex items-center gap-4 relative z-10">
           <button
             onClick={() => navigate('/profile')}
             className="text-sm transition-colors"
-            style={{ color: '#F0DFA0', textShadow: '0 0 10px rgba(240,223,160,0.5), 0 0 22px rgba(240,223,160,0.2)' }}
+            style={{ color: PALE_YELLOW, textShadow: GLOW_NAV }}
           >
             Profile
           </button>
           <button
             onClick={handleLogout}
             className="text-sm transition-colors"
-            style={{ color: '#F0DFA0', textShadow: '0 0 10px rgba(240,223,160,0.5), 0 0 22px rgba(240,223,160,0.2)' }}
+            style={{ color: PALE_YELLOW, textShadow: GLOW_NAV }}
           >
             Log out
           </button>
@@ -104,7 +106,7 @@ export default function DashboardPage() {
         {/* Training history */}
         <section>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold tracking-tight" style={{ color: '#F0DFA0' }}>{new Date().getFullYear()} Mat Time</h2>
+            <h2 className="text-2xl font-bold tracking-tight" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>{new Date().getFullYear()} Mat Time</h2>
             <button
               onClick={() => setLogOpen(true)}
               className="bg-brand-orange hover:bg-brand-orange/90 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
@@ -112,13 +114,17 @@ export default function DashboardPage() {
               + Mat Time
             </button>
           </div>
-          <TrainingHeatmap sessions={sessions} loading={sessionsLoading} onSessionUpdated={fetchSessions} beltRank={beltRank} stripes={stripes} />
+          <ErrorBoundary>
+            <TrainingHeatmap sessions={sessions} loading={sessionsLoading} onSessionUpdated={fetchSessions} beltRank={beltRank} stripes={stripes} />
+          </ErrorBoundary>
         </section>
 
         {/* Analytics */}
         <section>
-          <h2 className="text-2xl font-bold tracking-tight text-white mb-4">Analytics</h2>
-          <SkillRadar sessions={sessions} />
+          <h2 className="text-2xl font-bold tracking-tight mb-4" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>Analytics</h2>
+          <ErrorBoundary>
+            <SkillRadar sessions={sessions} />
+          </ErrorBoundary>
         </section>
 
       </main>

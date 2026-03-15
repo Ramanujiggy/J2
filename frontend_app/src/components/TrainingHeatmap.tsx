@@ -9,6 +9,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import SessionDetailModal from './SessionDetailModal.tsx';
+import { CARD_BG, COPPER_BORDER, CARD_SHADOW, HEATMAP_REST, HEATMAP_FUTURE, HEATMAP_OUTSIDE_YEAR, HEATMAP_HEADER_BG, PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
 import { type BeltRank, BELT_COLORS, PATCH_COLORS } from './BeltBar.tsx';
 
 const GRID_COLS = '5rem repeat(7, minmax(0, 1fr)) 13rem 7rem';
@@ -21,10 +22,10 @@ const MONTH_FULL = [
 ];
 
 const LEGEND = [
-  { color: '#0d1a26', label: 'Rest' },
-  { color: '#CDDFA0', label: 'Easy' },
-  { color: '#6FD08C', label: 'Moderate' },
-  { color: '#DA7422', label: 'High' },
+  { color: HEATMAP_REST, label: 'Rest' },
+  { color: '#CDDFA0',    label: 'Easy' },
+  { color: '#6FD08C',    label: 'Moderate' },
+  { color: '#DA7422',    label: 'High' },
 ] as const;
 
 // Local-time date key — avoids UTC shift from toISOString()
@@ -63,7 +64,7 @@ interface DayData {
 const EMPTY_DAY: DayData = { count: 0, totalMinutes: 0, maxIntensity: 0, notes: [] };
 
 function cellColor(day: DayData): string {
-  if (day.count === 0)          return '#0d1a26';
+  if (day.count === 0)          return HEATMAP_REST;
   if (day.maxIntensity <= 2)    return '#CDDFA0';
   if (day.maxIntensity === 3)   return '#6FD08C';
   return '#DA7422';
@@ -158,7 +159,7 @@ interface TrainingHeatmapProps {
 // Skeleton shimmer shown while sessions are fetching.
 function HeatmapSkeleton() {
   return (
-    <div className="rounded-2xl p-6 animate-pulse" style={{ backgroundColor: '#111e2b', border: '1px solid rgba(184,122,85,0.45)', boxShadow: '0 4px 24px rgba(0,0,0,0.4)' }}>
+    <div className="rounded-2xl p-6 animate-pulse" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
       {/* Shimmer stats row */}
       <div className="flex gap-8 mb-6 pb-5 border-b border-white/10">
         {[80, 64, 56].map(w => (
@@ -228,28 +229,28 @@ export default function TrainingHeatmap({ sessions = [], loading = false, onSess
       }
       .j2-heatmap-scroll::-webkit-scrollbar-thumb:hover { filter: brightness(1.12); }
     `}</style>
-    <div className="rounded-2xl p-6" style={{ backgroundColor: '#111e2b', border: '1px solid rgba(184,122,85,0.45)', boxShadow: '0 4px 24px rgba(0,0,0,0.4)' }}>
+    <div className="rounded-2xl p-6" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
 
       {/* Stats */}
       <div className="flex gap-6 mb-6 pb-5 border-b border-white/10 flex-wrap">
         <div>
-          <p className="text-2xl font-bold text-white">{totalSessions}</p>
+          <p className="text-2xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>{totalSessions}</p>
           <p className="text-xs mt-0.5" style={{ color: 'rgba(240,223,160,0.5)' }}>Sessions in {year}</p>
         </div>
         <div>
-          <p className="text-2xl font-bold text-white">{hours}h</p>
+          <p className="text-2xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>{hours}h</p>
           <p className="text-xs mt-0.5" style={{ color: 'rgba(240,223,160,0.5)' }}>Hours trained</p>
         </div>
         <div>
-          <p className="text-2xl font-bold text-white">{giHours}h</p>
+          <p className="text-2xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>{giHours}h</p>
           <p className="text-xs mt-0.5" style={{ color: 'rgba(240,223,160,0.5)' }}>Gi hours</p>
         </div>
         <div>
-          <p className="text-2xl font-bold text-white">{nogiHours}h</p>
+          <p className="text-2xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>{nogiHours}h</p>
           <p className="text-xs mt-0.5" style={{ color: 'rgba(240,223,160,0.5)' }}>No-Gi hours</p>
         </div>
         <div>
-          <p className="text-2xl font-bold text-white">{streak}</p>
+          <p className="text-2xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>{streak}</p>
           <p className="text-xs mt-0.5" style={{ color: 'rgba(240,223,160,0.5)' }}>Day streak</p>
         </div>
       </div>
@@ -268,7 +269,7 @@ export default function TrainingHeatmap({ sessions = [], loading = false, onSess
         {/* Sticky column headers */}
         <div
           className="grid sticky top-0 z-20 border-b border-white/10 mb-0.5"
-          style={{ gridTemplateColumns: GRID_COLS, backgroundColor: '#141e2b', boxShadow: '0 3px 10px rgba(0,0,0,0.6)' }}
+          style={{ gridTemplateColumns: GRID_COLS, backgroundColor: HEATMAP_HEADER_BG, boxShadow: '0 3px 10px rgba(0,0,0,0.6)' }}
         >
           <div className="py-2" />
           {DOW.map(d => (
@@ -325,8 +326,8 @@ export default function TrainingHeatmap({ sessions = [], loading = false, onSess
                           className="rounded flex items-end px-1"
                           style={{
                             height: '32px',
-                            backgroundColor: !isCurrentYear ? '#111e26'
-                              : (isFuture && day.count === 0) ? '#0a1620'
+                            backgroundColor: !isCurrentYear ? HEATMAP_OUTSIDE_YEAR
+                              : (isFuture && day.count === 0) ? HEATMAP_FUTURE
                               : cellColor(day),
                             opacity: !isCurrentYear ? 0.18 : 1,
                             cursor: isClickable ? 'pointer' : 'default',
