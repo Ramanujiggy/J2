@@ -1,5 +1,5 @@
 // Training Calendar — unified scrollable grid, one row per week.
-// Columns: Month label | Mon–Sun (7 day cells) | Notes | Journal
+// Columns: Month label | Mon–Sun (7 day cells) | Intention | Journal
 // Sticky header keeps day labels visible. Month label appears at month boundaries.
 
 import { useState } from 'react';
@@ -11,6 +11,7 @@ import {
 import SessionDetailModal from './SessionDetailModal.tsx';
 import { CARD_BG, COPPER_BORDER, CARD_SHADOW, HEATMAP_REST, HEATMAP_FUTURE, HEATMAP_OUTSIDE_YEAR, HEATMAP_HEADER_BG, PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
 import { type BeltRank, BELT_COLORS, PATCH_COLORS } from './BeltBar.tsx';
+import type { CalendarIntention } from '../app/CalendarPage.tsx';
 
 const GRID_COLS = '5rem repeat(7, minmax(0, 1fr)) 13rem 7rem';
 
@@ -28,19 +29,33 @@ const LEGEND = [
   { color: '#DA7422',    label: 'High' },
 ] as const;
 
+// Particles for the intention column on the active week
+const INTENTION_COL_PARTICLES = [
+  { left: '8%',  bottom: 3, drift: '-3px', duration: 3.8, delay: 0.0 },
+  { left: '22%', bottom: 2, drift: '4px',  duration: 4.5, delay: 1.1 },
+  { left: '45%', bottom: 3, drift: '-4px', duration: 3.4, delay: 0.4 },
+  { left: '65%', bottom: 2, drift: '3px',  duration: 4.1, delay: 1.7 },
+  { left: '82%', bottom: 2, drift: '-3px', duration: 3.6, delay: 0.8 },
+] as const;
+
 // Local-time date key — avoids UTC shift from toISOString()
 function localDateKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 // Normalize whatever the API sends for a date field into YYYY-MM-DD.
-// pg returns DATE columns as "YYYY-MM-DD" strings via JSON, but this guards
-// against TIMESTAMP columns coming back as Date objects or other formats.
 function toDateKey(raw: unknown): string {
   if (raw instanceof Date) return localDateKey(raw);
   const s = String(raw);
   const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
   return m ? `${m[1]}-${m[2]}-${m[3]}` : s.slice(0, 10);
+}
+
+// Add `days` calendar days to a YYYY-MM-DD string
+function addDaysToStr(dateStr: string, days: number): string {
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  return localDateKey(d);
 }
 
 export interface SessionSummary {
@@ -148,6 +163,7 @@ function computeStats(sessions: SessionSummary[], year: number) {
 
 interface TrainingHeatmapProps {
   sessions?: SessionSummary[];
+  intentions?: CalendarIntention[];
   loading?: boolean;
   onSessionUpdated?: () => void;
   beltRank?: BeltRank | null;
@@ -185,9 +201,8 @@ function HeatmapSkeleton() {
 
 // Build the scrollbar thumb gradient: main belt color + dark patch + evenly-spaced stripe lines.
 function beltThumbGradient(beltColor: string, patchColor: string, stripes: number): string {
-  const patchPct = 24; // bottom 24% = stripe patch zone
+  const patchPct = 24;
   const beltPct  = 100 - patchPct;
-  // One white line per stripe, evenly distributed within the patch zone
   const stripeLines = Array.from({ length: stripes }, (_, i) => {
     const pos = beltPct + ((i + 1) / (stripes + 1)) * patchPct;
     return `linear-gradient(to bottom, transparent ${pos}%, rgba(255,255,255,0.55) ${pos}%, rgba(255,255,255,0.55) ${pos + 1.8}%, transparent ${pos + 1.8}%)`;
@@ -196,12 +211,13 @@ function beltThumbGradient(beltColor: string, patchColor: string, stripes: numbe
   return [...stripeLines, baseBg].join(', ');
 }
 
-export default function TrainingHeatmap({ sessions = [], loading = false, onSessionUpdated, beltRank, stripes = 0, year: yearProp }: TrainingHeatmapProps) {
+export default function TrainingHeatmap({ sessions = [], intentions = [], loading = false, onSessionUpdated, beltRank, stripes = 0, year: yearProp }: TrainingHeatmapProps) {
   const [selectedSession, setSelectedSession] = useState<{ session: SessionSummary; date: Date } | null>(null);
 
   if (loading) return <HeatmapSkeleton />;
 
   const now = new Date();
+  const todayStr = localDateKey(now);
   const dayMap = buildDayMap(sessions);
   const { rows, year } = buildWeekRows(dayMap, yearProp ?? new Date().getFullYear());
   const { totalSessions, totalMinutes, giMinutes, nogiMinutes, streak } = computeStats(sessions, year);
@@ -215,9 +231,21 @@ export default function TrainingHeatmap({ sessions = [], loading = false, onSess
     ? beltThumbGradient(beltColor, patchColor, stripes)
     : 'rgba(255,255,255,0.15)';
 
+  // Helper: find the intention whose period overlaps a given calendar week.
+  // An intention covers [intentStart, intentEnd] (inclusive).
+  // A week row covers [weekStart, weekStart + 6 days].
+  function findIntentionForWeek(weekStart: string): CalendarIntention | null {
+    const weekEnd = addDaysToStr(weekStart, 6);
+    return intentions.find(intent => {
+      const intentStart = intent.week_start.slice(0, 10);
+      const intentEnd   = addDaysToStr(intentStart, intent.duration_days - 1);
+      return intentStart <= weekEnd && intentEnd >= weekStart;
+    }) ?? null;
+  }
+
   return (
     <>
-    {/* Belt scrollbar styles — scoped to this component's scroll container */}
+    {/* Belt scrollbar styles + intention animation keyframes */}
     <style>{`
       .j2-heatmap-scroll::-webkit-scrollbar { width: 9px; }
       .j2-heatmap-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.18); border-radius: 5px; }
@@ -227,6 +255,22 @@ export default function TrainingHeatmap({ sessions = [], loading = false, onSess
         border: 1px solid rgba(0,0,0,0.25);
       }
       .j2-heatmap-scroll::-webkit-scrollbar-thumb:hover { filter: brightness(1.12); }
+
+      @keyframes j2CalIntentRise {
+        0%   { transform: translateY(0) translateX(0); opacity: 0; }
+        8%   { opacity: 1; }
+        85%  { opacity: 0.7; }
+        100% { transform: translateY(-40px) translateX(var(--drift)); opacity: 0; }
+      }
+      @keyframes j2CalIntentGlow {
+        0%   { opacity: 0.4; }
+        50%  { opacity: 0.7; }
+        100% { opacity: 0.4; }
+      }
+      @keyframes j2CalIntentFadeIn {
+        from { opacity: 0; }
+        to   { opacity: 1; }
+      }
     `}</style>
     <div className="rounded-2xl p-6" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
 
@@ -276,7 +320,7 @@ export default function TrainingHeatmap({ sessions = [], loading = false, onSess
               {d}
             </div>
           ))}
-          <div className="py-2 pl-4 text-xs font-medium" style={{ color: 'rgba(240,223,160,0.5)' }}>Notes</div>
+          <div className="py-2 pl-4 text-xs font-medium" style={{ color: 'rgba(240,223,160,0.5)' }}>Intention</div>
           <div className="py-2 pl-3 text-xs font-medium" style={{ color: 'rgba(240,223,160,0.5)' }}>Journal</div>
         </div>
 
@@ -286,19 +330,37 @@ export default function TrainingHeatmap({ sessions = [], loading = false, onSess
           const noteText = weekNotes[0] ?? '';
           const extraNotes = weekNotes.length > 1 ? ` +${weekNotes.length - 1}` : '';
 
+          // Intention overlapping this calendar week (supports multi-week intentions)
+          const weekStartKey  = localDateKey(row.days[0]!.date);
+          const weekIntention = findIntentionForWeek(weekStartKey);
+          const intentionStart = weekIntention ? weekIntention.week_start.slice(0, 10) : '';
+          const intentionEnd   = weekIntention ? addDaysToStr(intentionStart, weekIntention.duration_days - 1) : '';
+          const isActiveWeek   = !!weekIntention && todayStr >= intentionStart && todayStr <= intentionEnd;
+          const isPastWeek     = !!weekIntention && !isActiveWeek;
+
           return (
             <div
               key={ri}
               className={`grid items-center${row.isMonthStart && ri > 0 ? ' mt-1 border-t border-white/10 pt-1' : ''}`}
-              style={{ gridTemplateColumns: GRID_COLS, minHeight: 40 }}
+              style={{ gridTemplateColumns: GRID_COLS, minHeight: 40, position: 'relative' }}
             >
+              {/* Active week backdrop */}
+              {isActiveWeek && (
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  background: 'linear-gradient(to right, transparent 0%, rgba(240,223,160,0.07) 12%, rgba(240,223,160,0.07) 88%, transparent 100%)',
+                  pointerEvents: 'none', borderRadius: 6,
+                  animation: 'j2CalIntentFadeIn 1.4s ease forwards',
+                }} />
+              )}
+
               {/* Month label */}
-              <div className="pr-2 text-xs font-semibold truncate" style={{ color: 'rgba(240,223,160,0.6)' }}>
+              <div className="pr-2 text-xs font-semibold truncate" style={{ color: 'rgba(240,223,160,0.6)', position: 'relative', zIndex: 1 }}>
                 {row.monthLabel}
               </div>
 
               {/* Day cells */}
-              {row.days.map(({ date, day }, ci) => {
+              {row.days.map(({ date, day }) => {
                 const key = localDateKey(date);
                 const isFuture = date > now;
                 const isCurrentYear = date.getFullYear() === year;
@@ -308,9 +370,13 @@ export default function TrainingHeatmap({ sessions = [], loading = false, onSess
                   ? dateStr
                   : `${dateStr}: ${day.count} session${day.count !== 1 ? 's' : ''} · ${day.totalMinutes} min · intensity ${day.maxIntensity}/5`;
 
+                // Copper resonance: session logged on a day that falls within the intention period
+                const dayDateStr  = localDateKey(date);
+                const hasResonance = !!weekIntention && day.count > 0
+                  && dayDateStr >= intentionStart && dayDateStr <= intentionEnd;
+
                 const handleClick = () => {
                   if (!isClickable) return;
-                  // Pick the highest-intensity session for this day
                   const daySessions = sessions
                     .filter(s => toDateKey(s.date) === key)
                     .sort((a, b) => b.intensity - a.intensity);
@@ -320,7 +386,7 @@ export default function TrainingHeatmap({ sessions = [], loading = false, onSess
                 return (
                   <Tooltip key={key}>
                     <TooltipTrigger asChild>
-                      <div className="px-0.5 py-1">
+                      <div className="px-0.5 py-1" style={{ position: 'relative', zIndex: 1 }}>
                         <div
                           className="rounded flex items-end px-1"
                           style={{
@@ -331,7 +397,12 @@ export default function TrainingHeatmap({ sessions = [], loading = false, onSess
                             opacity: !isCurrentYear ? 0.18 : 1,
                             cursor: isClickable ? 'pointer' : 'default',
                             paddingBottom: '3px',
-                            border: '1px solid rgba(240,223,160,0.08)',
+                            border: hasResonance
+                              ? '1px solid rgba(184,122,85,0.7)'
+                              : '1px solid rgba(240,223,160,0.08)',
+                            boxShadow: hasResonance
+                              ? '0 0 8px 2px rgba(184,122,85,0.35), inset 0 0 5px rgba(184,122,85,0.18)'
+                              : 'none',
                           }}
                           onClick={handleClick}
                         >
@@ -352,17 +423,62 @@ export default function TrainingHeatmap({ sessions = [], loading = false, onSess
                 );
               })}
 
-              {/* Notes */}
-              <div
-                className="pl-4 text-xs truncate" style={{ color: 'rgba(240,223,160,0.4)' }}
-                title={weekNotes.join(' · ')}
-              >
-                {noteText}
-                {extraNotes && <span className="text-white/20">{extraNotes}</span>}
+              {/* Intention column */}
+              <div style={{
+                position: 'relative', overflow: 'hidden',
+                paddingLeft: 16, display: 'flex', alignItems: 'center',
+                minHeight: 40, zIndex: 1,
+              }}>
+                {/* Active week: particle aura + lowlight glow */}
+                {isActiveWeek && (
+                  <div style={{
+                    position: 'absolute', inset: 0,
+                    animation: 'j2CalIntentFadeIn 1.4s ease forwards',
+                    pointerEvents: 'none',
+                    WebkitMaskImage: 'linear-gradient(to top, black 0%, rgba(0,0,0,0.85) 45%, transparent 100%)',
+                    maskImage: 'linear-gradient(to top, black 0%, rgba(0,0,0,0.85) 45%, transparent 100%)',
+                  }}>
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      background: 'linear-gradient(to top, rgba(240,223,160,0.22) 0%, transparent 100%)',
+                      animation: 'j2CalIntentGlow 4s ease-in-out infinite',
+                    }} />
+                    {INTENTION_COL_PARTICLES.map((p, i) => (
+                      <span key={i} style={{
+                        position: 'absolute',
+                        left: p.left,
+                        bottom: p.bottom,
+                        width: 2,
+                        height: 2,
+                        borderRadius: '50%',
+                        backgroundColor: 'rgba(240,223,160,0.88)',
+                        boxShadow: '0 0 5px 2px rgba(240,223,160,0.6)',
+                        ['--drift' as string]: p.drift,
+                        animation: `j2CalIntentRise ${p.duration}s ease-in-out ${p.delay}s infinite`,
+                      }} />
+                    ))}
+                  </div>
+                )}
+
+                {weekIntention ? (
+                  <span style={{
+                    position: 'relative', zIndex: 1, fontSize: 11,
+                    color: isActiveWeek ? 'rgba(240,223,160,0.9)' : 'rgba(240,223,160,0.28)',
+                    fontWeight: isActiveWeek ? 600 : 400,
+                    fontStyle: isPastWeek ? 'italic' : 'normal',
+                  }}>
+                    {isActiveWeek && '◈ '}{weekIntention.intent_label}
+                  </span>
+                ) : (
+                  <span style={{ fontSize: 11, color: 'rgba(240,223,160,0.3)' }} title={weekNotes.join(' · ')}>
+                    {noteText}
+                    {extraNotes && <span style={{ color: 'rgba(255,255,255,0.15)' }}>{extraNotes}</span>}
+                  </span>
+                )}
               </div>
 
               {/* Journal — placeholder */}
-              <div className="pl-3 text-xs text-white/15 italic select-none">—</div>
+              <div className="pl-3 text-xs text-white/15 italic select-none" style={{ position: 'relative', zIndex: 1 }}>—</div>
             </div>
           );
         })}

@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.ts';
 import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER_BORDER } from '../lib/theme.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
+import { useProfile } from '../context/ProfileContext.tsx';
 
 interface Intention {
   id: string;
@@ -9,6 +11,7 @@ interface Intention {
   week_start: string;
   intent_label: string;
   intent_category: string | null;
+  journal_entry: string | null;
   created_at: string;
 }
 
@@ -35,7 +38,7 @@ function formatWeek(weekStart: string): string {
   return `${MONTH_NAMES[d.getMonth()]} ${d.getDate()}`;
 }
 
-// Compute the most frequent tag across a set of sessions
+// Compute the most frequent tag across a set of sessions in a given week
 function ambientFocus(sessions: SessionSummary[], weekStart: string): string | null {
   const weekStartSlice = weekStart.slice(0, 10);
   const weekEnd = new Date(weekStartSlice + 'T00:00:00');
@@ -55,6 +58,8 @@ function ambientFocus(sessions: SessionSummary[], weekStart: string): string | n
 }
 
 export default function IntentionsPage() {
+  const navigate = useNavigate();
+  const { intentionsEnabled } = useProfile();
   const [intentions, setIntentions] = useState<Intention[]>([]);
   const [sessions,   setSessions]   = useState<SessionSummary[]>([]);
   const [loading,    setLoading]    = useState(true);
@@ -94,6 +99,15 @@ export default function IntentionsPage() {
         Intentions
       </h2>
 
+      {!intentionsEnabled && (
+        <div
+          className="rounded-xl px-4 py-2.5 text-sm"
+          style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.35)' }}
+        >
+          Intentions are currently disabled — viewing history only.
+        </div>
+      )}
+
       {intentions.length === 0 ? (
         <div
           className="rounded-xl px-6 py-10 text-center"
@@ -105,34 +119,33 @@ export default function IntentionsPage() {
       ) : (
         <div className="space-y-2">
           {/* Column headers */}
-          <div className="hidden sm:grid grid-cols-[80px_1fr_1fr_80px] gap-4 px-4 pb-1">
+          <div className="hidden sm:grid grid-cols-[80px_1fr_1fr_100px] gap-4 px-4 pb-1">
             <span className="text-[11px] text-white/30 uppercase tracking-wide">Week</span>
             <span className="text-[11px] text-white/30 uppercase tracking-wide">Intention</span>
             <span className="text-[11px] text-white/30 uppercase tracking-wide">Ambient Focus</span>
-            <span className="text-[11px] text-white/30 uppercase tracking-wide">Match</span>
+            <span className="text-[11px] text-white/30 uppercase tracking-wide">Journal</span>
           </div>
 
           {intentions.map(intention => {
             const ambient = ambientFocus(sessions, intention.week_start);
-            const ambientTag  = ambient;
-            const intentLabel = intention.intent_label.toLowerCase();
-            // Rough match: label contains part of ambient tag name or vice versa
-            const isMatch = ambient
-              ? intentLabel.includes(ambient.split(' ')[0].toLowerCase()) ||
-                ambient.toLowerCase().includes(intentLabel.split(' ')[0])
-              : false;
-            const categoryColor = intention.intent_category ? (CATEGORY_COLORS[intention.intent_category] ?? 'rgba(255,255,255,0.4)') : 'rgba(255,255,255,0.4)';
+            const categoryColor = intention.intent_category
+              ? (CATEGORY_COLORS[intention.intent_category] ?? 'rgba(255,255,255,0.4)')
+              : 'rgba(255,255,255,0.4)';
+            const hasJournal = !!intention.journal_entry;
+            const journalSnippet = hasJournal
+              ? intention.journal_entry!.slice(0, 22) + (intention.journal_entry!.length > 22 ? '…' : '')
+              : null;
 
             return (
               <div
                 key={intention.id}
-                className="rounded-xl px-4 py-3 grid sm:grid-cols-[80px_1fr_1fr_80px] gap-2 sm:gap-4 items-center"
+                className="rounded-xl px-4 py-3 grid sm:grid-cols-[80px_1fr_1fr_100px] gap-2 sm:gap-4 items-center"
                 style={{ backgroundColor: CARD_BG, border: `1px solid rgba(255,255,255,0.06)` }}
               >
                 {/* Week */}
                 <p className="text-xs text-white/40 font-medium">{formatWeek(intention.week_start)}</p>
 
-                {/* Intention */}
+                {/* Intention label + category */}
                 <div className="flex items-center gap-2 min-w-0">
                   {intention.intent_category && (
                     <span
@@ -147,21 +160,28 @@ export default function IntentionsPage() {
 
                 {/* Ambient focus */}
                 <p className="text-sm text-white/50">
-                  {ambientTag ?? <span className="text-white/20 italic">no data</span>}
+                  {ambient ?? <span className="text-white/20 italic">no data</span>}
                 </p>
 
-                {/* Match indicator */}
-                <div className="flex items-center gap-1">
-                  {ambient ? (
-                    isMatch ? (
-                      <span className="text-xs text-green-400">→→</span>
-                    ) : (
-                      <span className="text-xs text-white/30">≠</span>
-                    )
+                {/* Journal entry link */}
+                <button
+                  onClick={() => navigate(`/intentions/${intention.id}/journal`)}
+                  className="flex items-center gap-1.5 text-left transition-colors group"
+                  title={hasJournal ? intention.journal_entry! : 'Add a journal entry'}
+                >
+                  {hasJournal ? (
+                    <span
+                      className="text-xs truncate group-hover:opacity-90 transition-opacity"
+                      style={{ color: 'rgba(240,223,160,0.6)' }}
+                    >
+                      ✦ {journalSnippet}
+                    </span>
                   ) : (
-                    <span className="text-xs text-white/15">─</span>
+                    <span className="text-xs text-white/20 group-hover:text-white/40 transition-colors italic">
+                      + add
+                    </span>
                   )}
-                </div>
+                </button>
               </div>
             );
           })}

@@ -6,6 +6,8 @@ export interface Intention {
   week_start: string; // YYYY-MM-DD
   intent_label: string;
   intent_category: 'technical' | 'physical' | 'mental' | 'positional' | 'competitive' | null;
+  duration_days: number;
+  journal_entry: string | null;
   created_at: Date;
 }
 
@@ -14,12 +16,13 @@ export const createIntention = async (
   weekStart: string,
   intentLabel: string,
   intentCategory: string | null,
+  durationDays: number,
 ): Promise<Intention> => {
   const result = await query(
-    `INSERT INTO weekly_intentions (user_id, week_start, intent_label, intent_category)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO weekly_intentions (user_id, week_start, intent_label, intent_category, duration_days)
+     VALUES ($1, $2, $3, $4, $5)
      RETURNING *`,
-    [userId, weekStart, intentLabel, intentCategory],
+    [userId, weekStart, intentLabel, intentCategory, durationDays],
   );
   return result.rows[0];
 };
@@ -39,6 +42,18 @@ export const getIntentionByWeek = async (
   const result = await query(
     `SELECT * FROM weekly_intentions WHERE user_id = $1 AND week_start = $2`,
     [userId, weekStart],
+  );
+  return result.rows[0] ?? null;
+};
+
+export const updateJournalEntry = async (
+  userId: string,
+  id: string,
+  journalEntry: string,
+): Promise<Intention | null> => {
+  const result = await query(
+    `UPDATE weekly_intentions SET journal_entry = $1 WHERE id = $2 AND user_id = $3 RETURNING *`,
+    [journalEntry, id, userId],
   );
   return result.rows[0] ?? null;
 };

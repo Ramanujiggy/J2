@@ -16,14 +16,14 @@ function getWeekStart(date: Date): string {
 }
 
 // ---- POST /api/intentions ------------------------------------------------
-// Body: { intent_label, intent_category?, week_start? }
+// Body: { intent_label, intent_category?, week_start?, duration_days? }
 // Creates an intention for the specified week (defaults to current week).
 // Returns 409 if an intention already exists for that week.
 
 export const createIntention = async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
-    const { intent_label, intent_category, week_start } = req.body;
+    const { intent_label, intent_category, week_start, duration_days } = req.body;
 
     if (!intent_label || typeof intent_label !== 'string' || intent_label.trim() === '') {
       return res.status(400).json({ message: 'intent_label is required.' });
@@ -33,6 +33,11 @@ export const createIntention = async (req: Request, res: Response) => {
     }
     if (intent_category !== undefined && intent_category !== null && !VALID_CATEGORIES.has(intent_category)) {
       return res.status(400).json({ message: 'Invalid intent_category.' });
+    }
+
+    const durationDays = duration_days !== undefined ? Math.round(Number(duration_days)) : 7;
+    if (!Number.isFinite(durationDays) || durationDays < 1 || durationDays > 30) {
+      return res.status(400).json({ message: 'duration_days must be an integer between 1 and 30.' });
     }
 
     // Use client-supplied week_start (handles timezone) or compute server-side
@@ -48,6 +53,7 @@ export const createIntention = async (req: Request, res: Response) => {
       weekStart,
       intent_label.trim(),
       intent_category ?? null,
+      durationDays,
     );
 
     res.status(201).json({ message: 'Intention set.', intention });
@@ -85,6 +91,32 @@ export const getCurrentIntention = async (req: Request, res: Response) => {
     res.status(200).json({ intention }); // null if not set — that's fine
   } catch (error) {
     console.error('❌ Error fetching current intention:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// ---- PATCH /api/intentions/:id/journal -----------------------------------
+// Body: { journal_entry: string }
+// Saves (or overwrites) the journal entry for an intention.
+
+export const patchJournalEntry = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { id } = req.params;
+    const { journal_entry } = req.body;
+
+    if (typeof journal_entry !== 'string') {
+      return res.status(400).json({ message: 'journal_entry must be a string.' });
+    }
+
+    const updated = await intentionModel.updateJournalEntry(userId, id, journal_entry);
+    if (!updated) {
+      return res.status(404).json({ message: 'Intention not found or not owned by user.' });
+    }
+
+    res.status(200).json({ message: 'Journal entry saved.', intention: updated });
+  } catch (error) {
+    console.error('❌ Error saving journal entry:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

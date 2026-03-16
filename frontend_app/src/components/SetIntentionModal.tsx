@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.ts';
 import { PALE_YELLOW } from '../lib/theme.ts';
 
@@ -11,6 +12,8 @@ const CATEGORIES = [
 ] as const;
 
 type Category = typeof CATEGORIES[number]['value'];
+
+const DURATION_OPTIONS = [3, 5, 7, 14] as const;
 
 // Returns ISO Monday (YYYY-MM-DD) for the given date, using local timezone
 function getWeekStart(date: Date): string {
@@ -33,8 +36,11 @@ interface CreateIntentionResponse {
 }
 
 export default function SetIntentionModal({ weekStart, onSaved, onClose }: Props) {
+  const navigate = useNavigate();
   const [label, setLabel] = useState('');
   const [category, setCategory] = useState<Category | ''>('');
+  const [durationDays, setDurationDays] = useState<number>(7);
+  const [writeJournal, setWriteJournal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -46,16 +52,20 @@ export default function SetIntentionModal({ weekStart, onSaved, onClose }: Props
     setSaving(true);
     setError('');
     try {
-      await api.post<CreateIntentionResponse>('/api/intentions', {
+      const res = await api.post<CreateIntentionResponse>('/api/intentions', {
         intent_label: label.trim(),
         intent_category: category || null,
         week_start: getWeekStart(weekStart),
+        duration_days: durationDays,
       });
       onSaved();
-      onClose();
+      if (writeJournal && res.intention?.id) {
+        navigate(`/intentions/${res.intention.id}/journal`);
+      } else {
+        onClose();
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to set intention.');
-    } finally {
       setSaving(false);
     }
   };
@@ -63,12 +73,12 @@ export default function SetIntentionModal({ weekStart, onSaved, onClose }: Props
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm px-4"
-      style={{ backgroundColor: 'rgba(38, 70, 83, 0.85)' }}
+      style={{ backgroundColor: 'rgba(17, 30, 43, 0.92)' }}
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-2xl p-6 border border-white/10"
-        style={{ backgroundColor: '#1a2c38' }}
+        className="w-full max-w-sm rounded-2xl p-6"
+        style={{ backgroundColor: '#1a2c38', border: '1px solid rgba(184,122,85,0.45)' }}
         onClick={e => e.stopPropagation()}
       >
         <p className="text-base font-semibold mb-1" style={{ color: PALE_YELLOW }}>
@@ -122,6 +132,44 @@ export default function SetIntentionModal({ weekStart, onSaved, onClose }: Props
             </div>
           </div>
 
+          {/* Duration */}
+          <div>
+            <label className="text-xs text-white/60 block mb-1.5">Duration</label>
+            <div className="flex gap-1.5">
+              {DURATION_OPTIONS.map(d => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setDurationDays(d)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                  style={{
+                    backgroundColor: durationDays === d ? 'rgba(218,116,34,0.8)' : 'rgba(255,255,255,0.07)',
+                    color: durationDays === d ? '#fff' : 'rgba(255,255,255,0.5)',
+                  }}
+                >
+                  {d}d
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Journal toggle */}
+          <label className="flex items-center gap-2.5 cursor-pointer group">
+            <div
+              onClick={() => setWriteJournal(v => !v)}
+              className="w-9 h-5 rounded-full relative transition-colors flex-shrink-0"
+              style={{ backgroundColor: writeJournal ? 'rgba(218,116,34,0.8)' : 'rgba(255,255,255,0.1)' }}
+            >
+              <span
+                className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform"
+                style={{ transform: writeJournal ? 'translateX(18px)' : 'translateX(2px)' }}
+              />
+            </div>
+            <span className="text-xs text-white/50 group-hover:text-white/70 transition-colors">
+              Write a journal entry for this intention
+            </span>
+          </label>
+
           {error && <p className="text-xs text-red-400">{error}</p>}
 
           <div className="flex justify-end gap-3 pt-1">
@@ -137,7 +185,7 @@ export default function SetIntentionModal({ weekStart, onSaved, onClose }: Props
               disabled={saving || !label.trim()}
               className="bg-brand-orange hover:bg-brand-orange/90 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2 rounded-lg transition-colors"
             >
-              {saving ? 'Setting…' : 'Set Intent'}
+              {saving ? 'Setting…' : writeJournal ? 'Set & Write' : 'Set Intent'}
             </button>
           </div>
         </form>

@@ -48,12 +48,12 @@ function ProfileIcon({ active }: { active: boolean }) {
   );
 }
 
-const TABS = [
-  { path: '/home',        label: 'Home',       Icon: HomeIcon       },
-  { path: '/calendar',   label: 'Calendar',   Icon: CalendarIcon   },
-  { path: '/analytics',  label: 'Analytics',  Icon: AnalyticsIcon  },
-  { path: '/intentions', label: 'Intentions', Icon: IntentionsIcon },
-  { path: '/profile',    label: 'Profile',    Icon: ProfileIcon    },
+const ALL_TABS = [
+  { path: '/home',        label: 'Home',       Icon: HomeIcon,       intentionsGated: false },
+  { path: '/calendar',   label: 'Calendar',   Icon: CalendarIcon,   intentionsGated: false },
+  { path: '/analytics',  label: 'Analytics',  Icon: AnalyticsIcon,  intentionsGated: false },
+  { path: '/intentions', label: 'Intentions', Icon: IntentionsIcon, intentionsGated: true  },
+  { path: '/profile',    label: 'Profile',    Icon: ProfileIcon,    intentionsGated: false },
 ] as const;
 
 interface Props {
@@ -64,13 +64,14 @@ export default function AppShell({ children }: Props) {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { beltRank, stripes } = useProfile();
+  const { beltRank, stripes, intentionsEnabled } = useProfile();
 
   const handleLogout = () => {
     logout();
     navigate('/');
   };
 
+  const TABS = ALL_TABS.filter(t => !t.intentionsGated || intentionsEnabled);
   const activeTab = TABS.find(t => location.pathname.startsWith(t.path))?.path ?? '/home';
 
   return (

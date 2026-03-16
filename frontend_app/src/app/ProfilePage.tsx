@@ -4,6 +4,7 @@ import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 import { api } from '../lib/api.ts';
 import { CARD_BG, COPPER_BORDER, CARD_SHADOW, PALE_YELLOW } from '../lib/theme.ts';
 import { type BeltRank } from '../components/BeltBar.tsx';
+import { useProfile } from '../context/ProfileContext.tsx';
 import {
   Select,
   SelectContent,
@@ -40,6 +41,7 @@ interface ProfileResponse {
     home_gym_name: string | null;
     home_gym_address: string | null;
     home_gym_place_id: string | null;
+    intentions_enabled: boolean;
   } | null;
 }
 
@@ -47,6 +49,7 @@ const inputCls =
   'w-full bg-white/10 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-orange';
 
 export default function ProfilePage() {
+  const { refreshProfile } = useProfile();
   const gymInputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
@@ -58,6 +61,7 @@ export default function ProfilePage() {
     home_gym_address: '',
     home_gym_place_id: '',
   });
+  const [intentionsEnabled, setIntentionsEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -76,6 +80,7 @@ export default function ProfilePage() {
             home_gym_address: p.home_gym_address ?? '',
             home_gym_place_id: p.home_gym_place_id ?? '',
           });
+          setIntentionsEnabled(p.intentions_enabled ?? true);
         }
       })
       .catch(() => {})
@@ -124,7 +129,9 @@ export default function ProfilePage() {
         home_gym_name: form.home_gym_name || null,
         home_gym_address: form.home_gym_address || null,
         home_gym_place_id: form.home_gym_place_id || null,
+        intentions_enabled: intentionsEnabled,
       });
+      refreshProfile();
       toast({ title: 'Profile saved!' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save profile.');
@@ -231,6 +238,30 @@ export default function ProfilePage() {
                   </p>
                 </>
               )}
+            </div>
+
+            {/* Features */}
+            <div
+              className="rounded-xl px-4 py-3 space-y-3"
+              style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
+            >
+              <p className="text-xs text-white/30 uppercase tracking-wide">Features</p>
+              <label className="flex items-center justify-between gap-4 cursor-pointer group">
+                <div>
+                  <p className="text-sm text-white/80 font-medium">Training Intentions</p>
+                  <p className="text-xs text-white/35 mt-0.5">Track weekly focus and journal your intentions</p>
+                </div>
+                <div
+                  onClick={() => setIntentionsEnabled(v => !v)}
+                  className="w-10 h-5 rounded-full relative transition-colors flex-shrink-0"
+                  style={{ backgroundColor: intentionsEnabled ? 'rgba(218,116,34,0.8)' : 'rgba(255,255,255,0.1)' }}
+                >
+                  <span
+                    className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform"
+                    style={{ transform: intentionsEnabled ? 'translateX(22px)' : 'translateX(2px)' }}
+                  />
+                </div>
+              </label>
             </div>
 
             {error && <p className="text-red-400 text-sm">{error}</p>}

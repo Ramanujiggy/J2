@@ -11,6 +11,7 @@ const ProfileSchema = z.object({
     home_gym_name: z.string().max(200).nullable().optional(),
     home_gym_address: z.string().max(500).nullable().optional(),
     home_gym_place_id: z.string().max(200).nullable().optional(),
+    intentions_enabled: z.boolean().optional(),
 });
 
 export const fetchProfile = async (req: Request, res: Response): Promise<void> => {
@@ -52,6 +53,7 @@ export const saveProfile = async (req: Request, res: Response): Promise<void> =>
             home_gym_name: parsed.data.home_gym_name ?? current?.home_gym_name ?? null,
             home_gym_address: parsed.data.home_gym_address ?? current?.home_gym_address ?? null,
             home_gym_place_id: parsed.data.home_gym_place_id ?? current?.home_gym_place_id ?? null,
+            intentions_enabled: parsed.data.intentions_enabled ?? current?.intentions_enabled ?? true,
         });
 
         res.json({ message: 'Profile saved.', profile: updated });

@@ -9,18 +9,35 @@ interface SessionsResponse {
   sessions: SessionSummary[];
 }
 
+export interface CalendarIntention {
+  id: string;
+  week_start: string;
+  intent_label: string;
+  intent_category: string | null;
+  duration_days: number;
+}
+
+interface IntentionsResponse {
+  intentions: CalendarIntention[];
+}
+
 export default function CalendarPage() {
   const { beltRank, stripes } = useProfile();
-  const [sessions,        setSessions]        = useState<SessionSummary[]>([]);
-  const [loading,         setLoading]         = useState(true);
-  const [fetchError,      setFetchError]      = useState<string | null>(null);
-  const [displayYear,     setDisplayYear]     = useState(new Date().getFullYear());
+  const [sessions,    setSessions]    = useState<SessionSummary[]>([]);
+  const [intentions,  setIntentions]  = useState<CalendarIntention[]>([]);
+  const [loading,     setLoading]     = useState(true);
+  const [fetchError,  setFetchError]  = useState<string | null>(null);
+  const [displayYear, setDisplayYear] = useState(new Date().getFullYear());
 
-  const fetchSessions = useCallback(async () => {
+  const fetchAll = useCallback(async () => {
     try {
       setFetchError(null);
-      const data = await api.get<SessionsResponse>('/api/sessions');
-      setSessions(data.sessions ?? []);
+      const [sesData, intData] = await Promise.all([
+        api.get<SessionsResponse>('/api/sessions'),
+        api.get<IntentionsResponse>('/api/intentions'),
+      ]);
+      setSessions(sesData.sessions ?? []);
+      setIntentions(intData.intentions ?? []);
     } catch (err) {
       if (!(err instanceof ApiError && err.status === 401)) {
         setFetchError('Could not load sessions. Please refresh.');
@@ -30,7 +47,7 @@ export default function CalendarPage() {
     }
   }, []);
 
-  useEffect(() => { fetchSessions(); }, [fetchSessions]);
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const currentYear = new Date().getFullYear();
 
@@ -74,8 +91,9 @@ export default function CalendarPage() {
       <ErrorBoundary>
         <TrainingHeatmap
           sessions={sessions}
+          intentions={intentions}
           loading={loading}
-          onSessionUpdated={fetchSessions}
+          onSessionUpdated={fetchAll}
           beltRank={beltRank}
           stripes={stripes}
           year={displayYear}
