@@ -5,6 +5,7 @@ import cors from 'cors';
 import authRoutes from './routes/authRoutes.js';
 import sessionRoutes from './routes/sessionRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
+import intentionRoutes from './routes/intentionRoutes.js';
 
 
 //import the db config -- CRITICAL, because the type is module we are using the .js extension
@@ -35,6 +36,9 @@ app.use('/api', sessionRoutes);
 
 // profile routes: GET /api/profile, PUT /api/profile
 app.use('/api', profileRoutes);
+
+// intention routes: POST/GET /api/intentions, GET /api/intentions/current, DELETE /api/intentions/:id
+app.use('/api/intentions', intentionRoutes);
 
 
 // start the server

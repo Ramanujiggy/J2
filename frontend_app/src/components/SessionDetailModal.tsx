@@ -64,6 +64,7 @@ export default function SessionDetailModal({ session, date, onClose, onSaved }: 
   );
 
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
 
   const intensityColor = INTENSITY_COLOR[session.intensity] ?? '#CDDFA0';
 
@@ -94,12 +95,13 @@ export default function SessionDetailModal({ session, date, onClose, onSaved }: 
 
   const handleSave = async () => {
     setSaving(true);
+    setSaveError(false);
     try {
       await api.put(`/api/sessions/${session.id}`, form);
       onSaved();
       onClose();
     } catch {
-      // surface error in future iteration
+      setSaveError(true);
     } finally {
       setSaving(false);
     }
@@ -300,6 +302,9 @@ export default function SessionDetailModal({ session, date, onClose, onSaved }: 
 
         {/* Actions */}
         <div className="flex justify-end gap-3">
+          {saveError && (
+            <p className="text-xs text-red-400 self-center mr-auto">Save failed. Please try again.</p>
+          )}
           <button
             onClick={onClose}
             className="text-sm text-white/40 hover:text-white transition-colors px-4 py-2"

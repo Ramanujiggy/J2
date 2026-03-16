@@ -1,0 +1,86 @@
+import { useState, useEffect, useCallback } from 'react';
+import { api, ApiError } from '../lib/api.ts';
+import { useProfile } from '../context/ProfileContext.tsx';
+import TrainingHeatmap, { type SessionSummary } from '../components/TrainingHeatmap.tsx';
+import ErrorBoundary from '../components/ErrorBoundary.tsx';
+import { PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
+
+interface SessionsResponse {
+  sessions: SessionSummary[];
+}
+
+export default function CalendarPage() {
+  const { beltRank, stripes } = useProfile();
+  const [sessions,        setSessions]        = useState<SessionSummary[]>([]);
+  const [loading,         setLoading]         = useState(true);
+  const [fetchError,      setFetchError]      = useState<string | null>(null);
+  const [displayYear,     setDisplayYear]     = useState(new Date().getFullYear());
+
+  const fetchSessions = useCallback(async () => {
+    try {
+      setFetchError(null);
+      const data = await api.get<SessionsResponse>('/api/sessions');
+      setSessions(data.sessions ?? []);
+    } catch (err) {
+      if (!(err instanceof ApiError && err.status === 401)) {
+        setFetchError('Could not load sessions. Please refresh.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchSessions(); }, [fetchSessions]);
+
+  const currentYear = new Date().getFullYear();
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-5">
+
+      {/* Header row */}
+      <div className="flex items-center justify-between">
+        <h2
+          className="text-2xl font-bold tracking-tight"
+          style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}
+        >
+          {displayYear} Mat Time
+        </h2>
+
+        {/* Year navigation */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setDisplayYear(y => y - 1)}
+            className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-colors"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+          <span className="text-sm font-medium text-white/60 w-10 text-center">{displayYear}</span>
+          <button
+            onClick={() => setDisplayYear(y => y + 1)}
+            disabled={displayYear >= currentYear}
+            className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-20 disabled:cursor-not-allowed"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {fetchError && <p className="text-sm text-red-400">{fetchError}</p>}
+
+      <ErrorBoundary>
+        <TrainingHeatmap
+          sessions={sessions}
+          loading={loading}
+          onSessionUpdated={fetchSessions}
+          beltRank={beltRank}
+          stripes={stripes}
+          year={displayYear}
+        />
+      </ErrorBoundary>
+    </div>
+  );
+}

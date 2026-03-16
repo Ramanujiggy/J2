@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
+
 import { api } from '../lib/api.ts';
-import WaveBackground from '../components/WaveBackground.tsx';
-import { CARD_BG, COPPER_BORDER, CARD_SHADOW, PAGE_BG, PALE_YELLOW, GLOW_TITLE, GLOW_NAV } from '../lib/theme.ts';
-import BeltBar, { type BeltRank } from '../components/BeltBar.tsx';
+import { CARD_BG, COPPER_BORDER, CARD_SHADOW, PALE_YELLOW } from '../lib/theme.ts';
+import { type BeltRank } from '../components/BeltBar.tsx';
 import {
   Select,
   SelectContent,
@@ -48,7 +47,6 @@ const inputCls =
   'w-full bg-white/10 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-orange';
 
 export default function ProfilePage() {
-  const navigate = useNavigate();
   const gymInputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
@@ -136,26 +134,9 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-brand-dark flex flex-col">
+    <div className="flex flex-col">
 
-      {/* Nav */}
-      <header className="border-b border-white/10 px-6 py-4 flex items-center justify-between relative overflow-hidden">
-        <WaveBackground />
-        <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(to bottom, transparent 20%, ${PAGE_BG} 90%)`, pointerEvents: 'none' }} />
-        <div className="w-fit relative z-10">
-          <h1 className="text-xl font-bold tracking-tight" style={{ color: PALE_YELLOW, textShadow: GLOW_TITLE }}>Journada</h1>
-          <BeltBar rank={form.belt_rank} stripes={form.stripes} />
-        </div>
-        <button
-          onClick={() => navigate('/dashboard')}
-          className="text-sm transition-colors relative z-10"
-          style={{ color: PALE_YELLOW, textShadow: GLOW_NAV }}
-        >
-          ← Dashboard
-        </button>
-      </header>
-
-      <main className="flex-1 max-w-xl w-full mx-auto px-6 py-10">
+      <main className="flex-1 max-w-xl w-full mx-auto px-4 sm:px-6 py-6">
         <h2 className="text-lg font-semibold text-white mb-6">Your Profile</h2>
 
         {loading ? (

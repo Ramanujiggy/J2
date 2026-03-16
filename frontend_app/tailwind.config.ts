@@ -56,6 +56,42 @@ export default {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
       },
+      keyframes: {
+        'view-enter-up': {
+          from: { transform: 'translateY(100%)', opacity: '0.6' },
+          to:   { transform: 'translateY(0)',    opacity: '1'   },
+        },
+        'view-exit-up': {
+          from: { transform: 'translateY(0)',     opacity: '1' },
+          to:   { transform: 'translateY(-100%)', opacity: '0' },
+        },
+        'view-enter-down': {
+          from: { transform: 'translateY(-100%)', opacity: '0.6' },
+          to:   { transform: 'translateY(0)',     opacity: '1'   },
+        },
+        'view-exit-down': {
+          from: { transform: 'translateY(0)',    opacity: '1' },
+          to:   { transform: 'translateY(100%)', opacity: '0' },
+        },
+        'toggle-exit': {
+          '0%':   { transform: 'scaleY(1) translateX(0)',       opacity: '1', borderRadius: '6px' },
+          '40%':  { transform: 'scaleY(0.07) translateX(0)',    opacity: '1', borderRadius: '1px' },
+          '100%': { transform: 'scaleY(0.07) translateX(120%)', opacity: '0', borderRadius: '1px' },
+        },
+        'toggle-enter': {
+          '0%':   { transform: 'scaleY(0.07) translateX(120%)', opacity: '0', borderRadius: '1px' },
+          '60%':  { transform: 'scaleY(0.07) translateX(0)',    opacity: '1', borderRadius: '1px' },
+          '100%': { transform: 'scaleY(1) translateX(0)',        opacity: '1', borderRadius: '6px' },
+        },
+      },
+      animation: {
+        'view-exit-up':    'view-exit-up   500ms cubic-bezier(0, 0, 0.3, 1) both',
+        'view-exit-down':  'view-exit-down 500ms cubic-bezier(0, 0, 0.3, 1) both',
+        'view-enter-up':   'view-enter-up   560ms cubic-bezier(0.2, 1.1, 0.4, 1) 120ms both',
+        'view-enter-down': 'view-enter-down 560ms cubic-bezier(0.2, 1.1, 0.4, 1) 120ms both',
+        'toggle-exit':  'toggle-exit  420ms cubic-bezier(0.4, 0, 0.8, 0.2) both',
+        'toggle-enter': 'toggle-enter 480ms cubic-bezier(0.2, 1.1, 0.4, 1) both',
+      },
     },
   },
   plugins: [],

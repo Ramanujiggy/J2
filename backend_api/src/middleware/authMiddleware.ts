@@ -49,9 +49,6 @@ export const verifyToken = (req: Request, res: Response, next: NextFunction): vo
         // Verify the token and attach the decoded payload to the request
         const decoded = jwt.verify(token, secret) as TokenPayload;
         req.user = decoded;
-
-        console.log('✅ Token verified for:', decoded.email);
-
         next();
 
     } catch (error) {

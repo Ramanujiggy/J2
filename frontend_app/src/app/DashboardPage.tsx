@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.ts';
 import { api, ApiError } from '../lib/api.ts';
 import WaveBackground from '../components/WaveBackground.tsx';
-import { PAGE_BG, PALE_YELLOW, GLOW_TITLE, GLOW_SOFT, GLOW_NAV } from '../lib/theme.ts';
+import { PAGE_BG, PALE_YELLOW, GLOW_TITLE, GLOW_SOFT, GLOW_NAV, COPPER_BORDER } from '../lib/theme.ts';
 import TrainingHeatmap, { type SessionSummary } from '../components/TrainingHeatmap.tsx';
 import LogSessionForm from '../components/LogSessionForm.tsx';
 import BeltBar, { type BeltRank } from '../components/BeltBar.tsx';
@@ -70,10 +70,10 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-brand-dark flex flex-col">
 
       {/* Nav */}
-      <header className="border-b border-white/10 px-6 py-4 flex items-center justify-between relative overflow-hidden">
+      <header className="border-b px-6 py-4 flex items-center justify-between relative overflow-hidden" style={{ borderBottomColor: COPPER_BORDER }}>
         <WaveBackground />
         {/* Fade the wave out downward into the page background */}
-        <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(to bottom, transparent 20%, ${PAGE_BG} 90%)`, pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(to bottom, transparent 20%, ${PAGE_BG} 100%)`, pointerEvents: 'none' }} />
         <div className="w-fit relative z-10">
           <h1 className="text-xl font-bold tracking-tight" style={{ color: PALE_YELLOW, textShadow: GLOW_TITLE }}>Journada</h1>
           <BeltBar rank={beltRank} stripes={stripes} />

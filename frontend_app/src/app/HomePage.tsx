@@ -49,7 +49,7 @@ export default function HomePage() {
       }
 
       login(loginData.token);
-      navigate('/dashboard');
+      navigate('/home');
     } catch {
       setError('Something went wrong. Please try again.');
     } finally {

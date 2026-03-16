@@ -91,9 +91,7 @@ interface WeekRow {
   isMonthStart: boolean;
 }
 
-function buildWeekRows(dayMap: Map<string, DayData>): { rows: WeekRow[]; year: number } {
-  const now = new Date();
-  const year = now.getFullYear();
+function buildWeekRows(dayMap: Map<string, DayData>, year: number): { rows: WeekRow[]; year: number } {
 
   const jan1 = new Date(year, 0, 1);
   const dow = jan1.getDay();
@@ -154,6 +152,7 @@ interface TrainingHeatmapProps {
   onSessionUpdated?: () => void;
   beltRank?: BeltRank | null;
   stripes?: number;
+  year?: number;
 }
 
 // Skeleton shimmer shown while sessions are fetching.
@@ -197,14 +196,14 @@ function beltThumbGradient(beltColor: string, patchColor: string, stripes: numbe
   return [...stripeLines, baseBg].join(', ');
 }
 
-export default function TrainingHeatmap({ sessions = [], loading = false, onSessionUpdated, beltRank, stripes = 0 }: TrainingHeatmapProps) {
+export default function TrainingHeatmap({ sessions = [], loading = false, onSessionUpdated, beltRank, stripes = 0, year: yearProp }: TrainingHeatmapProps) {
   const [selectedSession, setSelectedSession] = useState<{ session: SessionSummary; date: Date } | null>(null);
 
   if (loading) return <HeatmapSkeleton />;
 
   const now = new Date();
   const dayMap = buildDayMap(sessions);
-  const { rows, year } = buildWeekRows(dayMap);
+  const { rows, year } = buildWeekRows(dayMap, yearProp ?? new Date().getFullYear());
   const { totalSessions, totalMinutes, giMinutes, nogiMinutes, streak } = computeStats(sessions, year);
   const hours     = totalMinutes > 0 ? (totalMinutes    / 60).toFixed(1) : '0';
   const giHours   = giMinutes   > 0 ? (giMinutes   / 60).toFixed(1) : '0';

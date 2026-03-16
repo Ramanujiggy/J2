@@ -1,0 +1,172 @@
+import { useState, useEffect, useCallback } from 'react';
+import { api } from '../lib/api.ts';
+import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER_BORDER } from '../lib/theme.ts';
+import { SKILL_TAGS } from '../lib/constants.ts';
+
+interface Intention {
+  id: string;
+  user_id: string;
+  week_start: string;
+  intent_label: string;
+  intent_category: string | null;
+  created_at: string;
+}
+
+interface SessionSummary {
+  date: string | Date;
+  tags?: string[];
+}
+
+interface IntentionsResponse { intentions: Intention[] }
+interface SessionsResponse   { sessions: SessionSummary[] }
+
+const CATEGORY_COLORS: Record<string, string> = {
+  technical:   '#60a5fa',
+  physical:    '#f87171',
+  mental:      '#a78bfa',
+  positional:  '#34d399',
+  competitive: '#fbbf24',
+};
+
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function formatWeek(weekStart: string): string {
+  const d = new Date(weekStart.slice(0, 10) + 'T00:00:00');
+  return `${MONTH_NAMES[d.getMonth()]} ${d.getDate()}`;
+}
+
+// Compute the most frequent tag across a set of sessions
+function ambientFocus(sessions: SessionSummary[], weekStart: string): string | null {
+  const weekStartSlice = weekStart.slice(0, 10);
+  const weekEnd = new Date(weekStartSlice + 'T00:00:00');
+  weekEnd.setDate(weekEnd.getDate() + 6);
+  const weekEndStr = weekEnd.toISOString().slice(0, 10);
+
+  const tagCounts: Record<string, number> = {};
+  sessions.forEach(s => {
+    const dateStr = typeof s.date === 'string' ? s.date.slice(0, 10) : new Date(s.date).toISOString().slice(0, 10);
+    if (dateStr >= weekStartSlice && dateStr <= weekEndStr) {
+      s.tags?.forEach(t => { tagCounts[t] = (tagCounts[t] ?? 0) + 1; });
+    }
+  });
+
+  const top = Object.entries(tagCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+  return top ? (SKILL_TAGS.find(s => s.value === top)?.label ?? top) : null;
+}
+
+export default function IntentionsPage() {
+  const [intentions, setIntentions] = useState<Intention[]>([]);
+  const [sessions,   setSessions]   = useState<SessionSummary[]>([]);
+  const [loading,    setLoading]    = useState(true);
+
+  const fetchAll = useCallback(async () => {
+    try {
+      const [intRes, sesRes] = await Promise.all([
+        api.get<IntentionsResponse>('/api/intentions'),
+        api.get<SessionsResponse>('/api/sessions'),
+      ]);
+      setIntentions(intRes.intentions ?? []);
+      setSessions(sesRes.sessions ?? []);
+    } catch {
+      // silent
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-sm text-white/30">Loading…</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-5">
+
+      <h2
+        className="text-2xl font-bold tracking-tight"
+        style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}
+      >
+        Intentions
+      </h2>
+
+      {intentions.length === 0 ? (
+        <div
+          className="rounded-xl px-6 py-10 text-center"
+          style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: `1px solid ${COPPER_BORDER}` }}
+        >
+          <p className="text-white/30 text-sm">No intentions set yet.</p>
+          <p className="text-white/20 text-xs mt-1">Set your first weekly intention from the Home tab.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {/* Column headers */}
+          <div className="hidden sm:grid grid-cols-[80px_1fr_1fr_80px] gap-4 px-4 pb-1">
+            <span className="text-[11px] text-white/30 uppercase tracking-wide">Week</span>
+            <span className="text-[11px] text-white/30 uppercase tracking-wide">Intention</span>
+            <span className="text-[11px] text-white/30 uppercase tracking-wide">Ambient Focus</span>
+            <span className="text-[11px] text-white/30 uppercase tracking-wide">Match</span>
+          </div>
+
+          {intentions.map(intention => {
+            const ambient = ambientFocus(sessions, intention.week_start);
+            const ambientTag  = ambient;
+            const intentLabel = intention.intent_label.toLowerCase();
+            // Rough match: label contains part of ambient tag name or vice versa
+            const isMatch = ambient
+              ? intentLabel.includes(ambient.split(' ')[0].toLowerCase()) ||
+                ambient.toLowerCase().includes(intentLabel.split(' ')[0])
+              : false;
+            const categoryColor = intention.intent_category ? (CATEGORY_COLORS[intention.intent_category] ?? 'rgba(255,255,255,0.4)') : 'rgba(255,255,255,0.4)';
+
+            return (
+              <div
+                key={intention.id}
+                className="rounded-xl px-4 py-3 grid sm:grid-cols-[80px_1fr_1fr_80px] gap-2 sm:gap-4 items-center"
+                style={{ backgroundColor: CARD_BG, border: `1px solid rgba(255,255,255,0.06)` }}
+              >
+                {/* Week */}
+                <p className="text-xs text-white/40 font-medium">{formatWeek(intention.week_start)}</p>
+
+                {/* Intention */}
+                <div className="flex items-center gap-2 min-w-0">
+                  {intention.intent_category && (
+                    <span
+                      className="text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0 font-medium capitalize"
+                      style={{ backgroundColor: `${categoryColor}20`, color: categoryColor }}
+                    >
+                      {intention.intent_category}
+                    </span>
+                  )}
+                  <span className="text-sm font-semibold text-white truncate">{intention.intent_label}</span>
+                </div>
+
+                {/* Ambient focus */}
+                <p className="text-sm text-white/50">
+                  {ambientTag ?? <span className="text-white/20 italic">no data</span>}
+                </p>
+
+                {/* Match indicator */}
+                <div className="flex items-center gap-1">
+                  {ambient ? (
+                    isMatch ? (
+                      <span className="text-xs text-green-400">→→</span>
+                    ) : (
+                      <span className="text-xs text-white/30">≠</span>
+                    )
+                  ) : (
+                    <span className="text-xs text-white/15">─</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
