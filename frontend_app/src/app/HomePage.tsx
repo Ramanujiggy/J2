@@ -58,7 +58,7 @@ export default function HomePage() {
       login(loginData.token);
       navigate('/home');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.');
+      setError(err instanceof ApiError ? err.message : `Error: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setLoading(false);
     }
