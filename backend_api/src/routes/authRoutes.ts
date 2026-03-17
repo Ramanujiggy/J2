@@ -3,7 +3,7 @@
 
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
-import { register, login } from '../controllers/authcontroller.js';
+import { register, login, requestPasswordReset, resetPassword } from '../controllers/authcontroller.js';
 
 const router = Router();
 
@@ -22,5 +22,11 @@ router.post('/register', authLimiter, register);
 
 // POST /auth/login
 router.post('/login', authLimiter, login);
+
+// POST /auth/request-password-reset
+router.post('/request-password-reset', authLimiter, requestPasswordReset);
+
+// POST /auth/reset-password
+router.post('/reset-password', authLimiter, resetPassword);
 
 export default router;

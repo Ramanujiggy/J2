@@ -3,6 +3,7 @@ import { useAuth } from './hooks/useAuth.ts';
 import { ProfileProvider } from './context/ProfileContext.tsx';
 import AppShell from './components/AppShell.tsx';
 import HomePage from './app/HomePage.tsx';
+import ResetPasswordPage from './app/ResetPasswordPage.tsx';
 import PathAheadPage from './app/PathAheadPage.tsx';
 import CalendarPage from './app/CalendarPage.tsx';
 import AnalyticsPage from './app/AnalyticsPage.tsx';
@@ -24,6 +25,7 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       <Route path="/home"        element={<ProtectedShell><PathAheadPage /></ProtectedShell>} />
       <Route path="/calendar"    element={<ProtectedShell><CalendarPage /></ProtectedShell>} />

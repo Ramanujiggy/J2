@@ -3,7 +3,10 @@
 import type { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import * as userModel from '../models/userModel.js';
+import * as passwordResetModel from '../models/passwordResetModel.js';
+import { sendPasswordResetEmail } from '../services/emailService.js';
 
 // ---- Register ---------------------------------------------------------------
 
@@ -91,5 +94,73 @@ export const login = async (req: Request, res: Response) => {
     } catch (error) {
         console.error('❌ Error during login:', error);
         res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// ---- Request Password Reset -------------------------------------------------
+
+export const requestPasswordReset = async (req: Request, res: Response) => {
+    // Always return the same generic response to prevent user enumeration
+    const genericResponse = { message: 'If that email exists, a reset link has been sent.' };
+
+    try {
+        const { email: rawEmail } = req.body;
+        if (!rawEmail) return res.status(200).json(genericResponse);
+
+        const email = rawEmail.toLowerCase().trim();
+        const user = await userModel.findUserByEmail(email);
+
+        if (user && user.id) {
+            const token = crypto.randomBytes(32).toString('hex');
+            const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+
+            await passwordResetModel.createResetToken(user.id, token, expiresAt);
+
+            const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
+            const resetLink = `${frontendUrl}/reset-password?token=${token}`;
+
+            await sendPasswordResetEmail(email, resetLink);
+            console.log('✅ Password reset email sent to:', email);
+        }
+
+        return res.status(200).json(genericResponse);
+    } catch (error) {
+        console.error('❌ Error during password reset request:', error);
+        // Still return generic response so errors don't leak info
+        return res.status(200).json(genericResponse);
+    }
+};
+
+// ---- Reset Password ---------------------------------------------------------
+
+export const resetPassword = async (req: Request, res: Response) => {
+    try {
+        const { token, newPassword } = req.body;
+
+        if (!token || !newPassword) {
+            return res.status(400).json({ message: 'Token and new password are required.' });
+        }
+
+        if (newPassword.length < 8) {
+            return res.status(400).json({ message: 'Password must be at least 8 characters.' });
+        }
+
+        const resetToken = await passwordResetModel.findValidToken(token);
+        if (!resetToken) {
+            return res.status(400).json({ message: 'This reset link is invalid or has expired.' });
+        }
+
+        const saltRounds = 12;
+        const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+        await userModel.updatePasswordHash(resetToken.user_id, hashedPassword);
+        await passwordResetModel.markTokenUsed(resetToken.id);
+
+        console.log('✅ Password reset successfully for user:', resetToken.user_id);
+        return res.status(200).json({ message: 'Password updated successfully.' });
+
+    } catch (error) {
+        console.error('❌ Error during password reset:', error);
+        return res.status(500).json({ message: 'Server error' });
     }
 };
