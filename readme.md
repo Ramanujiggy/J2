@@ -1,6 +1,6 @@
-# Journada P2
+# Journada
 
-A full-stack martial arts training tracker for BJJ athletes. Log sessions, visualize skill development across five pillars, and track volume trends over time.
+A full-stack martial arts training tracker for BJJ athletes. Log sessions, visualize skill development across five pillars, track volume trends over time, and set weekly intentions.
 
 ---
 
@@ -11,58 +11,112 @@ A full-stack martial arts training tracker for BJJ athletes. Log sessions, visua
 | Backend | Node.js + Express 5 + TypeScript |
 | Database | PostgreSQL on Supabase (via `pg` pool) |
 | Auth | JWT (24h) + bcrypt (12 rounds) |
+| Email | Nodemailer — Ethereal in dev, SMTP in production |
 | Frontend | React 18 + Vite + Tailwind CSS |
 | UI primitives | Radix UI + shadcn/ui |
+| Hosting | Railway (separate frontend + backend services) |
 
 ---
 
 ## Project Structure
 
 ```
-project/J2/
-├── backend_api/          Node.js API server (port 5000)
+J2/
+├── backend_api/              Node.js API server (port 5000)
 │   ├── src/
-│   │   ├── app.ts        Entry point — Express setup, routes mounted
-│   │   ├── config/db.ts  pg pool + query helper
-│   │   ├── controllers/  authController, sessionController, profileController
-│   │   ├── middleware/   authMiddleware (JWT verification)
-│   │   ├── models/       userModel, sessionModel, profileModel
-│   │   └── routes/       authRoutes, sessionRoutes, profileRoutes
+│   │   ├── app.ts            Entry point — env validation, migrations, Express setup, routes
+│   │   ├── config/db.ts      pg pool + query helper
+│   │   ├── controllers/      authController, sessionController, profileController, intentionController
+│   │   ├── middleware/       authMiddleware (JWT verification)
+│   │   ├── migrations/       add_password_reset_tokens.sql (auto-run on startup)
+│   │   ├── models/           userModel, sessionModel, profileModel, intentionModel, passwordResetModel
+│   │   ├── routes/           authRoutes, sessionRoutes, profileRoutes, intentionRoutes
+│   │   └── services/         emailService (password reset emails)
 │   └── docs/
-│       ├── database.md   Schema reference
-│       └── api.md        Endpoint reference
-└── frontend_app/         React SPA (Vite dev server)
+│       ├── database.md       Schema reference
+│       └── api.md            Endpoint reference
+└── frontend_app/             React SPA (Vite dev server, port 3000)
     ├── src/
-    │   ├── app/          DashboardPage, HomePage, ProfilePage
-    │   ├── components/   BeltBar, TrainingHeatmap, SkillRadar, LogSessionForm, …
-    │   ├── context/      AuthContext (JWT in localStorage)
-    │   ├── hooks/        useAuth, use-toast
-    │   └── lib/          api.ts, constants.ts, theme.ts, utils.ts
+    │   ├── app/              HomePage, ResetPasswordPage, PathAheadPage, CalendarPage,
+    │   │                     AnalyticsPage, IntentionsPage, JournalEntryPage, ProfilePage
+    │   ├── components/       BeltBar, TrainingHeatmap, SkillRadar, LogSessionForm, …
+    │   ├── context/          AuthContext (JWT in localStorage), ProfileContext
+    │   ├── hooks/            useAuth, use-toast
+    │   └── lib/              api.ts, constants.ts, theme.ts, utils.ts
     └── docs/
-        └── components.md Component catalog
+        └── components.md     Component catalog
 ```
 
 ---
 
-## Quickstart
+## Quickstart (local dev)
 
 ### Backend
 
 ```bash
 cd backend_api
 npm install
-# Copy .env and fill in DATABASE_URL and JWT_SECRET
+# Create .env with at minimum:
+#   DATABASE_URL=<your Supabase connection string>
+#   JWT_SECRET=<long random string>
+# Optional email (falls back to Ethereal test account if omitted):
+#   SMTP_HOST=  SMTP_PORT=587  SMTP_USER=  SMTP_PASS=
+#   SMTP_FROM=Journada <noreply@yourapp.com>
+#   FRONTEND_URL=http://localhost:3000
 npm run dev        # tsx watch mode on port 5000
 ```
+
+The server validates required env vars on startup and exits with a clear message if any are missing. The `password_reset_tokens` table is created automatically on first startup.
 
 ### Frontend
 
 ```bash
 cd frontend_app
 npm install
-# Optional: set VITE_GOOGLE_MAPS_API_KEY in .env for gym autocomplete
-npm run dev        # Vite dev server
+# Optional .env:
+#   VITE_GOOGLE_MAPS_API_KEY=<key>   for gym address autocomplete
+npm run dev        # Vite dev server on port 3000
 ```
+
+Vite proxies `/auth` and `/api` to `http://localhost:5000` in dev — no CORS configuration needed.
+
+---
+
+## Railway Deployment
+
+The app runs as two separate Railway services.
+
+### Required environment variables
+
+**Backend service**
+
+| Variable | Notes |
+|---|---|
+| `DATABASE_URL` | Supabase / Postgres connection string |
+| `JWT_SECRET` | Long random string — never share this |
+| `ALLOWED_ORIGIN` | `https://your-frontend.railway.app` |
+| `SMTP_HOST` | Optional — Ethereal test account used if absent |
+| `SMTP_PORT` | `587` |
+| `SMTP_USER` | Optional |
+| `SMTP_PASS` | Optional |
+| `SMTP_FROM` | e.g. `Journada <noreply@yourapp.com>` |
+| `FRONTEND_URL` | `https://your-frontend.railway.app` (used in reset links) |
+
+**Frontend service**
+
+| Variable | Notes |
+|---|---|
+| `VITE_API_BASE_URL` | `https://your-backend.railway.app` — **required**, must be set before build |
+
+> `VITE_API_BASE_URL` is a build-time variable. Set it in Railway, then trigger a redeploy so Vite bakes it into the bundle.
+
+### Health check
+
+`GET https://your-backend.railway.app/` returns:
+```json
+{ "status": "ok", "db": "connected" }
+```
+Use this to confirm the backend is alive and connected to the database after a deploy.
 
 ---
 
@@ -75,14 +129,29 @@ npm run dev        # Vite dev server
 5. `authMiddleware` verifies the token and attaches `{ id, email }` to `req.user`
 6. On 401, the global handler in `api.ts` auto-logs out and redirects to `/`
 
+### Password Reset Flow
+
+1. User submits email on the "Forgot password" screen → `POST /auth/request-password-reset`
+2. Backend generates a 32-byte random token, stores it in `password_reset_tokens` (1h expiry), sends email
+3. Email contains `FRONTEND_URL/reset-password?token=<token>`
+4. User clicks link → `ResetPasswordPage` reads token from URL query param
+5. User submits new password → `POST /auth/reset-password`
+6. Backend validates token (not expired, not used), updates `password_hash`, marks token used
+
+In dev without SMTP configured: the reset email preview URL is logged to the backend console (Ethereal).
+
 ---
 
 ## Data Model (summary)
 
 See [`backend_api/docs/database.md`](backend_api/docs/database.md) for full schema.
 
-**users** — identity + profile (name, belt rank, stripes, home gym)
-**training_sessions** — one row per session; includes a `tags` text array for skill tracking
+| Table | Purpose |
+|---|---|
+| `users` | Identity, auth credentials, and profile data |
+| `training_sessions` | One row per session; includes a `tags` text array for skill tracking |
+| `password_reset_tokens` | Short-lived tokens for the password reset flow |
+| `intentions` | Weekly training intentions with optional journal entries |
 
 ---
 
@@ -138,7 +207,7 @@ Modal for logging a session: date, duration (presets + custom fields), type (Cla
 
 ## Pending
 
-- SQL migration to add the `tags` column (run once in Supabase SQL Editor):
+- Run the tags column migration once in Supabase SQL Editor if not already applied:
   ```sql
   ALTER TABLE training_sessions ADD COLUMN IF NOT EXISTS tags text[] NOT NULL DEFAULT '{}';
   ```
