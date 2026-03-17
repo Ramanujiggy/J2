@@ -37,7 +37,7 @@ export default function WaveBackground() {
     <svg
       aria-hidden="true"
       xmlns="http://www.w3.org/2000/svg"
-      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
+      style={{ position: 'fixed', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
     >
       <defs>
         <pattern id={patternId} width="36" height="36" patternUnits="userSpaceOnUse">

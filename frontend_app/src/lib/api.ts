@@ -44,7 +44,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     throw new ApiError(res.status, message);
   }
 
-  return res.json() as Promise<T>;
+  return res.json().catch(() => {
+    throw new ApiError(res.status, 'Server returned an unexpected response. Please try again.');
+  }) as Promise<T>;
 }
 
 export const api = {
