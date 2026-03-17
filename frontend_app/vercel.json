@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://REPLACE_WITH_BACKEND_URL/api/:path*" },
+    { "source": "/auth/:path*", "destination": "https://REPLACE_WITH_BACKEND_URL/auth/:path*" }
+  ]
+}

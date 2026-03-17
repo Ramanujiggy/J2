@@ -19,7 +19,10 @@ const app = express();
 
 //security middleware
 app.use(helmet()); // sets secure http headers
-app.use(cors()); //enables cross origin resource sharing (CORS)
+app.use(cors({
+  origin: process.env.ALLOWED_ORIGIN ?? '*', // set ALLOWED_ORIGIN=https://your-app.vercel.app in production
+  credentials: true,
+}));
 app.use(express.json()); //allows the server to read json body content
 
 

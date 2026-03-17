@@ -167,14 +167,14 @@ function generateDayParticles(dayStr: string) {
 interface DayCardProps {
   day: Date;
   today: Date;
-  session: SessionSummary | null;
+  sessions: SessionSummary[];
   intention: Intention | null;
   intentionBrightness: number;
   onLogSession: () => void;
-  onViewSession: (session: SessionSummary, date: Date) => void;
+  onViewSession: (sessions: SessionSummary[], date: Date) => void;
 }
 
-function DayCard({ day, today, session, intention, intentionBrightness, onLogSession, onViewSession }: DayCardProps) {
+function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSession, onViewSession }: DayCardProps) {
   const [hovered, setHovered] = useState(false);
 
   const todayStr   = toDateString(today);
@@ -183,7 +183,13 @@ function DayCard({ day, today, session, intention, intentionBrightness, onLogSes
   const isFuture   = dayStr > todayStr;
   const isPast     = dayStr < todayStr;
 
-  const intensityColor = session ? (INTENSITY_COLOR[session.intensity] ?? '#CDDFA0') : null;
+  const primarySession = sessions.length > 0
+    ? [...sessions].sort((a, b) => Number(b.intensity) - Number(a.intensity))[0]
+    : null;
+  const totalMinutes = sessions.reduce((sum, s) => sum + Number(s.duration), 0);
+  const sessionCount = sessions.length;
+
+  const intensityColor = primarySession ? (INTENSITY_COLOR[primarySession.intensity] ?? '#CDDFA0') : null;
 
   // Border + shadow — today with intention gets a faint yellow ambient glow
   const borderColor = isToday ? 'rgba(184,122,85,0.7)' : 'rgba(255,255,255,0.07)';
@@ -237,31 +243,36 @@ function DayCard({ day, today, session, intention, intentionBrightness, onLogSes
 
       {/* Card body */}
       <div className="flex-1 px-3 py-2.5 flex flex-col gap-1.5">
-        {session ? (
+        {sessionCount > 0 ? (
           <button
             className="text-left w-full space-y-1.5"
-            onClick={() => onViewSession(session, day)}
+            onClick={() => onViewSession(sessions, day)}
           >
-            {/* Intensity dot + duration */}
+            {/* Intensity dot + duration + count badge */}
             <div className="flex items-center gap-1.5">
               <span
                 className="w-2 h-2 rounded-full flex-shrink-0"
                 style={{ backgroundColor: intensityColor! }}
               />
               <span className="text-xs font-semibold text-white">
-                {formatDuration(session.duration)}
+                {formatDuration(totalMinutes)}
               </span>
+              {sessionCount > 1 && (
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>
+                  ×{sessionCount}
+                </span>
+              )}
             </div>
             {/* Type · Style */}
             <p className="text-[11px] text-white/45 leading-tight">
-              {SESSION_TYPE_LABELS[session.session_type] ?? session.session_type}
+              {SESSION_TYPE_LABELS[primarySession!.session_type] ?? primarySession!.session_type}
               {' · '}
-              {session.gi_nogi === 'gi' ? 'Gi' : 'No-Gi'}
+              {primarySession!.gi_nogi === 'gi' ? 'Gi' : 'No-Gi'}
             </p>
-            {/* Top tags (up to 2) */}
-            {session.tags && session.tags.length > 0 && (
+            {/* Top tags (up to 2) from primary session */}
+            {primarySession!.tags && primarySession!.tags.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-0.5">
-                {session.tags.slice(0, 2).map(tag => {
+                {primarySession!.tags.slice(0, 2).map(tag => {
                   const found = SKILL_TAGS.find(s => s.value === tag);
                   return (
                     <span
@@ -287,7 +298,7 @@ function DayCard({ day, today, session, intention, intentionBrightness, onLogSes
             className="text-[11px] font-medium transition-colors text-left"
             style={{ color: 'rgba(184,122,85,0.7)' }}
           >
-            + Log session
+            + Mat Time
           </button>
         )}
       </div>
@@ -373,9 +384,11 @@ export default function PathAheadPage() {
   // Modals
   const [logOpen,             setLogOpen]             = useState(false);
   const [setIntentOpen,       setSetIntentOpen]       = useState(false);
-  const [detailSession,       setDetailSession]       = useState<SessionSummary | null>(null);
+  const [detailSessions,      setDetailSessions]      = useState<SessionSummary[]>([]);
+  const [detailSessionIndex,  setDetailSessionIndex]  = useState(0);
   const [detailDate,          setDetailDate]          = useState<Date | null>(null);
   const [detailIntention,     setDetailIntention]     = useState<Intention | null>(null);
+  const detailSession = detailSessions[detailSessionIndex] ?? null;
 
   // ── Data fetching ──────────────────────────────────────────────────────
 
@@ -427,12 +440,13 @@ export default function PathAheadPage() {
     ? addDays(intentionStartStr, activeIntention.duration_days ?? 7)
     : null;
 
-  // Sessions indexed by date string
+  // Sessions indexed by date string — all sessions per day
   const sessionsByDate = useMemo(() => {
-    const map = new Map<string, SessionSummary>();
+    const map = new Map<string, SessionSummary[]>();
     sessions.forEach(s => {
       const key = typeof s.date === 'string' ? s.date.slice(0, 10) : toDateString(new Date(s.date));
-      if (!map.has(key)) map.set(key, s); // first match wins (already sorted desc by date)
+      const existing = map.get(key) ?? [];
+      map.set(key, [...existing, s]);
     });
     return map;
   }, [sessions]);
@@ -509,6 +523,11 @@ export default function PathAheadPage() {
           50%  { opacity: 0.65; transform: scale(1.08); }
           100% { opacity: 0.35; transform: scale(1);    }
         }
+        @keyframes j2IntentCopperPulse {
+          0%   { opacity: 0.35; transform: scale(1);    }
+          50%  { opacity: 0.60; transform: scale(1.08); }
+          100% { opacity: 0.35; transform: scale(1);    }
+        }
         @keyframes j2IntentFadeIn {
           from { opacity: 0; }
           to   { opacity: 1; }
@@ -524,7 +543,7 @@ export default function PathAheadPage() {
           onClick={() => setLogOpen(true)}
           className="bg-brand-orange hover:bg-brand-orange/90 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
         >
-          + Log session
+          + Mat Time
         </button>
       </div>
 
@@ -711,12 +730,13 @@ export default function PathAheadPage() {
               key={dayStr}
               day={day}
               today={today}
-              session={sessionsByDate.get(dayStr) ?? null}
+              sessions={sessionsByDate.get(dayStr) ?? []}
               intention={dayHasIntention ? activeIntention : null}
               intentionBrightness={intentionBrightness}
               onLogSession={() => setLogOpen(true)}
-              onViewSession={(s, d) => {
-                setDetailSession(s);
+              onViewSession={(ss, d) => {
+                setDetailSessions(ss);
+                setDetailSessionIndex(0);
                 setDetailDate(d);
                 setDetailIntention(dayHasIntention ? activeIntention : null);
               }}
@@ -725,10 +745,10 @@ export default function PathAheadPage() {
         })}
       </div>
 
-      {/* ── Weekly stats strip ────────────────────────────────────── */}
+      {/* ── Weekly summary card ───────────────────────────────────── */}
       {windowStats.count > 0 && (
         <div
-          className="rounded-xl px-4 py-3 flex items-center gap-4 text-sm flex-wrap"
+          className="rounded-xl px-4 py-3"
           style={{
             position: 'relative',
             overflow: 'hidden',
@@ -736,32 +756,11 @@ export default function PathAheadPage() {
             border: `1px solid ${COPPER_BORDER}`,
           }}
         >
-          <span className="text-white/50">
-            <span className="font-semibold text-white">{windowStats.count}</span> session{windowStats.count !== 1 ? 's' : ''}
-          </span>
-          <span className="text-white/20">·</span>
-          <span className="text-white/50">
-            <span className="font-semibold text-white">{formatDuration(windowStats.totalMinutes)}</span> total
-          </span>
-        </div>
-      )}
-
-      {/* ── Ambient Focus card ────────────────────────────────────── */}
-      {windowStats.topTagLabel && (
-        <div
-          className="rounded-xl px-4 py-3"
-          style={{
-            position: 'relative',
-            overflow: 'hidden',
-            backgroundColor: 'rgba(167,139,250,0.05)',
-            border: '1px solid rgba(167,139,250,0.22)',
-          }}
-        >
-          {/* Particle / glow layer */}
+          {/* Particle / glow layer — copper toned, gradient masked */}
           <div style={{
-            position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0, animation: 'j2IntentFadeIn 2s ease forwards',
-            WebkitMaskImage: 'linear-gradient(to top, black 0%, rgba(0,0,0,0.85) 50%, transparent 100%)',
-            maskImage: 'linear-gradient(to top, black 0%, rgba(0,0,0,0.85) 50%, transparent 100%)',
+            position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0,
+            WebkitMaskImage: 'linear-gradient(to top, black 0%, rgba(0,0,0,0.85) 45%, transparent 100%)',
+            maskImage: 'linear-gradient(to top, black 0%, rgba(0,0,0,0.85) 45%, transparent 100%)',
           }}>
             <div style={{
               position: 'absolute',
@@ -769,14 +768,14 @@ export default function PathAheadPage() {
               transform: 'translateX(-50%)',
               width: '50%', height: 40,
               borderRadius: '50%',
-              background: 'radial-gradient(ellipse at center bottom, rgba(167,139,250,0.18) 0%, transparent 80%)',
-              animation: 'j2IntentPurplePulse 5.5s ease-in-out infinite',
+              background: 'radial-gradient(ellipse at center bottom, rgba(184,122,85,0.15) 0%, transparent 80%)',
+              animation: 'j2IntentCopperPulse 5.5s ease-in-out infinite',
             }} />
             <div style={{
               position: 'absolute',
-              bottom: 0, left: 0, right: 0, height: 20,
-              background: 'linear-gradient(to top, rgba(167,139,250,0.14) 0%, transparent 100%)',
-              animation: 'j2IntentPurplePulse 4.5s ease-in-out infinite',
+              bottom: 0, left: 0, right: 0, height: 18,
+              background: 'linear-gradient(to top, rgba(184,122,85,0.12) 0%, transparent 100%)',
+              animation: 'j2IntentCopperPulse 4.5s ease-in-out infinite',
               transformOrigin: 'center bottom',
             }} />
             {STATS_PARTICLES.map((p, i) => (
@@ -785,8 +784,8 @@ export default function PathAheadPage() {
                 left: p.left, bottom: p.bottom,
                 width: p.size, height: p.size,
                 borderRadius: '50%',
-                backgroundColor: 'rgba(167,139,250,0.88)',
-                boxShadow: '0 0 5px 2px rgba(167,139,250,0.55)',
+                backgroundColor: 'rgba(218,116,34,0.75)',
+                boxShadow: '0 0 5px 2px rgba(218,116,34,0.45)',
                 filter: 'brightness(1.2)',
                 ['--drift' as string]: p.drift,
                 animation: `j2IntentParticleRise ${p.duration}s ease-in-out infinite ${p.delay}s`,
@@ -796,23 +795,35 @@ export default function PathAheadPage() {
           </div>
 
           {/* Content */}
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <div className="flex items-center gap-1.5 mb-1">
-              <span className="text-[11px] text-white/30 uppercase tracking-wide">Ambient Focus</span>
-              <Tooltip text="The skill you've trained most this week, based on your logged sessions.">
-                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.22)', cursor: 'default', lineHeight: 1 }}>?</span>
-              </Tooltip>
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span style={{ fontSize: 15, fontWeight: 600, color: 'rgba(167,139,250,0.9)' }}>
-                ◎ {windowStats.topTagLabel}
+          <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {/* Stats row */}
+            <div className="flex items-center gap-4 text-sm flex-wrap">
+              <span className="text-white/50">
+                <span className="font-semibold text-white">{windowStats.count}</span> session{windowStats.count !== 1 ? 's' : ''}
               </span>
-              {windowStats.topTagCount > 1 && (
-                <span style={{ fontSize: 12, color: 'rgba(167,139,250,0.45)' }}>
-                  × {windowStats.topTagCount}
-                </span>
-              )}
+              <span className="text-white/20">·</span>
+              <span className="text-white/50">
+                <span className="font-semibold text-white">{formatDuration(windowStats.totalMinutes)}</span> total
+              </span>
             </div>
+
+            {/* Ambient Focus row — only when tag data exists */}
+            {windowStats.topTagLabel && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] text-white/30 uppercase tracking-wide">Ambient Focus</span>
+                <Tooltip text="The skill you've trained most this week, based on your logged sessions.">
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.22)', cursor: 'default', lineHeight: 1 }}>?</span>
+                </Tooltip>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(218,116,34,0.85)', marginLeft: 4 }}>
+                  ◎ {windowStats.topTagLabel}
+                </span>
+                {windowStats.topTagCount > 1 && (
+                  <span style={{ fontSize: 12, color: 'rgba(218,116,34,0.45)' }}>
+                    × {windowStats.topTagCount}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -837,11 +848,15 @@ export default function PathAheadPage() {
 
       {detailSession && detailDate && (
         <SessionDetailModal
+          key={detailSession.id}
           session={detailSession}
           date={detailDate}
           intention={detailIntention}
-          onClose={() => { setDetailSession(null); setDetailDate(null); setDetailIntention(null); }}
-          onSaved={() => { fetchAll(); setDetailSession(null); setDetailDate(null); setDetailIntention(null); }}
+          sessionCount={detailSessions.length}
+          sessionIndex={detailSessionIndex}
+          onNavigate={setDetailSessionIndex}
+          onClose={() => { setDetailSessions([]); setDetailSessionIndex(0); setDetailDate(null); setDetailIntention(null); }}
+          onSaved={() => { fetchAll(); setDetailSessions([]); setDetailSessionIndex(0); setDetailDate(null); setDetailIntention(null); }}
         />
       )}
 

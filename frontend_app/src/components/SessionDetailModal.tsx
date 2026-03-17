@@ -54,11 +54,14 @@ interface Props {
   session: SessionSummary;
   date: Date;
   intention?: IntentionSummary | null;
+  sessionCount?: number;
+  sessionIndex?: number;
+  onNavigate?: (index: number) => void;
   onClose: () => void;
   onSaved: () => void;
 }
 
-export default function SessionDetailModal({ session, date, intention, onClose, onSaved }: Props) {
+export default function SessionDetailModal({ session, date, intention, sessionCount, sessionIndex, onNavigate, onClose, onSaved }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState({
     duration:     session.duration,
@@ -205,6 +208,31 @@ export default function SessionDetailModal({ session, date, intention, onClose, 
 
           {/* All content sits above the particle layer */}
           <div style={{ position: 'relative', zIndex: 1 }}>
+            {/* Session navigator — shown only when multiple sessions exist for this day */}
+            {(sessionCount ?? 1) > 1 && onNavigate && (
+              <div className="flex items-center gap-2 mb-3">
+                <button
+                  onClick={() => onNavigate(sessionIndex! - 1)}
+                  disabled={sessionIndex === 0}
+                  className="text-sm transition-colors"
+                  style={{ color: sessionIndex === 0 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.5)' }}
+                >
+                  ←
+                </button>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)' }}>
+                  session {sessionIndex! + 1} of {sessionCount}
+                </span>
+                <button
+                  onClick={() => onNavigate(sessionIndex! + 1)}
+                  disabled={sessionIndex === sessionCount! - 1}
+                  className="text-sm transition-colors"
+                  style={{ color: sessionIndex === sessionCount! - 1 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.5)' }}
+                >
+                  →
+                </button>
+              </div>
+            )}
+
             {/* Date — colored by intensity */}
             <p className="text-2xl font-bold mb-3" style={{ color: intensityColor }}>
               {dateLabel}

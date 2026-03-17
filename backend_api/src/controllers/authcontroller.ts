@@ -9,12 +9,14 @@ import * as userModel from '../models/userModel.js';
 
 export const register = async (req: Request, res: Response) => {
     try {
-        const {email, password } = req.body;
+        const { email: rawEmail, password } = req.body;
 
         //validation that email and password are provided
-        if (!email || !password) {
+        if (!rawEmail || !password) {
             return res.status(400).json({ message: 'Email and password are required' });
         }
+
+        const email = rawEmail.toLowerCase().trim();
 
         // check if the user already exists, using the user model
         const existingUser = await userModel.findUserByEmail(email);
@@ -44,12 +46,14 @@ export const register = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
     try {
-        const { email, password } = req.body;
+        const { email: rawEmail, password } = req.body;
 
         // validation that email and password are provided
-        if (!email || !password) {
+        if (!rawEmail || !password) {
             return res.status(400).json({ message: 'Email and password are required' });
         }
+
+        const email = rawEmail.toLowerCase().trim();
 
         // look up the user — return a generic message to avoid leaking whether the email exists
         const user = await userModel.findUserByEmail(email);

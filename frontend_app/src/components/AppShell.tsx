@@ -94,10 +94,17 @@ export default function AppShell({ children }: Props) {
 
         {/* Header top row: logo + logout */}
         <div className="relative z-10 px-6 pt-4 pb-2 flex items-center justify-between">
-          <div className="w-fit">
+          <div style={{ position: 'relative' }}>
+            {/* Fading shadow behind title + belt only */}
+            <div style={{
+              position: 'absolute',
+              top: '-8px', left: '-14px', right: '-14px', bottom: '-6px',
+              background: 'radial-gradient(ellipse at 35% 45%, rgba(4,10,20,0.55) 0%, rgba(4,10,20,0.20) 50%, transparent 78%)',
+              pointerEvents: 'none',
+            }} />
             <h1
               className="text-xl font-bold tracking-tight"
-              style={{ color: PALE_YELLOW, textShadow: GLOW_TITLE }}
+              style={{ position: 'relative', color: PALE_YELLOW, textShadow: GLOW_TITLE }}
             >
               Journada
             </h1>
