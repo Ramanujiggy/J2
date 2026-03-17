@@ -1,17 +1,36 @@
 import nodemailer from 'nodemailer';
 
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT) || 587,
-    secure: false,
-    auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-    },
-});
+async function getTransporter() {
+    if (process.env.SMTP_HOST) {
+        return nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port: Number(process.env.SMTP_PORT) || 587,
+            secure: false,
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS,
+            },
+        });
+    }
+
+    // No SMTP config — use Ethereal test account (dev only)
+    const testAccount = await nodemailer.createTestAccount();
+    console.log('[email] No SMTP_HOST set. Using Ethereal test account:', testAccount.user);
+    return nodemailer.createTransport({
+        host: 'smtp.ethereal.email',
+        port: 587,
+        secure: false,
+        auth: {
+            user: testAccount.user,
+            pass: testAccount.pass,
+        },
+    });
+}
 
 export const sendPasswordResetEmail = async (toEmail: string, resetLink: string): Promise<void> => {
-    await transporter.sendMail({
+    const transporter = await getTransporter();
+
+    const info = await transporter.sendMail({
         from: process.env.SMTP_FROM ?? 'Journada <noreply@journada.app>',
         to: toEmail,
         subject: 'Reset your Journada password',
@@ -27,4 +46,8 @@ export const sendPasswordResetEmail = async (toEmail: string, resetLink: string)
             <p style="color:#888;font-size:12px;">If you did not request this, you can safely ignore this email.</p>
         `,
     });
+
+    if (nodemailer.getTestMessageUrl(info)) {
+        console.log('[email] Preview URL:', nodemailer.getTestMessageUrl(info));
+    }
 };

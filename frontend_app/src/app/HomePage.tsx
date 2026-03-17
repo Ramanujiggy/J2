@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.ts';
-import { api } from '../lib/api.ts';
+import { api, ApiError } from '../lib/api.ts';
 import WaveBackground from '../components/WaveBackground.tsx';
 import { CARD_BG, COPPER_BORDER, CARD_SHADOW, PALE_YELLOW, GLOW_TITLE, GLOW_NAV } from '../lib/theme.ts';
 
@@ -57,8 +57,8 @@ export default function HomePage() {
 
       login(loginData.token);
       navigate('/home');
-    } catch {
-      setError('Something went wrong. Please try again.');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
