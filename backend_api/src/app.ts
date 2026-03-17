@@ -12,12 +12,16 @@ import { query } from './config/db.js';
 dotenv.config();
 
 // ---- Startup: validate required env vars ------------------------------------
-const REQUIRED_ENV = ['DATABASE_URL', 'JWT_SECRET', 'FRONTEND_URL'] as const;
+const REQUIRED_ENV = ['DATABASE_URL', 'JWT_SECRET'] as const;
 const missing = REQUIRED_ENV.filter(k => !process.env[k]);
 if (missing.length > 0) {
     console.error(`❌ Missing required environment variables: ${missing.join(', ')}`);
     console.error('Set these in your Railway service environment variables and redeploy.');
     process.exit(1);
+}
+
+if (!process.env.FRONTEND_URL) {
+    console.warn('⚠️  FRONTEND_URL is not set — password reset email links will point to http://localhost:3000. Set FRONTEND_URL=https://<your-frontend>.up.railway.app in the backend service env vars.');
 }
 
 // ---- Auto-migration: ensure password_reset_tokens table exists --------------

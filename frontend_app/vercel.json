@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://REPLACE_WITH_BACKEND_URL/api/:path*" },
-    { "source": "/auth/:path*", "destination": "https://REPLACE_WITH_BACKEND_URL/auth/:path*" }
+    { "source": "/api/:path*", "destination": "https://j2-production.up.railway.app/api/:path*" },
+    { "source": "/auth/:path*", "destination": "https://j2-production.up.railway.app/auth/:path*" }
   ]
 }
