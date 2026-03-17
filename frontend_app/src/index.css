@@ -44,8 +44,13 @@
     --radius: 0.5rem;
   }
 
+  html, body {
+    @apply bg-brand-dark;
+    overflow-x: hidden;
+  }
+
   body {
-    @apply bg-brand-dark text-white font-sans antialiased;
+    @apply text-white font-sans antialiased;
   }
 }
 

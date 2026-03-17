@@ -72,7 +72,7 @@ export default function HomePage() {
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-center bg-brand-dark px-4 relative"
+      className="min-h-screen min-h-dvh flex flex-col items-center justify-center bg-brand-dark px-4 relative overflow-hidden"
     >
       <WaveBackground />
 

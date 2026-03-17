@@ -63,7 +63,7 @@ export default function WaveBackground() {
       </defs>
 
       {/* Oversized rect so the 36px translate never reveals a gap at any edge */}
-      <g style={{ animation: 'jw-drift 14s linear infinite' }}>
+      <g style={{ animation: 'jw-drift 12.2s linear infinite' }}>
         <rect x="-36" y="-36" width="10000" height="3000" fill={`url(#${patternId})`} />
       </g>
 
