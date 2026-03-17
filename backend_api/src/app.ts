@@ -50,7 +50,7 @@ const app = express();
 app.use(helmet()); // sets secure http headers
 app.use(cors({
   origin: process.env.ALLOWED_ORIGIN ?? '*', // set ALLOWED_ORIGIN=https://your-app.railway.app in production
-  credentials: true,
+  credentials: !!process.env.ALLOWED_ORIGIN, // credentials:true requires a specific origin, not '*'
 }));
 app.use(express.json()); //allows the server to read json body content
 

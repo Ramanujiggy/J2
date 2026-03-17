@@ -35,7 +35,7 @@ export default function ResetPasswordPage() {
       await api.post('/auth/reset-password', { token, newPassword });
       setSuccess(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.');
+      setError(err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Something went wrong.');
     } finally {
       setLoading(false);
     }

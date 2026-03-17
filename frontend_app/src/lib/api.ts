@@ -18,14 +18,22 @@ const getToken = (): string | null => localStorage.getItem('token');
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
 
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
+      },
+    });
+  } catch (err) {
+    const hint = BASE_URL === ''
+      ? ' (VITE_API_BASE_URL is not set — redeploy after setting it)'
+      : ` (backend: ${BASE_URL})`;
+    throw new ApiError(0, `Cannot reach the server${hint}.`);
+  }
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({})) as { message?: string };
