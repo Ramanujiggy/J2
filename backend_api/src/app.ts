@@ -12,7 +12,7 @@ import { query } from './config/db.js';
 dotenv.config();
 
 // ---- Startup: validate required env vars ------------------------------------
-const REQUIRED_ENV = ['DATABASE_URL', 'JWT_SECRET'] as const;
+const REQUIRED_ENV = ['DATABASE_URL', 'JWT_SECRET', 'FRONTEND_URL'] as const;
 const missing = REQUIRED_ENV.filter(k => !process.env[k]);
 if (missing.length > 0) {
     console.error(`❌ Missing required environment variables: ${missing.join(', ')}`);
@@ -77,6 +77,14 @@ app.use('/api', profileRoutes);
 // intention routes: POST/GET /api/intentions, GET /api/intentions/current, DELETE /api/intentions/:id
 app.use('/api/intentions', intentionRoutes);
 
+
+// Catch-all JSON error handler — must be registered after all routes.
+// Express 5 forwards async throws to error-handling middleware; without this
+// the default handler sends an HTML page, which the frontend can't parse as JSON.
+app.use((_err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    console.error('❌ Unhandled error:', _err);
+    res.status(500).json({ message: 'Server error' });
+});
 
 // start the server
 const PORT = process.env.PORT || 5000;

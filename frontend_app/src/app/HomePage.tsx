@@ -31,6 +31,13 @@ export default function HomePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -50,7 +57,7 @@ export default function HomePage() {
       }
 
       const loginData = await api.post<LoginResponse>('/auth/login', { email, password });
-      if (!loginData.token) {
+      if (!loginData.token?.trim()) {
         setError(loginData.message ?? 'Login failed.');
         return;
       }

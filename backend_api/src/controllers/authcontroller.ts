@@ -8,6 +8,10 @@ import * as userModel from '../models/userModel.js';
 import * as passwordResetModel from '../models/passwordResetModel.js';
 import { sendPasswordResetEmail } from '../services/emailService.js';
 
+// Simple email format guard — catches obvious typos before they reach the DB
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const isValidEmail = (email: string) => EMAIL_RE.test(email);
+
 // ---- Register ---------------------------------------------------------------
 
 export const register = async (req: Request, res: Response) => {
@@ -20,6 +24,10 @@ export const register = async (req: Request, res: Response) => {
         }
 
         const email = rawEmail.toLowerCase().trim();
+
+        if (!isValidEmail(email)) {
+            return res.status(400).json({ message: 'Please enter a valid email address.' });
+        }
 
         // check if the user already exists, using the user model
         const existingUser = await userModel.findUserByEmail(email);
@@ -57,6 +65,10 @@ export const login = async (req: Request, res: Response) => {
         }
 
         const email = rawEmail.toLowerCase().trim();
+
+        if (!isValidEmail(email)) {
+            return res.status(400).json({ message: 'Please enter a valid email address.' });
+        }
 
         // look up the user — return a generic message to avoid leaking whether the email exists
         const user = await userModel.findUserByEmail(email);
@@ -108,6 +120,10 @@ export const requestPasswordReset = async (req: Request, res: Response) => {
         if (!rawEmail) return res.status(200).json(genericResponse);
 
         const email = rawEmail.toLowerCase().trim();
+
+        // Invalid email format — return generic response (no user enumeration)
+        if (!isValidEmail(email)) return res.status(200).json(genericResponse);
+
         const user = await userModel.findUserByEmail(email);
 
         if (user && user.id) {
