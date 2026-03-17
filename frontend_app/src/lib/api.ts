@@ -1,5 +1,8 @@
 // Central API client — all fetch calls go through here.
 // In dev, Vite proxies /auth and /api to http://localhost:5000 so no CORS issues.
+// In production, set VITE_API_BASE_URL to the Railway backend URL.
+
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -15,7 +18,7 @@ const getToken = (): string | null => localStorage.getItem('token');
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
 
-  const res = await fetch(path, {
+  const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',

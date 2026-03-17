@@ -109,7 +109,7 @@ export const patchJournalEntry = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'journal_entry must be a string.' });
     }
 
-    const updated = await intentionModel.updateJournalEntry(userId, id, journal_entry);
+    const updated = await intentionModel.updateJournalEntry(userId, id!, journal_entry);
     if (!updated) {
       return res.status(404).json({ message: 'Intention not found or not owned by user.' });
     }
@@ -129,7 +129,7 @@ export const deleteIntention = async (req: Request, res: Response) => {
     const userId = req.user!.id;
     const { id } = req.params;
 
-    const deleted = await intentionModel.deleteIntention(userId, id);
+    const deleted = await intentionModel.deleteIntention(userId, id!);
     if (!deleted) {
       return res.status(404).json({ message: 'Intention not found or not owned by user.' });
     }
