@@ -51,11 +51,15 @@ const app = express();
 
 
 //security middleware
-app.use(helmet()); // sets secure http headers
-app.use(cors({
-  origin: process.env.ALLOWED_ORIGIN ?? '*', // set ALLOWED_ORIGIN=https://your-app.railway.app in production
-  credentials: !!process.env.ALLOWED_ORIGIN, // credentials:true requires a specific origin, not '*'
-}));
+app.use(helmet());
+const corsOptions: cors.CorsOptions = {
+  origin: process.env.ALLOWED_ORIGIN ?? '*',
+  credentials: !!process.env.ALLOWED_ORIGIN,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // respond to preflight for every route
 app.use(express.json()); //allows the server to read json body content
 
 
