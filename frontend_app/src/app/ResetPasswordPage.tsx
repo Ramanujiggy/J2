@@ -76,7 +76,7 @@ export default function ResetPasswordPage() {
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} noValidate className="space-y-4">
             {!token && (
               <p className="text-sm text-red-400">
                 No reset token found. Please use the link from your email.
