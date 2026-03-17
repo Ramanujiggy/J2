@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { api } from '../lib/api.ts';
+import { api, ApiError } from '../lib/api.ts';
 import WaveBackground from '../components/WaveBackground.tsx';
 import { CARD_BG, COPPER_BORDER, CARD_SHADOW, PALE_YELLOW, GLOW_TITLE, GLOW_NAV } from '../lib/theme.ts';
 
@@ -34,8 +34,8 @@ export default function ResetPasswordPage() {
     try {
       await api.post('/auth/reset-password', { token, newPassword });
       setSuccess(true);
-    } catch {
-      setError('This reset link is invalid or has expired. Please request a new one.');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
