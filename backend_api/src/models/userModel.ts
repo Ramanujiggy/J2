@@ -24,5 +24,16 @@ export const createUser = async (email: string, passwordHash: string): Promise<U
     const result = await query (
         'INSERT INTO users (email, password_hash) Values ($1, $2) RETURNING id, email, created_at', [email,passwordHash]
     );
-    return result.rows[0];   
+    return result.rows[0];
+};
+
+// find a user by their id — used after validating a password reset token
+export const findUserById = async (id: string): Promise<User | null> => {
+    const result = await query('SELECT * FROM users WHERE id = $1', [id]);
+    return result.rows[0] || null;
+};
+
+// update a user's password hash — used during password reset
+export const updatePasswordHash = async (id: string, passwordHash: string): Promise<void> => {
+    await query('UPDATE users SET password_hash = $1 WHERE id = $2', [passwordHash, id]);
 };

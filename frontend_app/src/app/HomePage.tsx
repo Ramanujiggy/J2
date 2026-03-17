@@ -5,7 +5,7 @@ import { api } from '../lib/api.ts';
 import WaveBackground from '../components/WaveBackground.tsx';
 import { CARD_BG, COPPER_BORDER, CARD_SHADOW, PALE_YELLOW, GLOW_TITLE, GLOW_NAV } from '../lib/theme.ts';
 
-type Mode = 'login' | 'register';
+type Mode = 'login' | 'register' | 'forgot';
 
 interface RegisterResponse {
   message: string;
@@ -23,6 +23,7 @@ export default function HomePage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
 
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -33,6 +34,12 @@ export default function HomePage() {
     setLoading(true);
 
     try {
+      if (mode === 'forgot') {
+        await api.post('/auth/request-password-reset', { email });
+        setForgotSent(true);
+        return;
+      }
+
       if (mode === 'register') {
         const registerData = await api.post<RegisterResponse>('/auth/register', { email, password });
         if (registerData.message !== 'User registered successfully.') {
@@ -57,6 +64,12 @@ export default function HomePage() {
     }
   };
 
+  const switchMode = (next: Mode) => {
+    setMode(next);
+    setError('');
+    setForgotSent(false);
+  };
+
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center bg-brand-dark px-4 relative"
@@ -76,68 +89,125 @@ export default function HomePage() {
       {/* Card */}
       <div className="w-full max-w-sm rounded-2xl p-8 relative z-10" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
 
-        {/* Mode toggle */}
-        <div className="flex rounded-lg overflow-hidden mb-6 border border-white/10">
-          <button
-            onClick={() => { setMode('login'); setError(''); }}
-            className={`flex-1 py-2 text-sm font-medium transition-colors ${
-              mode === 'login'
-                ? 'bg-brand-orange text-white'
-                : 'text-white/50 hover:text-white'
-            }`}
-          >
-            Log In
-          </button>
-          <button
-            onClick={() => { setMode('register'); setError(''); }}
-            className={`flex-1 py-2 text-sm font-medium transition-colors ${
-              mode === 'register'
-                ? 'bg-brand-orange text-white'
-                : 'text-white/50 hover:text-white'
-            }`}
-          >
-            Register
-          </button>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm text-white/70 mb-1">Email</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              className="w-full bg-white/10 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-orange"
-              placeholder="you@example.com"
-            />
+        {/* Mode toggle — only show for login/register */}
+        {mode !== 'forgot' && (
+          <div className="flex rounded-lg overflow-hidden mb-6 border border-white/10">
+            <button
+              onClick={() => switchMode('login')}
+              className={`flex-1 py-2 text-sm font-medium transition-colors ${
+                mode === 'login'
+                  ? 'bg-brand-orange text-white'
+                  : 'text-white/50 hover:text-white'
+              }`}
+            >
+              Log In
+            </button>
+            <button
+              onClick={() => switchMode('register')}
+              className={`flex-1 py-2 text-sm font-medium transition-colors ${
+                mode === 'register'
+                  ? 'bg-brand-orange text-white'
+                  : 'text-white/50 hover:text-white'
+              }`}
+            >
+              Register
+            </button>
           </div>
+        )}
 
-          <div>
-            <label className="block text-sm text-white/70 mb-1">Password</label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              className="w-full bg-white/10 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-orange"
-              placeholder="••••••••"
-            />
+        {/* Forgot password header */}
+        {mode === 'forgot' && (
+          <div className="mb-6">
+            <h2 className="text-white font-semibold text-lg">Reset your password</h2>
+            <p className="text-white/50 text-sm mt-1">
+              Enter your email and we'll send you a reset link.
+            </p>
           </div>
+        )}
 
-          {error && (
-            <p className="text-sm text-red-400">{error}</p>
-          )}
+        {/* Confirmation message after reset email sent */}
+        {forgotSent ? (
+          <div className="space-y-4">
+            <p className="text-sm text-green-400">
+              If that email is registered, a reset link has been sent. Check your inbox.
+            </p>
+            <button
+              onClick={() => switchMode('login')}
+              className="w-full text-sm text-white/50 hover:text-white transition-colors"
+            >
+              Back to Log In
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm text-white/70 mb-1">Email</label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  className="w-full bg-white/10 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-orange"
+                  placeholder="you@example.com"
+                />
+              </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-50"
-          >
-            {loading ? 'Please wait...' : mode === 'login' ? 'Log In' : 'Create Account'}
-          </button>
-        </form>
+              {mode !== 'forgot' && (
+                <div>
+                  <label className="block text-sm text-white/70 mb-1">Password</label>
+                  <input
+                    type="password"
+                    required
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    className="w-full bg-white/10 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-orange"
+                    placeholder="••••••••"
+                  />
+                </div>
+              )}
+
+              {error && (
+                <p className="text-sm text-red-400">{error}</p>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {loading
+                  ? 'Please wait...'
+                  : mode === 'login'
+                  ? 'Log In'
+                  : mode === 'register'
+                  ? 'Create Account'
+                  : 'Send Reset Link'}
+              </button>
+            </form>
+
+            {/* Forgot password link — only shown in login mode */}
+            {mode === 'login' && (
+              <button
+                onClick={() => switchMode('forgot')}
+                className="mt-4 w-full text-sm text-white/40 hover:text-white/70 transition-colors"
+              >
+                Forgot your password?
+              </button>
+            )}
+
+            {/* Back to login — shown in forgot mode */}
+            {mode === 'forgot' && (
+              <button
+                onClick={() => switchMode('login')}
+                className="mt-4 w-full text-sm text-white/40 hover:text-white/70 transition-colors"
+              >
+                Back to Log In
+              </button>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
