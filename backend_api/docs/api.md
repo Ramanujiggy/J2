@@ -1,18 +1,37 @@
 # API Reference
 
-Base URL: `http://localhost:5000`
+Base URL (local dev): `http://localhost:5000`
+Base URL (production): set `VITE_API_BASE_URL` in the frontend service to your Railway backend URL.
 
 All protected endpoints require `Authorization: Bearer <token>` header.
 
 ---
 
+## Health
+
+### `GET /`
+
+Confirms the backend is running and connected to the database. No authentication required.
+
+**Response `200`**
+```json
+{ "status": "ok", "db": "connected" }
+```
+
+**Response `500`** (database unreachable)
+```json
+{ "status": "error", "db": "disconnected", "detail": "..." }
+```
+
+---
+
 ## Auth
+
+All auth endpoints are rate-limited to **10 requests / 15 min per IP**.
 
 ### `POST /auth/register`
 
 Create a new account.
-
-**Rate limit**: 10 requests / 15 min per IP.
 
 **Body**
 ```json
@@ -38,8 +57,6 @@ Create a new account.
 
 Authenticate and receive a JWT.
 
-**Rate limit**: 10 requests / 15 min per IP.
-
 **Body**
 ```json
 {
@@ -58,6 +75,45 @@ Authenticate and receive a JWT.
 ```
 
 **Errors**: `401` invalid credentials · `400` missing fields
+
+---
+
+### `POST /auth/request-password-reset`
+
+Send a password reset email. Always returns `200` regardless of whether the email exists (prevents user enumeration).
+
+**Body**
+```json
+{ "email": "user@example.com" }
+```
+
+**Response `200`**
+```json
+{ "message": "If that email exists, a reset link has been sent." }
+```
+
+In production the email is sent via SMTP. In dev without `SMTP_HOST` set, an Ethereal preview URL is logged to the backend console — visit it to see the email.
+
+---
+
+### `POST /auth/reset-password`
+
+Set a new password using a valid reset token. Tokens are single-use and expire after 1 hour.
+
+**Body**
+```json
+{
+  "token": "<token from email link>",
+  "newPassword": "newpassword123"
+}
+```
+
+**Response `200`**
+```json
+{ "message": "Password updated successfully." }
+```
+
+**Errors**: `400` missing fields · `400` password under 8 characters · `400` invalid or expired token
 
 ---
 
@@ -324,4 +380,5 @@ Common status codes:
 | `401` | Missing, invalid, or expired JWT |
 | `404` | Resource not found or not owned by user |
 | `409` | Conflict (e.g. email already registered) |
+| `429` | Rate limit exceeded |
 | `500` | Internal server error |

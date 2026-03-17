@@ -6,17 +6,40 @@ All components live in `src/components/`. Pages live in `src/app/`.
 
 ## Pages
 
-### `DashboardPage.tsx`
+### `HomePage.tsx`
+Login / Register / Forgot Password page. Switches between three modes via a tab toggle and a "Forgot your password?" link.
+
+**Modes**
+- `login` — email + password → `POST /auth/login` → stores JWT, navigates to `/home`
+- `register` — email + password → `POST /auth/register` → auto-login on success
+- `forgot` — email only → `POST /auth/request-password-reset` → shows confirmation message
+
+Error messages from the backend are displayed directly (not swallowed as a generic fallback).
+
+### `ResetPasswordPage.tsx`
+Password reset confirmation screen. Reads the `token` query param from the URL (e.g. `/reset-password?token=abc123`).
+
+Fields: new password + confirm password (both min 8 characters). Submits to `POST /auth/reset-password`. On success shows a confirmation with a "Go to Log In" button. On failure shows the exact error from the backend (e.g. "This reset link is invalid or has expired.").
+
+### `PathAheadPage.tsx`
 Main view after login. Composed of:
 - Header: logo, `BeltBar`, Profile and Logout buttons
 - **Mat Time** section: `TrainingHeatmap` + "+ Mat Time" button
-- **Analytics** section: `SkillRadar`
 - `LogSessionForm` modal (hidden until triggered)
 
-Fetches `/api/sessions` and `/api/profile` on mount. Passes `sessions` down to both `TrainingHeatmap` and `SkillRadar`.
+Fetches `/api/sessions` and `/api/profile` on mount.
 
-### `HomePage.tsx`
-Login / Register page. Toggles between two modes. On success stores the JWT and redirects to `/dashboard`.
+### `CalendarPage.tsx`
+Calendar view of training sessions.
+
+### `AnalyticsPage.tsx`
+Full analytics view powered by `SkillRadar`.
+
+### `IntentionsPage.tsx`
+Weekly intention setting. Lets the user define a short focus label and category for the current week. Calls `POST /api/intentions` and `GET /api/intentions`.
+
+### `JournalEntryPage.tsx`
+Reflection journal for a specific intention. Route: `/intentions/:id/journal`.
 
 ### `ProfilePage.tsx`
 Edit profile: display name, belt rank, stripes (0–4), home gym with Google Places Autocomplete. Calls `PUT /api/profile` on save.
@@ -153,15 +176,39 @@ Read mode: displays all session fields. Edit mode: replaces display with form in
 
 ### `WaveBackground.tsx`
 
-Animated seigaiha (Japanese wave/fish-scale) SVG pattern. Used in the `DashboardPage` header and `HomePage`.
+Animated seigaiha (Japanese wave/fish-scale) SVG pattern. Used in `PathAheadPage`, `HomePage`, and `ResetPasswordPage`.
 
 Pattern: 36×36px repeating tile of concentric semicircular arcs in copper at varying opacity. Animates with a slow horizontal + vertical drift (14s loop, `cubic-bezier` easing).
+
+---
+
+### `AppShell.tsx`
+
+Wraps all authenticated pages. Renders the nav bar and the page content area. Protected by `ProtectedShell` in `App.tsx` — redirects to `/` if no token is present.
 
 ---
 
 ### `ErrorBoundary.tsx`
 
 React class-based error boundary wrapping `TrainingHeatmap` and `SkillRadar`. Catches render errors and displays a minimal fallback instead of crashing the page.
+
+---
+
+## Routing (`App.tsx`)
+
+| Path | Component | Protected |
+|---|---|---|
+| `/` | `HomePage` | No |
+| `/reset-password` | `ResetPasswordPage` | No |
+| `/home` | `PathAheadPage` | Yes |
+| `/calendar` | `CalendarPage` | Yes |
+| `/analytics` | `AnalyticsPage` | Yes |
+| `/intentions` | `IntentionsPage` | Yes |
+| `/intentions/:id/journal` | `JournalEntryPage` | Yes |
+| `/profile` | `ProfilePage` | Yes |
+| `/dashboard` | Redirect → `/home` | — |
+
+Protected routes are wrapped in `ProtectedShell`, which checks `isAuthenticated` from `AuthContext` and redirects to `/` if no token is present.
 
 ---
 
@@ -182,7 +229,7 @@ Thin wrappers around Radix UI + shadcn/ui primitives, styled with Tailwind.
 
 | File | Exports | Notes |
 |---|---|---|
-| `lib/api.ts` | `api.get()`, `api.post()`, `api.put()`, `ApiError` | Injects JWT; global 401 handler |
+| `lib/api.ts` | `api.get()`, `api.post()`, `api.put()`, `api.patch()`, `api.delete()`, `ApiError` | Injects JWT; global 401 handler triggers logout; throws `ApiError` with backend message on non-2xx |
 | `lib/constants.ts` | `SKILL_TAGS` | Canonical skill tag values + labels |
 | `lib/theme.ts` | `PAGE_BG`, `CARD_BG`, `PALE_YELLOW`, `COPPER`, `COPPER_BORDER`, `CARD_SHADOW`, `GLOW_TITLE`, `GLOW_SOFT`, `GLOW_NAV`, heatmap tokens | All color/shadow tokens |
 | `lib/utils.ts` | `cn()` | `clsx` + `twMerge` for dynamic Tailwind classes |
