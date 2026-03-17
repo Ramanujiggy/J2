@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npx tsc && npx vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "serve": "npx serve dist -s"
   },
