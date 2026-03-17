@@ -58,7 +58,7 @@ export default function HomePage() {
       login(loginData.token);
       navigate('/home');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : `Error: ${err instanceof Error ? err.message : String(err)}`);
+      setError(err instanceof ApiError ? err.message : err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
@@ -145,7 +145,9 @@ export default function HomePage() {
               <div>
                 <label className="block text-sm text-white/70 mb-1">Email</label>
                 <input
-                  type="email"
+                  type="text"
+                  inputMode="email"
+                  autoComplete="email"
                   required
                   value={email}
                   onChange={e => setEmail(e.target.value)}
