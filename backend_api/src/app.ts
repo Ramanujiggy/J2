@@ -59,7 +59,7 @@ const corsOptions: cors.CorsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // respond to preflight for every route
+app.options('/{*path}', cors(corsOptions)); // respond to preflight for every route
 app.use(express.json()); //allows the server to read json body content
 
 
