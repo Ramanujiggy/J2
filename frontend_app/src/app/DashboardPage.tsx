@@ -132,12 +132,15 @@ export default function DashboardPage() {
       {/* Log session modal */}
       {logOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm px-4"
+          className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm px-5"
           style={{ backgroundColor: 'rgba(38, 70, 83, 0.85)' }}
           onClick={() => setLogOpen(false)}
         >
-          <div onClick={e => e.stopPropagation()} className="w-full max-w-lg">
-            <LogSessionForm onSuccess={() => { fetchSessions(); setLogOpen(false); }} />
+          <div onClick={e => e.stopPropagation()} className="w-full max-w-lg overflow-y-auto max-h-[85vh]">
+            <LogSessionForm
+              onSuccess={() => { fetchSessions(); setLogOpen(false); }}
+              onCancel={() => setLogOpen(false)}
+            />
           </div>
         </div>
       )}

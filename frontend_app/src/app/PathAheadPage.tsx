@@ -832,16 +832,19 @@ export default function PathAheadPage() {
 
       {logOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm px-4"
+          className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm px-5"
           style={{ backgroundColor: 'rgba(17, 30, 43, 0.92)' }}
           onClick={() => setLogOpen(false)}
         >
           <div
             onClick={e => e.stopPropagation()}
-            className="w-full max-w-lg rounded-2xl"
+            className="w-full max-w-lg rounded-2xl overflow-y-auto max-h-[85vh]"
             style={{ border: `1px solid ${COPPER_BORDER}` }}
           >
-            <LogSessionForm onSuccess={() => { fetchAll(); setLogOpen(false); }} />
+            <LogSessionForm
+              onSuccess={() => { fetchAll(); setLogOpen(false); }}
+              onCancel={() => setLogOpen(false)}
+            />
           </div>
         </div>
       )}

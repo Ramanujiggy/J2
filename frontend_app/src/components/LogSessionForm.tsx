@@ -33,7 +33,7 @@ const btnBase = 'px-4 py-2 rounded-lg text-sm font-medium transition-colors curs
 const btnActive = 'bg-brand-orange text-white';
 const btnInactive = 'bg-white/10 text-white/60 hover:bg-white/20';
 
-export default function LogSessionForm({ onSuccess }: { onSuccess?: () => void }) {
+export default function LogSessionForm({ onSuccess, onCancel }: { onSuccess?: () => void; onCancel?: () => void }) {
   const [form, setForm] = useState<SessionFormData>({
     date:         today,
     notes:        '',
@@ -125,7 +125,7 @@ export default function LogSessionForm({ onSuccess }: { onSuccess?: () => void }
       <form onSubmit={handleSubmit} className="space-y-5">
 
         {/* Date */}
-        <div>
+        <div className="overflow-hidden">
           <label className="block text-sm text-white/70 mb-1">Date</label>
           <input
             type="date"
@@ -133,7 +133,7 @@ export default function LogSessionForm({ onSuccess }: { onSuccess?: () => void }
             required
             value={form.date}
             onChange={handleChange}
-            className="w-full min-w-0 max-w-full bg-white/10 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-brand-orange"
+            className="block w-full min-w-0 max-w-full bg-white/10 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-brand-orange"
           />
         </div>
 
@@ -244,7 +244,7 @@ export default function LogSessionForm({ onSuccess }: { onSuccess?: () => void }
           <label className="block text-sm text-white/70 mb-1">Notes <span className="text-white/30">(optional)</span></label>
           <textarea
             name="notes"
-            rows={3}
+            rows={2}
             value={form.notes}
             onChange={handleChange}
             placeholder="What did you work on today?"
@@ -254,13 +254,24 @@ export default function LogSessionForm({ onSuccess }: { onSuccess?: () => void }
 
         {error && <p className="text-red-400 text-sm">{error}</p>}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50"
-        >
-          {loading ? 'Saving...' : 'Log Session'}
-        </button>
+        <div className="flex items-center justify-between pt-1">
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-4 py-2.5 rounded-lg text-sm font-medium text-white/50 hover:text-white/80 transition-colors"
+            >
+              Cancel
+            </button>
+          )}
+          <button
+            type="submit"
+            disabled={loading}
+            className="ml-auto bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50"
+          >
+            {loading ? 'Saving...' : 'Log Session'}
+          </button>
+        </div>
 
       </form>
     </div>
