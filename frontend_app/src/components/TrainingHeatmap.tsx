@@ -21,9 +21,9 @@ const GRID_COLS_DESKTOP = '2rem repeat(7, minmax(0, 1fr)) 13rem 7rem';
 
 const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-const MONTH_FULL = [
-  'January','February','March','April','May','June',
-  'July','August','September','October','November','December',
+const MONTH_ABBR = [
+  'Jan','Feb','Mar','Apr','May','Jun',
+  'Jul','Aug','Sep','Oct','Nov','Dec',
 ];
 
 const LEGEND = [
@@ -137,7 +137,7 @@ function buildWeekRows(dayMap: Map<string, DayData>, year: number): { rows: Week
 
     rows.push({
       days,
-      monthLabel: isMonthStart ? (MONTH_FULL[firstMonth] ?? '') : '',
+      monthLabel: isMonthStart ? (MONTH_ABBR[firstMonth] ?? '') : '',
       isMonthStart,
       monthIndex: firstMonth,
     });
