@@ -105,6 +105,7 @@ interface WeekRow {
   days: { date: Date; day: DayData }[];
   monthLabel: string;
   isMonthStart: boolean;
+  monthIndex: number;
 }
 
 function buildWeekRows(dayMap: Map<string, DayData>, year: number): { rows: WeekRow[]; year: number } {
@@ -135,6 +136,7 @@ function buildWeekRows(dayMap: Map<string, DayData>, year: number): { rows: Week
       days,
       monthLabel: isMonthStart ? (MONTH_FULL[firstMonth] ?? '') : '',
       isMonthStart,
+      monthIndex: firstMonth,
     });
 
     cursor.setDate(cursor.getDate() + 7);
@@ -358,24 +360,32 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
               )}
 
               {/* Month label */}
-              <div
-                className="font-semibold"
-                style={{
-                  color: 'rgba(240,223,160,0.6)',
-                  position: 'relative',
-                  zIndex: 1,
-                  writingMode: 'vertical-rl',
-                  transform: 'rotate(180deg)',
-                  fontSize: '10px',
-                  letterSpacing: '0.04em',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '100%',
-                }}
-              >
-                {row.monthLabel}
-              </div>
+              {(() => {
+                const isCurrentMonth = row.isMonthStart
+                  && row.monthIndex === now.getMonth()
+                  && year === now.getFullYear();
+                return (
+                  <div
+                    className="font-semibold"
+                    style={{
+                      color: isCurrentMonth ? 'rgba(240,223,160,0.95)' : 'rgba(240,223,160,0.6)',
+                      textShadow: isCurrentMonth ? '0 0 10px rgba(240,223,160,0.45)' : 'none',
+                      position: 'relative',
+                      zIndex: 1,
+                      writingMode: 'vertical-rl',
+                      transform: 'rotate(180deg)',
+                      fontSize: '11px',
+                      letterSpacing: '0.06em',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '100%',
+                    }}
+                  >
+                    {row.monthLabel}
+                  </div>
+                );
+              })()}
 
               {/* Day cells */}
               {row.days.map(({ date, day }) => {
