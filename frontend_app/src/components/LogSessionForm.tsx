@@ -144,7 +144,7 @@ export default function LogSessionForm({ onSuccess }: { onSuccess?: () => void }
         </div>
 
         {/* Gi / No-Gi + Session Type */}
-        <div className="flex gap-6">
+        <div className="flex flex-col sm:flex-row gap-4">
           <div>
             <label className="block text-sm text-white/70 mb-2">Style</label>
             <div className="flex gap-2">
