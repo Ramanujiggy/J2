@@ -58,7 +58,7 @@ function DonutChart({ segments }: { segments: DonutSegment[] }) {
   const total = segments.reduce((s, x) => s + x.value, 0);
 
   if (total === 0) return (
-    <svg viewBox="0 0 140 140" width="100%">
+    <svg viewBox="0 0 140 140" width="100%" height="100%">
       <rect x="0" y="0" width="140" height="140" fill={CARD_BG} rx="12" />
       <circle cx={cx} cy={cy} r={(R + innerR) / 2} fill="none"
         stroke="rgba(255,255,255,0.06)" strokeWidth={R - innerR} />
@@ -89,7 +89,7 @@ function DonutChart({ segments }: { segments: DonutSegment[] }) {
   });
 
   return (
-    <svg viewBox="0 0 140 140" width="100%">
+    <svg viewBox="0 0 140 140" width="100%" height="100%">
       <rect x="0" y="0" width="140" height="140" fill={CARD_BG} rx="12" />
       {arcs}
     </svg>
@@ -286,7 +286,7 @@ export default function SkillRadar({ sessions }: SkillRadarProps) {
       <div className={`absolute inset-0 flex flex-col gap-2 ${animClass}`} onAnimationEnd={onAnimEnd}>
 
         {/* Chart + breakdown — fills panel height */}
-        <div className="flex-1 flex flex-row items-center gap-2 sm:gap-4 min-h-0">
+        <div className={`flex-1 flex ${mode === 'volume' ? 'flex-row' : 'flex-col sm:flex-row'} items-center gap-2 sm:gap-4 min-h-0`}>
 
           {/* Volume view: chart left + large stats right */}
           {mode === 'volume' && (
@@ -313,14 +313,14 @@ export default function SkillRadar({ sessions }: SkillRadarProps) {
             </>
           )}
 
-          {/* Prism / Split / Format: side-by-side chart + breakdown */}
+          {/* Prism / Split / Format: stacked on mobile, side-by-side on desktop */}
           {mode !== 'volume' && (
             <>
-              {/* Left: chart panel */}
-              <div className="w-2/5 sm:w-auto flex-shrink-0" style={{ maxWidth: '100%' }}>
+              {/* Chart panel — full-width on mobile, capped at 150px tall */}
+              <div className="w-full sm:w-auto flex-shrink-0 h-[150px] sm:h-auto overflow-hidden" style={{ maxWidth: '100%' }}>
 
                 {mode === 'prism' && (
-                  <svg viewBox="-20 -20 140 140" width="100%" aria-label="Skill radar chart">
+                  <svg viewBox="-20 -20 140 140" width="100%" height="100%" aria-label="Skill radar chart">
                     <rect x="-20" y="-20" width="140" height="140" fill={CARD_BG} rx="12" />
                     {gridRings.map((pts, ri) => (
                       <polygon key={ri} points={toPoints(pts)} fill="none"
@@ -373,8 +373,8 @@ export default function SkillRadar({ sessions }: SkillRadarProps) {
 
               </div>
 
-              {/* Right: breakdown rows */}
-              <div className="flex-1 w-full flex flex-col justify-center gap-3 pl-2 sm:pl-10">
+              {/* Breakdown rows */}
+              <div className="flex-1 w-full flex flex-col justify-center gap-3 sm:pl-10">
                 <div className="space-y-3">
                   {rows.map(({ label, h, total, color }) => {
                     const barW = displayMode === 'hours'
@@ -432,7 +432,7 @@ export default function SkillRadar({ sessions }: SkillRadarProps) {
     <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
 
       {/* ── Header: title (left) + time window buttons (right) ── */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
         <div className="flex items-center gap-1.5">
           <h2 className="text-lg font-semibold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
             {VIEW_META[viewMode].title}
@@ -462,8 +462,8 @@ export default function SkillRadar({ sessions }: SkillRadarProps) {
         </div>
       </div>
 
-      {/* ── Subtitle reveal — outside drum, never clipped ── */}
-      <div className="flex items-start gap-3 mb-3">
+      {/* ── Subtitle reveal — outside drum, never clipped — desktop only ── */}
+      <div className="hidden sm:flex items-start gap-3 mb-3">
         <button
           className="flex-shrink-0 leading-none pt-px transition-all duration-300"
           style={{ color: PALE_YELLOW, opacity: subtitleRevealed ? 1 : 0.4 }}
@@ -496,6 +496,60 @@ export default function SkillRadar({ sessions }: SkillRadarProps) {
         </div>
       </div>
 
+      {/* ── Mobile controls row: view tabs (left) + h/% toggle (right) ── */}
+      <div className="flex sm:hidden items-center justify-between gap-2 mb-2">
+
+        {/* View tab icons */}
+        <div className="flex gap-1">
+          {RAIL_VIEWS.map(({ id, label, Icon }) => {
+            const active = viewMode === id;
+            return (
+              <button
+                key={id}
+                onClick={() => handleViewChange(id)}
+                aria-label={label}
+                className="w-9 h-9 flex items-center justify-center rounded-md transition-all"
+                style={{
+                  color: active ? PALE_YELLOW : 'rgba(240,223,160,0.25)',
+                  backgroundColor: active ? 'rgba(240,223,160,0.08)' : 'transparent',
+                }}
+              >
+                <Icon size={15} strokeWidth={active ? 2 : 1.5}
+                  style={{ filter: active ? `drop-shadow(0 0 4px ${PALE_YELLOW}88)` : 'none' }} />
+              </button>
+            );
+          })}
+        </div>
+
+        {/* h/% toggle */}
+        <div style={{
+          transformOrigin: 'center center',
+          transform: isVolume ? 'scaleY(0.04)' : 'scaleY(1)',
+          transition: 'transform 300ms cubic-bezier(0.4,0,0.2,1)',
+        }}>
+          <div className="flex overflow-hidden text-xs" style={{
+            border: `1px solid ${isVolume ? 'transparent' : 'rgba(255,255,255,0.1)'}`,
+            backgroundColor: isVolume ? PALE_YELLOW : 'transparent',
+            borderRadius: isVolume ? '1px' : '6px',
+            transition: 'border-color 250ms ease, background-color 250ms ease, border-radius 250ms ease',
+          }}>
+            <button onClick={() => setDisplayMode('hours')} className="px-3 py-1.5" style={{
+              color: isVolume ? 'transparent' : displayMode === 'hours' ? 'white' : 'rgba(255,255,255,0.4)',
+              backgroundColor: !isVolume && displayMode === 'hours' ? 'rgba(218,116,34,0.8)' : 'transparent',
+              transition: 'color 200ms ease, background-color 200ms ease',
+              pointerEvents: isVolume ? 'none' : 'auto',
+            }}>h</button>
+            <button onClick={() => setDisplayMode('pct')} className="px-3 py-1.5" style={{
+              color: isVolume ? 'transparent' : displayMode === 'pct' ? 'white' : 'rgba(255,255,255,0.4)',
+              backgroundColor: !isVolume && displayMode === 'pct' ? 'rgba(218,116,34,0.8)' : 'transparent',
+              transition: 'color 200ms ease, background-color 200ms ease',
+              pointerEvents: isVolume ? 'none' : 'auto',
+            }}>%</button>
+          </div>
+        </div>
+
+      </div>
+
       {/* ── Body: drum | rail column ── */}
       <div className="flex flex-col sm:flex-row items-start gap-4">
 
@@ -516,8 +570,8 @@ export default function SkillRadar({ sessions }: SkillRadarProps) {
 
         </div>
 
-        {/* ── Rail column: toggle above icons, vertically centered ── */}
-        <div className="flex flex-col items-center gap-3 self-stretch justify-center">
+        {/* ── Rail column: toggle above icons, vertically centered — desktop only ── */}
+        <div className="hidden sm:flex flex-col items-center gap-3 self-stretch justify-center">
 
           {/* h/% toggle — collapses to pale yellow line on volume view */}
           <div
