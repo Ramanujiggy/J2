@@ -120,7 +120,7 @@ export default function LogSessionForm({ onSuccess }: { onSuccess?: () => void }
   };
 
   return (
-    <div className="rounded-2xl p-6" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}` }}>
+    <div className="rounded-2xl p-6 overflow-hidden" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}` }}>
       <h2 className="text-lg font-semibold text-white mb-5">Log a Training Session</h2>
       <form onSubmit={handleSubmit} className="space-y-5">
 
@@ -133,7 +133,7 @@ export default function LogSessionForm({ onSuccess }: { onSuccess?: () => void }
             required
             value={form.date}
             onChange={handleChange}
-            className="w-full bg-white/10 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-brand-orange"
+            className="w-full min-w-0 max-w-full bg-white/10 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-brand-orange"
           />
         </div>
 
