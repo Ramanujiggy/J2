@@ -58,7 +58,7 @@ function DonutChart({ segments }: { segments: DonutSegment[] }) {
   const total = segments.reduce((s, x) => s + x.value, 0);
 
   if (total === 0) return (
-    <svg viewBox="0 0 140 140" width="100%" height="100%">
+    <svg viewBox="0 0 140 140" width="100%">
       <rect x="0" y="0" width="140" height="140" fill={CARD_BG} rx="12" />
       <circle cx={cx} cy={cy} r={(R + innerR) / 2} fill="none"
         stroke="rgba(255,255,255,0.06)" strokeWidth={R - innerR} />
@@ -89,7 +89,7 @@ function DonutChart({ segments }: { segments: DonutSegment[] }) {
   });
 
   return (
-    <svg viewBox="0 0 140 140" width="100%" height="100%">
+    <svg viewBox="0 0 140 140" width="100%">
       <rect x="0" y="0" width="140" height="140" fill={CARD_BG} rx="12" />
       {arcs}
     </svg>
@@ -316,11 +316,11 @@ export default function SkillRadar({ sessions }: SkillRadarProps) {
           {/* Prism / Split / Format: stacked on mobile, side-by-side on desktop */}
           {mode !== 'volume' && (
             <>
-              {/* Chart panel — full-width on mobile, capped at 150px tall */}
-              <div className="w-full sm:w-auto flex-shrink-0 h-[150px] sm:h-auto overflow-hidden" style={{ maxWidth: '100%' }}>
+              {/* Chart panel — 190px centered on mobile, 250px on desktop */}
+              <div className="w-[190px] mx-auto sm:mx-0 sm:w-[250px] flex-shrink-0">
 
                 {mode === 'prism' && (
-                  <svg viewBox="-20 -20 140 140" width="100%" height="100%" aria-label="Skill radar chart">
+                  <svg viewBox="-20 -20 140 140" width="100%" aria-label="Skill radar chart">
                     <rect x="-20" y="-20" width="140" height="140" fill={CARD_BG} rx="12" />
                     {gridRings.map((pts, ri) => (
                       <polygon key={ri} points={toPoints(pts)} fill="none"
