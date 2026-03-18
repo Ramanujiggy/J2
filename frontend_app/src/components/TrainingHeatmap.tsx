@@ -2,7 +2,7 @@
 // Columns: Month label | Mon–Sun (7 day cells) | Intention | Journal
 // Sticky header keeps day labels visible. Month label appears at month boundaries.
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   Tooltip,
   TooltipContent,
@@ -12,6 +12,9 @@ import SessionDetailModal from './SessionDetailModal.tsx';
 import { CARD_BG, COPPER_BORDER, CARD_SHADOW, HEATMAP_REST, HEATMAP_FUTURE, HEATMAP_OUTSIDE_YEAR, HEATMAP_HEADER_BG, PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
 import { type BeltRank, BELT_COLORS, PATCH_COLORS } from './BeltBar.tsx';
 import type { CalendarIntention } from '../app/CalendarPage.tsx';
+
+const HEATMAP_REST_ALT    = '#152333'; // alternate month empty-day color (odd months)
+const HEATMAP_FUTURE_ALT  = '#162435'; // alternate month future-day color
 
 const GRID_COLS_MOBILE  = '2rem repeat(7, minmax(0, 1fr))';
 const GRID_COLS_DESKTOP = '2rem repeat(7, minmax(0, 1fr)) 13rem 7rem';
@@ -169,6 +172,7 @@ interface TrainingHeatmapProps {
   intentions?: CalendarIntention[];
   loading?: boolean;
   onSessionUpdated?: () => void;
+  onGoToToday?: () => void;
   beltRank?: BeltRank | null;
   stripes?: number;
   year?: number;
@@ -214,13 +218,36 @@ function beltThumbGradient(beltColor: string, patchColor: string, stripes: numbe
   return [...stripeLines, baseBg].join(', ');
 }
 
-export default function TrainingHeatmap({ sessions = [], intentions = [], loading = false, onSessionUpdated, beltRank, stripes = 0, year: yearProp }: TrainingHeatmapProps) {
+export default function TrainingHeatmap({ sessions = [], intentions = [], loading = false, onSessionUpdated, onGoToToday, beltRank, stripes = 0, year: yearProp }: TrainingHeatmapProps) {
   const [selectedSession, setSelectedSession] = useState<{ session: SessionSummary; date: Date } | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const scrollToToday = useCallback(() => {
-    const el = scrollContainerRef.current?.querySelector('[data-today-row]');
-    el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
-  }, []);
+  const pendingScroll = useRef(false);
+  const currentCalYear = new Date().getFullYear();
+
+  const handleTodayClick = useCallback(() => {
+    const resolvedYear = yearProp ?? currentCalYear;
+    if (resolvedYear === currentCalYear) {
+      scrollContainerRef.current
+        ?.querySelector('[data-today-row]')
+        ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    } else {
+      pendingScroll.current = true;
+      onGoToToday?.();
+    }
+  }, [yearProp, currentCalYear, onGoToToday]);
+
+  // After parent switches back to the current year, scroll to today's row.
+  useEffect(() => {
+    if (!pendingScroll.current) return;
+    const resolvedYear = yearProp ?? currentCalYear;
+    if (resolvedYear !== currentCalYear) return;
+    pendingScroll.current = false;
+    requestAnimationFrame(() => {
+      scrollContainerRef.current
+        ?.querySelector('[data-today-row]')
+        ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    });
+  }, [yearProp, currentCalYear]);
 
   if (loading) return <HeatmapSkeleton />;
 
@@ -308,7 +335,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
         </div>
         <div className="ml-auto flex items-center">
           <button
-            onClick={scrollToToday}
+            onClick={handleTodayClick}
             className="px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors"
             style={{
               backgroundColor: 'rgba(240,223,160,0.08)',
@@ -439,9 +466,13 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                           className="rounded flex items-end px-1"
                           style={{
                             height: '40px',
-                            backgroundColor: !isCurrentYear ? HEATMAP_OUTSIDE_YEAR
-                              : (isFuture && day.count === 0) ? HEATMAP_FUTURE
-                              : cellColor(day),
+                            backgroundColor: (() => {
+                              if (!isCurrentYear) return HEATMAP_OUTSIDE_YEAR;
+                              const isAltMonth = date.getMonth() % 2 === 1;
+                              if (isFuture && day.count === 0) return isAltMonth ? HEATMAP_FUTURE_ALT : HEATMAP_FUTURE;
+                              if (day.count === 0) return isAltMonth ? HEATMAP_REST_ALT : HEATMAP_REST;
+                              return cellColor(day);
+                            })(),
                             opacity: !isCurrentYear ? 0.18 : 1,
                             cursor: isClickable ? 'pointer' : 'default',
                             paddingBottom: '3px',

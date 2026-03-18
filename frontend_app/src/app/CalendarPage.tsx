@@ -94,6 +94,7 @@ export default function CalendarPage() {
           intentions={intentions}
           loading={loading}
           onSessionUpdated={fetchAll}
+          onGoToToday={() => setDisplayYear(currentYear)}
           beltRank={beltRank}
           stripes={stripes}
           year={displayYear}
