@@ -286,15 +286,15 @@ export default function SkillRadar({ sessions }: SkillRadarProps) {
       <div className={`absolute inset-0 flex flex-col gap-2 ${animClass}`} onAnimationEnd={onAnimEnd}>
 
         {/* Chart + breakdown — fills panel height */}
-        <div className="flex-1 flex flex-col sm:flex-row items-center gap-4 min-h-0">
+        <div className="flex-1 flex flex-row items-center gap-2 sm:gap-4 min-h-0">
 
           {/* Volume view: chart left + large stats right */}
           {mode === 'volume' && (
             <>
-              <div className="w-full flex-shrink-0" style={{ maxWidth: '100%' }}>
+              <div className="w-2/5 sm:w-auto flex-shrink-0" style={{ maxWidth: '100%' }}>
                 <VolumeChart sessions={sessions} />
               </div>
-              <div className="flex-1 w-full flex flex-col justify-center gap-4 pl-10">
+              <div className="flex-1 flex flex-col justify-center gap-2 sm:gap-4 sm:pl-10">
                 {[
                   { label: 'Total',    value: totalVolHours > 0 ? `${totalVolHours.toFixed(1)}h` : '—', active: totalVolHours > 0 },
                   { label: 'Peak',     value: totalVolHours > 0 ? MONTH_SHORT[peakMonthIdx]        : '—', active: totalVolHours > 0 },
@@ -303,7 +303,7 @@ export default function SkillRadar({ sessions }: SkillRadarProps) {
                   <div key={label} className="flex items-baseline gap-2">
                     <span className="text-xs font-bold" style={{ color: PALE_YELLOW }}>{label}</span>
                     <span className="text-xs" style={{ color: 'rgba(240,223,160,0.25)' }}>|</span>
-                    <span className="text-2xl font-bold" style={{
+                    <span className="text-lg sm:text-2xl font-bold" style={{
                       color: active ? PALE_YELLOW : 'rgba(255,255,255,0.15)',
                       textShadow: active ? GLOW_SOFT : 'none',
                     }}>{value}</span>
@@ -317,7 +317,7 @@ export default function SkillRadar({ sessions }: SkillRadarProps) {
           {mode !== 'volume' && (
             <>
               {/* Left: chart panel */}
-              <div className="w-full flex-shrink-0" style={{ maxWidth: '100%' }}>
+              <div className="w-2/5 sm:w-auto flex-shrink-0" style={{ maxWidth: '100%' }}>
 
                 {mode === 'prism' && (
                   <svg viewBox="-20 -20 140 140" width="100%" aria-label="Skill radar chart">
@@ -374,7 +374,7 @@ export default function SkillRadar({ sessions }: SkillRadarProps) {
               </div>
 
               {/* Right: breakdown rows */}
-              <div className="flex-1 w-full flex flex-col justify-center gap-3 pl-10">
+              <div className="flex-1 w-full flex flex-col justify-center gap-3 pl-2 sm:pl-10">
                 <div className="space-y-3">
                   {rows.map(({ label, h, total, color }) => {
                     const barW = displayMode === 'hours'
