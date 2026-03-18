@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api, ApiError } from '../lib/api.ts';
-import { useProfile } from '../context/ProfileContext.tsx';
 import TrainingHeatmap, { type SessionSummary } from '../components/TrainingHeatmap.tsx';
 import ErrorBoundary from '../components/ErrorBoundary.tsx';
 import { PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
@@ -22,7 +21,6 @@ interface IntentionsResponse {
 }
 
 export default function CalendarPage() {
-  const { beltRank, stripes } = useProfile();
   const [sessions,    setSessions]    = useState<SessionSummary[]>([]);
   const [intentions,  setIntentions]  = useState<CalendarIntention[]>([]);
   const [loading,     setLoading]     = useState(true);
@@ -95,8 +93,6 @@ export default function CalendarPage() {
           loading={loading}
           onSessionUpdated={fetchAll}
           onGoToToday={() => setDisplayYear(currentYear)}
-          beltRank={beltRank}
-          stripes={stripes}
           year={displayYear}
         />
       </ErrorBoundary>
