@@ -10,7 +10,6 @@ import {
 } from '@/components/ui/tooltip';
 import SessionDetailModal from './SessionDetailModal.tsx';
 import { CARD_BG, COPPER_BORDER, CARD_SHADOW, HEATMAP_REST, HEATMAP_FUTURE, HEATMAP_OUTSIDE_YEAR, HEATMAP_HEADER_BG, PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
-import { type BeltRank, BELT_COLORS, PATCH_COLORS } from './BeltBar.tsx';
 import type { CalendarIntention } from '../app/CalendarPage.tsx';
 
 const HEATMAP_REST_ALT    = '#152333'; // alternate month empty-day color (odd months)
@@ -173,8 +172,6 @@ interface TrainingHeatmapProps {
   loading?: boolean;
   onSessionUpdated?: () => void;
   onGoToToday?: () => void;
-  beltRank?: BeltRank | null;
-  stripes?: number;
   year?: number;
 }
 
@@ -206,19 +203,7 @@ function HeatmapSkeleton() {
   );
 }
 
-// Build the scrollbar thumb gradient: main belt color + dark patch + evenly-spaced stripe lines.
-function beltThumbGradient(beltColor: string, patchColor: string, stripes: number): string {
-  const patchPct = 24;
-  const beltPct  = 100 - patchPct;
-  const stripeLines = Array.from({ length: stripes }, (_, i) => {
-    const pos = beltPct + ((i + 1) / (stripes + 1)) * patchPct;
-    return `linear-gradient(to bottom, transparent ${pos}%, rgba(255,255,255,0.55) ${pos}%, rgba(255,255,255,0.55) ${pos + 1.8}%, transparent ${pos + 1.8}%)`;
-  });
-  const baseBg = `linear-gradient(to bottom, ${beltColor} ${beltPct}%, ${patchColor} ${beltPct}%)`;
-  return [...stripeLines, baseBg].join(', ');
-}
-
-export default function TrainingHeatmap({ sessions = [], intentions = [], loading = false, onSessionUpdated, onGoToToday, beltRank, stripes = 0, year: yearProp }: TrainingHeatmapProps) {
+export default function TrainingHeatmap({ sessions = [], intentions = [], loading = false, onSessionUpdated, onGoToToday, year: yearProp }: TrainingHeatmapProps) {
   const [selectedSession, setSelectedSession] = useState<{ session: SessionSummary; date: Date } | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const pendingScroll = useRef(false);
@@ -260,12 +245,6 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
   const giHours   = giMinutes   > 0 ? (giMinutes   / 60).toFixed(1) : '0';
   const nogiHours = nogiMinutes > 0 ? (nogiMinutes / 60).toFixed(1) : '0';
 
-  const beltColor  = beltRank ? (BELT_COLORS[beltRank]  ?? null) : null;
-  const patchColor = beltRank ? (PATCH_COLORS[beltRank] ?? '#0D0D0D') : '#0D0D0D';
-  const thumbBg    = beltColor
-    ? beltThumbGradient(beltColor, patchColor, stripes)
-    : 'rgba(255,255,255,0.15)';
-
   // Helper: find the intention whose period overlaps a given calendar week.
   // An intention covers [intentStart, intentEnd] (inclusive).
   // A week row covers [weekStart, weekStart + 6 days].
@@ -280,18 +259,10 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
 
   return (
     <>
-    {/* Belt scrollbar styles + intention animation keyframes */}
+    {/* Grid layout + intention animation keyframes */}
     <style>{`
       .j2-heatmap-grid { grid-template-columns: ${GRID_COLS_MOBILE}; }
       @media (min-width: 640px) { .j2-heatmap-grid { grid-template-columns: ${GRID_COLS_DESKTOP}; } }
-      .j2-heatmap-scroll::-webkit-scrollbar { width: 9px; }
-      .j2-heatmap-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.18); border-radius: 5px; }
-      .j2-heatmap-scroll::-webkit-scrollbar-thumb {
-        background: ${thumbBg};
-        border-radius: 5px;
-        border: 1px solid rgba(0,0,0,0.25);
-      }
-      .j2-heatmap-scroll::-webkit-scrollbar-thumb:hover { filter: brightness(1.12); }
 
       @keyframes j2CalIntentRise {
         0%   { transform: translateY(0) translateX(0); opacity: 0; }
