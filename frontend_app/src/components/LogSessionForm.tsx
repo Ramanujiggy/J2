@@ -29,14 +29,6 @@ const SESSION_TYPES: { value: SessionType; label: string }[] = [
   { value: 'competition_training', label: 'Competition' },
 ];
 
-const DURATION_PRESETS = [
-  { label: '1h',      minutes: 60  },
-  { label: '1h 30m', minutes: 90  },
-  { label: '2h',      minutes: 120 },
-  { label: '2h 30m', minutes: 150 },
-  { label: '3h',      minutes: 180 },
-];
-
 const btnBase = 'px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer';
 const btnActive = 'bg-brand-orange text-white';
 const btnInactive = 'bg-white/10 text-white/60 hover:bg-white/20';
@@ -50,15 +42,19 @@ export default function LogSessionForm({ onSuccess }: { onSuccess?: () => void }
     session_type: 'class',
   });
 
-  // Duration state — preset (minutes) or 'custom'
-  const [durationPreset, setDurationPreset] = useState<number | 'custom' | null>(null);
-  const [customH, setCustomH] = useState('');
-  const [customM, setCustomM] = useState('');
+  // Duration stepper — 30-min increments, null = not yet selected
+  const [durationMinutes, setDurationMinutes] = useState<number | null>(null);
+  const DUR_STEP = 30;
+  const DUR_MIN  = 30;
+  const DUR_MAX  = 240;
 
-  const durationMinutes =
-    durationPreset === 'custom'
-      ? Number(customH || 0) * 60 + Number(customM || 0)
-      : (durationPreset ?? 0);
+  function fmtDuration(m: number) {
+    const h   = Math.floor(m / 60);
+    const min = m % 60;
+    return h > 0 && min > 0 ? `${h} h  ${min} m`
+         : h > 0             ? `${h} h`
+         :                     `${min} m`;
+  }
 
   // Skill tags
   const [selectedTags, setSelectedTags] = useState<SkillTag[]>([]);
@@ -78,9 +74,7 @@ export default function LogSessionForm({ onSuccess }: { onSuccess?: () => void }
 
   const resetForm = () => {
     setForm({ date: today, notes: '', gi_nogi: 'gi', intensity: 3, session_type: 'class' });
-    setDurationPreset(null);
-    setCustomH('');
-    setCustomM('');
+    setDurationMinutes(null);
     setSelectedTags([]);
   };
 
@@ -88,7 +82,7 @@ export default function LogSessionForm({ onSuccess }: { onSuccess?: () => void }
     e.preventDefault();
     setError('');
 
-    if (!durationMinutes || durationMinutes < 1) {
+    if (!durationMinutes || durationMinutes < DUR_MIN) {
       setError('Please select a duration.');
       return;
     }
@@ -178,53 +172,33 @@ export default function LogSessionForm({ onSuccess }: { onSuccess?: () => void }
           </div>
         </div>
 
-        {/* Duration — preset chips + optional custom */}
+        {/* Duration — stepper */}
         <div>
           <label className="block text-sm text-white/70 mb-2">Duration</label>
-          <div className="flex flex-wrap gap-2">
-            {DURATION_PRESETS.map(({ label, minutes }) => (
-              <button
-                key={minutes}
-                type="button"
-                onClick={() => setDurationPreset(minutes)}
-                className={`${btnBase} ${durationPreset === minutes ? btnActive : btnInactive}`}
-              >
-                {label}
-              </button>
-            ))}
+          <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => setDurationPreset('custom')}
-              className={`${btnBase} ${durationPreset === 'custom' ? btnActive : btnInactive}`}
+              onClick={() => setDurationMinutes(m => Math.max(DUR_MIN, (m ?? 60) - DUR_STEP))}
+              className="w-10 h-10 rounded-lg text-lg font-semibold transition-colors bg-white/10 text-white/60 hover:bg-white/20 disabled:opacity-30"
+              disabled={!!durationMinutes && durationMinutes <= DUR_MIN}
             >
-              Custom
+              −
+            </button>
+            <span
+              className="text-lg font-semibold w-24 text-center"
+              style={{ color: durationMinutes ? 'rgba(240,223,160,0.9)' : 'rgba(255,255,255,0.2)' }}
+            >
+              {durationMinutes ? fmtDuration(durationMinutes) : '— —'}
+            </span>
+            <button
+              type="button"
+              onClick={() => setDurationMinutes(m => Math.min(DUR_MAX, (m ?? 0) + DUR_STEP))}
+              className="w-10 h-10 rounded-lg text-lg font-semibold transition-colors bg-white/10 text-white/60 hover:bg-white/20 disabled:opacity-30"
+              disabled={!!durationMinutes && durationMinutes >= DUR_MAX}
+            >
+              +
             </button>
           </div>
-
-          {durationPreset === 'custom' && (
-            <div className="flex items-center gap-2 mt-3">
-              <input
-                type="number"
-                min={0}
-                max={12}
-                placeholder="0"
-                value={customH}
-                onChange={e => setCustomH(e.target.value)}
-                className="w-16 bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white text-sm text-center focus:outline-none focus:ring-2 focus:ring-brand-orange"
-              />
-              <span className="text-white/50 text-sm">h</span>
-              <input
-                type="number"
-                min={0}
-                max={59}
-                placeholder="0"
-                value={customM}
-                onChange={e => setCustomM(e.target.value)}
-                className="w-16 bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white text-sm text-center focus:outline-none focus:ring-2 focus:ring-brand-orange"
-              />
-              <span className="text-white/50 text-sm">min</span>
-            </div>
-          )}
         </div>
 
         {/* Intensity */}
