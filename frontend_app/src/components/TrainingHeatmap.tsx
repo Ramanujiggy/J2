@@ -2,7 +2,7 @@
 // Columns: Month label | Mon–Sun (7 day cells) | Intention | Journal
 // Sticky header keeps day labels visible. Month label appears at month boundaries.
 
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import {
   Tooltip,
   TooltipContent,
@@ -216,6 +216,11 @@ function beltThumbGradient(beltColor: string, patchColor: string, stripes: numbe
 
 export default function TrainingHeatmap({ sessions = [], intentions = [], loading = false, onSessionUpdated, beltRank, stripes = 0, year: yearProp }: TrainingHeatmapProps) {
   const [selectedSession, setSelectedSession] = useState<{ session: SessionSummary; date: Date } | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const scrollToToday = useCallback(() => {
+    const el = scrollContainerRef.current?.querySelector('[data-today-row]');
+    el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }, []);
 
   if (loading) return <HeatmapSkeleton />;
 
@@ -301,6 +306,19 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
           <p className="text-2xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>{streak}</p>
           <p className="text-xs mt-0.5" style={{ color: 'rgba(240,223,160,0.5)' }}>Day streak</p>
         </div>
+        <div className="ml-auto flex items-center">
+          <button
+            onClick={scrollToToday}
+            className="px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors"
+            style={{
+              backgroundColor: 'rgba(240,223,160,0.08)',
+              border: '1px solid rgba(240,223,160,0.22)',
+              color: 'rgba(240,223,160,0.75)',
+            }}
+          >
+            Today
+          </button>
+        </div>
       </div>
 
       {/* Empty state */}
@@ -312,7 +330,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
       )}
 
       {/* Scrollable calendar — hidden when empty */}
-      {sessions.length > 0 && <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}><div className="overflow-y-auto relative j2-heatmap-scroll" style={{ maxHeight: 480, minWidth: 320 }}>
+      {sessions.length > 0 && <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}><div ref={scrollContainerRef} className="overflow-y-auto relative j2-heatmap-scroll" style={{ maxHeight: 480, minWidth: 320 }}>
 
         {/* Sticky column headers */}
         <div
@@ -343,9 +361,11 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
           const isActiveWeek   = !!weekIntention && todayStr >= intentionStart && todayStr <= intentionEnd;
           const isPastWeek     = !!weekIntention && !isActiveWeek;
 
+          const isThisWeek = row.days.some(d => localDateKey(d.date) === todayStr);
           return (
             <div
               key={ri}
+              {...(isThisWeek ? { 'data-today-row': '' } : {})}
               className={`j2-heatmap-grid grid items-center${row.isMonthStart && ri > 0 ? ' mt-1 border-t border-white/10 pt-1' : ''}`}
               style={{ minHeight: 48, position: 'relative' }}
             >
