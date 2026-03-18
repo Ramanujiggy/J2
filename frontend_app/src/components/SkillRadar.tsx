@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Info, Triangle, Target, BarChart2, Layers, BookOpen, type LucideIcon } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { SKILL_TAGS } from '../lib/constants.ts';
@@ -199,8 +199,30 @@ export default function SkillRadar({ sessions }: SkillRadarProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('prism');
   const [prevViewMode, setPrevViewMode] = useState<ViewMode | null>(null);
   const [slideDir, setSlideDir] = useState<'up' | 'down'>('up');
+  const animLockTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => { setSubtitleRevealed(false); }, [viewMode]);
+  // Safety-net: clear the animation lock after 750ms even if onAnimationEnd doesn't fire (iOS Safari)
+  useEffect(() => {
+    if (prevViewMode === null) return;
+    animLockTimer.current = setTimeout(() => setPrevViewMode(null), 750);
+    return () => {
+      if (animLockTimer.current !== null) clearTimeout(animLockTimer.current);
+    };
+  }, [prevViewMode]);
+
+  // Mobile Easter egg: auto-reveal the Triangle subtitle after each view switch.
+  // Touch devices have no hover, so the subtitle would never appear otherwise.
+  useEffect(() => {
+    const isTouchOnly = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    if (!isTouchOnly) {
+      setSubtitleRevealed(false); // desktop: reset on view change, user hovers to reveal
+      return;
+    }
+    setSubtitleRevealed(false);
+    const t = setTimeout(() => setSubtitleRevealed(true), 1200);
+    return () => clearTimeout(t);
+  }, [viewMode]);
+  // (subtitle reset on view-change is handled above — no separate effect needed)
 
   function handleViewChange(id: ViewMode) {
     if (id === viewMode || prevViewMode !== null) return;
