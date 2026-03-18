@@ -13,8 +13,8 @@ import { CARD_BG, COPPER_BORDER, CARD_SHADOW, HEATMAP_REST, HEATMAP_FUTURE, HEAT
 import { type BeltRank, BELT_COLORS, PATCH_COLORS } from './BeltBar.tsx';
 import type { CalendarIntention } from '../app/CalendarPage.tsx';
 
-const GRID_COLS_MOBILE  = '1.5rem repeat(7, minmax(0, 1fr))';
-const GRID_COLS_DESKTOP = '1.5rem repeat(7, minmax(0, 1fr)) 13rem 7rem';
+const GRID_COLS_MOBILE  = '2rem repeat(7, minmax(0, 1fr))';
+const GRID_COLS_DESKTOP = '2rem repeat(7, minmax(0, 1fr)) 13rem 7rem';
 
 const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -374,8 +374,8 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                       zIndex: 1,
                       writingMode: 'vertical-rl',
                       transform: 'rotate(180deg)',
-                      fontSize: '11px',
-                      letterSpacing: '0.06em',
+                      fontSize: '20px',
+                      letterSpacing: '0.05em',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
