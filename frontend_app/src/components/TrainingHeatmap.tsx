@@ -13,8 +13,8 @@ import { CARD_BG, COPPER_BORDER, CARD_SHADOW, HEATMAP_REST, HEATMAP_FUTURE, HEAT
 import { type BeltRank, BELT_COLORS, PATCH_COLORS } from './BeltBar.tsx';
 import type { CalendarIntention } from '../app/CalendarPage.tsx';
 
-const GRID_COLS_MOBILE  = '3.5rem repeat(7, minmax(0, 1fr))';
-const GRID_COLS_DESKTOP = '5rem repeat(7, minmax(0, 1fr)) 13rem 7rem';
+const GRID_COLS_MOBILE  = '1.5rem repeat(7, minmax(0, 1fr))';
+const GRID_COLS_DESKTOP = '1.5rem repeat(7, minmax(0, 1fr)) 13rem 7rem';
 
 const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -345,7 +345,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
             <div
               key={ri}
               className={`j2-heatmap-grid grid items-center${row.isMonthStart && ri > 0 ? ' mt-1 border-t border-white/10 pt-1' : ''}`}
-              style={{ minHeight: 40, position: 'relative' }}
+              style={{ minHeight: 48, position: 'relative' }}
             >
               {/* Active week backdrop */}
               {isActiveWeek && (
@@ -358,7 +358,22 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
               )}
 
               {/* Month label */}
-              <div className="pr-2 text-xs font-semibold truncate" style={{ color: 'rgba(240,223,160,0.6)', position: 'relative', zIndex: 1 }}>
+              <div
+                className="font-semibold"
+                style={{
+                  color: 'rgba(240,223,160,0.6)',
+                  position: 'relative',
+                  zIndex: 1,
+                  writingMode: 'vertical-rl',
+                  transform: 'rotate(180deg)',
+                  fontSize: '10px',
+                  letterSpacing: '0.04em',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '100%',
+                }}
+              >
                 {row.monthLabel}
               </div>
 
@@ -393,7 +408,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                         <div
                           className="rounded flex items-end px-1"
                           style={{
-                            height: '32px',
+                            height: '40px',
                             backgroundColor: !isCurrentYear ? HEATMAP_OUTSIDE_YEAR
                               : (isFuture && day.count === 0) ? HEATMAP_FUTURE
                               : cellColor(day),
@@ -411,7 +426,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                         >
                           <span
                             className="leading-none select-none pointer-events-none whitespace-nowrap"
-                            style={{ fontSize: '9px', fontWeight: 500, color: 'rgba(255,255,255,0.65)' }}
+                            style={{ fontSize: '10px', fontWeight: 500, color: 'rgba(255,255,255,0.65)' }}
                           >
                             {date.getDate()}
                             {day.count > 0 && ` | ${(day.totalMinutes / 60).toFixed(1)}h`}
