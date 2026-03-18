@@ -277,146 +277,138 @@ export default function SkillRadar({ sessions }: SkillRadarProps) {
 
   const BAR_MAX_PX = 80;
 
-  // ── Content renderer — subtitle + chart + breakdown (title lives in static header) ──
-  function renderContent(mode: ViewMode, animClass = '', onAnimEnd?: () => void) {
-    const rows = mode === 'prism' ? prismRows : mode === 'split' ? splitRows : mode === 'format' ? formatRows : [];
-    const maxRowH = Math.max(...rows.map(r => r.h), 0.001);
+  // ── Chart renderer — shared by mobile and desktop ──
+  function renderChart(mode: ViewMode) {
+    if (mode === 'volume') return <VolumeChart sessions={sessions} />;
+    if (mode === 'split') return (
+      <DonutChart segments={[
+        { value: giHours,   color: SEG_GI   },
+        { value: nogiHours, color: SEG_NOGI  },
+      ]} />
+    );
+    if (mode === 'format') return (
+      <DonutChart segments={[
+        { value: classHours, color: SEG_CLASS },
+        { value: drillHours, color: SEG_DRILL },
+        { value: compHours,  color: SEG_COMP  },
+      ]} />
+    );
+    // prism
+    return (
+      <svg viewBox="-20 -20 140 140" width="100%" aria-label="Skill radar chart">
+        <rect x="-20" y="-20" width="140" height="140" fill={CARD_BG} rx="12" />
+        {gridRings.map((pts, ri) => (
+          <polygon key={ri} points={toPoints(pts)} fill="none"
+            stroke={PALE_YELLOW} strokeOpacity={ri === 3 ? 0.25 : 0.12} strokeWidth="0.5" />
+        ))}
+        {SKILL_TAGS.map((_, i) => {
+          const [x, y] = vertex(i, 1);
+          return <line key={i} x1={CX} y1={CY} x2={x} y2={y}
+            stroke={PALE_YELLOW} strokeOpacity="0.18" strokeWidth="0.5" />;
+        })}
+        <polygon points={toPoints(dataPolygon)} fill={polygonColors.fill}
+          stroke={polygonColors.stroke} strokeWidth="1" strokeLinejoin="round" />
+        {dataPolygon.map(([x, y], i) => normalized[i] > 0.02 && (
+          <circle key={i} cx={x} cy={y} r="1.5" fill={polygonColors.dot} />
+        ))}
+        {SKILL_TAGS.map(({ label }, i) => {
+          const angle = (2 * Math.PI / N) * i - Math.PI / 2;
+          const lx = CX + LABEL_R * Math.cos(angle);
+          const ly = CY + LABEL_R * Math.sin(angle);
+          const { textAnchor, dominantBaseline } = labelAttrs(i);
+          const lines = labelLines(label);
+          const yOffset = lines.length > 1 ? -3 : 0;
+          return (
+            <text key={i} x={lx.toFixed(2)} y={(ly + yOffset).toFixed(2)}
+              textAnchor={textAnchor} dominantBaseline={dominantBaseline}
+              fill={PALE_YELLOW} fontSize="5" fontWeight="700" fontFamily="sans-serif">
+              {lines.map((line, li) => (
+                <tspan key={li} x={lx.toFixed(2)} dy={li === 0 ? '0' : '6'}>{line}</tspan>
+              ))}
+            </text>
+          );
+        })}
+      </svg>
+    );
+  }
 
+  // ── Breakdown / stats renderer — shared by mobile and desktop ──
+  function renderBreakdownContent(mode: ViewMode) {
+    if (mode === 'volume') {
+      return (
+        <div className="flex flex-col gap-3">
+          {[
+            { label: 'Total',    value: totalVolHours > 0 ? `${totalVolHours.toFixed(1)}h` : '—', active: totalVolHours > 0 },
+            { label: 'Peak',     value: totalVolHours > 0 ? MONTH_SHORT[peakMonthIdx]        : '—', active: totalVolHours > 0 },
+            { label: 'Avg / mo', value: avgPerMonth   > 0 ? `${avgPerMonth.toFixed(1)}h`     : '—', active: avgPerMonth   > 0 },
+          ].map(({ label, value, active }) => (
+            <div key={label} className="flex items-baseline gap-2">
+              <span className="text-xs font-bold" style={{ color: PALE_YELLOW }}>{label}</span>
+              <span className="text-xs" style={{ color: 'rgba(240,223,160,0.25)' }}>|</span>
+              <span className="text-2xl font-bold" style={{
+                color: active ? PALE_YELLOW : 'rgba(255,255,255,0.15)',
+                textShadow: active ? GLOW_SOFT : 'none',
+              }}>{value}</span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    const rows = mode === 'prism' ? prismRows : mode === 'split' ? splitRows : formatRows;
+    const maxRowH = Math.max(...rows.map(r => r.h), 0.001);
+    return (
+      <div className="space-y-3">
+        {rows.map(({ label, h, total, color }) => {
+          const barW = displayMode === 'hours'
+            ? (h > 0 ? Math.max((h / maxRowH) * BAR_MAX_PX, 6) : 2)
+            : 1.5;
+          return (
+            <div key={label} className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {color && (
+                  <div className="flex-shrink-0" style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: color }} />
+                )}
+                <span className="text-xs font-bold" style={{ color: PALE_YELLOW }}>{label}</span>
+              </div>
+              <div
+                className="flex-shrink-0"
+                style={{
+                  width:  `${barW}px`,
+                  height: displayMode === 'hours' ? '5px' : '13px',
+                  backgroundColor: h > 0
+                    ? (displayMode === 'hours' ? 'rgba(240,223,160,0.45)' : 'rgba(240,223,160,0.25)')
+                    : 'rgba(255,255,255,0.1)',
+                  borderRadius: displayMode === 'hours' ? '2.5px' : '1px',
+                  transition: 'width 450ms cubic-bezier(0.4,0,0.2,1), height 300ms ease, border-radius 300ms ease',
+                }}
+              />
+              <span className="text-sm font-bold" style={{
+                color: h > 0 ? PALE_YELLOW : 'rgba(255,255,255,0.2)',
+                textShadow: h > 0 ? GLOW_SOFT : 'none',
+              }}>
+                {fmtVal(h, total)}
+              </span>
+            </div>
+          );
+        })}
+        {rows.every(r => r.h === 0) && (
+          <p className="text-xs text-white/25 italic pt-1">No tagged sessions in this window.</p>
+        )}
+      </div>
+    );
+  }
+
+  // ── Desktop drum renderer (absolute inset-0 for slide animations) ──
+  function renderContent(mode: ViewMode, animClass = '', onAnimEnd?: () => void) {
     return (
       <div className={`absolute inset-0 flex flex-col gap-2 ${animClass}`} onAnimationEnd={onAnimEnd}>
-
-        {/* Chart + breakdown — fills panel height */}
-        <div className={`flex-1 flex ${mode === 'volume' ? 'flex-row' : 'flex-col sm:flex-row'} items-center gap-2 sm:gap-4 min-h-0`}>
-
-          {/* Volume view: chart left + large stats right */}
-          {mode === 'volume' && (
-            <>
-              <div className="w-2/5 sm:w-auto flex-shrink-0" style={{ maxWidth: '100%' }}>
-                <VolumeChart sessions={sessions} />
-              </div>
-              <div className="flex-1 flex flex-col justify-center gap-2 sm:gap-4 sm:pl-10">
-                {[
-                  { label: 'Total',    value: totalVolHours > 0 ? `${totalVolHours.toFixed(1)}h` : '—', active: totalVolHours > 0 },
-                  { label: 'Peak',     value: totalVolHours > 0 ? MONTH_SHORT[peakMonthIdx]        : '—', active: totalVolHours > 0 },
-                  { label: 'Avg / mo', value: avgPerMonth   > 0 ? `${avgPerMonth.toFixed(1)}h`     : '—', active: avgPerMonth   > 0 },
-                ].map(({ label, value, active }) => (
-                  <div key={label} className="flex items-baseline gap-2">
-                    <span className="text-xs font-bold" style={{ color: PALE_YELLOW }}>{label}</span>
-                    <span className="text-xs" style={{ color: 'rgba(240,223,160,0.25)' }}>|</span>
-                    <span className="text-lg sm:text-2xl font-bold" style={{
-                      color: active ? PALE_YELLOW : 'rgba(255,255,255,0.15)',
-                      textShadow: active ? GLOW_SOFT : 'none',
-                    }}>{value}</span>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-
-          {/* Prism / Split / Format: stacked on mobile, side-by-side on desktop */}
-          {mode !== 'volume' && (
-            <>
-              {/* Chart panel — 190px centered on mobile, 250px on desktop */}
-              <div className="w-[190px] mx-auto sm:mx-0 sm:w-[250px] flex-shrink-0">
-
-                {mode === 'prism' && (
-                  <svg viewBox="-20 -20 140 140" width="100%" aria-label="Skill radar chart">
-                    <rect x="-20" y="-20" width="140" height="140" fill={CARD_BG} rx="12" />
-                    {gridRings.map((pts, ri) => (
-                      <polygon key={ri} points={toPoints(pts)} fill="none"
-                        stroke={PALE_YELLOW} strokeOpacity={ri === 3 ? 0.25 : 0.12} strokeWidth="0.5" />
-                    ))}
-                    {SKILL_TAGS.map((_, i) => {
-                      const [x, y] = vertex(i, 1);
-                      return <line key={i} x1={CX} y1={CY} x2={x} y2={y}
-                        stroke={PALE_YELLOW} strokeOpacity="0.18" strokeWidth="0.5" />;
-                    })}
-                    <polygon points={toPoints(dataPolygon)} fill={polygonColors.fill}
-                      stroke={polygonColors.stroke} strokeWidth="1" strokeLinejoin="round" />
-                    {dataPolygon.map(([x, y], i) => normalized[i] > 0.02 && (
-                      <circle key={i} cx={x} cy={y} r="1.5" fill={polygonColors.dot} />
-                    ))}
-                    {SKILL_TAGS.map(({ label }, i) => {
-                      const angle = (2 * Math.PI / N) * i - Math.PI / 2;
-                      const lx = CX + LABEL_R * Math.cos(angle);
-                      const ly = CY + LABEL_R * Math.sin(angle);
-                      const { textAnchor, dominantBaseline } = labelAttrs(i);
-                      const lines = labelLines(label);
-                      const yOffset = lines.length > 1 ? -3 : 0;
-                      return (
-                        <text key={i} x={lx.toFixed(2)} y={(ly + yOffset).toFixed(2)}
-                          textAnchor={textAnchor} dominantBaseline={dominantBaseline}
-                          fill={PALE_YELLOW} fontSize="5" fontWeight="700" fontFamily="sans-serif">
-                          {lines.map((line, li) => (
-                            <tspan key={li} x={lx.toFixed(2)} dy={li === 0 ? '0' : '6'}>{line}</tspan>
-                          ))}
-                        </text>
-                      );
-                    })}
-                  </svg>
-                )}
-
-                {mode === 'split' && (
-                  <DonutChart segments={[
-                    { value: giHours,   color: SEG_GI   },
-                    { value: nogiHours, color: SEG_NOGI  },
-                  ]} />
-                )}
-
-                {mode === 'format' && (
-                  <DonutChart segments={[
-                    { value: classHours, color: SEG_CLASS },
-                    { value: drillHours, color: SEG_DRILL },
-                    { value: compHours,  color: SEG_COMP  },
-                  ]} />
-                )}
-
-              </div>
-
-              {/* Breakdown rows */}
-              <div className="flex-1 w-full flex flex-col justify-center gap-3 sm:pl-10">
-                <div className="space-y-3">
-                  {rows.map(({ label, h, total, color }) => {
-                    const barW = displayMode === 'hours'
-                      ? (h > 0 ? Math.max((h / maxRowH) * BAR_MAX_PX, 6) : 2)
-                      : 1.5;
-                    return (
-                      <div key={label} className="flex items-center gap-2">
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
-                          {color && (
-                            <div className="flex-shrink-0" style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: color }} />
-                          )}
-                          <span className="text-xs font-bold" style={{ color: PALE_YELLOW }}>{label}</span>
-                        </div>
-                        <div
-                          className="flex-shrink-0"
-                          style={{
-                            width:  `${barW}px`,
-                            height: displayMode === 'hours' ? '5px' : '13px',
-                            backgroundColor: h > 0
-                              ? (displayMode === 'hours' ? 'rgba(240,223,160,0.45)' : 'rgba(240,223,160,0.25)')
-                              : 'rgba(255,255,255,0.1)',
-                            borderRadius: displayMode === 'hours' ? '2.5px' : '1px',
-                            transition: 'width 450ms cubic-bezier(0.4,0,0.2,1), height 300ms ease, border-radius 300ms ease',
-                          }}
-                        />
-                        <span className="text-sm font-bold" style={{
-                          color: h > 0 ? PALE_YELLOW : 'rgba(255,255,255,0.2)',
-                          textShadow: h > 0 ? GLOW_SOFT : 'none',
-                        }}>
-                          {fmtVal(h, total)}
-                        </span>
-                      </div>
-                    );
-                  })}
-                  {rows.every(r => r.h === 0) && (
-                    <p className="text-xs text-white/25 italic pt-1">No tagged sessions in this window.</p>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-
+        <div className="flex-1 flex flex-row items-center gap-4 min-h-0">
+          <div className="flex-shrink-0" style={{ maxWidth: mode === 'volume' ? '42%' : 280 }}>
+            {renderChart(mode)}
+          </div>
+          <div className="flex-1 flex flex-col justify-center gap-3 pl-6">
+            {renderBreakdownContent(mode)}
+          </div>
         </div>
       </div>
     );
@@ -550,10 +542,20 @@ export default function SkillRadar({ sessions }: SkillRadarProps) {
 
       </div>
 
-      {/* ── Body: drum | rail column ── */}
-      <div className="flex flex-col sm:flex-row items-start gap-4">
+      {/* ── Mobile: simple flat layout (no drum, no animation) ── */}
+      <div className="sm:hidden flex flex-col gap-5">
+        <div className="mx-auto" style={{ width: 210 }}>
+          {renderChart(viewMode)}
+        </div>
+        <div>
+          {renderBreakdownContent(viewMode)}
+        </div>
+      </div>
 
-        {/* Drum — panels contain subtitle + chart + breakdown */}
+      {/* ── Desktop: drum | rail column ── */}
+      <div className="hidden sm:flex sm:flex-row items-start gap-4">
+
+        {/* Drum — panels contain chart + breakdown with slide animation */}
         <div className="flex-1 relative overflow-hidden h-[320px] min-w-0">
 
           {/* Exiting panel */}
