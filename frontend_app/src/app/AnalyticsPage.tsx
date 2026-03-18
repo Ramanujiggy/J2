@@ -146,7 +146,7 @@ export default function AnalyticsPage() {
                   return (
                     <div
                       key={intention.id}
-                      className="grid sm:grid-cols-[80px_1fr_1fr] gap-2 sm:gap-4 items-center px-4 py-2.5"
+                      className="grid sm:grid-cols-[80px_1fr_1fr] gap-1 sm:gap-4 sm:items-center px-4 py-3"
                     >
                       {/* Week */}
                       <span className="text-xs text-white/35">{formatWeek(intention.week_start)}</span>
@@ -165,20 +165,23 @@ export default function AnalyticsPage() {
                       </div>
 
                       {/* Ambient Focus */}
-                      {top ? (
-                        <div className="flex items-center gap-1.5">
-                          <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(218,116,34,0.85)' }}>
-                            ◎ {top.label}
-                          </span>
-                          {top.count > 1 && (
-                            <span style={{ fontSize: 12, color: 'rgba(218,116,34,0.45)' }}>
-                              × {top.count}
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-white/25 sm:hidden">Ambient: </span>
+                        {top ? (
+                          <>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(218,116,34,0.85)' }}>
+                              ◎ {top.label}
                             </span>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-white/20 italic">— no sessions</span>
-                      )}
+                            {top.count > 1 && (
+                              <span style={{ fontSize: 12, color: 'rgba(218,116,34,0.45)' }}>
+                                × {top.count}
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-xs text-white/20 italic">— no sessions</span>
+                        )}
+                      </div>
                     </div>
                   );
                 })}

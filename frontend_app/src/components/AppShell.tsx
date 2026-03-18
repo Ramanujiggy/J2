@@ -80,7 +80,7 @@ export default function AppShell({ children }: Props) {
       {/* ── Header ──────────────────────────────────────────────── */}
       <header
         className="border-b relative overflow-hidden flex-shrink-0"
-        style={{ borderBottomColor: COPPER_BORDER }}
+        style={{ borderBottomColor: COPPER_BORDER, paddingTop: 'env(safe-area-inset-top, 0px)' }}
       >
         <WaveBackground />
         {/* Fade wave into page background */}
@@ -150,7 +150,7 @@ export default function AppShell({ children }: Props) {
       </header>
 
       {/* ── Page content ────────────────────────────────────────── */}
-      <main className="flex-1 overflow-auto pb-20 sm:pb-0">
+      <main className="flex-1 overflow-auto sm:pb-0" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))' }}>
         {children}
       </main>
 
@@ -160,6 +160,7 @@ export default function AppShell({ children }: Props) {
         style={{
           backgroundColor: '#111e2b',
           borderTopColor: COPPER_BORDER,
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
       >
         {TABS.map(({ path, label, Icon }) => {

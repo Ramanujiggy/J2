@@ -139,14 +139,31 @@ export default function IntentionsPage() {
             return (
               <div
                 key={intention.id}
-                className="rounded-xl px-4 py-3 grid sm:grid-cols-[80px_1fr_1fr_100px] gap-2 sm:gap-4 items-center"
+                className="rounded-xl px-4 py-3 sm:grid sm:grid-cols-[80px_1fr_1fr_100px] sm:gap-4 sm:items-center"
                 style={{ backgroundColor: CARD_BG, border: `1px solid rgba(255,255,255,0.06)` }}
               >
-                {/* Week */}
-                <p className="text-xs text-white/40 font-medium">{formatWeek(intention.week_start)}</p>
+                {/* Mobile: top row — week + journal link */}
+                <div className="flex items-center justify-between sm:contents">
+                  <p className="text-xs text-white/40 font-medium">{formatWeek(intention.week_start)}</p>
+
+                  {/* Journal entry link — right-aligned on mobile, own column on sm */}
+                  <button
+                    onClick={() => navigate(`/intentions/${intention.id}/journal`)}
+                    className="flex items-center gap-1.5 text-left transition-colors group sm:hidden"
+                    title={hasJournal ? intention.journal_entry! : 'Add a journal entry'}
+                  >
+                    {hasJournal ? (
+                      <span className="text-xs group-hover:opacity-90 transition-opacity" style={{ color: 'rgba(240,223,160,0.6)' }}>
+                        ✦ {journalSnippet}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-white/20 group-hover:text-white/40 transition-colors italic">+ add</span>
+                    )}
+                  </button>
+                </div>
 
                 {/* Intention label + category */}
-                <div className="flex items-center gap-2 min-w-0">
+                <div className="flex items-center gap-2 min-w-0 mt-1 sm:mt-0">
                   {intention.intent_category && (
                     <span
                       className="text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0 font-medium capitalize"
@@ -159,27 +176,25 @@ export default function IntentionsPage() {
                 </div>
 
                 {/* Ambient focus */}
-                <p className="text-sm text-white/50">
-                  {ambient ?? <span className="text-white/20 italic">no data</span>}
+                <p className="text-xs sm:text-sm text-white/40 sm:text-white/50 mt-0.5 sm:mt-0">
+                  {ambient
+                    ? <><span className="text-white/20 sm:hidden">Ambient: </span>{ambient}</>
+                    : <span className="text-white/20 italic">no data</span>
+                  }
                 </p>
 
-                {/* Journal entry link */}
+                {/* Journal entry link — desktop column only */}
                 <button
                   onClick={() => navigate(`/intentions/${intention.id}/journal`)}
-                  className="flex items-center gap-1.5 text-left transition-colors group"
+                  className="hidden sm:flex items-center gap-1.5 text-left transition-colors group"
                   title={hasJournal ? intention.journal_entry! : 'Add a journal entry'}
                 >
                   {hasJournal ? (
-                    <span
-                      className="text-xs truncate group-hover:opacity-90 transition-opacity"
-                      style={{ color: 'rgba(240,223,160,0.6)' }}
-                    >
+                    <span className="text-xs truncate group-hover:opacity-90 transition-opacity" style={{ color: 'rgba(240,223,160,0.6)' }}>
                       ✦ {journalSnippet}
                     </span>
                   ) : (
-                    <span className="text-xs text-white/20 group-hover:text-white/40 transition-colors italic">
-                      + add
-                    </span>
+                    <span className="text-xs text-white/20 group-hover:text-white/40 transition-colors italic">+ add</span>
                   )}
                 </button>
               </div>

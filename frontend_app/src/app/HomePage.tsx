@@ -85,7 +85,7 @@ export default function HomePage() {
 
       {/* Logo / Title */}
       <div className="mb-10 text-center relative z-10">
-        <h1 className="text-5xl font-bold tracking-tight" style={{ color: PALE_YELLOW, textShadow: GLOW_TITLE }}>
+        <h1 className="text-3xl sm:text-5xl font-bold tracking-tight" style={{ color: PALE_YELLOW, textShadow: GLOW_TITLE }}>
           Journada
         </h1>
         <p className="mt-3 text-lg" style={{ color: PALE_YELLOW, textShadow: GLOW_NAV }}>
@@ -94,7 +94,7 @@ export default function HomePage() {
       </div>
 
       {/* Card */}
-      <div className="w-full max-w-sm rounded-2xl p-8 relative z-10" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
+      <div className="w-[calc(100%-2rem)] max-w-sm rounded-2xl p-8 relative z-10" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
 
         {/* Mode toggle — only show for login/register */}
         {mode !== 'forgot' && (

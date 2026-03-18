@@ -291,7 +291,7 @@ export default function SkillRadar({ sessions }: SkillRadarProps) {
           {/* Volume view: chart left + large stats right */}
           {mode === 'volume' && (
             <>
-              <div className="w-full flex-shrink-0" style={{ maxWidth: 300 }}>
+              <div className="w-full flex-shrink-0" style={{ maxWidth: '100%' }}>
                 <VolumeChart sessions={sessions} />
               </div>
               <div className="flex-1 w-full flex flex-col justify-center gap-4 pl-10">
@@ -317,7 +317,7 @@ export default function SkillRadar({ sessions }: SkillRadarProps) {
           {mode !== 'volume' && (
             <>
               {/* Left: chart panel */}
-              <div className="w-full flex-shrink-0" style={{ maxWidth: 300 }}>
+              <div className="w-full flex-shrink-0" style={{ maxWidth: '100%' }}>
 
                 {mode === 'prism' && (
                   <svg viewBox="-20 -20 140 140" width="100%" aria-label="Skill radar chart">
@@ -453,7 +453,7 @@ export default function SkillRadar({ sessions }: SkillRadarProps) {
             </TooltipContent>
           </Tooltip>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {(['30d', '60d', '90d', 'all'] as TimeWindow[]).map(w => (
             <button key={w} onClick={() => setTimeWindow(w)} className={`${btnBase} ${timeWindow === w ? btnActive : btnInactive}`}>
               {w === '30d' ? '30 Days' : w === '60d' ? '60 Days' : w === '90d' ? '90 Days' : 'All Time'}

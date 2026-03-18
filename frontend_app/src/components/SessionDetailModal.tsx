@@ -158,12 +158,14 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
         onClick={onClose}
       >
         <div
-          className="w-full max-w-md rounded-2xl p-6"
+          className="w-full sm:max-w-md rounded-2xl p-6"
           style={{
             position: 'relative',
             backgroundColor: '#1a2c38',
             border: '1px solid rgba(184,122,85,0.45)',
             overflow: 'hidden',
+            maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem)',
+            overflowY: 'auto',
           }}
           onClick={e => e.stopPropagation()}
         >
@@ -313,7 +315,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                       <button
                         key={n}
                         onClick={() => setForm(f => ({ ...f, intensity: n }))}
-                        className="w-6 h-6 rounded text-xs font-bold transition-colors"
+                        className="w-8 h-8 rounded text-xs font-bold transition-colors"
                         style={
                           form.intensity === n
                             ? { backgroundColor: INTENSITY_COLOR[n], color: '#1a2c38' }

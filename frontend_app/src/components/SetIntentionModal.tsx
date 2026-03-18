@@ -77,8 +77,13 @@ export default function SetIntentionModal({ weekStart, onSaved, onClose }: Props
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-2xl p-6"
-        style={{ backgroundColor: '#1a2c38', border: '1px solid rgba(184,122,85,0.45)' }}
+        className="w-full sm:max-w-sm rounded-2xl p-6"
+        style={{
+          backgroundColor: '#1a2c38',
+          border: '1px solid rgba(184,122,85,0.45)',
+          maxHeight: 'calc(100dvh - 2rem)',
+          overflowY: 'auto',
+        }}
         onClick={e => e.stopPropagation()}
       >
         <p className="text-base font-semibold mb-1" style={{ color: PALE_YELLOW }}>
