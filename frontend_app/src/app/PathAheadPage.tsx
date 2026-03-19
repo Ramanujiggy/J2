@@ -517,8 +517,8 @@ export default function PathAheadPage() {
     setTimeout(() => {
       setDrillIndex(i => (i + 1 + Math.floor(Math.random() * (ROULETTE_DRILLS.length - 1))) % ROULETTE_DRILLS.length);
       setSpinPhase('in');
-      setTimeout(() => setSpinPhase('idle'), 260);
-    }, 240);
+      setTimeout(() => setSpinPhase('idle'), 310);
+    }, 290);
   };
 
   const handleDeleteIntention = async () => {
@@ -576,12 +576,12 @@ export default function PathAheadPage() {
           to   { opacity: 1; }
         }
         @keyframes j2RepOut {
-          from { transform: rotateY(0deg);   opacity: 1; }
-          to   { transform: rotateY(90deg);  opacity: 0; }
+          from { transform: rotateX(0deg);   opacity: 1; }
+          to   { transform: rotateX(90deg);  opacity: 0; }
         }
         @keyframes j2RepIn {
-          from { transform: rotateY(-90deg); opacity: 0; }
-          to   { transform: rotateY(0deg);   opacity: 1; }
+          from { transform: rotateX(-90deg); opacity: 0; }
+          to   { transform: rotateX(0deg);   opacity: 1; }
         }
       `}</style>
 
@@ -915,51 +915,46 @@ export default function PathAheadPage() {
       )}
 
       {/* ── Rep Roulette ──────────────────────────────────────────── */}
-      <div
-        className="rounded-xl px-4 py-3"
-        style={{
-          position: 'relative',
-          overflow: 'hidden',
-          backgroundColor: 'rgba(255,255,255,0.03)',
-          border: `1px solid ${COPPER_BORDER}`,
-        }}
-      >
-        {/* Header row */}
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-[11px] text-white/30 uppercase tracking-wide">Rep Roulette</span>
-          <button
-            onClick={handleSpin}
-            disabled={spinPhase !== 'idle'}
-            className="text-xs font-medium px-2.5 py-1 rounded-lg transition-colors disabled:opacity-40"
-            style={{ backgroundColor: 'rgba(184,122,85,0.15)', color: 'rgba(184,122,85,0.85)' }}
-          >
-            ⟳ Spin
-          </button>
-        </div>
-
-        {/* Drill display */}
-        <div style={{ perspective: '600px' }}>
-          <div
-            style={{
-              animation: spinPhase === 'out'
-                ? 'j2RepOut 0.24s ease-in forwards'
-                : spinPhase === 'in'
-                  ? 'j2RepIn 0.26s ease-out forwards'
-                  : 'none',
-            }}
-          >
-            <p
-              className="text-xl font-semibold mb-1"
-              style={{ color: 'rgba(240,223,160,0.85)' }}
+      <div style={{ perspective: '800px' }}>
+        <div
+          className="rounded-xl px-4 py-3"
+          style={{
+            position: 'relative',
+            overflow: 'hidden',
+            backgroundColor: 'rgba(255,255,255,0.03)',
+            border: `1px solid ${COPPER_BORDER}`,
+            animation: spinPhase === 'out'
+              ? 'j2RepOut 0.29s ease-in forwards'
+              : spinPhase === 'in'
+                ? 'j2RepIn 0.31s ease-out forwards'
+                : 'none',
+          }}
+        >
+          {/* Header row */}
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] text-white/30 uppercase tracking-wide">Rep Roulette</span>
+            <button
+              onClick={handleSpin}
+              disabled={spinPhase !== 'idle'}
+              className="text-xs font-medium px-2.5 py-1 rounded-lg transition-colors disabled:opacity-40"
+              style={{ backgroundColor: 'rgba(184,122,85,0.15)', color: 'rgba(184,122,85,0.85)' }}
             >
-              {ROULETTE_DRILLS[drillIndex].name}
-            </p>
-            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
-              {ROULETTE_DRILLS[drillIndex].focus}
-              <span style={{ color: 'rgba(255,255,255,0.2)', margin: '0 6px' }}>·</span>
-              {ROULETTE_DRILLS[drillIndex].suggestion}
-            </p>
+              ⟳ Spin
+            </button>
           </div>
+
+          {/* Drill display */}
+          <p
+            className="text-xl font-semibold mb-1"
+            style={{ color: 'rgba(240,223,160,0.85)' }}
+          >
+            {ROULETTE_DRILLS[drillIndex].name}
+          </p>
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
+            {ROULETTE_DRILLS[drillIndex].focus}
+            <span style={{ color: 'rgba(255,255,255,0.2)', margin: '0 6px' }}>·</span>
+            {ROULETTE_DRILLS[drillIndex].suggestion}
+          </p>
         </div>
       </div>
 
