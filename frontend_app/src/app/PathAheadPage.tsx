@@ -64,12 +64,6 @@ const INTENSITY_COLOR: Record<number, string> = {
   5: '#DA7422',
 };
 
-const SESSION_TYPE_LABELS: Record<string, string> = {
-  class:                'Class',
-  drilling:             'Drilling',
-  competition_training: 'Competition',
-};
-
 const CATEGORY_COLORS: Record<string, string> = {
   technical:   '#60a5fa',
   physical:    '#f87171',
@@ -181,17 +175,15 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
   const dayStr     = toDateString(day);
   const isToday    = dayStr === todayStr;
   const isFuture   = dayStr > todayStr;
-  const isPast     = dayStr < todayStr;
 
   const primarySession = sessions.length > 0
     ? [...sessions].sort((a, b) => Number(b.intensity) - Number(a.intensity))[0]
     : null;
-  const totalMinutes = sessions.reduce((sum, s) => sum + Number(s.duration), 0);
   const sessionCount = sessions.length;
 
   const intensityColor = primarySession ? (INTENSITY_COLOR[primarySession.intensity] ?? '#CDDFA0') : null;
 
-  // Border + shadow — today with intention gets a faint yellow ambient glow
+  // Border + shadow — today gets a copper glow, with intention adds yellow
   const borderColor = isToday ? 'rgba(184,122,85,0.7)' : 'rgba(255,255,255,0.07)';
   const boxShadow = isToday
     ? intention
@@ -199,125 +191,65 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
       : '0 0 16px rgba(184,122,85,0.25), 0 2px 8px rgba(0,0,0,0.4)'
     : '0 2px 8px rgba(0,0,0,0.3)';
 
-  // Derived brightness values for the intention footer layers
   const opacityScale = intention ? intentionBrightness / 1.3 : 1;
   const glowHeight   = intentionBrightness >= 1.25 ? 52 : 32;
-
   const dayParticles = intention ? generateDayParticles(dayStr) : [];
 
   return (
     <div
-      className="min-w-[128px] sm:flex-1 rounded-2xl flex flex-col flex-shrink-0 overflow-hidden"
+      className="flex-1 min-w-0 rounded-xl flex flex-col overflow-hidden"
       style={{
         backgroundColor: CARD_BG,
         border: `1px solid ${borderColor}`,
-        boxShadow: hovered
-          ? `${boxShadow}, 0 12px 32px rgba(0,0,0,0.55)`
-          : boxShadow,
+        boxShadow: hovered ? `${boxShadow}, 0 12px 32px rgba(0,0,0,0.55)` : boxShadow,
         opacity: isFuture ? 0.55 : 1,
-        transform: hovered ? 'translateY(-4px)' : 'translateY(0)',
+        transform: hovered ? 'translateY(-3px)' : 'translateY(0)',
         transition: 'transform 0.2s ease, box-shadow 0.2s ease',
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* Card header */}
-      <div className="px-3 pt-3 pb-2 border-b border-white/5">
-        <p className="text-[11px] font-medium text-white/40">
-          {DAY_NAMES[day.getDay()]}
+      {/* Card header — day initial + date number */}
+      <div className="px-1 pt-2 pb-1.5 border-b border-white/5 text-center">
+        <p className="text-[9px] font-medium text-white/35 leading-none mb-0.5">
+          {DAY_NAMES[day.getDay()].charAt(0)}
         </p>
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-bold text-white">
-            {MONTH_NAMES[day.getMonth()]} {day.getDate()}
-          </p>
-          {isToday && (
-            <span
-              className="text-[9px] font-bold px-1.5 py-0.5 rounded"
-              style={{ backgroundColor: 'rgba(184,122,85,0.3)', color: '#B87A55', letterSpacing: '0.05em' }}
-            >
-              TODAY
-            </span>
-          )}
-        </div>
+        <p
+          className="text-[13px] font-bold leading-none"
+          style={{ color: isToday ? '#B87A55' : 'rgba(255,255,255,0.85)' }}
+        >
+          {day.getDate()}
+        </p>
       </div>
 
-      {/* Card body */}
-      <div className="flex-1 px-3 py-2.5 flex flex-col gap-1.5">
-        {sessionCount > 0 ? (
-          <button
-            className="text-left w-full space-y-1.5"
-            onClick={() => onViewSession(sessions, day)}
-          >
-            {/* Intensity dot + duration + count badge */}
-            <div className="flex items-center gap-1.5">
-              <span
-                className="w-2 h-2 rounded-full flex-shrink-0"
-                style={{ backgroundColor: intensityColor! }}
-              />
-              <span className="text-xs font-semibold text-white">
-                {formatDuration(totalMinutes)}
-              </span>
-              {sessionCount > 1 && (
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>
-                  ×{sessionCount}
-                </span>
-              )}
-            </div>
-            {/* Type · Style */}
-            <p className="text-[11px] text-white/45 leading-tight">
-              {SESSION_TYPE_LABELS[primarySession!.session_type] ?? primarySession!.session_type}
-              {' · '}
-              {primarySession!.gi_nogi === 'gi' ? 'Gi' : 'No-Gi'}
-            </p>
-            {/* Top tags (up to 2) from primary session */}
-            {primarySession!.tags && primarySession!.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-0.5">
-                {primarySession!.tags.slice(0, 2).map(tag => {
-                  const found = SKILL_TAGS.find(s => s.value === tag);
-                  return (
-                    <span
-                      key={tag}
-                      className="text-[10px] px-1.5 py-0.5 rounded"
-                      style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}
-                    >
-                      {found?.label ?? tag}
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-          </button>
-        ) : isFuture ? (
-          <button
-            onClick={() => onLogSession(day)}
-            className="text-[11px] transition-colors text-left w-full"
-            style={{ color: 'rgba(255,255,255,0.2)' }}
-            onMouseEnter={e => (e.currentTarget.style.color = 'rgba(184,122,85,0.6)')}
-            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.2)')}
-          >
-            + Log
-          </button>
-        ) : isPast ? (
-          <button
-            onClick={() => onLogSession(day)}
-            className="text-[11px] transition-colors text-left w-full"
-            style={{ color: 'rgba(255,255,255,0.25)' }}
-            onMouseEnter={e => (e.currentTarget.style.color = 'rgba(184,122,85,0.6)')}
-            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.25)')}
-          >
-            Rest · + Log
-          </button>
-        ) : (
-          // Today, no session
-          <button
-            onClick={() => onLogSession(day)}
-            className="text-[11px] font-medium transition-colors text-left"
-            style={{ color: 'rgba(184,122,85,0.7)' }}
-          >
-            + Mat Time
-          </button>
-        )}
-      </div>
+      {/* Card body — tap target fills the rest */}
+      {sessionCount > 0 ? (
+        <button
+          className="flex-1 flex flex-col items-center justify-center gap-1 py-2.5"
+          onClick={() => onViewSession(sessions, day)}
+          aria-label="View session"
+        >
+          <span
+            style={{
+              width: 8, height: 8, borderRadius: '50%', display: 'block',
+              backgroundColor: intensityColor!,
+            }}
+          />
+          {sessionCount > 1 && (
+            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', lineHeight: 1 }}>
+              ×{sessionCount}
+            </span>
+          )}
+        </button>
+      ) : (
+        <button
+          onClick={() => onLogSession(day)}
+          className="flex-1 flex items-center justify-center py-2.5"
+          aria-label="Log session"
+        >
+          <span style={{ fontSize: 15, color: 'rgba(184,122,85,0.22)', lineHeight: 1 }}>+</span>
+        </button>
+      )}
 
       {/* Intention strip at bottom — fades in when active */}
       {intention && (
@@ -590,12 +522,6 @@ export default function PathAheadPage() {
         <h2 className="text-2xl font-bold tracking-tight" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
           The Path Ahead
         </h2>
-        <button
-          onClick={() => setLogOpen(true)}
-          className="bg-brand-orange hover:bg-brand-orange/90 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
-        >
-          + Mat Time
-        </button>
       </div>
 
       {/* ── Intent banner ─────────────────────────────────────────── */}
@@ -767,7 +693,7 @@ export default function PathAheadPage() {
       </div>
 
       {/* ── Day cards row ─────────────────────────────────────────── */}
-      <div className="flex gap-2 sm:gap-3 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0" style={{ paddingTop: 8, paddingBottom: 4, marginTop: -8 }}>
+      <div className="flex gap-1.5 overflow-hidden" style={{ paddingTop: 8, paddingBottom: 4, marginTop: -8 }}>
         {windowDays.map(day => {
           const dayStr = toDateString(day);
           const dayHasIntention = activeIntention !== null && intentionStartStr !== null && intentionEndStr !== null
