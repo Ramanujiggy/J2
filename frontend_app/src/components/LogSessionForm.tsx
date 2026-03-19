@@ -33,9 +33,9 @@ const btnBase = 'px-4 py-2 rounded-lg text-sm font-medium transition-colors curs
 const btnActive = 'bg-brand-orange text-white';
 const btnInactive = 'bg-white/10 text-white/60 hover:bg-white/20';
 
-export default function LogSessionForm({ onSuccess, onCancel }: { onSuccess?: () => void; onCancel?: () => void }) {
+export default function LogSessionForm({ onSuccess, onCancel, defaultDate }: { onSuccess?: () => void; onCancel?: () => void; defaultDate?: string }) {
   const [form, setForm] = useState<SessionFormData>({
-    date:         today,
+    date:         defaultDate ?? today,
     notes:        '',
     gi_nogi:      'gi',
     intensity:    3,

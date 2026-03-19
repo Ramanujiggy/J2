@@ -123,7 +123,7 @@ export default function AnalyticsPage() {
             >
               <path d="M9 18l6-6-6-6" />
             </svg>
-            <span className="font-medium">Intention vs Ambient Focus</span>
+            <span className="font-medium">Intention vs Training Telemetry</span>
             <span className="text-xs text-white/20">({intentions.length})</span>
           </button>
 
@@ -136,7 +136,7 @@ export default function AnalyticsPage() {
               <div className="hidden sm:grid grid-cols-[80px_1fr_1fr] gap-4 px-4 pt-3 pb-2">
                 <span className="text-[11px] text-white/25 uppercase tracking-wide">Week</span>
                 <span className="text-[11px] text-white/25 uppercase tracking-wide">Intention</span>
-                <span className="text-[11px] text-white/25 uppercase tracking-wide">Ambient Focus</span>
+                <span className="text-[11px] text-white/25 uppercase tracking-wide">Training Telemetry</span>
               </div>
 
               <div className="divide-y divide-white/[0.05]">
@@ -166,7 +166,7 @@ export default function AnalyticsPage() {
 
                       {/* Ambient Focus */}
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] text-white/25 sm:hidden">Ambient: </span>
+                        <span className="text-[10px] text-white/25 sm:hidden">Telemetry: </span>
                         {top ? (
                           <>
                             <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(218,116,34,0.85)' }}>

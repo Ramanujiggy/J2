@@ -138,13 +138,6 @@ export default function AppShell({ children }: Props) {
             </h1>
             <BeltBar rank={beltRank} stripes={stripes} />
           </div>
-          <button
-            onClick={handleLogout}
-            className="text-sm transition-colors"
-            style={{ color: PALE_YELLOW, textShadow: GLOW_NAV }}
-          >
-            Log out
-          </button>
         </div>
 
         {/* Desktop nav tabs — hidden on mobile */}
