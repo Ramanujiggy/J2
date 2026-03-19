@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { api } from '../lib/api.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
 import type { SessionSummary } from './TrainingHeatmap.tsx';
@@ -92,15 +92,6 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(false);
 
-  // Measure the edit face height so the flipper always has enough room
-  const editFaceRef = useRef<HTMLDivElement>(null);
-  const [editHeight, setEditHeight] = useState(0);
-  useEffect(() => {
-    if (editFaceRef.current) {
-      setEditHeight(editFaceRef.current.offsetHeight);
-    }
-  }, []);
-
   const intensityColor = INTENSITY_COLOR[session.intensity] ?? '#CDDFA0';
 
   const dateLabel = date.toLocaleDateString('en-US', {
@@ -168,74 +159,68 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
         }
       `}</style>
 
-      {/* Backdrop */}
+      {/* Backdrop — perspective origin for the 3D card flip */}
       <div
         className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm px-4"
-        style={{ backgroundColor: 'rgba(17, 30, 43, 0.92)' }}
+        style={{ backgroundColor: 'rgba(17, 30, 43, 0.92)', perspective: '1200px' }}
         onClick={onClose}
       >
-        {/* Modal box */}
+        {/* Modal box = the flipper — no visual styling here so preserve-3d works */}
         <div
-          className="w-full sm:max-w-md rounded-2xl"
+          className="w-full sm:max-w-md"
           style={{
             position: 'relative',
-            backgroundColor: '#1a2c38',
-            border: '1px solid rgba(184,122,85,0.45)',
-            overflow: 'hidden',
-            maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem)',
-            overflowY: 'auto',
+            transformStyle: 'preserve-3d',
+            transition: 'transform 0.45s cubic-bezier(0.4, 0, 0.2, 1)',
+            transform: isEditing ? 'rotateY(180deg)' : 'rotateY(0deg)',
           }}
           onClick={e => e.stopPropagation()}
         >
-          {/* Intention particle layer */}
-          {intention && (
-            <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0, overflow: 'hidden', borderRadius: 16 }}>
-              <div style={{
-                position: 'absolute', bottom: -12, left: '50%',
-                transform: 'translateX(-50%)',
-                width: '55%', height: 56, borderRadius: '50%',
-                background: 'radial-gradient(ellipse at center bottom, rgba(167,139,250,0.18) 0%, transparent 80%)',
-                animation: 'j2IntentPurplePulse 4.2s ease-in-out infinite',
-              }} />
-              <div style={{
-                position: 'absolute', bottom: 0, left: 0, right: 0, height: 36,
-                background: 'linear-gradient(to top, rgba(240,223,160,0.07) 0%, transparent 100%)',
-                animation: 'j2IntentYellowPulse 3.1s ease-in-out infinite',
-                transformOrigin: 'center bottom',
-              }} />
-              {MODAL_PARTICLES.map((p, i) => (
-                <span key={i} style={{
-                  position: 'absolute', left: p.left, bottom: p.bottom,
-                  width: p.size, height: p.size, borderRadius: '50%',
-                  backgroundColor: 'rgba(240,223,160,0.85)',
-                  boxShadow: '0 0 4px 1px rgba(240,223,160,0.5)',
-                  filter: 'brightness(1.2)',
-                  ['--drift' as string]: p.drift,
-                  animation: `j2IntentParticleRise ${p.duration}s ease-in-out infinite ${p.delay}s`,
-                  userSelect: 'none',
-                } as React.CSSProperties} />
-              ))}
-            </div>
-          )}
-
-          {/* 3D flip container */}
-          <div style={{ perspective: '1200px', position: 'relative', zIndex: 1 }}>
-            <div style={{
+          {/* ── FRONT FACE — view summary — carries full card styling ── */}
+          <div
+            style={{
+              backfaceVisibility: 'hidden',
+              WebkitBackfaceVisibility: 'hidden',
               position: 'relative',
-              transformStyle: 'preserve-3d',
-              transition: 'transform 0.45s cubic-bezier(0.4, 0, 0.2, 1)',
-              transform: isEditing ? 'rotateY(180deg)' : 'rotateY(0deg)',
-              minHeight: editHeight > 0 ? editHeight : undefined,
-            }}>
-
-              {/* ── FRONT FACE — view summary ── */}
-              <div
-                style={{
-                  backfaceVisibility: 'hidden',
-                  WebkitBackfaceVisibility: 'hidden',
-                  padding: '1.5rem',
-                }}
-              >
+              backgroundColor: '#1a2c38',
+              border: '1px solid rgba(184,122,85,0.45)',
+              borderRadius: '1rem',
+              overflow: 'hidden',
+              maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem)',
+              overflowY: 'auto',
+              padding: '1.5rem',
+            }}
+          >
+            {/* Intention particle layer — inside the front face so it doesn't flip */}
+            {intention && (
+              <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0, overflow: 'hidden', borderRadius: 16 }}>
+                <div style={{
+                  position: 'absolute', bottom: -12, left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: '55%', height: 56, borderRadius: '50%',
+                  background: 'radial-gradient(ellipse at center bottom, rgba(167,139,250,0.18) 0%, transparent 80%)',
+                  animation: 'j2IntentPurplePulse 4.2s ease-in-out infinite',
+                }} />
+                <div style={{
+                  position: 'absolute', bottom: 0, left: 0, right: 0, height: 36,
+                  background: 'linear-gradient(to top, rgba(240,223,160,0.07) 0%, transparent 100%)',
+                  animation: 'j2IntentYellowPulse 3.1s ease-in-out infinite',
+                  transformOrigin: 'center bottom',
+                }} />
+                {MODAL_PARTICLES.map((p, i) => (
+                  <span key={i} style={{
+                    position: 'absolute', left: p.left, bottom: p.bottom,
+                    width: p.size, height: p.size, borderRadius: '50%',
+                    backgroundColor: 'rgba(240,223,160,0.85)',
+                    boxShadow: '0 0 4px 1px rgba(240,223,160,0.5)',
+                    filter: 'brightness(1.2)',
+                    ['--drift' as string]: p.drift,
+                    animation: `j2IntentParticleRise ${p.duration}s ease-in-out infinite ${p.delay}s`,
+                    userSelect: 'none',
+                  } as React.CSSProperties} />
+                ))}
+              </div>
+            )}
                 {/* Session navigator */}
                 {(sessionCount ?? 1) > 1 && onNavigate && (
                   <div className="flex items-center gap-2 mb-3">
@@ -365,22 +350,24 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                     Edit
                   </button>
                 </div>
-              </div>
+          </div>
 
-              {/* ── BACK FACE — edit form ── */}
-              <div
-                ref={editFaceRef}
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  backfaceVisibility: 'hidden',
-                  WebkitBackfaceVisibility: 'hidden',
-                  transform: 'rotateY(180deg)',
-                  padding: '1.5rem',
-                  overflowY: 'auto',
-                }}
-              >
-                {/* Date header */}
+          {/* ── BACK FACE — edit form — carries full card styling ── */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backfaceVisibility: 'hidden',
+              WebkitBackfaceVisibility: 'hidden',
+              transform: 'rotateY(180deg)',
+              backgroundColor: '#1a2c38',
+              border: '1px solid rgba(184,122,85,0.45)',
+              borderRadius: '1rem',
+              overflowY: 'auto',
+              padding: '1.5rem',
+            }}
+          >
+            {/* Date header */}
                 <p className="text-2xl font-bold mb-4" style={{ color: intensityColor }}>
                   {dateLabel}
                 </p>
@@ -525,10 +512,8 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                     </button>
                   </div>
                 </div>
-              </div>
-
-            </div>
           </div>
+
         </div>
       </div>
     </>
