@@ -480,11 +480,14 @@ export default function PathAheadPage() {
     // Top skill tag
     const tagCounts: Record<string, number> = {};
     windowSessions.forEach(s => s.tags?.forEach(t => { tagCounts[t] = (tagCounts[t] ?? 0) + 1; }));
-    const topTagEntry = Object.entries(tagCounts).sort((a, b) => b[1] - a[1])[0] ?? null;
+    const sorted = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]);
+    const topTagEntry = sorted[0] ?? null;
     const topTag      = topTagEntry?.[0] ?? null;
     const topTagCount = topTagEntry?.[1] ?? 0;
     const topTagLabel = topTag ? (SKILL_TAGS.find(s => s.value === topTag)?.label ?? topTag) : null;
-    return { count: windowSessions.length, totalMinutes, topTagLabel, topTagCount };
+    const tag2Entry   = sorted[1] ?? null;
+    const tag2Label   = tag2Entry ? (SKILL_TAGS.find(s => s.value === tag2Entry[0])?.label ?? tag2Entry[0]) : null;
+    return { count: windowSessions.length, totalMinutes, topTagLabel, topTagCount, tag2Label };
   }, [sessions, windowDays]);
 
   // ── Window label ───────────────────────────────────────────────────────
@@ -866,23 +869,47 @@ export default function PathAheadPage() {
               </span>
             </div>
 
-            {/* Training Telemetry row — only when tag data exists */}
-            {windowStats.topTagLabel && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] text-white/30 uppercase tracking-wide">Training Telemetry</span>
-                <Tooltip text="The skill you've trained most this week, based on your logged sessions.">
-                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.22)', cursor: 'default', lineHeight: 1 }}>?</span>
-                </Tooltip>
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(218,116,34,0.85)', marginLeft: 4 }}>
-                  ◎ {windowStats.topTagLabel}
-                </span>
-                {windowStats.topTagCount > 1 && (
-                  <span style={{ fontSize: 12, color: 'rgba(218,116,34,0.45)' }}>
-                    × {windowStats.topTagCount}
-                  </span>
-                )}
-              </div>
-            )}
+            {/* Training Telemetry — prose sentence */}
+            {windowStats.topTagLabel && (() => {
+              const { topTagLabel, topTagCount, count, tag2Label } = windowStats;
+              const pct = count > 0 ? topTagCount / count : 0;
+              let before: string;
+              let highlight: string;
+              let after: string | null = null;
+              let highlight2: string | null = null;
+
+              if (tag2Label && pct < 0.7) {
+                before = 'Splitting time between ';
+                highlight = topTagLabel!;
+                after = ' and ';
+                highlight2 = tag2Label;
+              } else if (pct === 1 && count > 1) {
+                before = `All ${count} sessions went into `;
+                highlight = topTagLabel!;
+              } else {
+                before = 'Recent sessions have been leaning into ';
+                highlight = topTagLabel!;
+              }
+
+              return (
+                <div style={{ marginTop: 2 }}>
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="text-[11px] text-white/30 uppercase tracking-wide">Training Telemetry</span>
+                    <Tooltip text="Based on the skill tags from your logged sessions.">
+                      <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.22)', cursor: 'default', lineHeight: 1 }}>?</span>
+                    </Tooltip>
+                  </div>
+                  <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', margin: 0, lineHeight: 1.45 }}>
+                    {before}
+                    <strong style={{ color: 'rgba(218,116,34,0.85)', fontWeight: 600 }}>{highlight}</strong>
+                    {after && highlight2 ? (
+                      <>{after}<strong style={{ color: 'rgba(218,116,34,0.85)', fontWeight: 600 }}>{highlight2}</strong></>
+                    ) : null}
+                    {'.'}
+                  </p>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
