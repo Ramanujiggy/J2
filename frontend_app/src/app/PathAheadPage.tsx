@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { api, ApiError } from '../lib/api.ts';
-import { SKILL_TAGS } from '../lib/constants.ts';
+import { SKILL_TAGS, ROULETTE_DRILLS } from '../lib/constants.ts';
 import type { SessionSummary } from '../components/TrainingHeatmap.tsx';
 import LogSessionForm from '../components/LogSessionForm.tsx';
 import SessionDetailModal from '../components/SessionDetailModal.tsx';
@@ -170,7 +170,7 @@ interface DayCardProps {
   sessions: SessionSummary[];
   intention: Intention | null;
   intentionBrightness: number;
-  onLogSession: () => void;
+  onLogSession: (date?: Date) => void;
   onViewSession: (sessions: SessionSummary[], date: Date) => void;
 }
 
@@ -288,13 +288,29 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
             )}
           </button>
         ) : isFuture ? (
-          <p className="text-[11px] text-white/20 italic">—</p>
+          <button
+            onClick={() => onLogSession(day)}
+            className="text-[11px] transition-colors text-left w-full"
+            style={{ color: 'rgba(255,255,255,0.2)' }}
+            onMouseEnter={e => (e.currentTarget.style.color = 'rgba(184,122,85,0.6)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.2)')}
+          >
+            + Log
+          </button>
         ) : isPast ? (
-          <p className="text-[11px] text-white/25 italic">Rest</p>
+          <button
+            onClick={() => onLogSession(day)}
+            className="text-[11px] transition-colors text-left w-full"
+            style={{ color: 'rgba(255,255,255,0.25)' }}
+            onMouseEnter={e => (e.currentTarget.style.color = 'rgba(184,122,85,0.6)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.25)')}
+          >
+            Rest · + Log
+          </button>
         ) : (
           // Today, no session
           <button
-            onClick={onLogSession}
+            onClick={() => onLogSession(day)}
             className="text-[11px] font-medium transition-colors text-left"
             style={{ color: 'rgba(184,122,85,0.7)' }}
           >
@@ -383,6 +399,7 @@ export default function PathAheadPage() {
 
   // Modals
   const [logOpen,             setLogOpen]             = useState(false);
+  const [logDate,             setLogDate]             = useState<string | null>(null);
   const [setIntentOpen,       setSetIntentOpen]       = useState(false);
   const [detailSessions,      setDetailSessions]      = useState<SessionSummary[]>([]);
   const [detailSessionIndex,  setDetailSessionIndex]  = useState(0);
@@ -484,7 +501,30 @@ export default function PathAheadPage() {
 
   // ── Intent delete ──────────────────────────────────────────────────────
 
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+
+  // ── Rep Roulette ────────────────────────────────────────────────────────
+
+  const [drillIndex,  setDrillIndex]  = useState(() => Math.floor(Math.random() * ROULETTE_DRILLS.length));
+  const [spinPhase,   setSpinPhase]   = useState<'idle' | 'out' | 'in'>('idle');
+
+  const handleSpin = () => {
+    if (spinPhase !== 'idle') return;
+    setSpinPhase('out');
+    setTimeout(() => {
+      setDrillIndex(i => (i + 1 + Math.floor(Math.random() * (ROULETTE_DRILLS.length - 1))) % ROULETTE_DRILLS.length);
+      setSpinPhase('in');
+      setTimeout(() => setSpinPhase('idle'), 260);
+    }, 240);
+  };
+
   const handleDeleteIntention = async () => {
+    if (!deleteConfirm) {
+      setDeleteConfirm(true);
+      setTimeout(() => setDeleteConfirm(false), 3000);
+      return;
+    }
+    setDeleteConfirm(false);
     if (!activeIntention) return;
     try {
       await api.delete<DeleteResponse>(`/api/intentions/${activeIntention.id}`);
@@ -531,6 +571,14 @@ export default function PathAheadPage() {
         @keyframes j2IntentFadeIn {
           from { opacity: 0; }
           to   { opacity: 1; }
+        }
+        @keyframes j2RepOut {
+          from { transform: rotateY(0deg);   opacity: 1; }
+          to   { transform: rotateY(90deg);  opacity: 0; }
+        }
+        @keyframes j2RepIn {
+          from { transform: rotateY(-90deg); opacity: 0; }
+          to   { transform: rotateY(0deg);   opacity: 1; }
         }
       `}</style>
 
@@ -639,12 +687,23 @@ export default function PathAheadPage() {
                     </span>
                   )}
                 </div>
-                <button
-                  onClick={handleDeleteIntention}
-                  className="text-[11px] text-white/25 hover:text-red-400 transition-colors flex-shrink-0"
-                >
-                  Delete
-                </button>
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {deleteConfirm && (
+                    <button
+                      onClick={() => setDeleteConfirm(false)}
+                      className="text-[11px] text-white/25 hover:text-white/50 transition-colors"
+                    >
+                      ×
+                    </button>
+                  )}
+                  <button
+                    onClick={handleDeleteIntention}
+                    className="text-[11px] transition-colors flex-shrink-0"
+                    style={{ color: deleteConfirm ? 'rgba(248,113,113,0.85)' : 'rgba(255,255,255,0.25)' }}
+                  >
+                    {deleteConfirm ? 'Confirm?' : 'Delete'}
+                  </button>
+                </div>
               </>
             ) : (
               <>
@@ -733,7 +792,7 @@ export default function PathAheadPage() {
               sessions={sessionsByDate.get(dayStr) ?? []}
               intention={dayHasIntention ? activeIntention : null}
               intentionBrightness={intentionBrightness}
-              onLogSession={() => setLogOpen(true)}
+              onLogSession={(date) => { setLogDate(date ? toDateString(date) : null); setLogOpen(true); }}
               onViewSession={(ss, d) => {
                 setDetailSessions(ss);
                 setDetailSessionIndex(0);
@@ -807,10 +866,10 @@ export default function PathAheadPage() {
               </span>
             </div>
 
-            {/* Ambient Focus row — only when tag data exists */}
+            {/* Training Telemetry row — only when tag data exists */}
             {windowStats.topTagLabel && (
               <div className="flex items-center gap-1.5">
-                <span className="text-[11px] text-white/30 uppercase tracking-wide">Ambient Focus</span>
+                <span className="text-[11px] text-white/30 uppercase tracking-wide">Training Telemetry</span>
                 <Tooltip text="The skill you've trained most this week, based on your logged sessions.">
                   <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.22)', cursor: 'default', lineHeight: 1 }}>?</span>
                 </Tooltip>
@@ -827,6 +886,55 @@ export default function PathAheadPage() {
           </div>
         </div>
       )}
+
+      {/* ── Rep Roulette ──────────────────────────────────────────── */}
+      <div
+        className="rounded-xl px-4 py-3"
+        style={{
+          position: 'relative',
+          overflow: 'hidden',
+          backgroundColor: 'rgba(255,255,255,0.03)',
+          border: `1px solid ${COPPER_BORDER}`,
+        }}
+      >
+        {/* Header row */}
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-[11px] text-white/30 uppercase tracking-wide">Rep Roulette</span>
+          <button
+            onClick={handleSpin}
+            disabled={spinPhase !== 'idle'}
+            className="text-xs font-medium px-2.5 py-1 rounded-lg transition-colors disabled:opacity-40"
+            style={{ backgroundColor: 'rgba(184,122,85,0.15)', color: 'rgba(184,122,85,0.85)' }}
+          >
+            ⟳ Spin
+          </button>
+        </div>
+
+        {/* Drill display */}
+        <div style={{ perspective: '600px' }}>
+          <div
+            style={{
+              animation: spinPhase === 'out'
+                ? 'j2RepOut 0.24s ease-in forwards'
+                : spinPhase === 'in'
+                  ? 'j2RepIn 0.26s ease-out forwards'
+                  : 'none',
+            }}
+          >
+            <p
+              className="text-xl font-semibold mb-1"
+              style={{ color: 'rgba(240,223,160,0.85)' }}
+            >
+              {ROULETTE_DRILLS[drillIndex].name}
+            </p>
+            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
+              {ROULETTE_DRILLS[drillIndex].focus}
+              <span style={{ color: 'rgba(255,255,255,0.2)', margin: '0 6px' }}>·</span>
+              {ROULETTE_DRILLS[drillIndex].suggestion}
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* ── Modals ────────────────────────────────────────────────── */}
 
@@ -846,8 +954,9 @@ export default function PathAheadPage() {
             }}
           >
             <LogSessionForm
-              onSuccess={() => { fetchAll(); setLogOpen(false); }}
-              onCancel={() => setLogOpen(false)}
+              onSuccess={() => { fetchAll(); setLogOpen(false); setLogDate(null); }}
+              onCancel={() => { setLogOpen(false); setLogDate(null); }}
+              defaultDate={logDate ?? undefined}
             />
           </div>
         </div>

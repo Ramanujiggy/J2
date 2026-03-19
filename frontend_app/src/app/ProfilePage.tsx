@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 
 import { api } from '../lib/api.ts';
+import { useAuth } from '../hooks/useAuth.ts';
 import { CARD_BG, COPPER_BORDER, CARD_SHADOW, PALE_YELLOW } from '../lib/theme.ts';
 import { type BeltRank } from '../components/BeltBar.tsx';
 import { useProfile } from '../context/ProfileContext.tsx';
@@ -50,6 +52,8 @@ const inputCls =
 
 export default function ProfilePage() {
   const { refreshProfile } = useProfile();
+  const { logout } = useAuth();
+  const navigate = useNavigate();
   const gymInputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
@@ -276,6 +280,18 @@ export default function ProfilePage() {
 
           </form>
         )}
+
+        <div className="mt-6 flex justify-center">
+          <button
+            onClick={() => { logout(); navigate('/login'); }}
+            className="text-sm transition-colors"
+            style={{ color: 'rgba(255,255,255,0.3)' }}
+            onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.6)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.3)')}
+          >
+            Log out
+          </button>
+        </div>
       </main>
     </div>
   );
