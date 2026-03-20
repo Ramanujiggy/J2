@@ -141,7 +141,7 @@ Log a new training session.
 | Field | Type | Required | Valid values |
 |---|---|---|---|
 | `date` | string (YYYY-MM-DD) | yes | |
-| `duration` | integer (minutes) | yes | |
+| `duration` | integer (minutes) | yes | 1–720 |
 | `gi_nogi` | string | yes | `gi`, `no_gi` |
 | `intensity` | integer | yes | 1–5 |
 | `session_type` | string | yes | `class`, `drilling`, `competition_training` |
@@ -188,7 +188,7 @@ Fetch all sessions for the authenticated user, ordered by date descending.
 
 Update a session. Only the owning user can update their sessions.
 
-**Body** (all fields required)
+**Body** (all fields required except notes)
 ```json
 {
   "duration": 60,
@@ -212,6 +212,54 @@ Update a session. Only the owning user can update their sessions.
 
 ---
 
+### `DELETE /api/sessions/:id`
+
+Delete a session. Only the owning user can delete their sessions.
+
+**Response `200`**
+```json
+{ "message": "Session deleted." }
+```
+
+**Errors**: `404` session not found or not owned by user
+
+---
+
+### `POST /api/sessions/import`
+
+Bulk import sessions from a CSV review. All rows are validated before any are inserted — the entire batch is atomic (transaction rolls back if any row fails).
+
+**Body**
+```json
+{
+  "sessions": [
+    {
+      "date": "2023-01-15",
+      "duration": 90,
+      "gi_nogi": "gi",
+      "intensity": 3,
+      "session_type": "class",
+      "tags": ["submissions"],
+      "notes": "Optional notes"
+    }
+  ]
+}
+```
+
+| Constraint | Value |
+|---|---|
+| Max rows per request | 500 |
+| Each row validation | Same rules as `POST /api/sessions` |
+
+**Response `200`**
+```json
+{ "imported": 147 }
+```
+
+**Errors**: `400` validation failure on any row (with row index and reason) · `400` over 500 rows
+
+---
+
 ## Profile
 
 Both endpoints require authentication.
@@ -229,7 +277,8 @@ Fetch the current user's profile.
     "stripes": 2,
     "home_gym_name": "Alliance HQ",
     "home_gym_address": "123 Main St, Atlanta, GA",
-    "home_gym_place_id": "ChIJ…"
+    "home_gym_place_id": "ChIJ…",
+    "intentions_enabled": true
   }
 }
 ```
@@ -248,7 +297,8 @@ Update profile fields. Validated with Zod; unrecognized fields are stripped.
   "stripes": 2,
   "home_gym_name": "Alliance HQ",
   "home_gym_address": "123 Main St, Atlanta, GA",
-  "home_gym_place_id": "ChIJ…"
+  "home_gym_place_id": "ChIJ…",
+  "intentions_enabled": true
 }
 ```
 
@@ -256,12 +306,13 @@ Update profile fields. Validated with Zod; unrecognized fields are stripped.
 |---|---|
 | `belt_rank` | `white`, `blue`, `purple`, `brown`, `black` |
 | `stripes` | 0–4 |
+| `intentions_enabled` | `true`, `false` |
 
 **Response `200`**
 ```json
 {
   "message": "Profile saved.",
-  "profile": { "name": "Robert", "belt_rank": "blue", "..." }
+  "profile": { "name": "Robert", "belt_rank": "blue", "intentions_enabled": true, "..." }
 }
 ```
 
@@ -280,6 +331,7 @@ Set the intention for a given week. Only one intention is allowed per user per w
 {
   "intent_label": "Active Toes",
   "intent_category": "technical",
+  "duration_days": 7,
   "week_start": "2025-03-10"
 }
 ```
@@ -288,6 +340,7 @@ Set the intention for a given week. Only one intention is allowed per user per w
 |---|---|---|---|
 | `intent_label` | string | yes | Max 20 characters |
 | `intent_category` | string | no | `technical`, `physical`, `mental`, `positional`, `competitive` |
+| `duration_days` | integer | no | 1–30. Defaults to 7. |
 | `week_start` | string (YYYY-MM-DD) | no | ISO Monday for the target week. Defaults to current week's Monday if omitted. Send from client to handle timezone correctly. |
 
 **Response `201`**
@@ -300,6 +353,7 @@ Set the intention for a given week. Only one intention is allowed per user per w
     "week_start": "2025-03-10",
     "intent_label": "Active Toes",
     "intent_category": "technical",
+    "duration_days": 7,
     "created_at": "…"
   }
 }
@@ -323,6 +377,8 @@ Fetch all intentions for the authenticated user, ordered by `week_start` descend
       "week_start": "2025-03-10",
       "intent_label": "Active Toes",
       "intent_category": "technical",
+      "duration_days": 7,
+      "journal_entry": "Focused on keeping toes active when…",
       "created_at": "…"
     }
   ]
@@ -349,6 +405,27 @@ or
 ```json
 { "intention": null }
 ```
+
+---
+
+### `PATCH /api/intentions/:id/journal`
+
+Save or update the journal entry for an intention. Only the owning user can update their intention.
+
+**Body**
+```json
+{ "journal_entry": "This week I focused on…" }
+```
+
+**Response `200`**
+```json
+{
+  "message": "Journal entry saved.",
+  "intention": { "id": "uuid", "journal_entry": "This week I focused on…", "…": "…" }
+}
+```
+
+**Errors**: `404` intention not found or not owned by user
 
 ---
 
@@ -379,6 +456,6 @@ Common status codes:
 | `400` | Validation error / missing required field |
 | `401` | Missing, invalid, or expired JWT |
 | `404` | Resource not found or not owned by user |
-| `409` | Conflict (e.g. email already registered) |
-| `429` | Rate limit exceeded |
+| `409` | Conflict (e.g. email already registered, intention already set for week) |
+| `429` | Rate limit exceeded (auth endpoints only) |
 | `500` | Internal server error |

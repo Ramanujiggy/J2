@@ -15,6 +15,7 @@ const authLimiter = rateLimit({
     message: { message: 'Too many attempts. Please try again in 15 minutes.' },
     standardHeaders: true,  // sends RateLimit-* headers in the response
     legacyHeaders: false,
+    skip: () => process.env.NODE_ENV === 'test',
 });
 
 // POST /auth/register
