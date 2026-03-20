@@ -16,41 +16,170 @@ Login / Register / Forgot Password page. Switches between three modes via a tab 
 
 Error messages from the backend are displayed directly (not swallowed as a generic fallback).
 
+---
+
 ### `ResetPasswordPage.tsx`
 Password reset confirmation screen. Reads the `token` query param from the URL (e.g. `/reset-password?token=abc123`).
 
 Fields: new password + confirm password (both min 8 characters). Submits to `POST /auth/reset-password`. On success shows a confirmation with a "Go to Log In" button. On failure shows the exact error from the backend (e.g. "This reset link is invalid or has expired.").
 
-### `PathAheadPage.tsx`
-Main view after login. Composed of:
-- Header: logo, `BeltBar`, Profile and Logout buttons
-- **Mat Time** section: `TrainingHeatmap` + "+ Mat Time" button
-- `LogSessionForm` modal (hidden until triggered)
+---
 
-Fetches `/api/sessions` and `/api/profile` on mount.
+### `PathAheadPage.tsx`
+The main home view after login. Composed of:
+
+- **Intention banner** — shows the active weekly intention with animated purple glow, rising particles, category badge, and delete (two-step confirmation). Empty state with "+ Set intent" button when no intention is set. Thin glowing accent line when intentions are disabled.
+- **Week navigation** — prev/next arrows + label (This week / Last week / date range for older weeks). Week offset state controls the 7-day window shown.
+- **Day card stack** — 7 day cards rendered as an absolute z-stack. Active card drags freely with `rotateZ` tilt and a pivot at `transformOrigin: 50% 85%` (near card bottom, matching thumb position). Behind cards peek at scale 0.95/0.90 and translateY 10/20px. Swipe left/right (or tap the day indicator below) to navigate. RAF-throttled drag + velocity threshold for natural flick detection.
+- **Day cards** (`DayCard` inline component) — each shows: date header, session intensity dot + duration + type + gi/no-gi + skill tags (if session), or contextual empty-state CTA ("+ Mat Time" / "Rest day · + Log session" / "+ Log"). Intention strip with particles at card bottom when intention is active for that day.
+- **Day-initial indicator** — row of 7 letter buttons below the deck. Active day underline animates width/color.
+- **Weekly summary** — session count, total duration, Training Telemetry prose sentence (top skill tag usage).
+- **Rep Roulette** — random BJJ drill with `rotateX` flip animation on spin. Always visible (not gated on session data).
+
+**State**: `sessions`, `intentions`, `weekOffset`, `activeDayIndex`, `dragX`, `isDragging`, modal states, `deleteConfirm`, `drillIndex`, `spinPhase`.
+
+**Modals**: `LogSessionForm` (with `defaultDate` for tapping empty day cards), `SessionDetailModal`, `SetIntentionModal`.
+
+---
 
 ### `CalendarPage.tsx`
-Calendar view of training sessions.
+Year-at-a-glance view. Contains `TrainingHeatmap` for the selected year with prev/next year navigation (future years disabled). Click any day cell → `SessionDetailModal`. Fetches all sessions on mount.
+
+---
 
 ### `AnalyticsPage.tsx`
-Full analytics view powered by `SkillRadar`.
+Full analytics view powered by `SkillRadar`. Contains an **Intention vs Training Telemetry** section below the radar: a collapsible table comparing each week's set intention category against the actual top-logged skill tag. Toggle show/hide. Fetches sessions and intentions on mount.
+
+---
 
 ### `IntentionsPage.tsx`
-Weekly intention setting. Lets the user define a short focus label and category for the current week. Calls `POST /api/intentions` and `GET /api/intentions`.
+Historical list of all weekly intentions. Table layout: Week · Intention + category badge · Training Telemetry (top tag for that week) · Journal link. Empty state if none set. "Disabled" notice if `intentions_enabled = false`.
+
+---
 
 ### `JournalEntryPage.tsx`
 Reflection journal for a specific intention. Route: `/intentions/:id/journal`.
 
+- Loads intention by ID. Displays: intent label, week, category, duration days.
+- Large textarea. **Autosaves on 1.5s debounce** via `PATCH /api/intentions/:id/journal`. Shows "Saving…" / "Saved ✓" status.
+- Manual Save button (only shown if `intentionsEnabled`).
+- Read-only if intentions disabled.
+- Back button → `/intentions`.
+
+---
+
 ### `ProfilePage.tsx`
-Edit profile: display name, belt rank, stripes (0–4), home gym with Google Places Autocomplete. Calls `PUT /api/profile` on save.
+User settings. Sections:
+
+- **Profile form**: name, belt rank dropdown (white/blue/purple/brown/black), stripes selector (0–4, hidden for white belt), home gym address (Google Maps Places autocomplete, optional — requires `VITE_GOOGLE_MAPS_API_KEY`).
+- **Features**: Intentions enabled/disabled toggle.
+- **Import training history**: opens `CsvImportModal`.
+- **Log out** button.
+
+Calls `GET /api/profile` on mount and `PUT /api/profile` on save.
 
 ---
 
 ## Components
 
+### `LogSessionForm.tsx`
+
+Modal for logging a new session. Controlled form with local state.
+
+**Props**
+| Prop | Type | Notes |
+|---|---|---|
+| `onSuccess` | `() => void` | Called after successful save — refreshes session list and closes |
+| `onCancel` | `() => void` | Called on cancel / close |
+| `defaultDate` | `string?` | YYYY-MM-DD — pre-fills the date field when tapping an empty day card |
+
+**Fields**: date (default today in local timezone), Gi/No-Gi buttons, session type (Class / Drilling / Competition), duration (preset buttons: 1h / 1h30 / 2h / 2h30 / 3h, or custom hours+minutes), intensity slider (1–5), skill tags (multi-select, at least 1 required), notes textarea.
+
+Submits to `POST /api/sessions`. Shows validation errors inline.
+
+---
+
+### `SessionDetailModal.tsx`
+
+View and edit a session. Opened from `TrainingHeatmap` on cell click, or from `PathAheadPage` day cards.
+
+**Props**
+| Prop | Type | Notes |
+|---|---|---|
+| `session` | `SessionSummary` | Session to display |
+| `date` | `Date` | Session date |
+| `intention` | `Intention \| null` | Active intention for that day (if any) |
+| `sessionCount` | `number` | Total sessions on this date |
+| `sessionIndex` | `number` | Current session index (for multi-session days) |
+| `onNavigate` | `(index: number) => void` | Navigate between sessions on the same date |
+| `onClose` | `() => void` | |
+| `onSaved` | `() => void` | Called after update or delete — refreshes parent |
+
+Read face: displays all fields. Edit face: full editable form (same fields as LogSessionForm). Delete button with confirmation. Card-flip animation between view and edit faces using 3D `rotateY` — the entire card (background + border) flips, not just the content. Submits to `PUT /api/sessions/:id` or `DELETE /api/sessions/:id`.
+
+---
+
+### `SetIntentionModal.tsx`
+
+Create a new weekly intention.
+
+**Props**
+| Prop | Type | Notes |
+|---|---|---|
+| `weekStart` | `Date` | The week to set the intention for |
+| `onSaved` | `() => void` | Called on success — refreshes intention data |
+| `onClose` | `() => void` | |
+
+**Fields**: intent label (max 20 chars, live character count), intent category select (technical / physical / mental / positional / competitive), duration days slider (1–30, default 7).
+
+Submits to `POST /api/intentions`. Surfaces `409` conflict clearly if an intention already exists for the week.
+
+---
+
+### `TrainingHeatmap.tsx`
+
+Year-at-a-glance session calendar.
+
+**Props**
+| Prop | Type | Notes |
+|---|---|---|
+| `sessions` | `SessionSummary[]` | All sessions |
+| `intentions` | `Intention[]` | All intentions (for highlight overlay) |
+| `loading` | `boolean` | Shows skeleton while loading |
+| `onSessionUpdated` | `() => void` | Called after session edit/delete |
+| `onGoToToday` | `() => void` | Called when "today" button is tapped |
+| `year` | `number` | Calendar year to display |
+
+Grid layout: columns are weeks of the year. Each cell represents one day, coloured by max session intensity. Click any cell → `SessionDetailModal`. Intention ranges optionally highlighted. Sticky month headers. Wrapped in `ErrorBoundary`.
+
+**`SessionSummary` type**
+```ts
+{
+  id: string;
+  date: string | Date;
+  duration: number;         // minutes
+  gi_nogi: 'gi' | 'no_gi';
+  intensity: number;        // 1–5
+  session_type: string;
+  notes?: string;
+  tags?: string[];
+}
+```
+
+**Intensity colours**
+
+| Intensity | Colour |
+|---|---|
+| Rest / no session | `HEATMAP_REST` (`#0d1a26`) |
+| Easy (1–2) | `#CDDFA0` light green |
+| Moderate (3) | `#6FD08C` green |
+| High (4–5) | `#DA7422` orange |
+
+---
+
 ### `SkillRadar.tsx`
 
-Analytics instrument with four views, a vertical icon rail, and animated transitions.
+Analytics instrument with four views, a vertical icon rail, time windows, and animated transitions.
 
 **Props**: `sessions: SessionSummary[]`
 
@@ -64,23 +193,15 @@ Analytics instrument with four views, a vertical icon rail, and animated transit
 | `format` | Session Format | Donut (SVG) | `session_type` field |
 
 **Time windows**: `30d` · `60d` · `90d` · `all`
-Stored in state as `TimeWindow = '30d' | '60d' | '90d' | 'all'`.
 
-**Layout**
-- Header row: view title (left) + time window buttons (right) — single combined row
-- Below header: subtitle reveal row (triangle trigger + text, outside the drum so it can overflow freely)
-- Body: animated drum (flex-1) | right rail column (toggle above icons, vertically centered)
-
-**Display toggle** (h / %): stored as `displayMode = 'hours' | 'pct'`. Affects breakdown rows (raw hours vs percentage). Lives in the rail column above the view icons. On the Volume view (where it doesn't apply), collapses to a thin pale yellow line via `scaleY(0.04)` CSS transition — border goes transparent, background fills to `PALE_YELLOW`. Returns to full pill when leaving Volume.
+**Display toggle** (h / %): affects breakdown rows. On Volume view (where it doesn't apply), morphs into a thin pale yellow line and slides into the rail border — reverses on exit.
 
 **View transition mechanics**
-- Exit: 500ms, `cubic-bezier(0, 0, 0.3, 1)` (fast-start, clears immediately)
+- Exit: 500ms, `cubic-bezier(0, 0, 0.3, 1)` (fast-start)
 - Enter: 560ms, `cubic-bezier(0.2, 1.1, 0.4, 1)` (spring bounce), 120ms delay
-- Direction: `slideDir` computed from rail index before state update — slides up when moving to a higher rail item, down when moving lower
-- React `key` not used; instead, `prevViewMode` state holds the exiting panel while `viewMode` holds the entering panel. `onAnimationEnd` on the entering panel clears `prevViewMode`.
-- Animated panels contain chart + breakdown rows only (title is static in the card header)
+- Direction: computed from rail index — slides up toward lower-indexed views, down toward higher
 
-**Skill colors** (radar chart polygon, prism view)
+**Skill colors** (prism radar polygon)
 
 | Skill | Fill | Stroke |
 |---|---|---|
@@ -100,35 +221,9 @@ Stored in state as `TimeWindow = '30d' | '60d' | '90d' | 'all'`.
 | Drilling | `rgba(240,223,160,0.65)` pale yellow |
 | Competition | `rgba(220,90,80,0.80)` red |
 
-**Breakdown bar animation**
-In hours mode, the separator between label and value expands into a proportional horizontal bar (5px tall). In % mode, it shrinks back to a thin vertical sliver (13px tall). Animated via CSS `transition` on `width`, `height`, and `border-radius`.
+**Subtitle easter egg**: each view has a subtitle hidden behind a triangle icon. Hover to reveal (700ms fade-in). Fades out on view change.
 
-**Subtitle easter egg**
-Each view has a subtitle hidden behind a triangle icon. Rendered outside the drum (to allow overflow) in a fixed-height container — the longest subtitle (prism) acts as an invisible spacer so the card height never shifts. Hover the triangle to reveal (700ms fade-in). Fades out instantly (80ms) on view change. `subtitleRevealed` resets to false on every view change via `useEffect`.
-
----
-
-### `TrainingHeatmap.tsx`
-
-Year-at-a-glance session calendar.
-
-**Props**: `sessions: SessionSummary[]`
-
-**`SessionSummary` type**
-```ts
-{
-  id: string;
-  date: string | Date;
-  duration: number;        // minutes
-  gi_nogi: 'gi' | 'no_gi';
-  intensity: number;       // 1–5
-  session_type: string;
-  notes?: string;
-  tags?: string[];
-}
-```
-
-Grid layout: rows are days of the year, grouped by month column. Each cell is coloured by the day's max intensity. Click a cell → `SessionDetailModal`.
+Wrapped in `ErrorBoundary`.
 
 ---
 
@@ -136,11 +231,14 @@ Grid layout: rows are days of the year, grouped by month column. Each cell is co
 
 Animated BJJ belt tying sequence. Plays once on mount.
 
+**Props**: `rank: BeltRank | null`, `stripes: number` (0–4)
+
 **Animation sequence** (CSS keyframes + JS timeouts):
 1. Belt slides in from left (500ms)
-2. Knot appears at center (300ms)
-3. Tails drop with pendulum swing (480ms)
-4. After animation: tails become draggable (easter egg)
+2. Knot forms at center (300ms, 65ms delay)
+3. Tails drop with pendulum swing (480ms, 120ms delay for right tail)
+4. Sparks animate (380ms, 270ms delay)
+5. After animation: tails become draggable (easter egg) — hover + drag to follow cursor; click for whip-and-snap animation
 
 **Belt colors**
 
@@ -152,31 +250,44 @@ Animated BJJ belt tying sequence. Plays once on mount.
 | brown | `#7B4A2D` |
 | black | `#1C1C1C` |
 
-Stripes (0–4) are rendered as white rectangles near the right tail.
+Stripes rendered as white diagonal rectangles near the right tail.
 
 ---
 
-### `LogSessionForm.tsx`
+### `CsvImportModal.tsx`
 
-Modal for logging a new session. Controlled form with local state.
+Bulk import historical training data from a CSV file.
 
-Fields: date (default today), duration (preset buttons: 1h / 1h30 / 2h / 2h30 / 3h, or custom hours+minutes input), session type, Gi/No-Gi, intensity slider (1–5), notes, skill tags (multi-select).
+**Props**
+| Prop | Type | Notes |
+|---|---|---|
+| `existingDates` | `Set<string>` | YYYY-MM-DD strings of existing sessions — used for duplicate flagging |
+| `onClose` | `() => void` | |
+| `onImported` | `() => void` | Called after successful import — triggers session refresh |
 
-Submits to `POST /api/sessions`. On success: calls `onSessionLogged()` prop to refresh the parent's session list, shows success toast, closes modal.
+**Steps**: Upload → Review → Done
 
----
+- **Upload**: File picker. Accepts `.csv`. Parses with PapaParse (client-side, no network).
+- **Review**: Scrollable table, one row per parsed session. Flags: missing duration (blocks), bad date (blocks), duplicate date (warning). Inline editable: gi_nogi toggle, intensity buttons, session type, tags multi-select, skip checkbox. "Fix all missing durations" → default 60 min.
+- **Done**: Shows count of imported / skipped. Auto-closes or user taps Done.
 
-### `SessionDetailModal.tsx`
+Column auto-detection (case-insensitive):
 
-View/edit a session. Opened from `TrainingHeatmap` on cell click.
+| CSV column | Maps to |
+|---|---|
+| `Date`, `date` | `date` (normalised to YYYY-MM-DD) |
+| `@Hrs`, `Hrs`, `Duration`, `Hours` | `duration` (decimal hours → minutes) |
+| `Goals/Drilling`, `Notes`, `Focus` | `notes` |
+| `Restriction` | prepended to `notes` as `[Restriction: …]` |
+| `Hrs-Running total`, `Running Total` | ignored |
 
-Read mode: displays all session fields. Edit mode: replaces display with form inputs. Submits to `PUT /api/sessions/:id`.
+Submits to `POST /api/sessions/import` (atomic, max 500 rows).
 
 ---
 
 ### `WaveBackground.tsx`
 
-Animated seigaiha (Japanese wave/fish-scale) SVG pattern. Used in `PathAheadPage`, `HomePage`, and `ResetPasswordPage`.
+Animated seigaiha (Japanese wave / fish-scale) SVG pattern. Used on `HomePage` and `ResetPasswordPage`.
 
 Pattern: 36×36px repeating tile of concentric semicircular arcs in copper at varying opacity. Animates with a slow horizontal + vertical drift (14s loop, `cubic-bezier` easing).
 
@@ -184,7 +295,7 @@ Pattern: 36×36px repeating tile of concentric semicircular arcs in copper at va
 
 ### `AppShell.tsx`
 
-Wraps all authenticated pages. Renders the nav bar and the page content area. Protected by `ProtectedShell` in `App.tsx` — redirects to `/` if no token is present.
+Wraps all authenticated pages. Renders the navigation bar (bottom tabs on mobile, side rail on wider screens) and the page content area. Includes the `Toaster` for toast notifications. Protected by `ProtectedShell` in `App.tsx` — redirects to `/` if no token is present.
 
 ---
 
@@ -212,6 +323,32 @@ Protected routes are wrapped in `ProtectedShell`, which checks `isAuthenticated`
 
 ---
 
+## Context Providers
+
+### `AuthContext`
+- **State**: `token: string | null`, `isAuthenticated: boolean`
+- **Methods**: `login(token)` — saves to localStorage; `logout()` — removes from localStorage
+- **Auto-logout**: global 401 handler in `api.ts` triggers `logout()` and redirects to `/`
+
+### `ProfileContext`
+- **State**: `beltRank`, `stripes`, `intentionsEnabled`, `refreshProfile()`
+- **Initialization**: fetches `GET /api/profile` on mount
+- **Usage**: gates intention UI throughout the app; refreshed after profile save
+
+---
+
+## Lib
+
+| File | Exports | Notes |
+|---|---|---|
+| `lib/api.ts` | `api.get()`, `api.post()`, `api.put()`, `api.patch()`, `api.delete()`, `ApiError` | Injects JWT; global 401 handler triggers logout; throws `ApiError` with backend message on non-2xx |
+| `lib/constants.ts` | `SKILL_TAGS`, `ROULETTE_DRILLS` | Skill tag values + labels; 15 BJJ drills with focus and rep suggestion |
+| `lib/theme.ts` | `PAGE_BG`, `CARD_BG`, `PALE_YELLOW`, `COPPER`, `COPPER_BORDER`, `CARD_SHADOW`, `GLOW_TITLE`, `GLOW_SOFT`, `GLOW_NAV`, heatmap tokens | All color/shadow tokens — never hard-code colours in components |
+| `lib/utils.ts` | `cn()` | `clsx` + `twMerge` for dynamic Tailwind classes |
+| `lib/csvParser.ts` | CSV parsing utilities | Column detection, date normalisation, row transformation for `CsvImportModal` |
+
+---
+
 ## UI Primitives (`components/ui/`)
 
 Thin wrappers around Radix UI + shadcn/ui primitives, styled with Tailwind.
@@ -221,18 +358,7 @@ Thin wrappers around Radix UI + shadcn/ui primitives, styled with Tailwind.
 | `tooltip.tsx` | Radix Tooltip — used in rail icon buttons and info icons |
 | `select.tsx` | Radix Select — belt rank dropdown in ProfilePage |
 | `toast.tsx` + `toaster.tsx` | Toast notifications (session logged, profile saved) |
-| `badge.tsx` | Pill badge for tags/labels |
-
----
-
-## Lib
-
-| File | Exports | Notes |
-|---|---|---|
-| `lib/api.ts` | `api.get()`, `api.post()`, `api.put()`, `api.patch()`, `api.delete()`, `ApiError` | Injects JWT; global 401 handler triggers logout; throws `ApiError` with backend message on non-2xx |
-| `lib/constants.ts` | `SKILL_TAGS` | Canonical skill tag values + labels |
-| `lib/theme.ts` | `PAGE_BG`, `CARD_BG`, `PALE_YELLOW`, `COPPER`, `COPPER_BORDER`, `CARD_SHADOW`, `GLOW_TITLE`, `GLOW_SOFT`, `GLOW_NAV`, heatmap tokens | All color/shadow tokens |
-| `lib/utils.ts` | `cn()` | `clsx` + `twMerge` for dynamic Tailwind classes |
+| `badge.tsx` | Pill badge for tags / labels |
 
 ---
 
@@ -244,5 +370,5 @@ Thin wrappers around Radix UI + shadcn/ui primitives, styled with Tailwind.
 | `animate-view-exit-down` | 500ms | `cubic-bezier(0,0,0.3,1)` | Panel exiting downward |
 | `animate-view-enter-up` | 560ms + 120ms delay | `cubic-bezier(0.2,1.1,0.4,1)` | Panel entering from below |
 | `animate-view-enter-down` | 560ms + 120ms delay | `cubic-bezier(0.2,1.1,0.4,1)` | Panel entering from above |
-| `animate-toggle-exit` | 420ms | `cubic-bezier(0.4,0,0.8,0.2)` | (defined, unused — toggle now uses CSS `transition`) |
-| `animate-toggle-enter` | 480ms | `cubic-bezier(0.2,1.1,0.4,1)` | (defined, unused — toggle now uses CSS `transition`) |
+| `animate-toggle-exit` | 420ms | `cubic-bezier(0.4,0,0.8,0.2)` | Defined but unused (toggle uses CSS `transition`) |
+| `animate-toggle-enter` | 480ms | `cubic-bezier(0.2,1.1,0.4,1)` | Defined but unused (toggle uses CSS `transition`) |
