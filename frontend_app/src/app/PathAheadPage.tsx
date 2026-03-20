@@ -213,7 +213,7 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
         border: `1px solid ${borderColor}`,
         boxShadow: hovered ? `${boxShadow}, 0 16px 40px rgba(0,0,0,0.6)` : boxShadow,
         opacity: isFuture ? 0.6 : 1,
-        minHeight: 196,
+        minHeight: 260,
         transition: 'box-shadow 0.2s ease',
       }}
       onMouseEnter={() => setHovered(true)}
@@ -396,45 +396,46 @@ export default function PathAheadPage() {
   // weekOffset: 0 = today's 7-day window, -1 = previous 7 days, etc.
   const [weekOffset, setWeekOffset] = useState(0);
 
-  // Carousel
+  // Carousel — absolute stack layout
   const [activeDayIndex, setActiveDayIndex] = useState(0);
   const [dragX,          setDragX]          = useState(0);
   const [isDragging,     setIsDragging]     = useState(false);
-  const [carouselW,      setCarouselW]      = useState(0);
-  const touchStartX  = useRef(0);
-  const carouselRef  = useRef<HTMLDivElement>(null);
+  const touchStartX    = useRef(0);
+  const touchStartTime = useRef(0);
+  const rafRef         = useRef<number | undefined>(undefined);
+  const carouselRef    = useRef<HTMLDivElement>(null);
+
+  const CARD_H      = 260;
+  const STACK_PEEK  = 20;
+  const carouselSpring = 'transform 0.38s cubic-bezier(0.25, 1.3, 0.4, 1)';
 
   useEffect(() => { setActiveDayIndex(0); setDragX(0); setIsDragging(false); }, [weekOffset]);
 
-  useEffect(() => {
-    if (!carouselRef.current) return;
-    const ro = new ResizeObserver(([e]) => setCarouselW(e.contentRect.width));
-    ro.observe(carouselRef.current);
-    return () => ro.disconnect();
-  }, []);
-
   const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
+    touchStartX.current    = e.touches[0].clientX;
+    touchStartTime.current = Date.now();
     setIsDragging(true);
   };
   const handleTouchMove = (e: React.TouchEvent) => {
-    setDragX(e.touches[0].clientX - touchStartX.current);
+    const dx = e.touches[0].clientX - touchStartX.current;
+    if (rafRef.current !== undefined) return;
+    rafRef.current = requestAnimationFrame(() => {
+      setDragX(dx);
+      rafRef.current = undefined;
+    });
   };
   const handleTouchEnd = (e: React.TouchEvent) => {
-    const dx = e.changedTouches[0].clientX - touchStartX.current;
-    if (dx < -40)     setActiveDayIndex(i => Math.min(6, i + 1));
-    else if (dx > 40) setActiveDayIndex(i => Math.max(0, i - 1));
+    if (rafRef.current !== undefined) { cancelAnimationFrame(rafRef.current); rafRef.current = undefined; }
+    const dx  = e.changedTouches[0].clientX - touchStartX.current;
+    const dt  = Date.now() - touchStartTime.current;
+    const vel = Math.abs(dx) / Math.max(dt, 1);
+    if (Math.abs(dx) > 55 || vel > 0.35) {
+      if (dx < 0) setActiveDayIndex(i => Math.min(6, i + 1));
+      else        setActiveDayIndex(i => Math.max(0, i - 1));
+    }
     setDragX(0);
     setIsDragging(false);
   };
-
-  // Peek carousel math — 20px of adjacent card visible on each side
-  const PEEK  = 20;
-  const cardW = carouselW > 0 ? carouselW - PEEK * 2 : 0;
-  const stepW = cardW + 8;
-  const baseX = carouselW > 0 ? PEEK - activeDayIndex * stepW : 0;
-  const liveX = isDragging ? baseX + dragX : baseX;
-  const carouselSpring = 'transform 0.38s cubic-bezier(0.25, 1.3, 0.4, 1)';
 
   // Modals
   const [logOpen,             setLogOpen]             = useState(false);
@@ -799,106 +800,104 @@ export default function PathAheadPage() {
         </button>
       </div>
 
-      {/* ── Day carousel ──────────────────────────────────────────── */}
+      {/* ── Day stack ─────────────────────────────────────────────── */}
       <div
         ref={carouselRef}
-        style={{ position: 'relative', overflow: 'hidden', touchAction: 'pan-y' }}
+        style={{
+          position: 'relative',
+          height: CARD_H + STACK_PEEK,
+          touchAction: 'pan-y',
+        }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Desktop chevrons */}
-        {activeDayIndex > 0 && (
-          <button
-            onClick={() => setActiveDayIndex(i => i - 1)}
-            className="hidden sm:flex absolute left-0 top-0 bottom-0 items-center px-2 z-10"
-            style={{ background: 'linear-gradient(to right, rgba(13,25,38,0.8), transparent)' }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
-          </button>
-        )}
-        {activeDayIndex < 6 && (
-          <button
-            onClick={() => setActiveDayIndex(i => i + 1)}
-            className="hidden sm:flex absolute right-0 top-0 bottom-0 items-center px-2 z-10"
-            style={{ background: 'linear-gradient(to left, rgba(13,25,38,0.8), transparent)' }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 18l6-6-6-6" />
-            </svg>
-          </button>
-        )}
+        {windowDays.map((day, i) => {
+          const dayStr  = toDateString(day);
+          const offset  = i - activeDayIndex;
 
-        {/* Sliding row — pixel-based translate with peek + live drag */}
-        <div style={{
-          display: 'flex',
-          gap: 8,
-          transform: `translateX(${liveX}px)`,
-          transition: isDragging ? 'none' : carouselSpring,
-          willChange: 'transform',
-        }}>
-          {windowDays.map((day, i) => {
-            const dayStr = toDateString(day);
-            const isActive = i === activeDayIndex;
-            const rotation = isDragging && isActive ? Math.max(-4, Math.min(4, dragX / 28)) : 0;
+          // Only render active + 2 cards behind
+          if (offset < 0 || offset > 2) return null;
 
-            const dayHasIntention = activeIntention !== null && intentionStartStr !== null && intentionEndStr !== null
-              && dayStr >= intentionStartStr
-              && dayStr <= intentionEndStr;
+          const isActive = offset === 0;
+          const progress = isDragging ? Math.min(1, Math.abs(dragX) / 110) : 0;
 
-            let intentionBrightness = 1.15;
-            if (dayHasIntention) {
-              const todayStr = toDateString(today);
-              const daysFromToday = Math.max(0, Math.round(
-                (new Date(dayStr + 'T00:00:00').getTime() - new Date(todayStr + 'T00:00:00').getTime()) / 86400000
-              ));
-              const duration = activeIntention!.duration_days ?? 7;
-              intentionBrightness = duration <= 1
-                ? 1.3
-                : Math.max(0.78, 1.3 - 0.52 * (daysFromToday / (duration - 1)));
-            }
+          let cardTransform: string;
+          let cardOpacity: number;
+          let cardZIndex: number;
 
-            return (
-              <div
-                key={dayStr}
-                style={{
-                  width: cardW > 0 ? cardW : '100%',
-                  flexShrink: 0,
-                  transform: isActive
-                    ? (isDragging ? `rotateZ(${rotation}deg)` : 'none')
-                    : 'scale(0.96)',
-                  opacity: isActive ? 1 : 0.65,
-                  transition: isDragging ? 'none' : carouselSpring,
+          if (isActive) {
+            const rot = isDragging ? Math.max(-6, Math.min(6, dragX / 20)) : 0;
+            const tx  = isDragging ? dragX : 0;
+            cardTransform = `translateX(${tx}px) rotateZ(${rot}deg)`;
+            cardZIndex    = 10;
+            cardOpacity   = 1;
+          } else if (offset === 1) {
+            const scale = 0.95 + progress * 0.05;
+            const ty    = 10  - progress * 10;
+            cardTransform = `translateY(${ty}px) scale(${scale})`;
+            cardZIndex    = 9;
+            cardOpacity   = 0.55 + progress * 0.2;
+          } else {
+            const scale = 0.90 + progress * 0.03;
+            const ty    = 20  - progress * 5;
+            cardTransform = `translateY(${ty}px) scale(${scale})`;
+            cardZIndex    = 8;
+            cardOpacity   = 0.35 + progress * 0.1;
+          }
+
+          const dayHasIntention = activeIntention !== null && intentionStartStr !== null && intentionEndStr !== null
+            && dayStr >= intentionStartStr
+            && dayStr <= intentionEndStr;
+
+          let intentionBrightness = 1.15;
+          if (dayHasIntention) {
+            const todayStr = toDateString(today);
+            const daysFromToday = Math.max(0, Math.round(
+              (new Date(dayStr + 'T00:00:00').getTime() - new Date(todayStr + 'T00:00:00').getTime()) / 86400000
+            ));
+            const duration = activeIntention!.duration_days ?? 7;
+            intentionBrightness = duration <= 1
+              ? 1.3
+              : Math.max(0.78, 1.3 - 0.52 * (daysFromToday / (duration - 1)));
+          }
+
+          return (
+            <div
+              key={dayStr}
+              style={{
+                position: 'absolute', top: 0, left: 0, right: 0,
+                transform: cardTransform,
+                opacity: cardOpacity,
+                zIndex: cardZIndex,
+                transition: isDragging ? 'none' : carouselSpring,
+              }}
+            >
+              <DayCard
+                day={day}
+                today={today}
+                sessions={sessionsByDate.get(dayStr) ?? []}
+                intention={dayHasIntention ? activeIntention : null}
+                intentionBrightness={intentionBrightness}
+                onLogSession={(date) => { setLogDate(date ? toDateString(date) : null); setLogOpen(true); }}
+                onViewSession={(ss, d) => {
+                  setDetailSessions(ss);
+                  setDetailSessionIndex(0);
+                  setDetailDate(d);
+                  setDetailIntention(dayHasIntention ? activeIntention : null);
                 }}
-              >
-                <DayCard
-                  day={day}
-                  today={today}
-                  sessions={sessionsByDate.get(dayStr) ?? []}
-                  intention={dayHasIntention ? activeIntention : null}
-                  intentionBrightness={intentionBrightness}
-                  onLogSession={(date) => { setLogDate(date ? toDateString(date) : null); setLogOpen(true); }}
-                  onViewSession={(ss, d) => {
-                    setDetailSessions(ss);
-                    setDetailSessionIndex(0);
-                    setDetailDate(d);
-                    setDetailIntention(dayHasIntention ? activeIntention : null);
-                  }}
-                />
-              </div>
-            );
-          })}
-        </div>
+              />
+            </div>
+          );
+        })}
       </div>
 
       {/* Day-initial indicator */}
-      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 10 }}>
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
         {windowDays.map((day, i) => {
-          const active    = i === activeDayIndex;
+          const active     = i === activeDayIndex;
           const isIndToday = toDateString(day) === toDateString(today);
-          const initial   = ['S','M','T','W','T','F','S'][day.getDay()];
+          const initial    = ['S','M','T','W','T','F','S'][day.getDay()];
           return (
             <button
               key={i}
