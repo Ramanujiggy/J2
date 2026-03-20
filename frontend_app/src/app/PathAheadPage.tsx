@@ -193,11 +193,12 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
 
   // Border + shadow — today gets a copper glow, with intention adds yellow
   const borderColor = isToday ? 'rgba(184,122,85,0.7)' : 'rgba(255,255,255,0.07)';
-  const boxShadow = isToday
+  const baseShadow  = isToday
     ? intention
-      ? '0 0 18px rgba(240,223,160,0.13), 0 0 22px rgba(184,122,85,0.18), 0 2px 8px rgba(0,0,0,0.4)'
-      : '0 0 16px rgba(184,122,85,0.25), 0 2px 8px rgba(0,0,0,0.4)'
-    : '0 2px 8px rgba(0,0,0,0.3)';
+      ? '0 0 18px rgba(240,223,160,0.13), 0 0 22px rgba(184,122,85,0.18), 0 4px 16px rgba(0,0,0,0.5)'
+      : '0 0 16px rgba(184,122,85,0.25), 0 4px 16px rgba(0,0,0,0.5)'
+    : '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)';
+  const boxShadow = `${baseShadow}, inset 0 1px 0 rgba(255,255,255,0.06)`;
 
   const opacityScale = intention ? intentionBrightness / 1.3 : 1;
   const glowHeight   = intentionBrightness >= 1.25 ? 52 : 32;
@@ -207,17 +208,28 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
     <div
       className="w-full rounded-2xl flex flex-col overflow-hidden"
       style={{
-        backgroundColor: CARD_BG,
+        position: 'relative',
+        background: `linear-gradient(160deg, rgba(255,255,255,0.035) 0%, ${CARD_BG} 55%)`,
         border: `1px solid ${borderColor}`,
-        boxShadow: hovered ? `${boxShadow}, 0 12px 32px rgba(0,0,0,0.55)` : boxShadow,
+        boxShadow: hovered ? `${boxShadow}, 0 16px 40px rgba(0,0,0,0.6)` : boxShadow,
         opacity: isFuture ? 0.6 : 1,
         minHeight: 196,
-        transform: hovered ? 'translateY(-2px)' : 'translateY(0)',
-        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+        transition: 'box-shadow 0.2s ease',
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
+      {/* Top accent bar for session days */}
+      {sessionCount > 0 && (
+        <div style={{
+          position: 'absolute',
+          top: 0, left: 0, right: 0, height: 2,
+          background: `linear-gradient(to right, transparent 0%, ${intensityColor ?? '#CDDFA0'}99 25%, ${intensityColor ?? '#CDDFA0'}99 75%, transparent 100%)`,
+          borderRadius: '16px 16px 0 0',
+          pointerEvents: 'none',
+        }} />
+      )}
+
       {/* Card header — full day name + date + TODAY badge */}
       <div className="px-4 pt-4 pb-3 border-b border-white/5">
         <div className="flex items-center justify-between">
@@ -386,18 +398,43 @@ export default function PathAheadPage() {
 
   // Carousel
   const [activeDayIndex, setActiveDayIndex] = useState(0);
-  const touchStartX = useRef(0);
+  const [dragX,          setDragX]          = useState(0);
+  const [isDragging,     setIsDragging]     = useState(false);
+  const [carouselW,      setCarouselW]      = useState(0);
+  const touchStartX  = useRef(0);
+  const carouselRef  = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { setActiveDayIndex(0); }, [weekOffset]);
+  useEffect(() => { setActiveDayIndex(0); setDragX(0); setIsDragging(false); }, [weekOffset]);
+
+  useEffect(() => {
+    if (!carouselRef.current) return;
+    const ro = new ResizeObserver(([e]) => setCarouselW(e.contentRect.width));
+    ro.observe(carouselRef.current);
+    return () => ro.disconnect();
+  }, []);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
+    setIsDragging(true);
+  };
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setDragX(e.touches[0].clientX - touchStartX.current);
   };
   const handleTouchEnd = (e: React.TouchEvent) => {
     const dx = e.changedTouches[0].clientX - touchStartX.current;
-    if (dx < -40) setActiveDayIndex(i => Math.min(6, i + 1));
-    if (dx > 40)  setActiveDayIndex(i => Math.max(0, i - 1));
+    if (dx < -40)     setActiveDayIndex(i => Math.min(6, i + 1));
+    else if (dx > 40) setActiveDayIndex(i => Math.max(0, i - 1));
+    setDragX(0);
+    setIsDragging(false);
   };
+
+  // Peek carousel math — 20px of adjacent card visible on each side
+  const PEEK  = 20;
+  const cardW = carouselW > 0 ? carouselW - PEEK * 2 : 0;
+  const stepW = cardW + 8;
+  const baseX = carouselW > 0 ? PEEK - activeDayIndex * stepW : 0;
+  const liveX = isDragging ? baseX + dragX : baseX;
+  const carouselSpring = 'transform 0.38s cubic-bezier(0.25, 1.3, 0.4, 1)';
 
   // Modals
   const [logOpen,             setLogOpen]             = useState(false);
@@ -764,8 +801,10 @@ export default function PathAheadPage() {
 
       {/* ── Day carousel ──────────────────────────────────────────── */}
       <div
+        ref={carouselRef}
         style={{ position: 'relative', overflow: 'hidden', touchAction: 'pan-y' }}
         onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
         {/* Desktop chevrons */}
@@ -773,7 +812,7 @@ export default function PathAheadPage() {
           <button
             onClick={() => setActiveDayIndex(i => i - 1)}
             className="hidden sm:flex absolute left-0 top-0 bottom-0 items-center px-2 z-10"
-            style={{ background: 'linear-gradient(to right, rgba(13,25,38,0.75), transparent)' }}
+            style={{ background: 'linear-gradient(to right, rgba(13,25,38,0.8), transparent)' }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
               <path d="M15 18l-6-6 6-6" />
@@ -784,7 +823,7 @@ export default function PathAheadPage() {
           <button
             onClick={() => setActiveDayIndex(i => i + 1)}
             className="hidden sm:flex absolute right-0 top-0 bottom-0 items-center px-2 z-10"
-            style={{ background: 'linear-gradient(to left, rgba(13,25,38,0.75), transparent)' }}
+            style={{ background: 'linear-gradient(to left, rgba(13,25,38,0.8), transparent)' }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 18l6-6-6-6" />
@@ -792,15 +831,19 @@ export default function PathAheadPage() {
           </button>
         )}
 
-        {/* Sliding row — one card visible at a time */}
+        {/* Sliding row — pixel-based translate with peek + live drag */}
         <div style={{
           display: 'flex',
-          transform: `translateX(-${activeDayIndex * 100}%)`,
-          transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          gap: 8,
+          transform: `translateX(${liveX}px)`,
+          transition: isDragging ? 'none' : carouselSpring,
           willChange: 'transform',
         }}>
-          {windowDays.map(day => {
+          {windowDays.map((day, i) => {
             const dayStr = toDateString(day);
+            const isActive = i === activeDayIndex;
+            const rotation = isDragging && isActive ? Math.max(-4, Math.min(4, dragX / 28)) : 0;
+
             const dayHasIntention = activeIntention !== null && intentionStartStr !== null && intentionEndStr !== null
               && dayStr >= intentionStartStr
               && dayStr <= intentionEndStr;
@@ -818,7 +861,18 @@ export default function PathAheadPage() {
             }
 
             return (
-              <div key={dayStr} style={{ width: '100%', flexShrink: 0 }}>
+              <div
+                key={dayStr}
+                style={{
+                  width: cardW > 0 ? cardW : '100%',
+                  flexShrink: 0,
+                  transform: isActive
+                    ? (isDragging ? `rotateZ(${rotation}deg)` : 'none')
+                    : 'scale(0.96)',
+                  opacity: isActive ? 1 : 0.65,
+                  transition: isDragging ? 'none' : carouselSpring,
+                }}
+              >
                 <DayCard
                   day={day}
                   today={today}
@@ -839,28 +893,43 @@ export default function PathAheadPage() {
         </div>
       </div>
 
-      {/* Dot indicator */}
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 5, marginTop: 10 }}>
+      {/* Day-initial indicator */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 10 }}>
         {windowDays.map((day, i) => {
-          const active = i === activeDayIndex;
-          const isDotToday = toDateString(day) === toDateString(today);
+          const active    = i === activeDayIndex;
+          const isIndToday = toDateString(day) === toDateString(today);
+          const initial   = ['S','M','T','W','T','F','S'][day.getDay()];
           return (
             <button
               key={i}
               onClick={() => setActiveDayIndex(i)}
               style={{
-                width: active ? 18 : 6,
-                height: 6,
-                borderRadius: 3,
-                border: 'none',
-                padding: 0,
-                cursor: 'pointer',
-                backgroundColor: isDotToday
-                  ? (active ? '#B87A55' : 'rgba(184,122,85,0.35)')
-                  : (active ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.15)'),
-                transition: 'all 0.2s ease',
+                width: 36, padding: '4px 0 6px',
+                border: 'none', background: 'transparent', cursor: 'pointer',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
               }}
-            />
+            >
+              <span style={{
+                fontSize: 10,
+                fontWeight: active ? 700 : 400,
+                letterSpacing: '0.08em',
+                color: isIndToday
+                  ? (active ? '#B87A55' : 'rgba(184,122,85,0.4)')
+                  : (active ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.2)'),
+                transition: 'color 0.2s ease, font-weight 0.2s ease',
+              }}>
+                {initial}
+              </span>
+              <span style={{
+                width: active ? 14 : 3,
+                height: 2,
+                borderRadius: 1,
+                backgroundColor: isIndToday
+                  ? (active ? '#B87A55' : 'rgba(184,122,85,0.25)')
+                  : (active ? 'rgba(255,255,255,0.55)' : 'transparent'),
+                transition: 'all 0.2s ease',
+              }} />
+            </button>
           );
         })}
       </div>
