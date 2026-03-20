@@ -10,7 +10,8 @@ Development areas identified from codebase assessment. Updated as work progresse
 
 | Status | Area | Description |
 |---|---|---|
-| `[~]` | **Testing** | No automated tests exist. Add Vitest backend suite covering auth flow, session validation, and JWT middleware. Frontend component tests to follow. |
+| `[x]` | **Testing** | Vitest backend suite (42 tests: auth, sessions, JWT middleware) + Husky pre-commit hook. Frontend component tests tracked separately below. |
+| `[ ]` | **Frontend testing** | React Testing Library tests for critical paths: LogSessionForm, swipe navigation, auth flow. |
 | `[ ]` | **Pagination on session fetch** | `GET /api/sessions` returns the user's full history in a single payload. Add `?year=` or `?limit=&offset=` to avoid growing load times as session count grows. |
 | `[ ]` | **PWA / offline support** | Add a service worker + web manifest so the app is installable and survives spotty gym WiFi when logging sessions. |
 

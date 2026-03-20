@@ -22,8 +22,12 @@ A full-stack BJJ training tracker. See [`roadmap.md`](roadmap.md) for planned de
 
 ## Project Structure
 
+See [`build-structure.md`](build-structure.md) for the architectural skeleton, key patterns, and a spin-up checklist for new projects.
+
 ```
 J2/
+├── package.json              Workspace root — husky pre-commit hook only
+├── .husky/pre-commit         Runs backend tests before every commit
 ├── backend_api/              Node.js API server (port 5000)
 │   ├── src/
 │   │   ├── app.ts            Entry point — env validation, migrations, Express setup, routes
@@ -54,6 +58,14 @@ J2/
 ---
 
 ## Quickstart (local dev)
+
+### Git hooks (one-time setup after cloning)
+
+```bash
+npm install   # at repo root — installs husky and activates the pre-commit hook
+```
+
+The pre-commit hook runs `npm test` in `backend_api/` before every commit. Bypass with `git commit --no-verify` for WIP commits.
 
 ### Backend
 
