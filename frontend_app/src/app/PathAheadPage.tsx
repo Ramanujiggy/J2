@@ -213,7 +213,7 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
         border: `1px solid ${borderColor}`,
         boxShadow: hovered ? `${boxShadow}, 0 16px 40px rgba(0,0,0,0.6)` : boxShadow,
         opacity: isFuture ? 0.6 : 1,
-        minHeight: 260,
+        minHeight: 320,
         transition: 'box-shadow 0.2s ease',
       }}
       onMouseEnter={() => setHovered(true)}
@@ -405,7 +405,7 @@ export default function PathAheadPage() {
   const rafRef         = useRef<number | undefined>(undefined);
   const carouselRef    = useRef<HTMLDivElement>(null);
 
-  const CARD_H      = 260;
+  const CARD_H      = 320;
   const STACK_PEEK  = 20;
   const carouselSpring = 'transform 0.38s cubic-bezier(0.25, 1.3, 0.4, 1)';
 
@@ -837,13 +837,13 @@ export default function PathAheadPage() {
             const ty    = 10  - progress * 10;
             cardTransform = `translateY(${ty}px) scale(${scale})`;
             cardZIndex    = 9;
-            cardOpacity   = 0.55 + progress * 0.2;
+            cardOpacity   = 1;
           } else {
             const scale = 0.90 + progress * 0.03;
             const ty    = 20  - progress * 5;
             cardTransform = `translateY(${ty}px) scale(${scale})`;
             cardZIndex    = 8;
-            cardOpacity   = 0.35 + progress * 0.1;
+            cardOpacity   = 1;
           }
 
           const dayHasIntention = activeIntention !== null && intentionStartStr !== null && intentionEndStr !== null
@@ -871,6 +871,7 @@ export default function PathAheadPage() {
                 opacity: cardOpacity,
                 zIndex: cardZIndex,
                 transition: isDragging ? 'none' : carouselSpring,
+                transformOrigin: isActive ? '50% 85%' : '50% 50%',
               }}
             >
               <DayCard
