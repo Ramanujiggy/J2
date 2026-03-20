@@ -94,12 +94,5 @@ app.use((_err: unknown, _req: express.Request, res: express.Response, _next: exp
     res.status(500).json({ message: 'Server error' });
 });
 
-// start the server
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, async () => {
-    console.log(`Mat time is starting on http://localhost:${PORT}`);
-    await runMigrations();
-});
-
-export default app; 
+export { runMigrations };
+export default app;

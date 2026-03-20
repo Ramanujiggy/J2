@@ -1,6 +1,6 @@
 # Journada
 
-A full-stack BJJ training tracker. Log sessions, visualize skill development across five pillars, track volume trends, set weekly intentions, and reflect through journaling.
+A full-stack BJJ training tracker. See [`roadmap.md`](roadmap.md) for planned development areas. Log sessions, visualize skill development across five pillars, track volume trends, set weekly intentions, and reflect through journaling.
 
 ---
 
