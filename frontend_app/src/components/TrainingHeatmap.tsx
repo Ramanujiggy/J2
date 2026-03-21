@@ -12,8 +12,9 @@ import SessionDetailModal from './SessionDetailModal.tsx';
 import { CARD_BG, COPPER_BORDER, CARD_SHADOW, HEATMAP_REST, HEATMAP_FUTURE, HEATMAP_OUTSIDE_YEAR, HEATMAP_HEADER_BG, PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
 import type { CalendarIntention } from '../app/CalendarPage.tsx';
 
-const HEATMAP_REST_ALT    = '#152333'; // alternate month empty-day color (odd months)
-const HEATMAP_FUTURE_ALT  = '#162435'; // alternate month future-day color
+const HEATMAP_REST_PRIMARY = '#1c3349'; // rest days — slightly lighter than CARD_BG so cells sit above the surface
+const HEATMAP_REST_ALT     = '#1d3448'; // alternate month rest (odd months)
+const HEATMAP_FUTURE_ALT   = '#132638'; // alternate month future-day color
 
 const GRID_COLS_MOBILE  = '2rem repeat(7, minmax(0, 1fr))';
 const GRID_COLS_DESKTOP = '2rem repeat(7, minmax(0, 1fr)) 13rem 7rem';
@@ -279,8 +280,23 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
         from { opacity: 0; }
         to   { opacity: 1; }
       }
+
+      /* Year navigation page flip — forward (next year): pivots at left spine */
+      @keyframes j2PageFlipForward {
+        0%   { transform: perspective(1000px) rotateY(22deg); transform-origin: left center; opacity: 0.35; }
+        100% { transform: perspective(1000px) rotateY(0deg);  transform-origin: left center; opacity: 1; }
+      }
+      /* Year navigation page flip — back (prev year): pivots at right spine */
+      @keyframes j2PageFlipBack {
+        0%   { transform: perspective(1000px) rotateY(-22deg); transform-origin: right center; opacity: 0.35; }
+        100% { transform: perspective(1000px) rotateY(0deg);   transform-origin: right center; opacity: 1; }
+      }
     `}</style>
-    <div className="rounded-2xl p-6" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
+    {/* Stacked journal pages peeking out below-right */}
+    <div style={{ position: 'relative' }}>
+      <div style={{ position: 'absolute', inset: 0, transform: 'translate(6px, 6px)', borderRadius: '1rem', backgroundColor: CARD_BG, border: '1px solid rgba(184,122,85,0.15)', opacity: 0.35, pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', inset: 0, transform: 'translate(3px, 3px)', borderRadius: '1rem', backgroundColor: CARD_BG, border: '1px solid rgba(184,122,85,0.25)', opacity: 0.6, pointerEvents: 'none' }} />
+    <div className="rounded-2xl p-6" style={{ position: 'relative', zIndex: 1, backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
 
       {/* Stats */}
       <div className="flex gap-6 mb-6 pb-5 border-b border-white/10 flex-wrap">
@@ -438,21 +454,20 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                           style={{
                             height: '40px',
                             backgroundColor: (() => {
-                              if (!isCurrentYear) return HEATMAP_OUTSIDE_YEAR;
+                              if (!isCurrentYear) return '#0e1b28'; // flat muted — clearly inactive, no opacity trick
                               const isAltMonth = date.getMonth() % 2 === 1;
                               if (isFuture && day.count === 0) return isAltMonth ? HEATMAP_FUTURE_ALT : HEATMAP_FUTURE;
-                              if (day.count === 0) return isAltMonth ? HEATMAP_REST_ALT : HEATMAP_REST;
+                              if (day.count === 0) return isAltMonth ? HEATMAP_REST_ALT : HEATMAP_REST_PRIMARY;
                               return cellColor(day);
                             })(),
-                            opacity: !isCurrentYear ? 0.18 : 1,
                             cursor: isClickable ? 'pointer' : 'default',
                             paddingBottom: '3px',
                             border: hasResonance
                               ? '1px solid rgba(184,122,85,0.7)'
-                              : '1px solid rgba(240,223,160,0.08)',
+                              : '1px solid rgba(240,223,160,0.13)',
                             boxShadow: hasResonance
                               ? '0 0 8px 2px rgba(184,122,85,0.35), inset 0 0 5px rgba(184,122,85,0.18)'
-                              : 'none',
+                              : 'inset 0 1px 0 rgba(255,255,255,0.05)',
                           }}
                           onClick={handleClick}
                         >
@@ -557,6 +572,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
       )}
 
     </div>
+    </div>{/* end stacked-pages wrapper */}
     </>
   );
 }
