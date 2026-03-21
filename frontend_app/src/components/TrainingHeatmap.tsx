@@ -294,8 +294,8 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
     `}</style>
     {/* Stacked journal pages peeking out below-right */}
     <div style={{ position: 'relative' }}>
-      <div style={{ position: 'absolute', inset: 0, transform: 'translate(6px, 6px)', borderRadius: '1rem', backgroundColor: CARD_BG, border: '1px solid rgba(184,122,85,0.15)', opacity: 0.35, pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', inset: 0, transform: 'translate(3px, 3px)', borderRadius: '1rem', backgroundColor: CARD_BG, border: '1px solid rgba(184,122,85,0.25)', opacity: 0.6, pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', inset: 0, transform: 'translate(8px, 2px)', borderRadius: '1rem', backgroundColor: CARD_BG, border: '1px solid rgba(184,122,85,0.15)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', inset: 0, transform: 'translate(4px, 1px)', borderRadius: '1rem', backgroundColor: CARD_BG, border: '1px solid rgba(184,122,85,0.25)', pointerEvents: 'none' }} />
     <div className="rounded-2xl p-6" style={{ position: 'relative', zIndex: 1, backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
 
       {/* Stats */}
