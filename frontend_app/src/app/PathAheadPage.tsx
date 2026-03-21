@@ -837,13 +837,13 @@ export default function PathAheadPage() {
             const ty    = 10  - progress * 10;
             cardTransform = `translateY(${ty}px) scale(${scale})`;
             cardZIndex    = 9;
-            cardOpacity   = 1;
+            cardOpacity   = 1 - progress * 0.2;
           } else {
             const scale = 0.90 + progress * 0.03;
             const ty    = 20  - progress * 5;
             cardTransform = `translateY(${ty}px) scale(${scale})`;
             cardZIndex    = 8;
-            cardOpacity   = 1;
+            cardOpacity   = 1 - progress * 0.3;
           }
 
           const dayHasIntention = activeIntention !== null && intentionStartStr !== null && intentionEndStr !== null
