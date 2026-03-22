@@ -231,7 +231,7 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
       )}
 
       {/* Card header */}
-      <div className="px-4 pt-4 pb-3 border-b border-white/5" style={{ opacity: isFuture ? 0.45 : 1 }}>
+      <div className="px-4 pt-4 pb-3 border-b border-white/5">
         <div className="flex items-center justify-between">
           <p className="text-[11px] font-medium text-white/40 uppercase tracking-wide">
             {DAY_NAMES[day.getDay()]}
@@ -254,7 +254,7 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
       </div>
 
       {/* Card body */}
-      <div className="flex-1 flex flex-col" style={{ opacity: isFuture ? 0.45 : 1 }}>
+      <div className="flex-1 flex flex-col">
       {sessionCount > 0 ? (
         <button
           className="flex-1 px-4 py-3 text-left w-full"
@@ -839,13 +839,13 @@ export default function PathAheadPage() {
             const ty    = 10  - progress * 10;
             cardTransform = `translateY(${ty}px) scale(${scale})`;
             cardZIndex    = 9;
-            cardOpacity   = 1 - progress * 0.2;
+            cardOpacity   = 0.55 + progress * 0.45;
           } else {
             const scale = 0.90 + progress * 0.03;
             const ty    = 20  - progress * 5;
             cardTransform = `translateY(${ty}px) scale(${scale})`;
             cardZIndex    = 8;
-            cardOpacity   = 1 - progress * 0.3;
+            cardOpacity   = 0.2 + progress * 0.5;
           }
 
           const dayHasIntention = activeIntention !== null && intentionStartStr !== null && intentionEndStr !== null
