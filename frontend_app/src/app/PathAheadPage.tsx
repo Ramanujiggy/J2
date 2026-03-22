@@ -209,7 +209,7 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
       className="w-full rounded-2xl flex flex-col overflow-hidden"
       style={{
         position: 'relative',
-        background: `linear-gradient(160deg, rgba(255,255,255,0.035) 0%, ${CARD_BG} 55%)`,
+        background: `linear-gradient(160deg, rgba(255,255,255,0.035) 0%, transparent 55%), ${CARD_BG}`,
         border: `1px solid ${borderColor}`,
         boxShadow: hovered ? `${boxShadow}, 0 16px 40px rgba(0,0,0,0.6)` : boxShadow,
         minHeight: 320,
