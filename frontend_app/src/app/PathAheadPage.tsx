@@ -833,19 +833,19 @@ export default function PathAheadPage() {
             const tx  = isDragging ? dragX : 0;
             cardTransform = `translateX(${tx}px) rotateZ(${rot}deg)`;
             cardZIndex    = 10;
-            cardOpacity   = 1;
+            cardOpacity   = 1 - progress * 0.7;
           } else if (offset === 1) {
             const scale = 0.95 + progress * 0.05;
             const ty    = 10  - progress * 10;
             cardTransform = `translateY(${ty}px) scale(${scale})`;
             cardZIndex    = 9;
-            cardOpacity   = 0.55 + progress * 0.45;
+            cardOpacity   = 1;
           } else {
             const scale = 0.90 + progress * 0.03;
             const ty    = 20  - progress * 5;
             cardTransform = `translateY(${ty}px) scale(${scale})`;
             cardZIndex    = 8;
-            cardOpacity   = 0.2 + progress * 0.5;
+            cardOpacity   = 1;
           }
 
           const dayHasIntention = activeIntention !== null && intentionStartStr !== null && intentionEndStr !== null
