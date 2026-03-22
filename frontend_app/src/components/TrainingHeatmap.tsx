@@ -506,6 +506,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
           date={selectedSession.date}
           onClose={() => setSelectedSession(null)}
           onSaved={() => { onSessionUpdated?.(); setSelectedSession(null); }}
+          onDeleted={() => { onSessionUpdated?.(); setSelectedSession(null); }}
         />
       )}
 

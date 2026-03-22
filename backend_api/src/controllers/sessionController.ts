@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { createSession, getSessionsByUser, updateSession as updateSessionModel } from '../models/sessionModel.js';
+import { createSession, getSessionsByUser, updateSession as updateSessionModel, deleteSession as deleteSessionModel } from '../models/sessionModel.js';
 
 const VALID_TAGS = new Set(['standup', 'guard_retention', 'submissions', 'pin_escapes', 'guard_passing']);
 const VALID_GI_NOGI = new Set(['gi', 'no_gi']);
@@ -77,6 +77,29 @@ export const getSessions = async (req: Request, res: Response): Promise<void> =>
         res.json({ sessions });
     } catch (err) {
         console.error('❌ Error fetching sessions:', err);
+        res.status(500).json({ message: 'Server error.' });
+    }
+};
+
+export const deleteSession = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            res.status(401).json({ message: 'Unauthorized.' });
+            return;
+        }
+
+        const { id } = req.params;
+        const deleted = await deleteSessionModel(id, userId);
+
+        if (!deleted) {
+            res.status(404).json({ message: 'Session not found.' });
+            return;
+        }
+
+        res.json({ message: 'Session deleted.' });
+    } catch (err) {
+        console.error('❌ Error deleting session:', err);
         res.status(500).json({ message: 'Server error.' });
     }
 };

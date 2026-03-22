@@ -59,9 +59,10 @@ interface Props {
   onNavigate?: (index: number) => void;
   onClose: () => void;
   onSaved: () => void;
+  onDeleted?: () => void;
 }
 
-export default function SessionDetailModal({ session, date, intention, sessionCount, sessionIndex, onNavigate, onClose, onSaved }: Props) {
+export default function SessionDetailModal({ session, date, intention, sessionCount, sessionIndex, onNavigate, onClose, onSaved, onDeleted }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState({
     duration:     session.duration,
@@ -84,6 +85,8 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
 
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const intensityColor = INTENSITY_COLOR[session.intensity] ?? '#CDDFA0';
 
@@ -110,6 +113,18 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
       ...f,
       tags: f.tags.includes(tag) ? f.tags.filter(t => t !== tag) : [...f.tags, tag],
     }));
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await api.delete(`/api/sessions/${session.id}`);
+      onDeleted?.();
+      onClose();
+    } catch {
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
   };
 
   const handleSave = async () => {
@@ -438,32 +453,71 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
             </div>
 
             {/* Actions */}
-            <div className="flex justify-end gap-3">
-              {saveError && (
-                <p className="text-xs text-red-400 self-center mr-auto">Save failed. Please try again.</p>
-              )}
-              <button
-                onClick={onClose}
-                className="text-sm text-white/40 hover:text-white transition-colors px-4 py-2"
-              >
-                Close
-              </button>
-              {isEditing ? (
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="bg-brand-orange hover:bg-brand-orange/90 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2 rounded-lg transition-colors"
-                >
-                  {saving ? 'Saving…' : 'Save'}
-                </button>
-              ) : (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="text-sm font-semibold text-white/60 hover:text-white bg-white/8 hover:bg-white/15 px-5 py-2 rounded-lg transition-colors"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}
-                >
-                  Edit
-                </button>
+            <div className="flex items-center gap-3">
+              {/* Left side — delete or save error */}
+              <div className="mr-auto flex items-center gap-2">
+                {saveError && (
+                  <p className="text-xs text-red-400">Save failed. Please try again.</p>
+                )}
+                {!isEditing && !confirmDelete && (
+                  <button
+                    onClick={() => setConfirmDelete(true)}
+                    className="text-xs transition-colors"
+                    style={{ color: 'rgba(255,255,255,0.25)' }}
+                    onMouseEnter={e => (e.currentTarget.style.color = 'rgba(239,68,68,0.8)')}
+                    onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.25)')}
+                  >
+                    Delete session
+                  </button>
+                )}
+                {confirmDelete && (
+                  <>
+                    <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Delete this session?</span>
+                    <button
+                      onClick={() => setConfirmDelete(false)}
+                      className="text-xs text-white/40 hover:text-white transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      disabled={deleting}
+                      className="text-xs font-semibold px-3 py-1 rounded-lg transition-colors disabled:opacity-50"
+                      style={{ backgroundColor: 'rgba(239,68,68,0.15)', color: 'rgba(239,68,68,0.9)' }}
+                    >
+                      {deleting ? 'Deleting…' : 'Delete'}
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* Right side — close / edit / save */}
+              {!confirmDelete && (
+                <>
+                  <button
+                    onClick={onClose}
+                    className="text-sm text-white/40 hover:text-white transition-colors px-4 py-2"
+                  >
+                    Close
+                  </button>
+                  {isEditing ? (
+                    <button
+                      onClick={handleSave}
+                      disabled={saving}
+                      className="bg-brand-orange hover:bg-brand-orange/90 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2 rounded-lg transition-colors"
+                    >
+                      {saving ? 'Saving…' : 'Save'}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="text-sm font-semibold text-white/60 hover:text-white px-5 py-2 rounded-lg transition-colors"
+                      style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}
+                    >
+                      Edit
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>

@@ -214,7 +214,6 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
         boxShadow: hovered
           ? `${boxShadow}, 0 12px 32px rgba(0,0,0,0.55)`
           : boxShadow,
-        opacity: isFuture ? 0.55 : 1,
         transform: hovered ? 'translateY(-4px)' : 'translateY(0)',
         transition: 'transform 0.2s ease, box-shadow 0.2s ease',
       }}
@@ -222,7 +221,7 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
       onMouseLeave={() => setHovered(false)}
     >
       {/* Card header */}
-      <div className="px-3 pt-3 pb-2 border-b border-white/5">
+      <div className="px-3 pt-3 pb-2 border-b border-white/5" style={{ opacity: isFuture ? 0.45 : 1 }}>
         <p className="text-[11px] font-medium text-white/40">
           {DAY_NAMES[day.getDay()]}
         </p>
@@ -242,7 +241,7 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
       </div>
 
       {/* Card body */}
-      <div className="flex-1 px-3 py-2.5 flex flex-col gap-1.5">
+      <div className="flex-1 px-3 py-2.5 flex flex-col gap-1.5" style={{ opacity: isFuture ? 0.45 : 1 }}>
         {sessionCount > 0 ? (
           <button
             className="text-left w-full space-y-1.5"
@@ -861,6 +860,7 @@ export default function PathAheadPage() {
           onNavigate={setDetailSessionIndex}
           onClose={() => { setDetailSessions([]); setDetailSessionIndex(0); setDetailDate(null); setDetailIntention(null); }}
           onSaved={() => { fetchAll(); setDetailSessions([]); setDetailSessionIndex(0); setDetailDate(null); setDetailIntention(null); }}
+          onDeleted={() => { fetchAll(); setDetailSessions([]); setDetailSessionIndex(0); setDetailDate(null); setDetailIntention(null); }}
         />
       )}
 

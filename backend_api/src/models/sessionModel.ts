@@ -38,6 +38,14 @@ export const getSessionsByUser = async (userId: string): Promise<Session[]> => {
     return result.rows;
 };
 
+export const deleteSession = async (id: string, userId: string): Promise<boolean> => {
+    const result = await query(
+        'DELETE FROM training_sessions WHERE id = $1 AND user_id = $2',
+        [id, userId]
+    );
+    return (result.rowCount ?? 0) > 0;
+};
+
 export const updateSession = async (
     id: string,
     userId: string,
