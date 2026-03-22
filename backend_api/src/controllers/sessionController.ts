@@ -90,6 +90,7 @@ export const deleteSession = async (req: Request, res: Response): Promise<void> 
         }
 
         const { id } = req.params;
+        if (!id) { res.status(400).json({ message: 'Session id is required.' }); return; }
         const deleted = await deleteSessionModel(id, userId);
 
         if (!deleted) {
