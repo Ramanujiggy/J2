@@ -1,6 +1,6 @@
 # Journada
 
-A full-stack martial arts training tracker for BJJ athletes. Log sessions, visualize skill development across five pillars, track volume trends over time, and set weekly intentions.
+A full-stack BJJ training tracker. See [`roadmap.md`](roadmap.md) for planned development areas. Log sessions, visualize skill development across five pillars, track volume trends, set weekly intentions, and reflect through journaling.
 
 ---
 
@@ -12,16 +12,22 @@ A full-stack martial arts training tracker for BJJ athletes. Log sessions, visua
 | Database | PostgreSQL on Supabase (via `pg` pool) |
 | Auth | JWT (24h) + bcrypt (12 rounds) |
 | Email | Nodemailer — Ethereal in dev, SMTP in production |
-| Frontend | React 18 + Vite + Tailwind CSS |
+| Frontend | React 18 + Vite + TypeScript + Tailwind CSS 3 |
 | UI primitives | Radix UI + shadcn/ui |
+| CSV import | PapaParse (client-side) |
+| Gym autocomplete | Google Maps Places API (optional) |
 | Hosting | Railway (separate frontend + backend services) |
 
 ---
 
 ## Project Structure
 
+See [`build-structure.md`](build-structure.md) for the architectural skeleton, key patterns, and a spin-up checklist for new projects.
+
 ```
 J2/
+├── package.json              Workspace root — husky pre-commit hook only
+├── .husky/pre-commit         Runs backend tests before every commit
 ├── backend_api/              Node.js API server (port 5000)
 │   ├── src/
 │   │   ├── app.ts            Entry point — env validation, migrations, Express setup, routes
@@ -39,10 +45,12 @@ J2/
     ├── src/
     │   ├── app/              HomePage, ResetPasswordPage, PathAheadPage, CalendarPage,
     │   │                     AnalyticsPage, IntentionsPage, JournalEntryPage, ProfilePage
-    │   ├── components/       BeltBar, TrainingHeatmap, SkillRadar, LogSessionForm, …
+    │   ├── components/       AppShell, BeltBar, TrainingHeatmap, SkillRadar,
+    │   │                     LogSessionForm, SessionDetailModal, SetIntentionModal,
+    │   │                     CsvImportModal, WaveBackground, ErrorBoundary
     │   ├── context/          AuthContext (JWT in localStorage), ProfileContext
     │   ├── hooks/            useAuth, use-toast
-    │   └── lib/              api.ts, constants.ts, theme.ts, utils.ts
+    │   └── lib/              api.ts, constants.ts, theme.ts, utils.ts, csvParser.ts
     └── docs/
         └── components.md     Component catalog
 ```
@@ -50,6 +58,14 @@ J2/
 ---
 
 ## Quickstart (local dev)
+
+### Git hooks (one-time setup after cloning)
+
+```bash
+npm install   # at repo root — installs husky and activates the pre-commit hook
+```
+
+The pre-commit hook runs `npm test` in `backend_api/` before every commit. Bypass with `git commit --no-verify` for WIP commits.
 
 ### Backend
 
@@ -66,7 +82,7 @@ npm install
 npm run dev        # tsx watch mode on port 5000
 ```
 
-The server validates required env vars on startup and exits with a clear message if any are missing. The `password_reset_tokens` table is created automatically on first startup.
+The server validates required env vars on startup and exits with a clear message if any are missing. The `password_reset_tokens` table is created automatically on first startup via `CREATE TABLE IF NOT EXISTS`.
 
 ### Frontend
 
@@ -78,7 +94,7 @@ npm install
 npm run dev        # Vite dev server on port 3000
 ```
 
-Vite proxies `/auth` and `/api` to `http://localhost:5000` in dev — no CORS configuration needed.
+Vite proxies `/auth` and `/api` to `http://localhost:5000` in dev — no CORS configuration needed locally.
 
 ---
 
@@ -107,6 +123,7 @@ The app runs as two separate Railway services.
 | Variable | Notes |
 |---|---|
 | `VITE_API_BASE_URL` | `https://your-backend.railway.app` — **required**, must be set before build |
+| `VITE_GOOGLE_MAPS_API_KEY` | Optional — enables gym address autocomplete |
 
 > `VITE_API_BASE_URL` is a build-time variable. Set it in Railway, then trigger a redeploy so Vite bakes it into the bundle.
 
@@ -116,7 +133,6 @@ The app runs as two separate Railway services.
 ```json
 { "status": "ok", "db": "connected" }
 ```
-Use this to confirm the backend is alive and connected to the database after a deploy.
 
 ---
 
@@ -148,7 +164,7 @@ See [`backend_api/docs/database.md`](backend_api/docs/database.md) for full sche
 
 | Table | Purpose |
 |---|---|
-| `users` | Identity, auth credentials, and profile data |
+| `users` | Identity, auth credentials, profile data, and feature flags |
 | `training_sessions` | One row per session; includes a `tags` text array for skill tracking |
 | `password_reset_tokens` | Short-lived tokens for the password reset flow |
 | `intentions` | Weekly training intentions with optional journal entries |
@@ -169,9 +185,20 @@ All color tokens live in `frontend_app/src/lib/theme.ts`. Never hard-code colour
 | `GLOW_SOFT` | text-shadow | Secondary glow on active elements |
 | `GLOW_TITLE` | text-shadow | Hero title glow |
 
+Tailwind brand tokens (in `tailwind.config.ts`): `brand.orange` `#DA7422`, `brand.green` `#6FD08C`, `brand.light-green` `#CDDFA0`, `brand.dark` `#111e2b`.
+
 ---
 
 ## Key Features
+
+### The Path Ahead (`PathAheadPage.tsx`)
+The main home view. Composed of:
+- **Intention banner** — shows the active weekly intention with animated particles, purple glow, and delete button
+- **Week navigation** — prev/next arrows to browse historical weeks
+- **Day card stack** — swipeable deck of 7 day cards showing sessions per day. Swipe left/right (or tap the day indicator) to navigate. Cards use a z-axis absolute stack with velocity-based threshold and RAF-throttled drag for a natural flick feel. Active card pivots near the bottom edge (`transformOrigin: 50% 85%`) to match thumb position.
+- **Day-initial indicator** — tap any letter below the deck to jump directly to that day
+- **Weekly summary** — session count, total duration, Training Telemetry (top skill tag prose sentence)
+- **Rep Roulette** — spin to get a random BJJ drill with rep suggestion
 
 ### Training Heatmap (`TrainingHeatmap.tsx`)
 Year-at-a-glance calendar grid. Cells coloured by max session intensity for that day. Click any cell to view or edit the session.
@@ -194,20 +221,17 @@ Four views switched via a vertical icon rail. All views share the same card dime
 | **Session Format** | Donut | Class / Drilling / Competition |
 
 - **Time windows**: 30 Days · 60 Days · 90 Days · All Time
-- **Display toggle** (h / %): stationary in header, not part of view transitions. On Volume view (where it doesn't apply) it morphs into a horizontal line and slides into the rail border, then reverses on exit.
-- **View transition**: exit slides out immediately with fast-start easing (500ms), enter follows with a 120ms delay and spring bounce (560ms) — no visual overlap.
+- **Display toggle** (h / %): stationary in header; on Volume view it morphs into a thin line and slides into the rail border
+- **View transition**: exit fast-start 500ms, enter spring 560ms + 120ms delay — no overlap
+
+### Weekly Intentions
+Set a short focus label (max 20 chars) and category (technical / physical / mental / positional / competitive) for any week. Active intentions display a glowing animated banner on the home screen and overlay each day card. Intentions have duration (1–30 days). Each intention can have a journal entry written via the Journal Entry page (autosaves on 1.5s debounce).
+
+### CSV Import (`CsvImportModal.tsx`)
+Import historical training data from a spreadsheet CSV. Client-side parsing with PapaParse, row-by-row review with flagging of duplicates and validation errors, then atomic batch insert via `POST /api/sessions/import` (max 500 rows, transactional).
 
 ### Belt Bar (`BeltBar.tsx`)
 Animated BJJ belt tying sequence on load. Belt, knot, and tails animate in sequence. Tails become draggable/whippable post-animation (easter egg).
 
 ### Log Session Form (`LogSessionForm.tsx`)
-Modal for logging a session: date, duration (presets + custom fields), type (Class / Drilling / Competition), Gi / No-Gi, intensity 1–5, notes, multi-select skill tags.
-
----
-
-## Pending
-
-- Run the tags column migration once in Supabase SQL Editor if not already applied:
-  ```sql
-  ALTER TABLE training_sessions ADD COLUMN IF NOT EXISTS tags text[] NOT NULL DEFAULT '{}';
-  ```
+Modal for logging a session: date, duration (preset buttons + custom), type (Class / Drilling / Competition), Gi / No-Gi, intensity 1–5, skill tags (multi-select, at least 1 required), notes. Accepts optional `defaultDate` prop so tapping an empty day card pre-fills the date.

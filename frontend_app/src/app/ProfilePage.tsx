@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 
 import { api } from '../lib/api.ts';
+import { useAuth } from '../hooks/useAuth.ts';
 import { CARD_BG, COPPER_BORDER, CARD_SHADOW, PALE_YELLOW } from '../lib/theme.ts';
+import CsvImportModal from '../components/CsvImportModal.tsx';
 import { type BeltRank } from '../components/BeltBar.tsx';
 import { useProfile } from '../context/ProfileContext.tsx';
 import {
@@ -50,6 +53,8 @@ const inputCls =
 
 export default function ProfilePage() {
   const { refreshProfile } = useProfile();
+  const { logout } = useAuth();
+  const navigate = useNavigate();
   const gymInputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
@@ -65,6 +70,8 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [importOpen, setImportOpen] = useState(false);
+  const [existingDates, setExistingDates] = useState<Set<string>>(new Set());
 
   // Load existing profile
   useEffect(() => {
@@ -276,7 +283,55 @@ export default function ProfilePage() {
 
           </form>
         )}
+
+        {/* Import section */}
+        <div
+          className="mt-4 rounded-2xl p-5"
+          style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}` }}
+        >
+          <p className="text-sm font-semibold text-white mb-1">Import Training History</p>
+          <p className="text-xs text-white/40 mb-4">
+            Upload a CSV spreadsheet to import your historical sessions.
+            Duplicates are flagged so you can review before committing.
+          </p>
+          <button
+            onClick={async () => {
+              // Load existing session dates for duplicate detection
+              try {
+                const data = await api.get<{ sessions: { date: string }[] }>('/api/sessions');
+                setExistingDates(new Set(data.sessions.map((s: { date: string }) => s.date)));
+              } catch {
+                setExistingDates(new Set());
+              }
+              setImportOpen(true);
+            }}
+            className="text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+            style={{ backgroundColor: 'rgba(184,122,85,0.15)', color: 'rgba(184,122,85,0.85)' }}
+          >
+            ↑ Upload CSV
+          </button>
+        </div>
+
+        <div className="mt-6 flex justify-center">
+          <button
+            onClick={() => { logout(); navigate('/login'); }}
+            className="text-sm transition-colors"
+            style={{ color: 'rgba(255,255,255,0.3)' }}
+            onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.6)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.3)')}
+          >
+            Log out
+          </button>
+        </div>
       </main>
+
+      {importOpen && (
+        <CsvImportModal
+          existingDates={existingDates}
+          onClose={() => setImportOpen(false)}
+          onImported={() => {}}
+        />
+      )}
     </div>
   );
 }

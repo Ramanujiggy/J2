@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { verifyToken } from '../middleware/authMiddleware.js';
-import { logSession, getSessions, updateSession, deleteSession } from '../controllers/sessionController.js';
+import { logSession, getSessions, updateSession, deleteSession, importSessions } from '../controllers/sessionController.js';
 
 const router = Router();
 
@@ -15,5 +15,8 @@ router.put('/sessions/:id', verifyToken, updateSession);
 
 // DELETE /api/sessions/:id — delete a session (protected, ownership enforced)
 router.delete('/sessions/:id', verifyToken, deleteSession);
+
+// POST /api/sessions/import — bulk import sessions (protected)
+router.post('/sessions/import', verifyToken, importSessions);
 
 export default router;

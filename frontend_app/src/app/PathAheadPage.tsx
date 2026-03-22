@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { api, ApiError } from '../lib/api.ts';
-import { SKILL_TAGS } from '../lib/constants.ts';
+import { SKILL_TAGS, ROULETTE_DRILLS } from '../lib/constants.ts';
 import type { SessionSummary } from '../components/TrainingHeatmap.tsx';
 import LogSessionForm from '../components/LogSessionForm.tsx';
 import SessionDetailModal from '../components/SessionDetailModal.tsx';
@@ -170,7 +170,7 @@ interface DayCardProps {
   sessions: SessionSummary[];
   intention: Intention | null;
   intentionBrightness: number;
-  onLogSession: () => void;
+  onLogSession: (date?: Date) => void;
   onViewSession: (sessions: SessionSummary[], date: Date) => void;
 }
 
@@ -191,43 +191,50 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
 
   const intensityColor = primarySession ? (INTENSITY_COLOR[primarySession.intensity] ?? '#CDDFA0') : null;
 
-  // Border + shadow — today with intention gets a faint yellow ambient glow
+  // Border + shadow — today gets a copper glow, with intention adds yellow
   const borderColor = isToday ? 'rgba(184,122,85,0.7)' : 'rgba(255,255,255,0.07)';
-  const boxShadow = isToday
+  const baseShadow  = isToday
     ? intention
-      ? '0 0 18px rgba(240,223,160,0.13), 0 0 22px rgba(184,122,85,0.18), 0 2px 8px rgba(0,0,0,0.4)'
-      : '0 0 16px rgba(184,122,85,0.25), 0 2px 8px rgba(0,0,0,0.4)'
-    : '0 2px 8px rgba(0,0,0,0.3)';
+      ? '0 0 18px rgba(240,223,160,0.13), 0 0 22px rgba(184,122,85,0.18), 0 4px 16px rgba(0,0,0,0.5)'
+      : '0 0 16px rgba(184,122,85,0.25), 0 4px 16px rgba(0,0,0,0.5)'
+    : '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)';
+  const boxShadow = `${baseShadow}, inset 0 1px 0 rgba(255,255,255,0.06)`;
 
-  // Derived brightness values for the intention footer layers
   const opacityScale = intention ? intentionBrightness / 1.3 : 1;
   const glowHeight   = intentionBrightness >= 1.25 ? 52 : 32;
-
   const dayParticles = intention ? generateDayParticles(dayStr) : [];
 
   return (
     <div
-      className="min-w-[128px] sm:flex-1 rounded-2xl flex flex-col flex-shrink-0 overflow-hidden"
+      className="w-full rounded-2xl flex flex-col overflow-hidden"
       style={{
-        backgroundColor: CARD_BG,
+        position: 'relative',
+        background: `linear-gradient(160deg, rgba(255,255,255,0.035) 0%, ${CARD_BG} 55%)`,
         border: `1px solid ${borderColor}`,
-        boxShadow: hovered
-          ? `${boxShadow}, 0 12px 32px rgba(0,0,0,0.55)`
-          : boxShadow,
+        boxShadow: hovered ? `${boxShadow}, 0 16px 40px rgba(0,0,0,0.6)` : boxShadow,
+        minHeight: 320,
         transform: hovered ? 'translateY(-4px)' : 'translateY(0)',
         transition: 'transform 0.2s ease, box-shadow 0.2s ease',
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
+      {/* Top accent bar for session days */}
+      {sessionCount > 0 && (
+        <div style={{
+          position: 'absolute',
+          top: 0, left: 0, right: 0, height: 2,
+          background: `linear-gradient(to right, transparent 0%, ${intensityColor ?? '#CDDFA0'}99 25%, ${intensityColor ?? '#CDDFA0'}99 75%, transparent 100%)`,
+          borderRadius: '16px 16px 0 0',
+          pointerEvents: 'none',
+        }} />
+      )}
+
       {/* Card header */}
-      <div className="px-3 pt-3 pb-2 border-b border-white/5" style={{ opacity: isFuture ? 0.45 : 1 }}>
-        <p className="text-[11px] font-medium text-white/40">
-          {DAY_NAMES[day.getDay()]}
-        </p>
+      <div className="px-4 pt-4 pb-3 border-b border-white/5" style={{ opacity: isFuture ? 0.45 : 1 }}>
         <div className="flex items-center justify-between">
-          <p className="text-sm font-bold text-white">
-            {MONTH_NAMES[day.getMonth()]} {day.getDate()}
+          <p className="text-[11px] font-medium text-white/40 uppercase tracking-wide">
+            {DAY_NAMES[day.getDay()]}
           </p>
           {isToday && (
             <span
@@ -238,68 +245,79 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
             </span>
           )}
         </div>
+        <p
+          className="text-lg font-bold mt-0.5"
+          style={{ color: isToday ? '#B87A55' : 'rgba(255,255,255,0.9)' }}
+        >
+          {MONTH_NAMES[day.getMonth()]} {day.getDate()}
+        </p>
       </div>
 
       {/* Card body */}
-      <div className="flex-1 px-3 py-2.5 flex flex-col gap-1.5" style={{ opacity: isFuture ? 0.45 : 1 }}>
-        {sessionCount > 0 ? (
-          <button
-            className="text-left w-full space-y-1.5"
-            onClick={() => onViewSession(sessions, day)}
-          >
-            {/* Intensity dot + duration + count badge */}
-            <div className="flex items-center gap-1.5">
-              <span
-                className="w-2 h-2 rounded-full flex-shrink-0"
-                style={{ backgroundColor: intensityColor! }}
-              />
-              <span className="text-xs font-semibold text-white">
-                {formatDuration(totalMinutes)}
-              </span>
-              {sessionCount > 1 && (
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>
-                  ×{sessionCount}
-                </span>
-              )}
-            </div>
-            {/* Type · Style */}
-            <p className="text-[11px] text-white/45 leading-tight">
-              {SESSION_TYPE_LABELS[primarySession!.session_type] ?? primarySession!.session_type}
-              {' · '}
-              {primarySession!.gi_nogi === 'gi' ? 'Gi' : 'No-Gi'}
-            </p>
-            {/* Top tags (up to 2) from primary session */}
-            {primarySession!.tags && primarySession!.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-0.5">
-                {primarySession!.tags.slice(0, 2).map(tag => {
-                  const found = SKILL_TAGS.find(s => s.value === tag);
-                  return (
-                    <span
-                      key={tag}
-                      className="text-[10px] px-1.5 py-0.5 rounded"
-                      style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}
-                    >
-                      {found?.label ?? tag}
-                    </span>
-                  );
-                })}
-              </div>
+      <div className="flex-1 flex flex-col" style={{ opacity: isFuture ? 0.45 : 1 }}>
+      {sessionCount > 0 ? (
+        <button
+          className="flex-1 px-4 py-3 text-left w-full"
+          onClick={() => onViewSession(sessions, day)}
+        >
+          {/* Intensity dot + duration + count */}
+          <div className="flex items-center gap-2 mb-1.5">
+            <span
+              style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, backgroundColor: intensityColor! }}
+            />
+            <span className="text-sm font-semibold text-white">{formatDuration(totalMinutes)}</span>
+            {sessionCount > 1 && (
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>×{sessionCount}</span>
             )}
-          </button>
-        ) : isFuture ? (
-          <p className="text-[11px] text-white/20 italic">—</p>
-        ) : isPast ? (
-          <p className="text-[11px] text-white/25 italic">Rest</p>
-        ) : (
-          // Today, no session
-          <button
-            onClick={onLogSession}
-            className="text-[11px] font-medium transition-colors text-left"
-            style={{ color: 'rgba(184,122,85,0.7)' }}
-          >
-            + Mat Time
-          </button>
-        )}
+          </div>
+          {/* Type · Style */}
+          <p className="text-[12px] mb-2" style={{ color: 'rgba(255,255,255,0.45)' }}>
+            {SESSION_TYPE_LABELS[primarySession!.session_type] ?? primarySession!.session_type}
+            {' · '}
+            {primarySession!.gi_nogi === 'gi' ? 'Gi' : 'No-Gi'}
+          </p>
+          {/* Tags (up to 4) */}
+          {primarySession!.tags && primarySession!.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {primarySession!.tags.slice(0, 4).map(tag => {
+                const found = SKILL_TAGS.find(s => s.value === tag);
+                return (
+                  <span
+                    key={tag}
+                    className="text-[10px] px-1.5 py-0.5 rounded"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}
+                  >
+                    {found?.label ?? tag}
+                  </span>
+                );
+              })}
+            </div>
+          )}
+          <p className="text-[11px] text-right" style={{ color: 'rgba(255,255,255,0.2)' }}>Tap to view ›</p>
+        </button>
+      ) : isToday ? (
+        <button
+          onClick={() => onLogSession(day)}
+          className="flex-1 flex flex-col items-center justify-center gap-1"
+        >
+          <span className="text-base font-semibold" style={{ color: 'rgba(184,122,85,0.85)' }}>+ Mat Time</span>
+        </button>
+      ) : isPast ? (
+        <button
+          onClick={() => onLogSession(day)}
+          className="flex-1 flex flex-col items-center justify-center gap-1.5"
+        >
+          <span className="text-sm" style={{ color: 'rgba(255,255,255,0.2)' }}>Rest day</span>
+          <span className="text-sm font-medium" style={{ color: 'rgba(184,122,85,0.55)' }}>+ Log session</span>
+        </button>
+      ) : (
+        <button
+          onClick={() => onLogSession(day)}
+          className="flex-1 flex flex-col items-center justify-center gap-1"
+        >
+          <span className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.18)' }}>+ Log</span>
+        </button>
+      )}
       </div>
 
       {/* Intention strip at bottom — fades in when active */}
@@ -380,8 +398,50 @@ export default function PathAheadPage() {
   // weekOffset: 0 = today's 7-day window, -1 = previous 7 days, etc.
   const [weekOffset, setWeekOffset] = useState(0);
 
+  // Carousel — absolute stack layout
+  const [activeDayIndex, setActiveDayIndex] = useState(0);
+  const [dragX,          setDragX]          = useState(0);
+  const [isDragging,     setIsDragging]     = useState(false);
+  const touchStartX    = useRef(0);
+  const touchStartTime = useRef(0);
+  const rafRef         = useRef<number | undefined>(undefined);
+  const carouselRef    = useRef<HTMLDivElement>(null);
+
+  const CARD_H      = 320;
+  const STACK_PEEK  = 20;
+  const carouselSpring = 'transform 0.38s cubic-bezier(0.25, 1.3, 0.4, 1)';
+
+  useEffect(() => { setActiveDayIndex(0); setDragX(0); setIsDragging(false); }, [weekOffset]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current    = e.touches[0].clientX;
+    touchStartTime.current = Date.now();
+    setIsDragging(true);
+  };
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const dx = e.touches[0].clientX - touchStartX.current;
+    if (rafRef.current !== undefined) return;
+    rafRef.current = requestAnimationFrame(() => {
+      setDragX(dx);
+      rafRef.current = undefined;
+    });
+  };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (rafRef.current !== undefined) { cancelAnimationFrame(rafRef.current); rafRef.current = undefined; }
+    const dx  = e.changedTouches[0].clientX - touchStartX.current;
+    const dt  = Date.now() - touchStartTime.current;
+    const vel = Math.abs(dx) / Math.max(dt, 1);
+    if (Math.abs(dx) > 55 || vel > 0.35) {
+      if (dx < 0) setActiveDayIndex(i => Math.min(6, i + 1));
+      else        setActiveDayIndex(i => Math.max(0, i - 1));
+    }
+    setDragX(0);
+    setIsDragging(false);
+  };
+
   // Modals
   const [logOpen,             setLogOpen]             = useState(false);
+  const [logDate,             setLogDate]             = useState<string | null>(null);
   const [setIntentOpen,       setSetIntentOpen]       = useState(false);
   const [detailSessions,      setDetailSessions]      = useState<SessionSummary[]>([]);
   const [detailSessionIndex,  setDetailSessionIndex]  = useState(0);
@@ -462,11 +522,14 @@ export default function PathAheadPage() {
     // Top skill tag
     const tagCounts: Record<string, number> = {};
     windowSessions.forEach(s => s.tags?.forEach(t => { tagCounts[t] = (tagCounts[t] ?? 0) + 1; }));
-    const topTagEntry = Object.entries(tagCounts).sort((a, b) => b[1] - a[1])[0] ?? null;
+    const sorted = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]);
+    const topTagEntry = sorted[0] ?? null;
     const topTag      = topTagEntry?.[0] ?? null;
     const topTagCount = topTagEntry?.[1] ?? 0;
     const topTagLabel = topTag ? (SKILL_TAGS.find(s => s.value === topTag)?.label ?? topTag) : null;
-    return { count: windowSessions.length, totalMinutes, topTagLabel, topTagCount };
+    const tag2Entry   = sorted[1] ?? null;
+    const tag2Label   = tag2Entry ? (SKILL_TAGS.find(s => s.value === tag2Entry[0])?.label ?? tag2Entry[0]) : null;
+    return { count: windowSessions.length, totalMinutes, topTagLabel, topTagCount, tag2Label };
   }, [sessions, windowDays]);
 
   // ── Window label ───────────────────────────────────────────────────────
@@ -483,7 +546,30 @@ export default function PathAheadPage() {
 
   // ── Intent delete ──────────────────────────────────────────────────────
 
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+
+  // ── Rep Roulette ────────────────────────────────────────────────────────
+
+  const [drillIndex,  setDrillIndex]  = useState(() => Math.floor(Math.random() * ROULETTE_DRILLS.length));
+  const [spinPhase,   setSpinPhase]   = useState<'idle' | 'out' | 'in'>('idle');
+
+  const handleSpin = () => {
+    if (spinPhase !== 'idle') return;
+    setSpinPhase('out');
+    setTimeout(() => {
+      setDrillIndex(i => (i + 1 + Math.floor(Math.random() * (ROULETTE_DRILLS.length - 1))) % ROULETTE_DRILLS.length);
+      setSpinPhase('in');
+      setTimeout(() => setSpinPhase('idle'), 310);
+    }, 290);
+  };
+
   const handleDeleteIntention = async () => {
+    if (!deleteConfirm) {
+      setDeleteConfirm(true);
+      setTimeout(() => setDeleteConfirm(false), 3000);
+      return;
+    }
+    setDeleteConfirm(false);
     if (!activeIntention) return;
     try {
       await api.delete<DeleteResponse>(`/api/intentions/${activeIntention.id}`);
@@ -531,6 +617,14 @@ export default function PathAheadPage() {
           from { opacity: 0; }
           to   { opacity: 1; }
         }
+        @keyframes j2RepOut {
+          from { transform: rotateX(0deg);   opacity: 1; }
+          to   { transform: rotateX(90deg);  opacity: 0; }
+        }
+        @keyframes j2RepIn {
+          from { transform: rotateX(-90deg); opacity: 0; }
+          to   { transform: rotateX(0deg);   opacity: 1; }
+        }
       `}</style>
 
       {/* ── Page title ────────────────────────────────────────────── */}
@@ -538,12 +632,6 @@ export default function PathAheadPage() {
         <h2 className="text-2xl font-bold tracking-tight" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
           The Path Ahead
         </h2>
-        <button
-          onClick={() => setLogOpen(true)}
-          className="bg-brand-orange hover:bg-brand-orange/90 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
-        >
-          + Mat Time
-        </button>
       </div>
 
       {/* ── Intent banner ─────────────────────────────────────────── */}
@@ -638,12 +726,23 @@ export default function PathAheadPage() {
                     </span>
                   )}
                 </div>
-                <button
-                  onClick={handleDeleteIntention}
-                  className="text-[11px] text-white/25 hover:text-red-400 transition-colors flex-shrink-0"
-                >
-                  Delete
-                </button>
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {deleteConfirm && (
+                    <button
+                      onClick={() => setDeleteConfirm(false)}
+                      className="text-[11px] text-white/25 hover:text-white/50 transition-colors"
+                    >
+                      ×
+                    </button>
+                  )}
+                  <button
+                    onClick={handleDeleteIntention}
+                    className="text-[11px] transition-colors flex-shrink-0"
+                    style={{ color: deleteConfirm ? 'rgba(248,113,113,0.85)' : 'rgba(255,255,255,0.25)' }}
+                  >
+                    {deleteConfirm ? 'Confirm?' : 'Delete'}
+                  </button>
+                </div>
               </>
             ) : (
               <>
@@ -703,15 +802,56 @@ export default function PathAheadPage() {
         </button>
       </div>
 
-      {/* ── Day cards row ─────────────────────────────────────────── */}
-      <div className="flex gap-2 sm:gap-3 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0" style={{ paddingTop: 8, paddingBottom: 4, marginTop: -8 }}>
-        {windowDays.map(day => {
-          const dayStr = toDateString(day);
+      {/* ── Day stack ─────────────────────────────────────────────── */}
+      <div
+        ref={carouselRef}
+        style={{
+          position: 'relative',
+          height: CARD_H + STACK_PEEK,
+          touchAction: 'pan-y',
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {windowDays.map((day, i) => {
+          const dayStr  = toDateString(day);
+          const offset  = i - activeDayIndex;
+
+          // Only render active + 2 cards behind
+          if (offset < 0 || offset > 2) return null;
+
+          const isActive = offset === 0;
+          const progress = isDragging ? Math.min(1, Math.abs(dragX) / 110) : 0;
+
+          let cardTransform: string;
+          let cardOpacity: number;
+          let cardZIndex: number;
+
+          if (isActive) {
+            const rot = isDragging ? Math.max(-6, Math.min(6, dragX / 20)) : 0;
+            const tx  = isDragging ? dragX : 0;
+            cardTransform = `translateX(${tx}px) rotateZ(${rot}deg)`;
+            cardZIndex    = 10;
+            cardOpacity   = 1;
+          } else if (offset === 1) {
+            const scale = 0.95 + progress * 0.05;
+            const ty    = 10  - progress * 10;
+            cardTransform = `translateY(${ty}px) scale(${scale})`;
+            cardZIndex    = 9;
+            cardOpacity   = 1 - progress * 0.2;
+          } else {
+            const scale = 0.90 + progress * 0.03;
+            const ty    = 20  - progress * 5;
+            cardTransform = `translateY(${ty}px) scale(${scale})`;
+            cardZIndex    = 8;
+            cardOpacity   = 1 - progress * 0.3;
+          }
+
           const dayHasIntention = activeIntention !== null && intentionStartStr !== null && intentionEndStr !== null
             && dayStr >= intentionStartStr
             && dayStr <= intentionEndStr;
 
-          // Brightness: today = 1.3, last day = 0.78, linear decline
           let intentionBrightness = 1.15;
           if (dayHasIntention) {
             const todayStr = toDateString(today);
@@ -725,21 +865,73 @@ export default function PathAheadPage() {
           }
 
           return (
-            <DayCard
+            <div
               key={dayStr}
-              day={day}
-              today={today}
-              sessions={sessionsByDate.get(dayStr) ?? []}
-              intention={dayHasIntention ? activeIntention : null}
-              intentionBrightness={intentionBrightness}
-              onLogSession={() => setLogOpen(true)}
-              onViewSession={(ss, d) => {
-                setDetailSessions(ss);
-                setDetailSessionIndex(0);
-                setDetailDate(d);
-                setDetailIntention(dayHasIntention ? activeIntention : null);
+              style={{
+                position: 'absolute', top: 0, left: 0, right: 0,
+                transform: cardTransform,
+                opacity: cardOpacity,
+                zIndex: cardZIndex,
+                transition: isDragging ? 'none' : carouselSpring,
+                transformOrigin: isActive ? '50% 85%' : '50% 50%',
               }}
-            />
+            >
+              <DayCard
+                day={day}
+                today={today}
+                sessions={sessionsByDate.get(dayStr) ?? []}
+                intention={dayHasIntention ? activeIntention : null}
+                intentionBrightness={intentionBrightness}
+                onLogSession={(date) => { setLogDate(date ? toDateString(date) : null); setLogOpen(true); }}
+                onViewSession={(ss, d) => {
+                  setDetailSessions(ss);
+                  setDetailSessionIndex(0);
+                  setDetailDate(d);
+                  setDetailIntention(dayHasIntention ? activeIntention : null);
+                }}
+              />
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Day-initial indicator */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
+        {windowDays.map((day, i) => {
+          const active     = i === activeDayIndex;
+          const isIndToday = toDateString(day) === toDateString(today);
+          const initial    = ['S','M','T','W','T','F','S'][day.getDay()];
+          return (
+            <button
+              key={i}
+              onClick={() => setActiveDayIndex(i)}
+              style={{
+                width: 36, padding: '4px 0 6px',
+                border: 'none', background: 'transparent', cursor: 'pointer',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+              }}
+            >
+              <span style={{
+                fontSize: 10,
+                fontWeight: active ? 700 : 400,
+                letterSpacing: '0.08em',
+                color: isIndToday
+                  ? (active ? '#B87A55' : 'rgba(184,122,85,0.4)')
+                  : (active ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.2)'),
+                transition: 'color 0.2s ease, font-weight 0.2s ease',
+              }}>
+                {initial}
+              </span>
+              <span style={{
+                width: active ? 14 : 3,
+                height: 2,
+                borderRadius: 1,
+                backgroundColor: isIndToday
+                  ? (active ? '#B87A55' : 'rgba(184,122,85,0.25)')
+                  : (active ? 'rgba(255,255,255,0.55)' : 'transparent'),
+                transition: 'all 0.2s ease',
+              }} />
+            </button>
           );
         })}
       </div>
@@ -806,32 +998,100 @@ export default function PathAheadPage() {
               </span>
             </div>
 
-            {/* Ambient Focus row — only when tag data exists */}
-            {windowStats.topTagLabel && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] text-white/30 uppercase tracking-wide">Ambient Focus</span>
-                <Tooltip text="The skill you've trained most this week, based on your logged sessions.">
-                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.22)', cursor: 'default', lineHeight: 1 }}>?</span>
-                </Tooltip>
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(218,116,34,0.85)', marginLeft: 4 }}>
-                  ◎ {windowStats.topTagLabel}
-                </span>
-                {windowStats.topTagCount > 1 && (
-                  <span style={{ fontSize: 12, color: 'rgba(218,116,34,0.45)' }}>
-                    × {windowStats.topTagCount}
-                  </span>
-                )}
-              </div>
-            )}
+            {/* Training Telemetry — prose sentence */}
+            {windowStats.topTagLabel && (() => {
+              const { topTagLabel, topTagCount, count, tag2Label } = windowStats;
+              const pct = count > 0 ? topTagCount / count : 0;
+              let before: string;
+              let highlight: string;
+              let after: string | null = null;
+              let highlight2: string | null = null;
+
+              if (tag2Label && pct < 0.7) {
+                before = 'Splitting time between ';
+                highlight = topTagLabel!;
+                after = ' and ';
+                highlight2 = tag2Label;
+              } else if (pct === 1 && count > 1) {
+                before = `All ${count} sessions went into `;
+                highlight = topTagLabel!;
+              } else {
+                before = 'Recent sessions have been leaning into ';
+                highlight = topTagLabel!;
+              }
+
+              return (
+                <div style={{ marginTop: 2 }}>
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="text-[11px] text-white/30 uppercase tracking-wide">Training Telemetry</span>
+                    <Tooltip text="Based on the skill tags from your logged sessions.">
+                      <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.22)', cursor: 'default', lineHeight: 1 }}>?</span>
+                    </Tooltip>
+                  </div>
+                  <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', margin: 0, lineHeight: 1.45 }}>
+                    {before}
+                    <strong style={{ color: 'rgba(218,116,34,0.85)', fontWeight: 600 }}>{highlight}</strong>
+                    {after && highlight2 ? (
+                      <>{after}<strong style={{ color: 'rgba(218,116,34,0.85)', fontWeight: 600 }}>{highlight2}</strong></>
+                    ) : null}
+                    {'.'}
+                  </p>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
+
+      {/* ── Rep Roulette ──────────────────────────────────────────── */}
+      <div style={{ perspective: '800px' }}>
+        <div
+          className="rounded-xl px-4 py-3"
+          style={{
+            position: 'relative',
+            overflow: 'hidden',
+            backgroundColor: 'rgba(255,255,255,0.03)',
+            border: `1px solid ${COPPER_BORDER}`,
+            animation: spinPhase === 'out'
+              ? 'j2RepOut 0.29s ease-in forwards'
+              : spinPhase === 'in'
+                ? 'j2RepIn 0.31s ease-out forwards'
+                : 'none',
+          }}
+        >
+          {/* Header row */}
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] text-white/30 uppercase tracking-wide">Rep Roulette</span>
+            <button
+              onClick={handleSpin}
+              disabled={spinPhase !== 'idle'}
+              className="text-xs font-medium px-2.5 py-1 rounded-lg transition-colors disabled:opacity-40"
+              style={{ backgroundColor: 'rgba(184,122,85,0.15)', color: 'rgba(184,122,85,0.85)' }}
+            >
+              ⟳ Spin
+            </button>
+          </div>
+
+          {/* Drill display */}
+          <p
+            className="text-xl font-semibold mb-1"
+            style={{ color: 'rgba(240,223,160,0.85)' }}
+          >
+            {ROULETTE_DRILLS[drillIndex].name}
+          </p>
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
+            {ROULETTE_DRILLS[drillIndex].focus}
+            <span style={{ color: 'rgba(255,255,255,0.2)', margin: '0 6px' }}>·</span>
+            {ROULETTE_DRILLS[drillIndex].suggestion}
+          </p>
+        </div>
+      </div>
 
       {/* ── Modals ────────────────────────────────────────────────── */}
 
       {logOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm px-4"
+          className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm px-5"
           style={{ backgroundColor: 'rgba(17, 30, 43, 0.92)' }}
           onClick={() => setLogOpen(false)}
         >
@@ -844,7 +1104,11 @@ export default function PathAheadPage() {
               overflowY: 'auto',
             }}
           >
-            <LogSessionForm onSuccess={() => { fetchAll(); setLogOpen(false); }} />
+            <LogSessionForm
+              onSuccess={() => { fetchAll(); setLogOpen(false); setLogDate(null); }}
+              onCancel={() => { setLogOpen(false); setLogDate(null); }}
+              defaultDate={logDate ?? undefined}
+            />
           </div>
         </div>
       )}

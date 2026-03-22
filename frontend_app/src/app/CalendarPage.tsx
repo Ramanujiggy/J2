@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api, ApiError } from '../lib/api.ts';
-import { useProfile } from '../context/ProfileContext.tsx';
 import TrainingHeatmap, { type SessionSummary } from '../components/TrainingHeatmap.tsx';
 import ErrorBoundary from '../components/ErrorBoundary.tsx';
 import { PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
@@ -22,12 +21,17 @@ interface IntentionsResponse {
 }
 
 export default function CalendarPage() {
-  const { beltRank, stripes } = useProfile();
   const [sessions,    setSessions]    = useState<SessionSummary[]>([]);
   const [intentions,  setIntentions]  = useState<CalendarIntention[]>([]);
   const [loading,     setLoading]     = useState(true);
   const [fetchError,  setFetchError]  = useState<string | null>(null);
   const [displayYear, setDisplayYear] = useState(new Date().getFullYear());
+  const [flipDir,     setFlipDir]     = useState<'forward' | 'back' | null>(null);
+
+  const navigateYear = (dir: 1 | -1) => {
+    setFlipDir(dir === 1 ? 'forward' : 'back');
+    setDisplayYear(y => y + dir);
+  };
 
   const fetchAll = useCallback(async () => {
     try {
@@ -66,7 +70,7 @@ export default function CalendarPage() {
         {/* Year navigation */}
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setDisplayYear(y => y - 1)}
+            onClick={() => navigateYear(-1)}
             className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-colors"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -75,7 +79,7 @@ export default function CalendarPage() {
           </button>
           <span className="text-sm font-medium text-white/60 w-10 text-center">{displayYear}</span>
           <button
-            onClick={() => setDisplayYear(y => y + 1)}
+            onClick={() => navigateYear(1)}
             disabled={displayYear >= currentYear}
             className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-20 disabled:cursor-not-allowed"
           >
@@ -89,15 +93,22 @@ export default function CalendarPage() {
       {fetchError && <p className="text-sm text-red-400">{fetchError}</p>}
 
       <ErrorBoundary>
-        <TrainingHeatmap
-          sessions={sessions}
-          intentions={intentions}
-          loading={loading}
-          onSessionUpdated={fetchAll}
-          beltRank={beltRank}
-          stripes={stripes}
-          year={displayYear}
-        />
+        <div
+          key={displayYear}
+          onAnimationEnd={() => setFlipDir(null)}
+          style={flipDir ? {
+            animation: `j2PageFlip${flipDir === 'forward' ? 'Forward' : 'Back'} 380ms ease-out both`,
+          } : undefined}
+        >
+          <TrainingHeatmap
+            sessions={sessions}
+            intentions={intentions}
+            loading={loading}
+            onSessionUpdated={fetchAll}
+            onGoToToday={() => setDisplayYear(currentYear)}
+            year={displayYear}
+          />
+        </div>
       </ErrorBoundary>
     </div>
   );

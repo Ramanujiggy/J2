@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { createSession, getSessionsByUser, updateSession as updateSessionModel, deleteSession as deleteSessionModel } from '../models/sessionModel.js';
+import { createSession, getSessionsByUser, updateSession as updateSessionModel, deleteSession as deleteSessionModel, bulkInsertSessions, type BulkSessionInput } from '../models/sessionModel.js';
 
 const VALID_TAGS = new Set(['standup', 'guard_retention', 'submissions', 'pin_escapes', 'guard_passing']);
 const VALID_GI_NOGI = new Set(['gi', 'no_gi']);
@@ -101,6 +101,83 @@ export const deleteSession = async (req: Request, res: Response): Promise<void> 
     } catch (err) {
         console.error('❌ Error deleting session:', err);
         res.status(500).json({ message: 'Server error.' });
+    }
+};
+
+export const importSessions = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            res.status(401).json({ message: 'Unauthorized.' });
+            return;
+        }
+
+        const { sessions } = req.body;
+
+        if (!Array.isArray(sessions) || sessions.length === 0) {
+            res.status(400).json({ message: 'sessions must be a non-empty array.' });
+            return;
+        }
+
+        if (sessions.length > 500) {
+            res.status(400).json({ message: 'Maximum 500 sessions per import.' });
+            return;
+        }
+
+        // Validate every row before touching the DB
+        const validated: BulkSessionInput[] = [];
+        for (let i = 0; i < sessions.length; i++) {
+            const s = sessions[i];
+            const rowLabel = `Row ${i + 1}`;
+
+            if (!s.date || !DATE_RE.test(s.date) || isNaN(Date.parse(s.date))) {
+                res.status(400).json({ message: `${rowLabel}: invalid date "${s.date}".` });
+                return;
+            }
+
+            const dur = Number(s.duration);
+            if (!Number.isInteger(dur) || dur < 1 || dur > 720) {
+                res.status(400).json({ message: `${rowLabel}: duration must be 1–720 minutes.` });
+                return;
+            }
+
+            const inten = Number(s.intensity);
+            if (!Number.isInteger(inten) || inten < 1 || inten > 5) {
+                res.status(400).json({ message: `${rowLabel}: intensity must be 1–5.` });
+                return;
+            }
+
+            if (!VALID_GI_NOGI.has(s.gi_nogi)) {
+                res.status(400).json({ message: `${rowLabel}: gi_nogi must be "gi" or "no_gi".` });
+                return;
+            }
+
+            if (!VALID_SESSION_TYPES.has(s.session_type)) {
+                res.status(400).json({ message: `${rowLabel}: invalid session_type.` });
+                return;
+            }
+
+            if (!isValidTagArray(s.tags)) {
+                res.status(400).json({ message: `${rowLabel}: at least one valid skill tag required.` });
+                return;
+            }
+
+            validated.push({
+                date: s.date,
+                duration: dur,
+                gi_nogi: s.gi_nogi,
+                intensity: inten,
+                session_type: s.session_type,
+                tags: s.tags,
+                notes: typeof s.notes === 'string' ? s.notes : '',
+            });
+        }
+
+        const imported = await bulkInsertSessions(userId, validated);
+        res.status(201).json({ imported });
+    } catch (err) {
+        console.error('❌ Error importing sessions:', err);
+        res.status(500).json({ message: 'Server error during import.' });
     }
 };
 

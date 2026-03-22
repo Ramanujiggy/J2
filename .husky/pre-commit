@@ -1,0 +1,1 @@
+cd backend_api && npm test

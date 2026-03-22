@@ -122,7 +122,7 @@ export default function IntentionsPage() {
           <div className="hidden sm:grid grid-cols-[80px_1fr_1fr_100px] gap-4 px-4 pb-1">
             <span className="text-[11px] text-white/30 uppercase tracking-wide">Week</span>
             <span className="text-[11px] text-white/30 uppercase tracking-wide">Intention</span>
-            <span className="text-[11px] text-white/30 uppercase tracking-wide">Ambient Focus</span>
+            <span className="text-[11px] text-white/30 uppercase tracking-wide">Training Telemetry</span>
             <span className="text-[11px] text-white/30 uppercase tracking-wide">Journal</span>
           </div>
 
