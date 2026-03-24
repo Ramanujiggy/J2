@@ -805,6 +805,7 @@ export default function PathAheadPage() {
       {/* ── Day stack ─────────────────────────────────────────────── */}
       <div
         ref={carouselRef}
+        data-testid="day-carousel"
         style={{
           position: 'relative',
           height: CARD_H + STACK_PEEK,
