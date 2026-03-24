@@ -578,7 +578,7 @@ export default function PathAheadPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-5">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 space-y-3">
       <style>{`
         @keyframes j2IntentParticleRise {
           0%   { transform: translateY(0) translateX(0);               opacity: 0;   }
@@ -625,11 +625,11 @@ export default function PathAheadPage() {
       {/* ── Intent banner ─────────────────────────────────────────── */}
       {intentionsEnabled ? (
         <div
-          className="rounded-xl px-4 py-3"
+          className="rounded-xl px-4 py-2"
           style={{
             position: 'relative',
             overflow: 'hidden',
-            minHeight: 48,
+            minHeight: 40,
             backgroundColor: activeIntention ? 'rgba(240,223,160,0.06)' : 'rgba(255,255,255,0.03)',
             border: `1px solid ${activeIntention ? 'rgba(240,223,160,0.18)' : 'rgba(255,255,255,0.06)'}`,
             boxShadow: activeIntention ? '0 0 12px rgba(240,223,160,0.08)' : 'none',
@@ -900,7 +900,7 @@ export default function PathAheadPage() {
       {/* ── Weekly summary card ───────────────────────────────────── */}
       {windowStats.count > 0 && (
         <div
-          className="rounded-xl px-4 py-3"
+          className="rounded-xl px-4 py-2.5"
           style={{
             position: 'relative',
             overflow: 'hidden',
@@ -947,7 +947,7 @@ export default function PathAheadPage() {
           </div>
 
           {/* Content */}
-          <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
 
             {/* Header row */}
             <div className="flex items-center gap-2">
@@ -1012,7 +1012,7 @@ export default function PathAheadPage() {
       {/* ── Rep Roulette ──────────────────────────────────────────── */}
       <div style={{ perspective: '800px' }}>
         <div
-          className="rounded-xl px-4 py-3"
+          className="rounded-xl px-4 py-2.5"
           style={{
             position: 'relative',
             overflow: 'hidden',
@@ -1026,7 +1026,7 @@ export default function PathAheadPage() {
           }}
         >
           {/* Header row */}
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-semibold uppercase tracking-wide" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>Rep Roulette</span>
             <button
               onClick={handleSpin}
@@ -1040,7 +1040,7 @@ export default function PathAheadPage() {
 
           {/* Drill display */}
           <p
-            className="text-xl font-semibold mb-1"
+            className="text-xl font-semibold mb-0.5"
             style={{ color: 'rgba(240,223,160,0.85)' }}
           >
             {ROULETTE_DRILLS[drillIndex].name}
