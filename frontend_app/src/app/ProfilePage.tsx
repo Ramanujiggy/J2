@@ -6,6 +6,7 @@ import { api } from '../lib/api.ts';
 import { useAuth } from '../hooks/useAuth.ts';
 import { CARD_BG, COPPER_BORDER, CARD_SHADOW, PALE_YELLOW } from '../lib/theme.ts';
 import CsvImportModal from '../components/CsvImportModal.tsx';
+import LoadingScreen from '../components/LoadingScreen.tsx';
 import { type BeltRank } from '../components/BeltBar.tsx';
 import { useProfile } from '../context/ProfileContext.tsx';
 import {
@@ -154,7 +155,7 @@ export default function ProfilePage() {
         <h2 className="text-lg font-semibold text-white mb-6">Your Profile</h2>
 
         {loading ? (
-          <p className="text-white/40 text-sm">Loading…</p>
+          <LoadingScreen />
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl p-6" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
 

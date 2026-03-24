@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.ts';
 import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER_BORDER, CARD_SHADOW } from '../lib/theme.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
+import LoadingScreen from '../components/LoadingScreen.tsx';
 
 interface Intention {
   id: string;
@@ -86,13 +87,7 @@ export default function JournalEntryPage() {
     await save(text);
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-sm text-white/30">Loading…</p>
-      </div>
-    );
-  }
+  if (loading) return <LoadingScreen />;
 
   if (!intention) {
     return (

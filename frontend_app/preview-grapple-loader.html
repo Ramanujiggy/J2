@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jornada — Grapple Loader Preview</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #111e2b;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, sans-serif;
+      color: rgba(255,255,255,0.5);
+      gap: 60px;
+    }
+
+    h1 {
+      font-size: 13px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(240,223,160,0.4);
+      margin-bottom: -40px;
+    }
+
+    /* ── Sizes row ────────────────────────────────────────────── */
+    .sizes {
+      display: flex;
+      align-items: center;
+      gap: 56px;
+    }
+
+    .size-demo {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .size-label {
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      color: rgba(255,255,255,0.18);
+    }
+
+    /* ── Loader container ─────────────────────────────────────── */
+    .grapple-loader {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Mat glow — radial pulse beneath the figures */
+    .grapple-glow {
+      position: absolute;
+      border-radius: 50%;
+      background: radial-gradient(
+        ellipse at center,
+        rgba(184,122,85,0.45) 0%,
+        rgba(184,122,85,0.15) 45%,
+        transparent 72%
+      );
+      animation: j2GrappleGlow 3.2s ease-in-out infinite;
+    }
+
+    /* Rotating figures */
+    .grapple-figures {
+      position: relative;
+      z-index: 1;
+      animation: j2GrappleRotate 9s linear infinite;
+    }
+
+    .grapple-figures svg {
+      display: block;
+      animation: j2GrapplePulse 2.6s ease-in-out infinite;
+      filter: drop-shadow(0 0 4px rgba(184,122,85,0.5));
+    }
+
+    /* Loading text beneath */
+    .grapple-label {
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.2);
+      margin-top: 4px;
+    }
+
+    /* ── Keyframes ────────────────────────────────────────────── */
+    @keyframes j2GrappleRotate {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+
+    @keyframes j2GrappleGlow {
+      0%, 100% { opacity: 0.55; transform: scale(1);    }
+      50%       { opacity: 1;    transform: scale(1.18); }
+    }
+
+    @keyframes j2GrapplePulse {
+      0%, 100% { transform: scale(1);    }
+      50%       { transform: scale(1.04); }
+    }
+
+    /* ── Page-context mock ────────────────────────────────────── */
+    .page-mock {
+      width: 360px;
+      height: 200px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(184,122,85,0.15);
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .page-mock-label {
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      color: rgba(255,255,255,0.18);
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Jornada · Grapple Loader</h1>
+
+  <!-- Three sizes side by side -->
+  <div class="sizes">
+
+    <!-- 48px -->
+    <div class="size-demo">
+      <div class="grapple-loader" style="width:60px;height:60px;">
+        <div class="grapple-glow" style="width:50px;height:50px;"></div>
+        <div class="grapple-figures">
+          <svg width="44" height="44" viewBox="-50 -50 100 100"
+               fill="rgba(240,223,160,0.92)" xmlns="http://www.w3.org/2000/svg">
+            <!-- Thrower -->
+            <circle cx="12" cy="-36" r="7"/>
+            <ellipse cx="9" cy="-22" rx="10" ry="9"/>
+            <ellipse cx="-8" cy="-14" rx="5" ry="11" transform="rotate(35 -8 -14)"/>
+            <ellipse cx="8" cy="-4"  rx="9" ry="8"/>
+            <ellipse cx="2" cy="16"  rx="6" ry="15" transform="rotate(-14 2 16)"/>
+            <ellipse cx="20" cy="17" rx="5" ry="13" transform="rotate(16 20 17)"/>
+            <!-- Thrown -->
+            <circle cx="-33" cy="22" r="6"/>
+            <ellipse cx="-24" cy="14" rx="4" ry="7"  transform="rotate(-35 -24 14)"/>
+            <ellipse cx="-3"  cy="2"  rx="26" ry="8"  transform="rotate(-30 -3 2)"/>
+            <ellipse cx="26"  cy="-14" rx="9" ry="6"  transform="rotate(-25 26 -14)"/>
+            <ellipse cx="39"  cy="-26" rx="12" ry="5" transform="rotate(-20 39 -26)"/>
+            <ellipse cx="46"  cy="-36" rx="7" ry="4"  transform="rotate(-15 46 -36)"/>
+          </svg>
+        </div>
+      </div>
+      <span class="size-label">48px</span>
+    </div>
+
+    <!-- 96px (primary / app use) -->
+    <div class="size-demo">
+      <div class="grapple-loader" style="width:120px;height:120px;">
+        <div class="grapple-glow" style="width:100px;height:100px;"></div>
+        <div class="grapple-figures">
+          <svg width="96" height="96" viewBox="-50 -50 100 100"
+               fill="rgba(240,223,160,0.92)" xmlns="http://www.w3.org/2000/svg">
+            <!-- Thrower -->
+            <circle cx="12" cy="-36" r="7"/>
+            <ellipse cx="9" cy="-22" rx="10" ry="9"/>
+            <ellipse cx="-8" cy="-14" rx="5" ry="11" transform="rotate(35 -8 -14)"/>
+            <ellipse cx="8" cy="-4"  rx="9" ry="8"/>
+            <ellipse cx="2" cy="16"  rx="6" ry="15" transform="rotate(-14 2 16)"/>
+            <ellipse cx="20" cy="17" rx="5" ry="13" transform="rotate(16 20 17)"/>
+            <!-- Thrown -->
+            <circle cx="-33" cy="22" r="6"/>
+            <ellipse cx="-24" cy="14" rx="4" ry="7"  transform="rotate(-35 -24 14)"/>
+            <ellipse cx="-3"  cy="2"  rx="26" ry="8"  transform="rotate(-30 -3 2)"/>
+            <ellipse cx="26"  cy="-14" rx="9" ry="6"  transform="rotate(-25 26 -14)"/>
+            <ellipse cx="39"  cy="-26" rx="12" ry="5" transform="rotate(-20 39 -26)"/>
+            <ellipse cx="46"  cy="-36" rx="7" ry="4"  transform="rotate(-15 46 -36)"/>
+          </svg>
+        </div>
+      </div>
+      <div class="grapple-label">Loading</div>
+      <span class="size-label">96px · app default</span>
+    </div>
+
+    <!-- 140px -->
+    <div class="size-demo">
+      <div class="grapple-loader" style="width:160px;height:160px;">
+        <div class="grapple-glow" style="width:140px;height:140px;"></div>
+        <div class="grapple-figures">
+          <svg width="140" height="140" viewBox="-50 -50 100 100"
+               fill="rgba(240,223,160,0.92)" xmlns="http://www.w3.org/2000/svg">
+            <!-- Thrower -->
+            <circle cx="12" cy="-36" r="7"/>
+            <ellipse cx="9" cy="-22" rx="10" ry="9"/>
+            <ellipse cx="-8" cy="-14" rx="5" ry="11" transform="rotate(35 -8 -14)"/>
+            <ellipse cx="8" cy="-4"  rx="9" ry="8"/>
+            <ellipse cx="2" cy="16"  rx="6" ry="15" transform="rotate(-14 2 16)"/>
+            <ellipse cx="20" cy="17" rx="5" ry="13" transform="rotate(16 20 17)"/>
+            <!-- Thrown -->
+            <circle cx="-33" cy="22" r="6"/>
+            <ellipse cx="-24" cy="14" rx="4" ry="7"  transform="rotate(-35 -24 14)"/>
+            <ellipse cx="-3"  cy="2"  rx="26" ry="8"  transform="rotate(-30 -3 2)"/>
+            <ellipse cx="26"  cy="-14" rx="9" ry="6"  transform="rotate(-25 26 -14)"/>
+            <ellipse cx="39"  cy="-26" rx="12" ry="5" transform="rotate(-20 39 -26)"/>
+            <ellipse cx="46"  cy="-36" rx="7" ry="4"  transform="rotate(-15 46 -36)"/>
+          </svg>
+        </div>
+      </div>
+      <span class="size-label">140px</span>
+    </div>
+
+  </div>
+
+  <!-- In-context mock: how it looks inside a page card -->
+  <div class="page-mock">
+    <div class="grapple-loader" style="width:80px;height:80px;">
+      <div class="grapple-glow" style="width:66px;height:66px;"></div>
+      <div class="grapple-figures">
+        <svg width="64" height="64" viewBox="-50 -50 100 100"
+             fill="rgba(240,223,160,0.92)" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="-36" r="7"/>
+          <ellipse cx="9" cy="-22" rx="10" ry="9"/>
+          <ellipse cx="-8" cy="-14" rx="5" ry="11" transform="rotate(35 -8 -14)"/>
+          <ellipse cx="8" cy="-4"  rx="9" ry="8"/>
+          <ellipse cx="2" cy="16"  rx="6" ry="15" transform="rotate(-14 2 16)"/>
+          <ellipse cx="20" cy="17" rx="5" ry="13" transform="rotate(16 20 17)"/>
+          <circle cx="-33" cy="22" r="6"/>
+          <ellipse cx="-24" cy="14" rx="4" ry="7"  transform="rotate(-35 -24 14)"/>
+          <ellipse cx="-3"  cy="2"  rx="26" ry="8"  transform="rotate(-30 -3 2)"/>
+          <ellipse cx="26"  cy="-14" rx="9" ry="6"  transform="rotate(-25 26 -14)"/>
+          <ellipse cx="39"  cy="-26" rx="12" ry="5" transform="rotate(-20 39 -26)"/>
+          <ellipse cx="46"  cy="-36" rx="7" ry="4"  transform="rotate(-15 46 -36)"/>
+        </svg>
+      </div>
+    </div>
+    <span class="page-mock-label">Loading…</span>
+  </div>
+
+</body>
+</html>

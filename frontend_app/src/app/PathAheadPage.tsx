@@ -7,6 +7,7 @@ import SessionDetailModal from '../components/SessionDetailModal.tsx';
 import SetIntentionModal from '../components/SetIntentionModal.tsx';
 import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER_BORDER } from '../lib/theme.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
+import LoadingScreen from '../components/LoadingScreen.tsx';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -569,13 +570,7 @@ export default function PathAheadPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-sm text-white/30">Loading…</p>
-      </div>
-    );
-  }
+  if (loading) return <LoadingScreen />;
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 space-y-3">

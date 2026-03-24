@@ -4,6 +4,7 @@ import SkillRadar from '../components/SkillRadar.tsx';
 import ErrorBoundary from '../components/ErrorBoundary.tsx';
 import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER_BORDER, CARD_SHADOW } from '../lib/theme.ts';
 import type { SessionSummary } from '../components/TrainingHeatmap.tsx';
+import LoadingScreen from '../components/LoadingScreen.tsx';
 import { SKILL_TAGS } from '../lib/constants.ts';
 
 interface SessionsResponse {
@@ -84,13 +85,7 @@ export default function AnalyticsPage() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-sm text-white/30">Loading…</p>
-      </div>
-    );
-  }
+  if (loading) return <LoadingScreen />;
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-5">
