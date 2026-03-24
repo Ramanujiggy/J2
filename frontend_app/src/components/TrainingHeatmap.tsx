@@ -344,7 +344,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
       )}
 
       {/* Scrollable calendar — hidden when empty */}
-      {sessions.length > 0 && <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}><div ref={scrollContainerRef} className="overflow-y-auto relative j2-heatmap-scroll" style={{ maxHeight: 480, minWidth: 320 }}>
+      {sessions.length > 0 && <div ref={scrollContainerRef} className="overflow-y-auto relative j2-heatmap-scroll" style={{ maxHeight: 480 }}>
 
         {/* Sticky column headers */}
         <div
@@ -548,7 +548,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
           );
         })}
 
-      </div></div>}
+      </div>}
 
       {/* Legend — hidden when empty */}
       {sessions.length > 0 && <div className="flex items-center gap-4 mt-5 pt-4 border-t border-white/10 text-xs" style={{ color: 'rgba(240,223,160,0.5)' }}>

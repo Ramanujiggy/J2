@@ -171,7 +171,7 @@ export default function AppShell({ children }: Props) {
       </header>
 
       {/* ── Page content ────────────────────────────────────────── */}
-      <main className="flex-1 overflow-auto sm:pb-0 j2-app-scroll" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))' }}>
+      <main className="flex-1 overflow-auto sm:pb-0 j2-app-scroll" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px) + 8px)' }}>
         {children}
       </main>
 
@@ -181,7 +181,7 @@ export default function AppShell({ children }: Props) {
         style={{
           backgroundColor: '#111e2b',
           borderTopColor: COPPER_BORDER,
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
         }}
       >
         {TABS.map(({ path, label, Icon }) => {
