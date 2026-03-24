@@ -404,7 +404,7 @@ export default function PathAheadPage() {
   const rafRef         = useRef<number | undefined>(undefined);
   const carouselRef    = useRef<HTMLDivElement>(null);
 
-  const CARD_H      = 380;
+  const CARD_H      = 420;
   const STACK_PEEK  = 20;
   const carouselSpring = 'transform 0.38s cubic-bezier(0.25, 1.3, 0.4, 1)';
 
@@ -476,6 +476,20 @@ export default function PathAheadPage() {
       return d;
     });
   }, [today]);
+
+  // Mon–Sun of the current ISO week (for the 7-dot indicator)
+  const weekDays = useMemo(() => {
+    const monday = new Date(today);
+    const dow = monday.getDay(); // 0 = Sun
+    monday.setDate(monday.getDate() - (dow === 0 ? 6 : dow - 1));
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      return d;
+    });
+  }, [today]);
+  // Days-from-Monday offset for today (used to map weekDays index → windowDays index)
+  const todayDowOffset = today.getDay() === 0 ? 6 : today.getDay() - 1;
 
   // Intention is always for the current calendar week
   const activeIntention = intentions.find(i => i.week_start.slice(0, 10) === getWeekStart(today)) ?? null;
@@ -743,7 +757,8 @@ export default function PathAheadPage() {
         }} />
       )}
 
-      {/* ── Day stack ─────────────────────────────────────────────── */}
+      {/* ── Day stack + indicator — wrapped to remove space-y-5 gap */}
+      <div>
       <div
         ref={carouselRef}
         data-testid="day-carousel"
@@ -837,19 +852,22 @@ export default function PathAheadPage() {
         })}
       </div>
 
-      {/* Day-initial indicator */}
-      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
-        {windowDays.map((day, i) => {
-          const active     = i === activeDayIndex;
+      {/* Day-initial indicator — Mon–Sun of current week */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 4 }}>
+        {weekDays.map((day, i) => {
+          const winIndex   = 5 + (i - todayDowOffset);
+          const active     = winIndex === activeDayIndex;
           const isIndToday = toDateString(day) === toDateString(today);
           const initial    = ['S','M','T','W','T','F','S'][day.getDay()];
+          const clickable  = winIndex >= 0 && winIndex <= 10;
           return (
             <button
               key={i}
-              onClick={() => setActiveDayIndex(i)}
+              onClick={() => { if (clickable) setActiveDayIndex(winIndex); }}
               style={{
                 flex: 1, padding: '4px 0 6px',
-                border: 'none', background: 'transparent', cursor: 'pointer',
+                border: 'none', background: 'transparent',
+                cursor: clickable ? 'pointer' : 'default',
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
               }}
             >
@@ -877,6 +895,7 @@ export default function PathAheadPage() {
           );
         })}
       </div>
+      </div>{/* end carousel + indicator wrapper */}
 
       {/* ── Weekly summary card ───────────────────────────────────── */}
       {windowStats.count > 0 && (
@@ -929,8 +948,21 @@ export default function PathAheadPage() {
 
           {/* Content */}
           <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {/* Stats row */}
-            <div className="flex items-center gap-4 text-sm flex-wrap">
+
+            {/* Header row */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold uppercase tracking-wide" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>Training Telemetry</span>
+              <span style={{
+                display: 'inline-block', width: 20, height: 1.5,
+                borderRadius: 1,
+                backgroundColor: 'rgba(184,122,85,0.55)',
+                boxShadow: '0 0 6px 2px rgba(184,122,85,0.3)',
+                verticalAlign: 'middle',
+              }} />
+            </div>
+
+            {/* Stats */}
+            <div className="flex items-center gap-3 text-sm flex-wrap">
               <span className="text-white/50">
                 <span className="font-semibold text-white">{windowStats.count}</span> session{windowStats.count !== 1 ? 's' : ''}
               </span>
@@ -940,7 +972,7 @@ export default function PathAheadPage() {
               </span>
             </div>
 
-            {/* Training Telemetry — prose sentence */}
+            {/* Prose sentence — only when tags exist */}
             {windowStats.topTagLabel && (() => {
               const { topTagLabel, topTagCount, count, tag2Label } = windowStats;
               const pct = count > 0 ? topTagCount / count : 0;
@@ -963,22 +995,14 @@ export default function PathAheadPage() {
               }
 
               return (
-                <div style={{ marginTop: 2 }}>
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="text-sm font-semibold uppercase tracking-wide" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>Training Telemetry</span>
-                    <Tooltip text="Based on the skill tags from your logged sessions.">
-                      <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.22)', cursor: 'default', lineHeight: 1 }}>?</span>
-                    </Tooltip>
-                  </div>
-                  <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', margin: 0, lineHeight: 1.45 }}>
-                    {before}
-                    <strong style={{ color: 'rgba(218,116,34,0.85)', fontWeight: 600 }}>{highlight}</strong>
-                    {after && highlight2 ? (
-                      <>{after}<strong style={{ color: 'rgba(218,116,34,0.85)', fontWeight: 600 }}>{highlight2}</strong></>
-                    ) : null}
-                    {'.'}
-                  </p>
-                </div>
+                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', margin: 0, lineHeight: 1.45 }}>
+                  {before}
+                  <strong style={{ color: 'rgba(218,116,34,0.85)', fontWeight: 600 }}>{highlight}</strong>
+                  {after && highlight2 ? (
+                    <>{after}<strong style={{ color: 'rgba(218,116,34,0.85)', fontWeight: 600 }}>{highlight2}</strong></>
+                  ) : null}
+                  {'.'}
+                </p>
               );
             })()}
           </div>
