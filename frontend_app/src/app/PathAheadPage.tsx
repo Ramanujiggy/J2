@@ -395,11 +395,8 @@ export default function PathAheadPage() {
   const [intentions, setIntentions] = useState<Intention[]>([]);
   const [loading,    setLoading]    = useState(true);
 
-  // weekOffset: 0 = today's 7-day window, -1 = previous 7 days, etc.
-  const [weekOffset, setWeekOffset] = useState(0);
-
   // Carousel — absolute stack layout
-  const [activeDayIndex, setActiveDayIndex] = useState(0);
+  const [activeDayIndex, setActiveDayIndex] = useState(5);
   const [dragX,          setDragX]          = useState(0);
   const [isDragging,     setIsDragging]     = useState(false);
   const touchStartX    = useRef(0);
@@ -407,11 +404,9 @@ export default function PathAheadPage() {
   const rafRef         = useRef<number | undefined>(undefined);
   const carouselRef    = useRef<HTMLDivElement>(null);
 
-  const CARD_H      = 320;
+  const CARD_H      = 380;
   const STACK_PEEK  = 20;
   const carouselSpring = 'transform 0.38s cubic-bezier(0.25, 1.3, 0.4, 1)';
-
-  useEffect(() => { setActiveDayIndex(0); setDragX(0); setIsDragging(false); }, [weekOffset]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current    = e.touches[0].clientX;
@@ -432,7 +427,7 @@ export default function PathAheadPage() {
     const dt  = Date.now() - touchStartTime.current;
     const vel = Math.abs(dx) / Math.max(dt, 1);
     if (Math.abs(dx) > 55 || vel > 0.35) {
-      if (dx < 0) setActiveDayIndex(i => Math.min(6, i + 1));
+      if (dx < 0) setActiveDayIndex(i => Math.min(10, i + 1));
       else        setActiveDayIndex(i => Math.max(0, i - 1));
     }
     setDragX(0);
@@ -475,26 +470,17 @@ export default function PathAheadPage() {
   const today = useMemo(() => new Date(), []);
 
   const windowDays = useMemo(() => {
-    const start = new Date(today);
-    start.setDate(today.getDate() + weekOffset * 7);
-    return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(start);
-      d.setDate(start.getDate() + i);
+    return Array.from({ length: 11 }, (_, i) => {
+      const d = new Date(today);
+      d.setDate(today.getDate() + (i - 5));
       return d;
     });
-  }, [today, weekOffset]);
+  }, [today]);
 
-  const windowStart = windowDays[0];
+  // Intention is always for the current calendar week
+  const activeIntention = intentions.find(i => i.week_start.slice(0, 10) === getWeekStart(today)) ?? null;
 
-  // Intent for this display window (calendar week containing windowStart)
-  const windowWeekStart = getWeekStart(windowStart);
-  const activeIntention = intentions.find(i => i.week_start.slice(0, 10) === windowWeekStart) ?? null;
-
-  // Day coverage: start from today (weekOffset 0) to avoid UTC vs local timezone mismatch
-  // on created_at. For past weeks, fall back to created_at.
-  const intentionStartStr = activeIntention
-    ? (weekOffset === 0 ? toDateString(today) : activeIntention.created_at.slice(0, 10))
-    : null;
+  const intentionStartStr = activeIntention ? toDateString(today) : null;
   const intentionEndStr = intentionStartStr && activeIntention
     ? addDays(intentionStartStr, activeIntention.duration_days ?? 7)
     : null;
@@ -531,18 +517,6 @@ export default function PathAheadPage() {
     const tag2Label   = tag2Entry ? (SKILL_TAGS.find(s => s.value === tag2Entry[0])?.label ?? tag2Entry[0]) : null;
     return { count: windowSessions.length, totalMinutes, topTagLabel, topTagCount, tag2Label };
   }, [sessions, windowDays]);
-
-  // ── Window label ───────────────────────────────────────────────────────
-
-  const windowLabel = (() => {
-    const start = windowDays[0];
-    const end   = windowDays[6];
-    if (weekOffset === 0) return 'This week';
-    if (weekOffset === -1) return 'Last week';
-    const s = `${MONTH_NAMES[start.getMonth()]} ${start.getDate()}`;
-    const e = `${MONTH_NAMES[end.getMonth()]} ${end.getDate()}`;
-    return `${s} – ${e}`;
-  })();
 
   // ── Intent delete ──────────────────────────────────────────────────────
 
@@ -747,15 +721,13 @@ export default function PathAheadPage() {
             ) : (
               <>
                 <p className="text-sm text-white/30 italic">No intention set for this week.</p>
-                {weekOffset === 0 && (
-                  <button
-                    onClick={() => setSetIntentOpen(true)}
-                    className="text-sm font-medium flex-shrink-0 transition-colors"
-                    style={{ color: PALE_YELLOW }}
-                  >
-                    + Set intent
-                  </button>
-                )}
+                <button
+                  onClick={() => setSetIntentOpen(true)}
+                  className="text-sm font-medium flex-shrink-0 transition-colors"
+                  style={{ color: PALE_YELLOW }}
+                >
+                  + Set intent
+                </button>
               </>
             )}
           </div>
@@ -770,37 +742,6 @@ export default function PathAheadPage() {
           animation: 'j2IntentYellowPulse 3.1s ease-in-out infinite',
         }} />
       )}
-
-      {/* ── Week navigation ───────────────────────────────────────── */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => setWeekOffset(o => o - 1)}
-          className="p-1.5 rounded-lg transition-colors text-white/40 hover:text-white hover:bg-white/5"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-        </button>
-        <span
-          className="font-semibold min-w-[100px] text-center"
-          style={{
-            color: weekOffset === 0 ? PALE_YELLOW : 'rgba(255,255,255,0.55)',
-            fontSize: weekOffset === 0 ? 15 : 13,
-            textShadow: weekOffset === 0 ? GLOW_SOFT : 'none',
-          }}
-        >
-          {windowLabel}
-        </span>
-        <button
-          onClick={() => setWeekOffset(o => o + 1)}
-          disabled={weekOffset >= 0}
-          className="p-1.5 rounded-lg transition-colors text-white/40 hover:text-white hover:bg-white/5 disabled:opacity-20 disabled:cursor-not-allowed"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 18l6-6-6-6" />
-          </svg>
-        </button>
-      </div>
 
       {/* ── Day stack ─────────────────────────────────────────────── */}
       <div
@@ -907,7 +848,7 @@ export default function PathAheadPage() {
               key={i}
               onClick={() => setActiveDayIndex(i)}
               style={{
-                width: 36, padding: '4px 0 6px',
+                flex: 1, padding: '4px 0 6px',
                 border: 'none', background: 'transparent', cursor: 'pointer',
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
               }}
@@ -1024,7 +965,7 @@ export default function PathAheadPage() {
               return (
                 <div style={{ marginTop: 2 }}>
                   <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="text-[11px] text-white/30 uppercase tracking-wide">Training Telemetry</span>
+                    <span className="text-sm font-semibold uppercase tracking-wide" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>Training Telemetry</span>
                     <Tooltip text="Based on the skill tags from your logged sessions.">
                       <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.22)', cursor: 'default', lineHeight: 1 }}>?</span>
                     </Tooltip>
@@ -1062,7 +1003,7 @@ export default function PathAheadPage() {
         >
           {/* Header row */}
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[11px] text-white/30 uppercase tracking-wide">Rep Roulette</span>
+            <span className="text-sm font-semibold uppercase tracking-wide" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>Rep Roulette</span>
             <button
               onClick={handleSpin}
               disabled={spinPhase !== 'idle'}
@@ -1131,7 +1072,7 @@ export default function PathAheadPage() {
 
       {setIntentOpen && (
         <SetIntentionModal
-          weekStart={windowStart}
+          weekStart={today}
           onSaved={fetchAll}
           onClose={() => setSetIntentOpen(false)}
         />
