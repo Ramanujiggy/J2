@@ -73,7 +73,17 @@ export const getSessions = async (req: Request, res: Response): Promise<void> =>
             return;
         }
 
-        const sessions = await getSessionsByUser(userId);
+        const { from, to } = req.query as { from?: string; to?: string };
+        if (from && !DATE_RE.test(from)) {
+            res.status(400).json({ message: 'from must be a valid YYYY-MM-DD date.' });
+            return;
+        }
+        if (to && !DATE_RE.test(to)) {
+            res.status(400).json({ message: 'to must be a valid YYYY-MM-DD date.' });
+            return;
+        }
+
+        const sessions = await getSessionsByUser(userId, from, to);
         res.json({ sessions });
     } catch (err) {
         console.error('❌ Error fetching sessions:', err);

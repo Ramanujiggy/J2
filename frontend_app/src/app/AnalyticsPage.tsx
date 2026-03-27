@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api, ApiError } from '../lib/api.ts';
-import SkillRadar from '../components/SkillRadar.tsx';
+import SkillRadar, { type TimeWindow } from '../components/SkillRadar.tsx';
 import ErrorBoundary from '../components/ErrorBoundary.tsx';
 import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER_BORDER, CARD_SHADOW } from '../lib/theme.ts';
 import type { SessionSummary } from '../components/TrainingHeatmap.tsx';
@@ -28,6 +28,8 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+const WINDOW_DAYS: Partial<Record<TimeWindow, number>> = { '30d': 30, '60d': 60, '90d': 90 };
 
 function formatWeek(weekStart: string): string {
   const d = new Date(weekStart.slice(0, 10) + 'T00:00:00');
@@ -59,17 +61,23 @@ function topTagInRange(
 }
 
 export default function AnalyticsPage() {
-  const [sessions,   setSessions]   = useState<SessionSummary[]>([]);
-  const [intentions, setIntentions] = useState<Intention[]>([]);
-  const [loading,    setLoading]    = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [focusOpen,  setFocusOpen]  = useState(false);
+  const [sessions,    setSessions]    = useState<SessionSummary[]>([]);
+  const [intentions,  setIntentions]  = useState<Intention[]>([]);
+  const [loading,     setLoading]     = useState(true);
+  const [fetchError,  setFetchError]  = useState<string | null>(null);
+  const [focusOpen,   setFocusOpen]   = useState(false);
+  const [timeWindow,  setTimeWindow]  = useState<TimeWindow>('90d');
 
   const fetchAll = useCallback(async () => {
     try {
+      setLoading(true);
       setFetchError(null);
+      const days = WINDOW_DAYS[timeWindow];
+      const sessionUrl = days != null
+        ? `/api/sessions?from=${new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10)}`
+        : '/api/sessions';
       const [sesRes, intRes] = await Promise.all([
-        api.get<SessionsResponse>('/api/sessions'),
+        api.get<SessionsResponse>(sessionUrl),
         api.get<{ intentions: Intention[] }>('/api/intentions'),
       ]);
       setSessions(sesRes.sessions ?? []);
@@ -81,7 +89,7 @@ export default function AnalyticsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [timeWindow]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -100,7 +108,7 @@ export default function AnalyticsPage() {
       {fetchError && <p className="text-sm text-red-400">{fetchError}</p>}
 
       <ErrorBoundary>
-        <SkillRadar sessions={sessions} />
+        <SkillRadar sessions={sessions} timeWindow={timeWindow} onWindowChange={setTimeWindow} />
       </ErrorBoundary>
 
       {/* ── Intention vs Ambient Focus ─────────────────────────── */}

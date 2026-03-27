@@ -158,7 +158,7 @@ const SEG_COMP  = 'rgba(220,90,80,0.80)';
 // ─── Rail config ──────────────────────────────────────────────────────────────
 
 type ViewMode = 'prism' | 'volume' | 'split' | 'format';
-type TimeWindow = '30d' | '60d' | '90d' | 'all';
+export type TimeWindow = '30d' | '60d' | '90d' | 'all';
 
 const RAIL_VIEWS: { id: ViewMode; label: string; Icon: LucideIcon }[] = [
   { id: 'prism',  label: 'Grappling Prism',  Icon: Target    },
@@ -190,10 +190,11 @@ const VIEW_META: Record<ViewMode, { title: string; subtitle: string }> = {
 
 interface SkillRadarProps {
   sessions: SessionSummary[];
+  timeWindow: TimeWindow;
+  onWindowChange: (w: TimeWindow) => void;
 }
 
-export default function SkillRadar({ sessions }: SkillRadarProps) {
-  const [timeWindow, setTimeWindow] = useState<TimeWindow>('90d');
+export default function SkillRadar({ sessions, timeWindow, onWindowChange }: SkillRadarProps) {
   const [subtitleRevealed, setSubtitleRevealed] = useState(false);
   const [displayMode, setDisplayMode] = useState<'hours' | 'pct'>('hours');
   const [viewMode, setViewMode] = useState<ViewMode>('prism');
@@ -469,7 +470,7 @@ export default function SkillRadar({ sessions }: SkillRadarProps) {
         </div>
         <div className="flex flex-wrap gap-1.5">
           {(['30d', '60d', '90d', 'all'] as TimeWindow[]).map(w => (
-            <button key={w} onClick={() => setTimeWindow(w)} className={`${btnBase} ${timeWindow === w ? btnActive : btnInactive}`}>
+            <button key={w} onClick={() => onWindowChange(w)} className={`${btnBase} ${timeWindow === w ? btnActive : btnInactive}`}>
               {w === '30d' ? '30 Days' : w === '60d' ? '60 Days' : w === '90d' ? '90 Days' : 'All Time'}
             </button>
           ))}

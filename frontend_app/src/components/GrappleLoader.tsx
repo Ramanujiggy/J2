@@ -4,9 +4,9 @@ interface GrappleLoaderProps {
 }
 
 const KEYFRAMES = `
-  @keyframes j2GrappleRotate {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
+  @keyframes j2GuardPassSway {
+    0%, 100% { transform: rotate(-2deg) translateX(-1px); }
+    50%       { transform: rotate(2deg)  translateX(1px);  }
   }
   @keyframes j2GrappleGlow {
     0%, 100% { opacity: 0.55; transform: scale(1);    }
@@ -18,8 +18,25 @@ const KEYFRAMES = `
   }
 `;
 
+/*
+  Guard pass composition (viewBox -50 -50 100 100):
+
+  TOP PLAYER  — crouching/kneeling, leaning forward to pass
+    head   ≈ (4, -34)
+    torso  angles forward/down
+    arms   reach toward bottom player's hips
+    legs   spread, one knee planted
+
+  BOTTOM PLAYER — on their back, legs raised in guard
+    head   ≈ (-28, 26)
+    body   roughly horizontal
+    legs   raised up and bent at knee (classic guard position)
+    one arm reaching up to frame/push
+*/
+
 export default function GrappleLoader({ size = 96, className }: GrappleLoaderProps) {
   const glowSize = size * 1.04;
+  const gold = 'rgba(240,223,160,0.92)';
 
   return (
     <>
@@ -35,7 +52,7 @@ export default function GrappleLoader({ size = 96, className }: GrappleLoaderPro
           justifyContent: 'center',
         }}
       >
-        {/* Mat glow — pulses behind the figures */}
+        {/* Copper mat glow behind the figures */}
         <div
           style={{
             position: 'absolute',
@@ -52,19 +69,24 @@ export default function GrappleLoader({ size = 96, className }: GrappleLoaderPro
           }}
         />
 
-        {/* Rotating figure pair */}
+        {/* Figure pair — gentle sway to suggest active struggle */}
         <div
           style={{
             position: 'relative',
             zIndex: 1,
-            animation: 'j2GrappleRotate 9s linear infinite',
+            animation: 'j2GuardPassSway 2.8s ease-in-out infinite',
+            transformOrigin: 'center center',
           }}
         >
           <svg
             width={size}
             height={size}
             viewBox="-50 -50 100 100"
-            fill="rgba(240,223,160,0.92)"
+            fill="none"
+            stroke={gold}
+            strokeWidth="5.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
             xmlns="http://www.w3.org/2000/svg"
             style={{
               display: 'block',
@@ -72,21 +94,36 @@ export default function GrappleLoader({ size = 96, className }: GrappleLoaderPro
               filter: 'drop-shadow(0 0 4px rgba(184,122,85,0.5))',
             }}
           >
-            {/* ── Thrower — upright figure ── */}
-            <circle cx="12"  cy="-36" r="7"/>
-            <ellipse cx="9"  cy="-22" rx="10" ry="9"/>
-            <ellipse cx="-8" cy="-14" rx="5"  ry="11" transform="rotate(35 -8 -14)"/>
-            <ellipse cx="8"  cy="-4"  rx="9"  ry="8"/>
-            <ellipse cx="2"  cy="16"  rx="6"  ry="15" transform="rotate(-14 2 16)"/>
-            <ellipse cx="20" cy="17"  rx="5"  ry="13" transform="rotate(16 20 17)"/>
+            {/* ── TOP PLAYER: guard passer, crouching over ── */}
+            {/* Head */}
+            <circle cx="4" cy="-34" r="6" fill={gold} stroke="none" />
+            {/* Torso — leaning forward */}
+            <path d="M 4,-28 C 2,-18 0,-8 -2,2" />
+            {/* Left arm reaching down to grip bottom player's hip/leg */}
+            <path d="M 2,-20 C -2,-10 -4,0 0,12" />
+            {/* Right arm out for base */}
+            <path d="M 2,-20 C 10,-14 18,-6 20,2" />
+            {/* Left leg — knee planted on mat */}
+            <path d="M -2,2 C -8,12 -14,22 -18,30" />
+            <path d="M -18,30 C -20,36 -20,42 -16,45" />
+            {/* Right leg — foot planted, driving through */}
+            <path d="M -2,2 C 8,10 18,18 24,26" />
+            <path d="M 24,26 C 28,34 28,41 24,44" />
 
-            {/* ── Thrown figure — diagonal, going over thrower's hip ── */}
-            <circle cx="-33" cy="22"  r="6"/>
-            <ellipse cx="-24" cy="14"  rx="4"  ry="7"  transform="rotate(-35 -24 14)"/>
-            <ellipse cx="-3"  cy="2"   rx="26" ry="8"   transform="rotate(-30 -3 2)"/>
-            <ellipse cx="26"  cy="-14" rx="9"  ry="6"   transform="rotate(-25 26 -14)"/>
-            <ellipse cx="39"  cy="-26" rx="12" ry="5"   transform="rotate(-20 39 -26)"/>
-            <ellipse cx="46"  cy="-36" rx="7"  ry="4"   transform="rotate(-15 46 -36)"/>
+            {/* ── BOTTOM PLAYER: guard, on back with legs raised ── */}
+            {/* Head */}
+            <circle cx="-28" cy="26" r="6" fill={gold} stroke="none" />
+            {/* Torso — horizontal along ground */}
+            <path d="M -22,24 C -10,22 0,24 8,26" />
+            {/* Hip at roughly (8, 26) — both legs raise up into guard */}
+            {/* Left leg: thigh goes up-left, shin bends back */}
+            <path d="M 8,26 C 10,14 12,2 8,-12" />
+            <path d="M 8,-12 C 6,-20 2,-26 -4,-24" />
+            {/* Right leg: thigh goes up-right, shin bends back */}
+            <path d="M 8,26 C 20,16 28,4 28,-8" />
+            <path d="M 28,-8 C 30,-18 30,-26 24,-30" />
+            {/* Arm reaching up to frame passer's shoulders */}
+            <path d="M -18,20 C -10,10 -4,2 2,-8" />
           </svg>
         </div>
       </div>

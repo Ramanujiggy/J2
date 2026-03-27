@@ -10,8 +10,8 @@ Development areas identified from codebase assessment. Updated as work progresse
 
 | Status | Area | Description |
 |---|---|---|
-| `[x]` | **Testing** | Vitest backend suite (42 tests: auth, sessions, JWT middleware) + Husky pre-commit hook. Frontend component tests tracked separately below. |
-| `[ ]` | **Frontend testing** | React Testing Library tests for critical paths: LogSessionForm, swipe navigation, auth flow. |
+| `[~]` | **Testing** | Vitest backend suite exists (auth, sessions, JWT middleware) + Husky pre-commit hook configured. ⚠️ Currently failing — fixture/mock setup incomplete. Fix before next release. |
+| `[~]` | **Frontend testing** | React Testing Library test files started (`HomePage.test.tsx`, `LogSessionForm.test.tsx`, `PathAheadPage.swipe.test.tsx`). More coverage needed: CalendarPage, auth flow, SessionDetailModal. |
 | `[ ]` | **Pagination on session fetch** | `GET /api/sessions` returns the user's full history in a single payload. Add `?year=` or `?limit=&offset=` to avoid growing load times as session count grows. |
 | `[ ]` | **PWA / offline support** | Add a service worker + web manifest so the app is installable and survives spotty gym WiFi when logging sessions. |
 
@@ -21,7 +21,7 @@ Development areas identified from codebase assessment. Updated as work progresse
 
 | Status | Area | Description |
 |---|---|---|
-| `[ ]` | **Session data scoping** | Related to pagination: scope Calendar and Analytics fetches to the relevant year/window rather than loading all sessions on every page mount. |
+| `[x]` | **Session data scoping** | CalendarPage fetches scoped to selected year (`?from&to`); AnalyticsPage fetches scoped to active time window (`?from`). Sessions re-fetched when year/window changes. |
 
 ---
 

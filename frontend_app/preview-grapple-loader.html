@@ -68,11 +68,12 @@
       animation: j2GrappleGlow 3.2s ease-in-out infinite;
     }
 
-    /* Rotating figures */
+    /* Swaying figures */
     .grapple-figures {
       position: relative;
       z-index: 1;
-      animation: j2GrappleRotate 9s linear infinite;
+      animation: j2GuardPassSway 2.8s ease-in-out infinite;
+      transform-origin: center center;
     }
 
     .grapple-figures svg {
@@ -91,9 +92,9 @@
     }
 
     /* ── Keyframes ────────────────────────────────────────────── */
-    @keyframes j2GrappleRotate {
-      from { transform: rotate(0deg); }
-      to   { transform: rotate(360deg); }
+    @keyframes j2GuardPassSway {
+      0%, 100% { transform: rotate(-2deg) translateX(-1px); }
+      50%       { transform: rotate(2deg)  translateX(1px);  }
     }
 
     @keyframes j2GrappleGlow {
@@ -130,7 +131,7 @@
 </head>
 <body>
 
-  <h1>Jornada · Grapple Loader</h1>
+  <h1>Jornada · Guard Pass Loader</h1>
 
   <!-- Three sizes side by side -->
   <div class="sizes">
@@ -141,21 +142,29 @@
         <div class="grapple-glow" style="width:50px;height:50px;"></div>
         <div class="grapple-figures">
           <svg width="44" height="44" viewBox="-50 -50 100 100"
-               fill="rgba(240,223,160,0.92)" xmlns="http://www.w3.org/2000/svg">
-            <!-- Thrower -->
-            <circle cx="12" cy="-36" r="7"/>
-            <ellipse cx="9" cy="-22" rx="10" ry="9"/>
-            <ellipse cx="-8" cy="-14" rx="5" ry="11" transform="rotate(35 -8 -14)"/>
-            <ellipse cx="8" cy="-4"  rx="9" ry="8"/>
-            <ellipse cx="2" cy="16"  rx="6" ry="15" transform="rotate(-14 2 16)"/>
-            <ellipse cx="20" cy="17" rx="5" ry="13" transform="rotate(16 20 17)"/>
-            <!-- Thrown -->
-            <circle cx="-33" cy="22" r="6"/>
-            <ellipse cx="-24" cy="14" rx="4" ry="7"  transform="rotate(-35 -24 14)"/>
-            <ellipse cx="-3"  cy="2"  rx="26" ry="8"  transform="rotate(-30 -3 2)"/>
-            <ellipse cx="26"  cy="-14" rx="9" ry="6"  transform="rotate(-25 26 -14)"/>
-            <ellipse cx="39"  cy="-26" rx="12" ry="5" transform="rotate(-20 39 -26)"/>
-            <ellipse cx="46"  cy="-36" rx="7" ry="4"  transform="rotate(-15 46 -36)"/>
+               fill="none"
+               stroke="rgba(240,223,160,0.92)"
+               stroke-width="5.5"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               xmlns="http://www.w3.org/2000/svg">
+            <!-- TOP PLAYER: guard passer, crouching -->
+            <circle cx="4" cy="-34" r="6" fill="rgba(240,223,160,0.92)" stroke="none"/>
+            <path d="M 4,-28 C 2,-18 0,-8 -2,2"/>
+            <path d="M 2,-20 C -2,-10 -4,0 0,12"/>
+            <path d="M 2,-20 C 10,-14 18,-6 20,2"/>
+            <path d="M -2,2 C -8,12 -14,22 -18,30"/>
+            <path d="M -18,30 C -20,36 -20,42 -16,45"/>
+            <path d="M -2,2 C 8,10 18,18 24,26"/>
+            <path d="M 24,26 C 28,34 28,41 24,44"/>
+            <!-- BOTTOM PLAYER: guard, on back, legs raised -->
+            <circle cx="-28" cy="26" r="6" fill="rgba(240,223,160,0.92)" stroke="none"/>
+            <path d="M -22,24 C -10,22 0,24 8,26"/>
+            <path d="M 8,26 C 10,14 12,2 8,-12"/>
+            <path d="M 8,-12 C 6,-20 2,-26 -4,-24"/>
+            <path d="M 8,26 C 20,16 28,4 28,-8"/>
+            <path d="M 28,-8 C 30,-18 30,-26 24,-30"/>
+            <path d="M -18,20 C -10,10 -4,2 2,-8"/>
           </svg>
         </div>
       </div>
@@ -168,21 +177,29 @@
         <div class="grapple-glow" style="width:100px;height:100px;"></div>
         <div class="grapple-figures">
           <svg width="96" height="96" viewBox="-50 -50 100 100"
-               fill="rgba(240,223,160,0.92)" xmlns="http://www.w3.org/2000/svg">
-            <!-- Thrower -->
-            <circle cx="12" cy="-36" r="7"/>
-            <ellipse cx="9" cy="-22" rx="10" ry="9"/>
-            <ellipse cx="-8" cy="-14" rx="5" ry="11" transform="rotate(35 -8 -14)"/>
-            <ellipse cx="8" cy="-4"  rx="9" ry="8"/>
-            <ellipse cx="2" cy="16"  rx="6" ry="15" transform="rotate(-14 2 16)"/>
-            <ellipse cx="20" cy="17" rx="5" ry="13" transform="rotate(16 20 17)"/>
-            <!-- Thrown -->
-            <circle cx="-33" cy="22" r="6"/>
-            <ellipse cx="-24" cy="14" rx="4" ry="7"  transform="rotate(-35 -24 14)"/>
-            <ellipse cx="-3"  cy="2"  rx="26" ry="8"  transform="rotate(-30 -3 2)"/>
-            <ellipse cx="26"  cy="-14" rx="9" ry="6"  transform="rotate(-25 26 -14)"/>
-            <ellipse cx="39"  cy="-26" rx="12" ry="5" transform="rotate(-20 39 -26)"/>
-            <ellipse cx="46"  cy="-36" rx="7" ry="4"  transform="rotate(-15 46 -36)"/>
+               fill="none"
+               stroke="rgba(240,223,160,0.92)"
+               stroke-width="5.5"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               xmlns="http://www.w3.org/2000/svg">
+            <!-- TOP PLAYER: guard passer, crouching -->
+            <circle cx="4" cy="-34" r="6" fill="rgba(240,223,160,0.92)" stroke="none"/>
+            <path d="M 4,-28 C 2,-18 0,-8 -2,2"/>
+            <path d="M 2,-20 C -2,-10 -4,0 0,12"/>
+            <path d="M 2,-20 C 10,-14 18,-6 20,2"/>
+            <path d="M -2,2 C -8,12 -14,22 -18,30"/>
+            <path d="M -18,30 C -20,36 -20,42 -16,45"/>
+            <path d="M -2,2 C 8,10 18,18 24,26"/>
+            <path d="M 24,26 C 28,34 28,41 24,44"/>
+            <!-- BOTTOM PLAYER: guard, on back, legs raised -->
+            <circle cx="-28" cy="26" r="6" fill="rgba(240,223,160,0.92)" stroke="none"/>
+            <path d="M -22,24 C -10,22 0,24 8,26"/>
+            <path d="M 8,26 C 10,14 12,2 8,-12"/>
+            <path d="M 8,-12 C 6,-20 2,-26 -4,-24"/>
+            <path d="M 8,26 C 20,16 28,4 28,-8"/>
+            <path d="M 28,-8 C 30,-18 30,-26 24,-30"/>
+            <path d="M -18,20 C -10,10 -4,2 2,-8"/>
           </svg>
         </div>
       </div>
@@ -196,21 +213,29 @@
         <div class="grapple-glow" style="width:140px;height:140px;"></div>
         <div class="grapple-figures">
           <svg width="140" height="140" viewBox="-50 -50 100 100"
-               fill="rgba(240,223,160,0.92)" xmlns="http://www.w3.org/2000/svg">
-            <!-- Thrower -->
-            <circle cx="12" cy="-36" r="7"/>
-            <ellipse cx="9" cy="-22" rx="10" ry="9"/>
-            <ellipse cx="-8" cy="-14" rx="5" ry="11" transform="rotate(35 -8 -14)"/>
-            <ellipse cx="8" cy="-4"  rx="9" ry="8"/>
-            <ellipse cx="2" cy="16"  rx="6" ry="15" transform="rotate(-14 2 16)"/>
-            <ellipse cx="20" cy="17" rx="5" ry="13" transform="rotate(16 20 17)"/>
-            <!-- Thrown -->
-            <circle cx="-33" cy="22" r="6"/>
-            <ellipse cx="-24" cy="14" rx="4" ry="7"  transform="rotate(-35 -24 14)"/>
-            <ellipse cx="-3"  cy="2"  rx="26" ry="8"  transform="rotate(-30 -3 2)"/>
-            <ellipse cx="26"  cy="-14" rx="9" ry="6"  transform="rotate(-25 26 -14)"/>
-            <ellipse cx="39"  cy="-26" rx="12" ry="5" transform="rotate(-20 39 -26)"/>
-            <ellipse cx="46"  cy="-36" rx="7" ry="4"  transform="rotate(-15 46 -36)"/>
+               fill="none"
+               stroke="rgba(240,223,160,0.92)"
+               stroke-width="5.5"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               xmlns="http://www.w3.org/2000/svg">
+            <!-- TOP PLAYER: guard passer, crouching -->
+            <circle cx="4" cy="-34" r="6" fill="rgba(240,223,160,0.92)" stroke="none"/>
+            <path d="M 4,-28 C 2,-18 0,-8 -2,2"/>
+            <path d="M 2,-20 C -2,-10 -4,0 0,12"/>
+            <path d="M 2,-20 C 10,-14 18,-6 20,2"/>
+            <path d="M -2,2 C -8,12 -14,22 -18,30"/>
+            <path d="M -18,30 C -20,36 -20,42 -16,45"/>
+            <path d="M -2,2 C 8,10 18,18 24,26"/>
+            <path d="M 24,26 C 28,34 28,41 24,44"/>
+            <!-- BOTTOM PLAYER: guard, on back, legs raised -->
+            <circle cx="-28" cy="26" r="6" fill="rgba(240,223,160,0.92)" stroke="none"/>
+            <path d="M -22,24 C -10,22 0,24 8,26"/>
+            <path d="M 8,26 C 10,14 12,2 8,-12"/>
+            <path d="M 8,-12 C 6,-20 2,-26 -4,-24"/>
+            <path d="M 8,26 C 20,16 28,4 28,-8"/>
+            <path d="M 28,-8 C 30,-18 30,-26 24,-30"/>
+            <path d="M -18,20 C -10,10 -4,2 2,-8"/>
           </svg>
         </div>
       </div>
@@ -225,19 +250,29 @@
       <div class="grapple-glow" style="width:66px;height:66px;"></div>
       <div class="grapple-figures">
         <svg width="64" height="64" viewBox="-50 -50 100 100"
-             fill="rgba(240,223,160,0.92)" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="12" cy="-36" r="7"/>
-          <ellipse cx="9" cy="-22" rx="10" ry="9"/>
-          <ellipse cx="-8" cy="-14" rx="5" ry="11" transform="rotate(35 -8 -14)"/>
-          <ellipse cx="8" cy="-4"  rx="9" ry="8"/>
-          <ellipse cx="2" cy="16"  rx="6" ry="15" transform="rotate(-14 2 16)"/>
-          <ellipse cx="20" cy="17" rx="5" ry="13" transform="rotate(16 20 17)"/>
-          <circle cx="-33" cy="22" r="6"/>
-          <ellipse cx="-24" cy="14" rx="4" ry="7"  transform="rotate(-35 -24 14)"/>
-          <ellipse cx="-3"  cy="2"  rx="26" ry="8"  transform="rotate(-30 -3 2)"/>
-          <ellipse cx="26"  cy="-14" rx="9" ry="6"  transform="rotate(-25 26 -14)"/>
-          <ellipse cx="39"  cy="-26" rx="12" ry="5" transform="rotate(-20 39 -26)"/>
-          <ellipse cx="46"  cy="-36" rx="7" ry="4"  transform="rotate(-15 46 -36)"/>
+             fill="none"
+             stroke="rgba(240,223,160,0.92)"
+             stroke-width="5.5"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             xmlns="http://www.w3.org/2000/svg">
+          <!-- TOP PLAYER: guard passer, crouching -->
+          <circle cx="4" cy="-34" r="6" fill="rgba(240,223,160,0.92)" stroke="none"/>
+          <path d="M 4,-28 C 2,-18 0,-8 -2,2"/>
+          <path d="M 2,-20 C -2,-10 -4,0 0,12"/>
+          <path d="M 2,-20 C 10,-14 18,-6 20,2"/>
+          <path d="M -2,2 C -8,12 -14,22 -18,30"/>
+          <path d="M -18,30 C -20,36 -20,42 -16,45"/>
+          <path d="M -2,2 C 8,10 18,18 24,26"/>
+          <path d="M 24,26 C 28,34 28,41 24,44"/>
+          <!-- BOTTOM PLAYER: guard, on back, legs raised -->
+          <circle cx="-28" cy="26" r="6" fill="rgba(240,223,160,0.92)" stroke="none"/>
+          <path d="M -22,24 C -10,22 0,24 8,26"/>
+          <path d="M 8,26 C 10,14 12,2 8,-12"/>
+          <path d="M 8,-12 C 6,-20 2,-26 -4,-24"/>
+          <path d="M 8,26 C 20,16 28,4 28,-8"/>
+          <path d="M 28,-8 C 30,-18 30,-26 24,-30"/>
+          <path d="M -18,20 C -10,10 -4,2 2,-8"/>
         </svg>
       </div>
     </div>
