@@ -116,20 +116,20 @@ The app runs as two separate Railway services.
 | `SMTP_USER` | Optional |
 | `SMTP_PASS` | Optional |
 | `SMTP_FROM` | e.g. `Journada <noreply@yourapp.com>` |
-| `FRONTEND_URL` | `https://your-frontend.railway.app` (used in reset links) |
+| `FRONTEND_URL` | `https://extraordinary-freedom-production.up.railway.app/` (used in reset links) |
 
 **Frontend service**
 
 | Variable | Notes |
 |---|---|
-| `VITE_API_BASE_URL` | `https://your-backend.railway.app` — **required**, must be set before build |
+| `VITE_API_BASE_URL` | `https://j2-production.up.railway.app/` — **required**, must be set before build |
 | `VITE_GOOGLE_MAPS_API_KEY` | Optional — enables gym address autocomplete |
 
 > `VITE_API_BASE_URL` is a build-time variable. Set it in Railway, then trigger a redeploy so Vite bakes it into the bundle.
 
 ### Health check
 
-`GET https://your-backend.railway.app/` returns:
+`GET https://j2-production.up.railway.app/` returns:
 ```json
 { "status": "ok", "db": "connected" }
 ```

@@ -1,1 +1,6 @@
 node_modules/
+
+# Playwright
+e2e/test-results/
+e2e/playwright-report/
+playwright/.cache/
