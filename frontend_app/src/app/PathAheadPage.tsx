@@ -449,8 +449,12 @@ export default function PathAheadPage() {
 
   const fetchAll = useCallback(async () => {
     try {
+      // Scope to the 11-day carousel window (today ± 5 days) — the page never
+      // reads sessions outside this range; CalendarPage handles historical review.
+      const from = new Date(Date.now() - 5 * 86_400_000).toISOString().slice(0, 10);
+      const to   = new Date(Date.now() + 5 * 86_400_000).toISOString().slice(0, 10);
       const [sessRes, intRes] = await Promise.all([
-        api.get<SessionsResponse>('/api/sessions'),
+        api.get<SessionsResponse>(`/api/sessions?from=${from}&to=${to}`),
         api.get<IntentionsResponse>('/api/intentions'),
       ]);
       setSessions(sessRes.sessions ?? []);
