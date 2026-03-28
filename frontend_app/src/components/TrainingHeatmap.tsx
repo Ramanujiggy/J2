@@ -236,6 +236,26 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
     });
   }, [yearProp, currentCalYear]);
 
+  // Compute stats before hooks so useCountUp is called unconditionally
+  const statsData = useMemo(() => {
+    if (loading) return { totalSessions: 0, hoursNum: 0, giHoursNum: 0, nogiHoursNum: 0, streak: 0 };
+    const { rows: _rows, year } = buildWeekRows(buildDayMap(sessions), yearProp ?? new Date().getFullYear());
+    const { totalSessions, totalMinutes, giMinutes, nogiMinutes, streak } = computeStats(sessions, year);
+    return {
+      totalSessions,
+      hoursNum: totalMinutes > 0 ? totalMinutes / 60 : 0,
+      giHoursNum: giMinutes > 0 ? giMinutes / 60 : 0,
+      nogiHoursNum: nogiMinutes > 0 ? nogiMinutes / 60 : 0,
+      streak,
+    };
+  }, [loading, sessions, yearProp]);
+
+  const animSessions = useCountUp(statsData.totalSessions);
+  const animHours    = useCountUp(statsData.hoursNum);
+  const animGi       = useCountUp(statsData.giHoursNum);
+  const animNogi     = useCountUp(statsData.nogiHoursNum);
+  const animStreak   = useCountUp(statsData.streak);
+
   if (loading) return <HeatmapSkeleton />;
 
   const now = new Date();
@@ -246,12 +266,6 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
   const hoursNum  = totalMinutes > 0 ? totalMinutes / 60 : 0;
   const giHoursNum = giMinutes > 0 ? giMinutes / 60 : 0;
   const nogiHoursNum = nogiMinutes > 0 ? nogiMinutes / 60 : 0;
-
-  const animSessions = useCountUp(totalSessions);
-  const animHours    = useCountUp(hoursNum);
-  const animGi       = useCountUp(giHoursNum);
-  const animNogi     = useCountUp(nogiHoursNum);
-  const animStreak   = useCountUp(streak);
 
   const hours     = animHours > 0 ? animHours.toFixed(1) : '0';
   const giHours   = animGi > 0 ? animGi.toFixed(1) : '0';
