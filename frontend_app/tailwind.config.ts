@@ -11,7 +11,7 @@ export default {
           orange:        '#DA7422',
           green:         '#6FD08C',
           'light-green': '#CDDFA0',
-          dark:          '#111e2b',
+          dark:          '#0D1A14',
         },
         // shadcn CSS variable tokens
         background:  'hsl(var(--background))',
@@ -55,6 +55,12 @@ export default {
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['DM Serif Display', 'serif'],
+      },
+      transitionTimingFunction: {
+        heavy:  'cubic-bezier(0.16, 1, 0.3, 1)',
+        spring: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+        luxury: 'cubic-bezier(0.0, 0.55, 0.15, 1.0)',
       },
       keyframes: {
         'view-enter-up': {
@@ -83,6 +89,30 @@ export default {
           '60%':  { transform: 'scaleY(0.07) translateX(0)',    opacity: '1', borderRadius: '1px' },
           '100%': { transform: 'scaleY(1) translateX(0)',        opacity: '1', borderRadius: '6px' },
         },
+        'j2-card-enter': {
+          from: { opacity: '0', transform: 'translateY(16px) scale(0.98)' },
+          to:   { opacity: '1', transform: 'translateY(0) scale(1)' },
+        },
+        'j2-page-in': {
+          from: { opacity: '0', transform: 'translateY(12px)' },
+          to:   { opacity: '1', transform: 'translateY(0)' },
+        },
+        'j2-page-out': {
+          from: { opacity: '1', transform: 'translateY(0)' },
+          to:   { opacity: '0', transform: 'translateY(-8px)' },
+        },
+        'j2-modal-in': {
+          from: { opacity: '0', transform: 'scale(0.95) translateY(8px)' },
+          to:   { opacity: '1', transform: 'scale(1) translateY(0)' },
+        },
+        'j2-today-pulse': {
+          '0%, 100%': { borderColor: 'rgba(196,145,95,0.7)', boxShadow: '0 0 16px rgba(196,145,95,0.2)' },
+          '50%':      { borderColor: 'rgba(196,145,95,0.9)', boxShadow: '0 0 22px rgba(196,145,95,0.3)' },
+        },
+        'j2-shimmer': {
+          '0%':   { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
       },
       animation: {
         'view-exit-up':    'view-exit-up   500ms cubic-bezier(0, 0, 0.3, 1) both',
@@ -91,6 +121,12 @@ export default {
         'view-enter-down': 'view-enter-down 560ms cubic-bezier(0.2, 1.1, 0.4, 1) 120ms both',
         'toggle-exit':  'toggle-exit  420ms cubic-bezier(0.4, 0, 0.8, 0.2) both',
         'toggle-enter': 'toggle-enter 480ms cubic-bezier(0.2, 1.1, 0.4, 1) both',
+        'j2-card-enter': 'j2-card-enter 500ms cubic-bezier(0.16, 1, 0.3, 1) both',
+        'j2-page-in':   'j2-page-in 350ms cubic-bezier(0.0, 0.55, 0.15, 1.0) both',
+        'j2-page-out':  'j2-page-out 200ms ease-in both',
+        'j2-modal-in':  'j2-modal-in 400ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both',
+        'j2-today-pulse': 'j2-today-pulse 4s ease-in-out infinite',
+        'j2-shimmer':   'j2-shimmer 1.2s ease-out both',
       },
     },
   },

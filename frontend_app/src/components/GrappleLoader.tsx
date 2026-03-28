@@ -36,7 +36,7 @@ const KEYFRAMES = `
 
 export default function GrappleLoader({ size = 96, className }: GrappleLoaderProps) {
   const glowSize = size * 1.04;
-  const gold = 'rgba(240,223,160,0.92)';
+  const gold = 'rgba(242,228,168,0.92)';
 
   return (
     <>
@@ -61,8 +61,8 @@ export default function GrappleLoader({ size = 96, className }: GrappleLoaderPro
             borderRadius: '50%',
             background: `radial-gradient(
               ellipse at center,
-              rgba(184,122,85,0.45) 0%,
-              rgba(184,122,85,0.15) 45%,
+              rgba(196,145,95,0.45) 0%,
+              rgba(196,145,95,0.15) 45%,
               transparent 72%
             )`,
             animation: 'j2GrappleGlow 3.2s ease-in-out infinite',
@@ -91,7 +91,7 @@ export default function GrappleLoader({ size = 96, className }: GrappleLoaderPro
             style={{
               display: 'block',
               animation: 'j2GrapplePulse 2.6s ease-in-out infinite',
-              filter: 'drop-shadow(0 0 4px rgba(184,122,85,0.5))',
+              filter: 'drop-shadow(0 0 4px rgba(196,145,95,0.5))',
             }}
           >
             {/* ── TOP PLAYER: guard passer, crouching over ── */}

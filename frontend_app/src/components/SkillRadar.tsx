@@ -136,7 +136,7 @@ function VolumeChart({ sessions }: { sessions: SessionSummary[] }) {
               : <rect x={x} y={baseY - 1}    width={barW} height={1}    rx="0.5" fill="rgba(255,255,255,0.07)" />
             }
             <text x={x + barW / 2} y={94} textAnchor="middle"
-              fill={isCurrent ? PALE_YELLOW : 'rgba(240,223,160,0.25)'}
+              fill={isCurrent ? PALE_YELLOW : 'rgba(242,228,168,0.25)'}
               fontSize="4.5" fontFamily="sans-serif">
               {MONTH_SHORT[m].slice(0, 1)}
             </text>
@@ -152,7 +152,7 @@ function VolumeChart({ sessions }: { sessions: SessionSummary[] }) {
 const SEG_GI    = 'rgba(111,208,140,0.80)';
 const SEG_NOGI  = 'rgba(218,116,34,0.80)';
 const SEG_CLASS = 'rgba(111,208,140,0.80)';
-const SEG_DRILL = 'rgba(240,223,160,0.65)';
+const SEG_DRILL = 'rgba(242,228,168,0.65)';
 const SEG_COMP  = 'rgba(220,90,80,0.80)';
 
 // ─── Rail config ──────────────────────────────────────────────────────────────
@@ -367,7 +367,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange }: Ski
           ].map(({ label, value, active }) => (
             <div key={label} className="flex items-baseline gap-2">
               <span className="text-xs font-bold" style={{ color: PALE_YELLOW }}>{label}</span>
-              <span className="text-xs" style={{ color: 'rgba(240,223,160,0.25)' }}>|</span>
+              <span className="text-xs" style={{ color: 'rgba(242,228,168,0.25)' }}>|</span>
               <span className="text-2xl font-bold" style={{
                 color: active ? PALE_YELLOW : 'rgba(255,255,255,0.15)',
                 textShadow: active ? GLOW_SOFT : 'none',
@@ -399,7 +399,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange }: Ski
                   width:  `${barW}px`,
                   height: displayMode === 'hours' ? '5px' : '13px',
                   backgroundColor: h > 0
-                    ? (displayMode === 'hours' ? 'rgba(240,223,160,0.45)' : 'rgba(240,223,160,0.25)')
+                    ? (displayMode === 'hours' ? 'rgba(242,228,168,0.45)' : 'rgba(242,228,168,0.25)')
                     : 'rgba(255,255,255,0.1)',
                   borderRadius: displayMode === 'hours' ? '2.5px' : '1px',
                   transition: 'width 450ms cubic-bezier(0.4,0,0.2,1), height 300ms ease, border-radius 300ms ease',
@@ -501,7 +501,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange }: Ski
           <p
             className="text-xs leading-relaxed absolute inset-0"
             style={{
-              color: 'rgba(240,223,160,0.7)',
+              color: 'rgba(242,228,168,0.7)',
               opacity: subtitleRevealed ? 1 : 0,
               transition: subtitleRevealed ? 'opacity 700ms ease-in-out' : 'opacity 80ms ease',
             }}
@@ -525,8 +525,8 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange }: Ski
                 aria-label={label}
                 className="w-9 h-9 flex items-center justify-center rounded-md transition-all"
                 style={{
-                  color: active ? PALE_YELLOW : 'rgba(240,223,160,0.25)',
-                  backgroundColor: active ? 'rgba(240,223,160,0.08)' : 'transparent',
+                  color: active ? PALE_YELLOW : 'rgba(242,228,168,0.25)',
+                  backgroundColor: active ? 'rgba(242,228,168,0.08)' : 'transparent',
                 }}
               >
                 <Icon size={15} strokeWidth={active ? 2 : 1.5}
@@ -649,8 +649,8 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange }: Ski
                       onClick={() => handleViewChange(id)}
                       className="relative w-8 h-8 flex items-center justify-center rounded-md transition-all"
                       style={{
-                        color: active ? PALE_YELLOW : 'rgba(240,223,160,0.2)',
-                        backgroundColor: active ? 'rgba(240,223,160,0.06)' : 'transparent',
+                        color: active ? PALE_YELLOW : 'rgba(242,228,168,0.2)',
+                        backgroundColor: active ? 'rgba(242,228,168,0.06)' : 'transparent',
                       }}
                     >
                       {active && (

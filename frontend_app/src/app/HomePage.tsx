@@ -85,7 +85,7 @@ export default function HomePage() {
 
       {/* Logo / Title */}
       <div className="mb-10 text-center relative z-10">
-        <h1 className="text-3xl sm:text-5xl font-bold tracking-tight" style={{ color: PALE_YELLOW, textShadow: GLOW_TITLE }}>
+        <h1 className="text-3xl sm:text-5xl font-display tracking-tight" style={{ color: PALE_YELLOW, textShadow: GLOW_TITLE }}>
           Journada
         </h1>
         <p className="mt-3 text-lg" style={{ color: PALE_YELLOW, textShadow: GLOW_NAV }}>
@@ -96,26 +96,30 @@ export default function HomePage() {
       {/* Card */}
       <div className="w-[calc(100%-2rem)] max-w-sm rounded-2xl p-8 relative z-10" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
 
-        {/* Mode toggle — only show for login/register */}
+        {/* Mode toggle — sliding pill, only show for login/register */}
         {mode !== 'forgot' && (
-          <div className="flex rounded-lg overflow-hidden mb-6 border border-white/10">
+          <div className="flex rounded-lg overflow-hidden mb-6 border border-white/10 relative" style={{ backgroundColor: 'rgba(255,255,255,0.04)' }}>
+            {/* Sliding pill background */}
+            <div
+              className="absolute top-0 bottom-0 rounded-lg"
+              style={{
+                width: '50%',
+                backgroundColor: '#DA7422',
+                transform: mode === 'register' ? 'translateX(100%)' : 'translateX(0)',
+                transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+              }}
+            />
             <button
               onClick={() => switchMode('login')}
-              className={`flex-1 py-2 text-sm font-medium transition-colors ${
-                mode === 'login'
-                  ? 'bg-brand-orange text-white'
-                  : 'text-white/50 hover:text-white'
-              }`}
+              className="flex-1 py-2 text-sm font-medium relative z-10 transition-colors"
+              style={{ color: mode === 'login' ? 'white' : 'rgba(255,255,255,0.5)' }}
             >
               Log In
             </button>
             <button
               onClick={() => switchMode('register')}
-              className={`flex-1 py-2 text-sm font-medium transition-colors ${
-                mode === 'register'
-                  ? 'bg-brand-orange text-white'
-                  : 'text-white/50 hover:text-white'
-              }`}
+              className="flex-1 py-2 text-sm font-medium relative z-10 transition-colors"
+              style={{ color: mode === 'register' ? 'white' : 'rgba(255,255,255,0.5)' }}
             >
               Register
             </button>
@@ -184,7 +188,7 @@ export default function HomePage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-50"
+                className="w-full bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-50 j2-press"
               >
                 {loading
                   ? 'Please wait...'

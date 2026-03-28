@@ -1,9 +1,11 @@
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import WaveBackground from './WaveBackground.tsx';
 import BeltBar, { type BeltRank, BELT_COLORS, PATCH_COLORS } from './BeltBar.tsx';
 import { PAGE_BG, PALE_YELLOW, GLOW_TITLE, GLOW_NAV, COPPER_BORDER } from '../lib/theme.ts';
+import PageTransition from './PageTransition.tsx';
 
 // Lucide-style inline SVG icons — no extra dep needed
 function HomeIcon({ active }: { active: boolean }) {
@@ -90,6 +92,25 @@ export default function AppShell({ children }: Props) {
 
   const TABS = ALL_TABS.filter(t => !t.intentionsGated || intentionsEnabled);
   const activeTab = TABS.find(t => location.pathname.startsWith(t.path))?.path ?? '/home';
+  const activeIdx = TABS.findIndex(t => t.path === activeTab);
+
+  // ── Desktop sliding tab indicator ──
+  const desktopNavRef = useRef<HTMLElement>(null);
+  const desktopTabRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const [indicator, setIndicator] = useState({ left: 0, width: 0 });
+  const hasInitialized = useRef(false);
+
+  const updateIndicator = useCallback(() => {
+    const btn = desktopTabRefs.current.get(activeTab);
+    const nav = desktopNavRef.current;
+    if (!btn || !nav) return;
+    const navRect = nav.getBoundingClientRect();
+    const btnRect = btn.getBoundingClientRect();
+    setIndicator({ left: btnRect.left - navRect.left, width: btnRect.width });
+    hasInitialized.current = true;
+  }, [activeTab]);
+
+  useEffect(() => { updateIndicator(); }, [updateIndicator]);
 
   return (
     <>
@@ -108,7 +129,11 @@ export default function AppShell({ children }: Props) {
       {/* ── Header ──────────────────────────────────────────────── */}
       <header
         className="border-b relative overflow-hidden flex-shrink-0"
-        style={{ borderBottomColor: COPPER_BORDER, paddingTop: 'env(safe-area-inset-top, 0px)' }}
+        style={{
+          borderBottomColor: 'transparent',
+          borderImage: 'linear-gradient(to right, transparent, rgba(196,145,95,0.5), transparent) 1',
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+        }}
       >
         <WaveBackground />
         {/* Fade wave into page background */}
@@ -127,11 +152,11 @@ export default function AppShell({ children }: Props) {
             <div style={{
               position: 'absolute',
               top: '-8px', left: '-14px', right: '-14px', bottom: '-6px',
-              background: 'radial-gradient(ellipse at 35% 45%, rgba(4,10,20,0.55) 0%, rgba(4,10,20,0.20) 50%, transparent 78%)',
+              background: 'radial-gradient(ellipse at 35% 45%, rgba(6,14,10,0.55) 0%, rgba(6,14,10,0.20) 50%, transparent 78%)',
               pointerEvents: 'none',
             }} />
             <h1
-              className="text-xl font-bold tracking-tight"
+              className="text-xl font-display tracking-tight"
               style={{ position: 'relative', color: PALE_YELLOW, textShadow: GLOW_TITLE }}
             >
               Journada
@@ -140,67 +165,92 @@ export default function AppShell({ children }: Props) {
           </div>
         </div>
 
-        {/* Desktop nav tabs — hidden on mobile */}
-        <nav className="relative z-10 hidden sm:flex px-6 pb-0 gap-1">
+        {/* Desktop nav tabs — hidden on mobile — with sliding indicator */}
+        <nav ref={desktopNavRef} className="relative z-10 hidden sm:flex px-6 pb-0 gap-1">
           {TABS.map(({ path, label, Icon }) => {
             const isActive = activeTab === path;
             return (
               <button
                 key={path}
+                ref={el => { if (el) desktopTabRefs.current.set(path, el); }}
                 onClick={() => navigate(path)}
-                className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors relative"
+                className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium rounded-t-lg relative"
                 style={{
                   color: isActive ? PALE_YELLOW : 'rgba(255,255,255,0.4)',
                   textShadow: isActive ? GLOW_NAV : 'none',
-                  backgroundColor: isActive ? 'rgba(240,223,160,0.06)' : 'transparent',
+                  backgroundColor: isActive ? 'rgba(242,228,168,0.06)' : 'transparent',
+                  transition: 'color 0.3s ease, text-shadow 0.3s ease, background-color 0.3s ease',
                 }}
               >
                 <Icon active={isActive} />
                 {label}
-                {/* Active underline */}
-                {isActive && (
-                  <span
-                    className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full"
-                    style={{ backgroundColor: PALE_YELLOW, boxShadow: '0 0 6px rgba(240,223,160,0.6)' }}
-                  />
-                )}
               </button>
             );
           })}
+          {/* Sliding gold bar indicator */}
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: indicator.left,
+              width: indicator.width,
+              height: 2,
+              borderRadius: 1,
+              backgroundColor: PALE_YELLOW,
+              boxShadow: '0 0 8px rgba(242,228,168,0.6), 0 0 16px rgba(196,145,95,0.3)',
+              transition: hasInitialized.current
+                ? 'left 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.3s ease'
+                : 'none',
+              pointerEvents: 'none',
+            }}
+          />
         </nav>
       </header>
 
       {/* ── Page content ────────────────────────────────────────── */}
       <main className="flex-1 overflow-auto sm:pb-0 j2-app-scroll" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px) + 8px)' }}>
-        {children}
+        <PageTransition>{children}</PageTransition>
       </main>
 
-      {/* ── Mobile bottom nav — hidden on sm+ ───────────────────── */}
+      {/* ── Mobile bottom nav — hidden on sm+ — with sliding dot ── */}
       <nav
         className="sm:hidden fixed bottom-0 left-0 right-0 flex border-t z-40"
         style={{
-          backgroundColor: '#111e2b',
+          backgroundColor: PAGE_BG,
           borderTopColor: COPPER_BORDER,
           paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
         }}
       >
+        {/* Sliding top-bar indicator */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: `${(activeIdx / TABS.length) * 100 + 50 / TABS.length - 2}%`,
+            width: '4%',
+            minWidth: 28,
+            height: 2,
+            borderRadius: 1,
+            backgroundColor: PALE_YELLOW,
+            boxShadow: '0 0 8px rgba(242,228,168,0.5)',
+            transition: 'left 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            pointerEvents: 'none',
+          }}
+        />
         {TABS.map(({ path, label, Icon }) => {
           const isActive = activeTab === path;
           return (
             <button
               key={path}
               onClick={() => navigate(path)}
-              className="flex-1 relative flex flex-col items-center justify-center py-2.5 gap-0.5 transition-colors"
-              style={{ color: isActive ? PALE_YELLOW : 'rgba(255,255,255,0.35)' }}
+              className="flex-1 relative flex flex-col items-center justify-center py-2.5 gap-0.5"
+              style={{
+                color: isActive ? PALE_YELLOW : 'rgba(255,255,255,0.35)',
+                transition: 'color 0.3s ease',
+              }}
             >
               <Icon active={isActive} />
               <span className="text-[10px] font-medium leading-none">{label}</span>
-              {isActive && (
-                <span
-                  className="absolute top-0 h-[2px] w-8 rounded-full"
-                  style={{ backgroundColor: PALE_YELLOW }}
-                />
-              )}
             </button>
           );
         })}

@@ -2,7 +2,8 @@
 // Columns: Month label | Mon–Sun (7 day cells) | Intention | Journal
 // Sticky header keeps day labels visible. Month label appears at month boundaries.
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { useCountUp } from '../hooks/useCountUp.ts';
 import {
   Tooltip,
   TooltipContent,
@@ -12,9 +13,9 @@ import SessionDetailModal from './SessionDetailModal.tsx';
 import { CARD_BG, COPPER_BORDER, CARD_SHADOW, HEATMAP_REST, HEATMAP_FUTURE, HEATMAP_OUTSIDE_YEAR, HEATMAP_HEADER_BG, PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
 import type { CalendarIntention } from '../app/CalendarPage.tsx';
 
-const HEATMAP_REST_PRIMARY = '#1c3349'; // rest days — slightly lighter than CARD_BG so cells sit above the surface
-const HEATMAP_REST_ALT     = '#1d3448'; // alternate month rest (odd months)
-const HEATMAP_FUTURE_ALT   = '#132638'; // alternate month future-day color
+const HEATMAP_REST_PRIMARY = '#1A3226'; // rest days — slightly lighter than CARD_BG so cells sit above the surface
+const HEATMAP_REST_ALT     = '#1B3427'; // alternate month rest (odd months)
+const HEATMAP_FUTURE_ALT   = '#10241A'; // alternate month future-day color
 
 const GRID_COLS_MOBILE  = '2rem repeat(7, minmax(0, 1fr))';
 const GRID_COLS_DESKTOP = '2rem repeat(7, minmax(0, 1fr)) 13rem 7rem';
@@ -242,9 +243,19 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
   const dayMap = buildDayMap(sessions);
   const { rows, year } = buildWeekRows(dayMap, yearProp ?? new Date().getFullYear());
   const { totalSessions, totalMinutes, giMinutes, nogiMinutes, streak } = computeStats(sessions, year);
-  const hours     = totalMinutes > 0 ? (totalMinutes    / 60).toFixed(1) : '0';
-  const giHours   = giMinutes   > 0 ? (giMinutes   / 60).toFixed(1) : '0';
-  const nogiHours = nogiMinutes > 0 ? (nogiMinutes / 60).toFixed(1) : '0';
+  const hoursNum  = totalMinutes > 0 ? totalMinutes / 60 : 0;
+  const giHoursNum = giMinutes > 0 ? giMinutes / 60 : 0;
+  const nogiHoursNum = nogiMinutes > 0 ? nogiMinutes / 60 : 0;
+
+  const animSessions = useCountUp(totalSessions);
+  const animHours    = useCountUp(hoursNum);
+  const animGi       = useCountUp(giHoursNum);
+  const animNogi     = useCountUp(nogiHoursNum);
+  const animStreak   = useCountUp(streak);
+
+  const hours     = animHours > 0 ? animHours.toFixed(1) : '0';
+  const giHours   = animGi > 0 ? animGi.toFixed(1) : '0';
+  const nogiHours = animNogi > 0 ? animNogi.toFixed(1) : '0';
 
   // Helper: find the intention whose period overlaps a given calendar week.
   // An intention covers [intentStart, intentEnd] (inclusive).
@@ -294,40 +305,40 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
     `}</style>
     {/* Stacked journal pages peeking out below-right */}
     <div style={{ position: 'relative' }}>
-      <div style={{ position: 'absolute', inset: 0, transform: 'translate(8px, 2px)', borderRadius: '1rem', backgroundColor: CARD_BG, border: '1px solid rgba(184,122,85,0.15)', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', inset: 0, transform: 'translate(4px, 1px)', borderRadius: '1rem', backgroundColor: CARD_BG, border: '1px solid rgba(184,122,85,0.25)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', inset: 0, transform: 'translate(8px, 2px)', borderRadius: '1rem', backgroundColor: CARD_BG, border: '1px solid rgba(196,145,95,0.15)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', inset: 0, transform: 'translate(4px, 1px)', borderRadius: '1rem', backgroundColor: CARD_BG, border: '1px solid rgba(196,145,95,0.25)', pointerEvents: 'none' }} />
     <div className="rounded-2xl p-6" style={{ position: 'relative', zIndex: 1, backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
 
       {/* Stats */}
       <div className="flex gap-6 mb-6 pb-5 border-b border-white/10 flex-wrap">
         <div>
-          <p className="text-2xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>{totalSessions}</p>
-          <p className="text-xs mt-0.5" style={{ color: 'rgba(240,223,160,0.5)' }}>Sessions in {year}</p>
+          <p className="text-2xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>{Math.round(animSessions)}</p>
+          <p className="text-xs mt-0.5" style={{ color: 'rgba(242,228,168,0.5)' }}>Sessions in {year}</p>
         </div>
         <div>
           <p className="text-2xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>{hours}h</p>
-          <p className="text-xs mt-0.5" style={{ color: 'rgba(240,223,160,0.5)' }}>Hours trained</p>
+          <p className="text-xs mt-0.5" style={{ color: 'rgba(242,228,168,0.5)' }}>Hours trained</p>
         </div>
         <div>
           <p className="text-2xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>{giHours}h</p>
-          <p className="text-xs mt-0.5" style={{ color: 'rgba(240,223,160,0.5)' }}>Gi hours</p>
+          <p className="text-xs mt-0.5" style={{ color: 'rgba(242,228,168,0.5)' }}>Gi hours</p>
         </div>
         <div>
           <p className="text-2xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>{nogiHours}h</p>
-          <p className="text-xs mt-0.5" style={{ color: 'rgba(240,223,160,0.5)' }}>No-Gi hours</p>
+          <p className="text-xs mt-0.5" style={{ color: 'rgba(242,228,168,0.5)' }}>No-Gi hours</p>
         </div>
         <div>
-          <p className="text-2xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>{streak}</p>
-          <p className="text-xs mt-0.5" style={{ color: 'rgba(240,223,160,0.5)' }}>Day streak</p>
+          <p className="text-2xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>{Math.round(animStreak)}</p>
+          <p className="text-xs mt-0.5" style={{ color: 'rgba(242,228,168,0.5)' }}>Day streak</p>
         </div>
         <div className="ml-auto flex items-center">
           <button
             onClick={handleTodayClick}
             className="px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors"
             style={{
-              backgroundColor: 'rgba(240,223,160,0.08)',
-              border: '1px solid rgba(240,223,160,0.22)',
-              color: 'rgba(240,223,160,0.75)',
+              backgroundColor: 'rgba(242,228,168,0.08)',
+              border: '1px solid rgba(242,228,168,0.22)',
+              color: 'rgba(242,228,168,0.75)',
             }}
           >
             Today
@@ -353,12 +364,12 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
         >
           <div className="py-2" />
           {DOW.map(d => (
-            <div key={d} className="py-2 text-center text-xs font-medium" style={{ color: 'rgba(240,223,160,0.5)' }}>
+            <div key={d} className="py-2 text-center text-xs font-medium" style={{ color: 'rgba(242,228,168,0.5)' }}>
               {d}
             </div>
           ))}
-          <div className="py-2 pl-4 text-xs font-medium hidden sm:block" style={{ color: 'rgba(240,223,160,0.5)' }}>Intention</div>
-          <div className="py-2 pl-3 text-xs font-medium hidden sm:block" style={{ color: 'rgba(240,223,160,0.5)' }}>Journal</div>
+          <div className="py-2 pl-4 text-xs font-medium hidden sm:block" style={{ color: 'rgba(242,228,168,0.5)' }}>Intention</div>
+          <div className="py-2 pl-3 text-xs font-medium hidden sm:block" style={{ color: 'rgba(242,228,168,0.5)' }}>Journal</div>
         </div>
 
         {/* Week rows */}
@@ -387,7 +398,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
               {isActiveWeek && (
                 <div style={{
                   position: 'absolute', inset: 0,
-                  background: 'linear-gradient(to right, transparent 0%, rgba(240,223,160,0.07) 12%, rgba(240,223,160,0.07) 88%, transparent 100%)',
+                  background: 'linear-gradient(to right, transparent 0%, rgba(242,228,168,0.07) 12%, rgba(242,228,168,0.07) 88%, transparent 100%)',
                   pointerEvents: 'none', borderRadius: 6,
                   animation: 'j2CalIntentFadeIn 1.4s ease forwards',
                 }} />
@@ -402,8 +413,8 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                   <div
                     className="font-semibold"
                     style={{
-                      color: isCurrentMonth ? 'rgba(240,223,160,0.95)' : 'rgba(240,223,160,0.6)',
-                      textShadow: isCurrentMonth ? '0 0 10px rgba(240,223,160,0.45)' : 'none',
+                      color: isCurrentMonth ? 'rgba(242,228,168,0.95)' : 'rgba(242,228,168,0.6)',
+                      textShadow: isCurrentMonth ? '0 0 10px rgba(242,228,168,0.45)' : 'none',
                       position: 'relative',
                       zIndex: 1,
                       writingMode: 'vertical-rl',
@@ -450,11 +461,11 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                     <TooltipTrigger asChild>
                       <div className="px-0.5 py-1" style={{ position: 'relative', zIndex: 1 }}>
                         <div
-                          className="rounded flex items-end px-1"
+                          className="rounded flex items-end px-1 j2-heatmap-cell"
                           style={{
                             height: '40px',
                             backgroundColor: (() => {
-                              if (!isCurrentYear) return '#0e1b28'; // flat muted — clearly inactive, no opacity trick
+                              if (!isCurrentYear) return '#0D1812'; // flat muted — clearly inactive, no opacity trick
                               const isAltMonth = date.getMonth() % 2 === 1;
                               if (isFuture && day.count === 0) return isAltMonth ? HEATMAP_FUTURE_ALT : HEATMAP_FUTURE;
                               if (day.count === 0) return isAltMonth ? HEATMAP_REST_ALT : HEATMAP_REST_PRIMARY;
@@ -463,10 +474,10 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                             cursor: isClickable ? 'pointer' : 'default',
                             paddingBottom: '3px',
                             border: hasResonance
-                              ? '1px solid rgba(184,122,85,0.7)'
-                              : '1px solid rgba(240,223,160,0.13)',
+                              ? '1px solid rgba(196,145,95,0.7)'
+                              : '1px solid rgba(242,228,168,0.13)',
                             boxShadow: hasResonance
-                              ? '0 0 8px 2px rgba(184,122,85,0.35), inset 0 0 5px rgba(184,122,85,0.18)'
+                              ? '0 0 8px 2px rgba(196,145,95,0.35), inset 0 0 5px rgba(196,145,95,0.18)'
                               : 'inset 0 1px 0 rgba(255,255,255,0.05)',
                           }}
                           onClick={handleClick}
@@ -505,7 +516,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                   }}>
                     <div style={{
                       position: 'absolute', inset: 0,
-                      background: 'linear-gradient(to top, rgba(240,223,160,0.22) 0%, transparent 100%)',
+                      background: 'linear-gradient(to top, rgba(242,228,168,0.22) 0%, transparent 100%)',
                       animation: 'j2CalIntentGlow 4s ease-in-out infinite',
                     }} />
                     {INTENTION_COL_PARTICLES.map((p, i) => (
@@ -516,8 +527,8 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                         width: 2,
                         height: 2,
                         borderRadius: '50%',
-                        backgroundColor: 'rgba(240,223,160,0.88)',
-                        boxShadow: '0 0 5px 2px rgba(240,223,160,0.6)',
+                        backgroundColor: 'rgba(242,228,168,0.88)',
+                        boxShadow: '0 0 5px 2px rgba(242,228,168,0.6)',
                         ['--drift' as string]: p.drift,
                         animation: `j2CalIntentRise ${p.duration}s ease-in-out ${p.delay}s infinite`,
                       }} />
@@ -528,14 +539,14 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                 {weekIntention ? (
                   <span style={{
                     position: 'relative', zIndex: 1, fontSize: 11,
-                    color: isActiveWeek ? 'rgba(240,223,160,0.9)' : 'rgba(240,223,160,0.28)',
+                    color: isActiveWeek ? 'rgba(242,228,168,0.9)' : 'rgba(242,228,168,0.28)',
                     fontWeight: isActiveWeek ? 600 : 400,
                     fontStyle: isPastWeek ? 'italic' : 'normal',
                   }}>
                     {isActiveWeek && '◈ '}{weekIntention.intent_label}
                   </span>
                 ) : (
-                  <span style={{ fontSize: 11, color: 'rgba(240,223,160,0.3)' }} title={weekNotes.join(' · ')}>
+                  <span style={{ fontSize: 11, color: 'rgba(242,228,168,0.3)' }} title={weekNotes.join(' · ')}>
                     {noteText}
                     {extraNotes && <span style={{ color: 'rgba(255,255,255,0.15)' }}>{extraNotes}</span>}
                   </span>
@@ -551,7 +562,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
       </div>}
 
       {/* Legend — hidden when empty */}
-      {sessions.length > 0 && <div className="flex items-center gap-4 mt-5 pt-4 border-t border-white/10 text-xs" style={{ color: 'rgba(240,223,160,0.5)' }}>
+      {sessions.length > 0 && <div className="flex items-center gap-4 mt-5 pt-4 border-t border-white/10 text-xs" style={{ color: 'rgba(242,228,168,0.5)' }}>
         <span>Intensity</span>
         {LEGEND.map(({ color, label }) => (
           <div key={label} className="flex items-center gap-1.5">

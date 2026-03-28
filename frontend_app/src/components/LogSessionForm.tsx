@@ -186,7 +186,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate }: { o
             </button>
             <span
               className="text-lg font-semibold w-24 text-center"
-              style={{ color: durationMinutes ? 'rgba(240,223,160,0.9)' : 'rgba(255,255,255,0.2)' }}
+              style={{ color: durationMinutes ? 'rgba(242,228,168,0.9)' : 'rgba(255,255,255,0.2)' }}
             >
               {durationMinutes ? fmtDuration(durationMinutes) : '— —'}
             </span>

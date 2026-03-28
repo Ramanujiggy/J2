@@ -148,7 +148,7 @@ export default function IntentionsPage() {
                     title={hasJournal ? intention.journal_entry! : 'Add a journal entry'}
                   >
                     {hasJournal ? (
-                      <span className="text-xs group-hover:opacity-90 transition-opacity" style={{ color: 'rgba(240,223,160,0.6)' }}>
+                      <span className="text-xs group-hover:opacity-90 transition-opacity" style={{ color: 'rgba(242,228,168,0.6)' }}>
                         ✦ {journalSnippet}
                       </span>
                     ) : (
@@ -185,7 +185,7 @@ export default function IntentionsPage() {
                   title={hasJournal ? intention.journal_entry! : 'Add a journal entry'}
                 >
                   {hasJournal ? (
-                    <span className="text-xs truncate group-hover:opacity-90 transition-opacity" style={{ color: 'rgba(240,223,160,0.6)' }}>
+                    <span className="text-xs truncate group-hover:opacity-90 transition-opacity" style={{ color: 'rgba(242,228,168,0.6)' }}>
                       ✦ {journalSnippet}
                     </span>
                   ) : (

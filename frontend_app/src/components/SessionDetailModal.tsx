@@ -177,12 +177,12 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
       {/* Backdrop — perspective origin for the 3D card flip */}
       <div
         className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm px-4"
-        style={{ backgroundColor: 'rgba(17, 30, 43, 0.92)', perspective: '1200px' }}
+        style={{ backgroundColor: 'rgba(13, 26, 20, 0.85)', backdropFilter: 'blur(12px) saturate(1.2)', perspective: '1200px' }}
         onClick={onClose}
       >
         {/* Modal box = the flipper — no visual styling here so preserve-3d works */}
         <div
-          className="w-full sm:max-w-md"
+          className="w-full sm:max-w-md animate-j2-modal-in"
           style={{
             position: 'relative',
             transformStyle: 'preserve-3d',
@@ -197,8 +197,8 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
               backfaceVisibility: 'hidden',
               WebkitBackfaceVisibility: 'hidden',
               position: 'relative',
-              backgroundColor: '#1a2c38',
-              border: '1px solid rgba(184,122,85,0.45)',
+              backgroundColor: '#152E22',
+              border: '1px solid rgba(196,145,95,0.45)',
               borderRadius: '1rem',
               overflow: 'hidden',
               maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem)',
@@ -218,7 +218,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                 }} />
                 <div style={{
                   position: 'absolute', bottom: 0, left: 0, right: 0, height: 36,
-                  background: 'linear-gradient(to top, rgba(240,223,160,0.07) 0%, transparent 100%)',
+                  background: 'linear-gradient(to top, rgba(242,228,168,0.07) 0%, transparent 100%)',
                   animation: 'j2IntentYellowPulse 3.1s ease-in-out infinite',
                   transformOrigin: 'center bottom',
                 }} />
@@ -226,8 +226,8 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                   <span key={i} style={{
                     position: 'absolute', left: p.left, bottom: p.bottom,
                     width: p.size, height: p.size, borderRadius: '50%',
-                    backgroundColor: 'rgba(240,223,160,0.85)',
-                    boxShadow: '0 0 4px 1px rgba(240,223,160,0.5)',
+                    backgroundColor: 'rgba(242,228,168,0.85)',
+                    boxShadow: '0 0 4px 1px rgba(242,228,168,0.5)',
                     filter: 'brightness(1.2)',
                     ['--drift' as string]: p.drift,
                     animation: `j2IntentParticleRise ${p.duration}s ease-in-out infinite ${p.delay}s`,
@@ -276,10 +276,10 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
               {intention && (
                 <div
                   className="flex items-center gap-2 mb-4 px-3 py-2 rounded-xl"
-                  style={{ backgroundColor: 'rgba(240,223,160,0.07)', border: '1px solid rgba(240,223,160,0.14)' }}
+                  style={{ backgroundColor: 'rgba(242,228,168,0.07)', border: '1px solid rgba(242,228,168,0.14)' }}
                 >
-                  <span style={{ color: 'rgba(240,223,160,0.5)', fontSize: 12 }}>◈</span>
-                  <span className="text-sm font-semibold" style={{ color: '#F0DFA0' }}>{intention.intent_label}</span>
+                  <span style={{ color: 'rgba(242,228,168,0.5)', fontSize: 12 }}>◈</span>
+                  <span className="text-sm font-semibold" style={{ color: '#F2E4A8' }}>{intention.intent_label}</span>
                   {intention.intent_category && (
                     <span
                       className="text-[11px] px-2 py-0.5 rounded-full capitalize"
@@ -408,8 +408,8 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
               backfaceVisibility: 'hidden',
               WebkitBackfaceVisibility: 'hidden',
               transform: 'rotateY(180deg)',
-              backgroundColor: '#1a2c38',
-              border: '1px solid rgba(184,122,85,0.45)',
+              backgroundColor: '#152E22',
+              border: '1px solid rgba(196,145,95,0.45)',
               borderRadius: '1rem',
               overflowY: 'auto',
               padding: '1.5rem',
@@ -431,8 +431,8 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                   value={form.gi_nogi}
                   onChange={e => setForm(f => ({ ...f, gi_nogi: e.target.value as 'gi' | 'no_gi' }))}
                 >
-                  <option value="gi"    style={{ backgroundColor: '#1a2c38' }}>Gi</option>
-                  <option value="no_gi" style={{ backgroundColor: '#1a2c38' }}>No-Gi</option>
+                  <option value="gi"    style={{ backgroundColor: '#152E22' }}>Gi</option>
+                  <option value="no_gi" style={{ backgroundColor: '#152E22' }}>No-Gi</option>
                 </select>
               </div>
 
@@ -444,9 +444,9 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                   value={form.session_type}
                   onChange={e => setForm(f => ({ ...f, session_type: e.target.value as SessionSummary['session_type'] }))}
                 >
-                  <option value="class"                style={{ backgroundColor: '#1a2c38' }}>Class</option>
-                  <option value="drilling"             style={{ backgroundColor: '#1a2c38' }}>Drilling</option>
-                  <option value="competition_training" style={{ backgroundColor: '#1a2c38' }}>Competition</option>
+                  <option value="class"                style={{ backgroundColor: '#152E22' }}>Class</option>
+                  <option value="drilling"             style={{ backgroundColor: '#152E22' }}>Drilling</option>
+                  <option value="competition_training" style={{ backgroundColor: '#152E22' }}>Competition</option>
                 </select>
               </div>
 
@@ -461,7 +461,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                       className="w-8 h-8 rounded text-xs font-bold transition-colors"
                       style={
                         form.intensity === n
-                          ? { backgroundColor: INTENSITY_COLOR[n], color: '#1a2c38' }
+                          ? { backgroundColor: INTENSITY_COLOR[n], color: '#152E22' }
                           : { backgroundColor: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.35)' }
                       }
                     >{n}</button>

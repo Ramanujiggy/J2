@@ -330,7 +330,7 @@ function BeltBarInner({
         {/* ── Sparks ── */}
         <span style={{
           position: 'absolute', right: 4, top: Math.round(BELT_H / 2),
-          fontSize: 10, fontWeight: 900, color: '#F0DFA0',
+          fontSize: 10, fontWeight: 900, color: '#F2E4A8',
           opacity: 0, lineHeight: 1,
           pointerEvents: 'none', userSelect: 'none', zIndex: 5,
           animation: sparksIn ? `j2TieT ${SPARK_MS}ms ease forwards` : 'none',
@@ -338,7 +338,7 @@ function BeltBarInner({
 
         <span style={{
           position: 'absolute', right: -2, top: Math.round(BELT_H / 2),
-          fontSize: 10, fontWeight: 900, color: '#F0DFA0',
+          fontSize: 10, fontWeight: 900, color: '#F2E4A8',
           opacity: 0, lineHeight: 1,
           pointerEvents: 'none', userSelect: 'none', zIndex: 5,
           animation: sparksIn ? `j2TieB ${SPARK_MS}ms ease forwards` : 'none',

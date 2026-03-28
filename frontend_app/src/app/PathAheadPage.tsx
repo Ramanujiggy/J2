@@ -5,7 +5,7 @@ import type { SessionSummary } from '../components/TrainingHeatmap.tsx';
 import LogSessionForm from '../components/LogSessionForm.tsx';
 import SessionDetailModal from '../components/SessionDetailModal.tsx';
 import SetIntentionModal from '../components/SetIntentionModal.tsx';
-import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER_BORDER } from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER_BORDER, PAGE_BG } from '../lib/theme.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import LoadingScreen from '../components/LoadingScreen.tsx';
 
@@ -96,8 +96,8 @@ function Tooltip({ text, children }: { text: string; children: React.ReactNode }
           top: 'calc(100% + 7px)',
           left: '50%',
           transform: 'translateX(-50%)',
-          backgroundColor: '#111e2b',
-          border: '1px solid rgba(184,122,85,0.4)',
+          backgroundColor: PAGE_BG,
+          border: '1px solid rgba(196,145,95,0.4)',
           borderRadius: 8,
           padding: '5px 10px',
           fontSize: 11,
@@ -192,13 +192,13 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
 
   const intensityColor = primarySession ? (INTENSITY_COLOR[primarySession.intensity] ?? '#CDDFA0') : null;
 
-  // Border + shadow — today gets a copper glow, with intention adds yellow
-  const borderColor = isToday ? 'rgba(184,122,85,0.7)' : 'rgba(255,255,255,0.07)';
+  // Border + shadow — today gets a breathing copper glow, with intention adds yellow
+  const borderColor = isToday ? 'rgba(196,145,95,0.7)' : 'rgba(255,255,255,0.07)';
   const baseShadow  = isToday
     ? intention
-      ? '0 0 18px rgba(240,223,160,0.13), 0 0 22px rgba(184,122,85,0.18), 0 4px 16px rgba(0,0,0,0.5)'
-      : '0 0 16px rgba(184,122,85,0.25), 0 4px 16px rgba(0,0,0,0.5)'
-    : '0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3)';
+      ? '0 0 18px rgba(242,228,168,0.13), 0 0 22px rgba(196,145,95,0.18), 0 4px 16px rgba(0,0,0,0.5)'
+      : '0 0 16px rgba(196,145,95,0.25), 0 4px 16px rgba(0,0,0,0.5)'
+    : '0 2px 4px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.35)';
   const boxShadow = `${baseShadow}, inset 0 1px 0 rgba(255,255,255,0.06)`;
 
   const opacityScale = intention ? intentionBrightness / 1.3 : 1;
@@ -214,8 +214,10 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
         border: `1px solid ${borderColor}`,
         boxShadow: hovered ? `${boxShadow}, 0 16px 40px rgba(0,0,0,0.6)` : boxShadow,
         minHeight: 320,
-        transform: hovered ? 'translateY(-4px)' : 'translateY(0)',
-        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+        transform: hovered ? 'translateY(-6px)' : 'translateY(0)',
+        transition: 'transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1)',
+        animation: isToday ? 'j2-today-pulse 4s ease-in-out infinite' : undefined,
+        willChange: 'transform',
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -240,7 +242,7 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
           {isToday && (
             <span
               className="text-[9px] font-bold px-1.5 py-0.5 rounded"
-              style={{ backgroundColor: 'rgba(184,122,85,0.3)', color: '#B87A55', letterSpacing: '0.05em' }}
+              style={{ backgroundColor: 'rgba(196,145,95,0.3)', color: '#C4915F', letterSpacing: '0.05em' }}
             >
               TODAY
             </span>
@@ -248,7 +250,7 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
         </div>
         <p
           className="text-lg font-bold mt-0.5"
-          style={{ color: isToday ? '#B87A55' : 'rgba(255,255,255,0.9)' }}
+          style={{ color: isToday ? '#C4915F' : 'rgba(255,255,255,0.9)' }}
         >
           {MONTH_NAMES[day.getMonth()]} {day.getDate()}
         </p>
@@ -301,7 +303,7 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
           onClick={() => onLogSession(day)}
           className="flex-1 flex flex-col items-center justify-center gap-1"
         >
-          <span className="text-base font-semibold" style={{ color: 'rgba(184,122,85,0.85)' }}>+ Mat Time</span>
+          <span className="text-base font-semibold" style={{ color: 'rgba(196,145,95,0.85)' }}>+ Mat Time</span>
         </button>
       ) : isPast ? (
         <button
@@ -309,7 +311,7 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
           className="flex-1 flex flex-col items-center justify-center gap-1.5"
         >
           <span className="text-sm" style={{ color: 'rgba(255,255,255,0.2)' }}>Rest day</span>
-          <span className="text-sm font-medium" style={{ color: 'rgba(184,122,85,0.55)' }}>+ Log session</span>
+          <span className="text-sm font-medium" style={{ color: 'rgba(196,145,95,0.55)' }}>+ Log session</span>
         </button>
       ) : (
         <button
@@ -327,8 +329,8 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
           className="px-3 py-1.5 text-[10px] truncate"
           style={{
             position: 'relative',
-            borderTop: `1px solid rgba(240,223,160,0.22)`,
-            color: 'rgba(240,223,160,0.5)',
+            borderTop: `1px solid rgba(242,228,168,0.22)`,
+            color: 'rgba(242,228,168,0.5)',
             animation: 'j2IntentFadeIn 1.6s ease forwards',
           }}
         >
@@ -348,7 +350,7 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
             <div style={{
               position: 'absolute',
               bottom: 0, left: 0, right: 0, height: 22,
-              background: 'linear-gradient(to top, rgba(240,223,160,0.22) 0%, transparent 100%)',
+              background: 'linear-gradient(to top, rgba(242,228,168,0.22) 0%, transparent 100%)',
               animation: 'j2IntentYellowPulse 4s ease-in-out infinite',
               transformOrigin: 'center bottom',
             }} />
@@ -365,8 +367,8 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
                 left: p.left, bottom: p.bottom,
                 width: p.size, height: p.size,
                 borderRadius: '50%',
-                backgroundColor: 'rgba(240,223,160,0.9)',
-                boxShadow: '0 0 6px 2px rgba(240,223,160,0.75)',
+                backgroundColor: 'rgba(242,228,168,0.9)',
+                boxShadow: '0 0 6px 2px rgba(242,228,168,0.75)',
                 filter: `brightness(${intentionBrightness})`,
                 ['--drift' as string]: p.drift,
                 animation: `j2IntentParticleRise ${p.duration}s ease-in-out infinite ${p.delay}s`,
@@ -629,9 +631,9 @@ export default function PathAheadPage() {
             position: 'relative',
             overflow: 'hidden',
             minHeight: 40,
-            backgroundColor: activeIntention ? 'rgba(240,223,160,0.06)' : 'rgba(255,255,255,0.03)',
-            border: `1px solid ${activeIntention ? 'rgba(240,223,160,0.18)' : 'rgba(255,255,255,0.06)'}`,
-            boxShadow: activeIntention ? '0 0 12px rgba(240,223,160,0.08)' : 'none',
+            backgroundColor: activeIntention ? 'rgba(242,228,168,0.06)' : 'rgba(255,255,255,0.03)',
+            border: `1px solid ${activeIntention ? 'rgba(242,228,168,0.18)' : 'rgba(255,255,255,0.06)'}`,
+            boxShadow: activeIntention ? '0 0 12px rgba(242,228,168,0.08)' : 'none',
           }}
         >
           {/* Layer 1 — Purple emergent glow */}
@@ -657,7 +659,7 @@ export default function PathAheadPage() {
             left: 0,
             right: 0,
             height: 28,
-            background: 'linear-gradient(to top, rgba(240,223,160,0.09) 0%, transparent 100%)',
+            background: 'linear-gradient(to top, rgba(242,228,168,0.09) 0%, transparent 100%)',
             animation: 'j2IntentYellowPulse 3.1s ease-in-out infinite',
             transformOrigin: 'center bottom',
             opacity: activeIntention ? 1 : 0.2,
@@ -681,8 +683,8 @@ export default function PathAheadPage() {
                   width: p.size,
                   height: p.size,
                   borderRadius: '50%',
-                  backgroundColor: 'rgba(240,223,160,0.9)',
-                  boxShadow: activeIntention ? '0 0 6px 2px rgba(240,223,160,0.75)' : '0 0 2px 1px rgba(240,223,160,0.2)',
+                  backgroundColor: 'rgba(242,228,168,0.9)',
+                  boxShadow: activeIntention ? '0 0 6px 2px rgba(242,228,168,0.75)' : '0 0 2px 1px rgba(242,228,168,0.2)',
                   filter: 'brightness(1.15)',
                   ['--drift' as string]: p.drift,
                   animation: `j2IntentParticleRise ${p.duration}s ease-in-out infinite ${p.delay}s`,
@@ -697,7 +699,7 @@ export default function PathAheadPage() {
             {activeIntention ? (
               <>
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-sm" style={{ color: 'rgba(240,223,160,0.5)' }}>◈</span>
+                  <span className="text-sm" style={{ color: 'rgba(242,228,168,0.5)' }}>◈</span>
                   <span className="text-sm font-semibold truncate" style={{ color: PALE_YELLOW }}>
                     {activeIntention.intent_label}
                   </span>
@@ -750,8 +752,8 @@ export default function PathAheadPage() {
         <div style={{
           height: 2,
           borderRadius: 2,
-          background: `linear-gradient(to right, transparent 0%, rgba(240,223,160,0.55) 20%, rgba(240,223,160,0.55) 80%, transparent 100%)`,
-          boxShadow: '0 0 10px 2px rgba(240,223,160,0.18)',
+          background: `linear-gradient(to right, transparent 0%, rgba(242,228,168,0.55) 20%, rgba(242,228,168,0.55) 80%, transparent 100%)`,
+          boxShadow: '0 0 10px 2px rgba(242,228,168,0.18)',
           animation: 'j2IntentYellowPulse 3.1s ease-in-out infinite',
         }} />
       )}
@@ -875,7 +877,7 @@ export default function PathAheadPage() {
                 fontWeight: active ? 700 : 400,
                 letterSpacing: '0.08em',
                 color: isIndToday
-                  ? (active ? '#B87A55' : 'rgba(184,122,85,0.4)')
+                  ? (active ? '#C4915F' : 'rgba(196,145,95,0.4)')
                   : (active ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.2)'),
                 transition: 'color 0.2s ease, font-weight 0.2s ease',
               }}>
@@ -886,7 +888,7 @@ export default function PathAheadPage() {
                 height: 2,
                 borderRadius: 1,
                 backgroundColor: isIndToday
-                  ? (active ? '#B87A55' : 'rgba(184,122,85,0.25)')
+                  ? (active ? '#C4915F' : 'rgba(196,145,95,0.25)')
                   : (active ? 'rgba(255,255,255,0.55)' : 'transparent'),
                 transition: 'all 0.2s ease',
               }} />
@@ -919,13 +921,13 @@ export default function PathAheadPage() {
               transform: 'translateX(-50%)',
               width: '50%', height: 40,
               borderRadius: '50%',
-              background: 'radial-gradient(ellipse at center bottom, rgba(184,122,85,0.15) 0%, transparent 80%)',
+              background: 'radial-gradient(ellipse at center bottom, rgba(196,145,95,0.15) 0%, transparent 80%)',
               animation: 'j2IntentCopperPulse 5.5s ease-in-out infinite',
             }} />
             <div style={{
               position: 'absolute',
               bottom: 0, left: 0, right: 0, height: 18,
-              background: 'linear-gradient(to top, rgba(184,122,85,0.12) 0%, transparent 100%)',
+              background: 'linear-gradient(to top, rgba(196,145,95,0.12) 0%, transparent 100%)',
               animation: 'j2IntentCopperPulse 4.5s ease-in-out infinite',
               transformOrigin: 'center bottom',
             }} />
@@ -954,8 +956,8 @@ export default function PathAheadPage() {
               <span style={{
                 display: 'inline-block', width: 20, height: 1.5,
                 borderRadius: 1,
-                backgroundColor: 'rgba(184,122,85,0.55)',
-                boxShadow: '0 0 6px 2px rgba(184,122,85,0.3)',
+                backgroundColor: 'rgba(196,145,95,0.55)',
+                boxShadow: '0 0 6px 2px rgba(196,145,95,0.3)',
                 verticalAlign: 'middle',
               }} />
             </div>
@@ -1031,7 +1033,7 @@ export default function PathAheadPage() {
               onClick={handleSpin}
               disabled={spinPhase !== 'idle'}
               className="text-xs font-medium px-2.5 py-1 rounded-lg transition-colors disabled:opacity-40"
-              style={{ backgroundColor: 'rgba(184,122,85,0.15)', color: 'rgba(184,122,85,0.85)' }}
+              style={{ backgroundColor: 'rgba(196,145,95,0.15)', color: 'rgba(196,145,95,0.85)' }}
             >
               ⟳ Spin
             </button>
@@ -1040,7 +1042,7 @@ export default function PathAheadPage() {
           {/* Drill display */}
           <p
             className="text-xl font-semibold mb-0.5"
-            style={{ color: 'rgba(240,223,160,0.85)' }}
+            style={{ color: 'rgba(242,228,168,0.85)' }}
           >
             {ROULETTE_DRILLS[drillIndex].name}
           </p>
@@ -1057,12 +1059,12 @@ export default function PathAheadPage() {
       {logOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm px-5"
-          style={{ backgroundColor: 'rgba(17, 30, 43, 0.92)' }}
+          style={{ backgroundColor: 'rgba(13, 26, 20, 0.85)', backdropFilter: 'blur(12px) saturate(1.2)' }}
           onClick={() => setLogOpen(false)}
         >
           <div
             onClick={e => e.stopPropagation()}
-            className="w-full sm:max-w-lg rounded-2xl"
+            className="w-full sm:max-w-lg rounded-2xl animate-j2-modal-in"
             style={{
               border: `1px solid ${COPPER_BORDER}`,
               maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem)',

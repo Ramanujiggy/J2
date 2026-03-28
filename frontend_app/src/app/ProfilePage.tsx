@@ -307,7 +307,7 @@ export default function ProfilePage() {
               setImportOpen(true);
             }}
             className="text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-            style={{ backgroundColor: 'rgba(184,122,85,0.15)', color: 'rgba(184,122,85,0.85)' }}
+            style={{ backgroundColor: 'rgba(196,145,95,0.15)', color: 'rgba(196,145,95,0.85)' }}
           >
             ↑ Upload CSV
           </button>
