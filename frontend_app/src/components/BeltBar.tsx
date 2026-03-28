@@ -7,24 +7,10 @@
 //   • Click: whip-and-snap animation
 
 import { useState, useEffect } from 'react';
+import { type BeltRank, BELT_COLORS, PATCH_COLORS, ribbed } from '../lib/belt.ts';
 
-export type BeltRank = 'white' | 'blue' | 'purple' | 'brown' | 'black';
-
-export const BELT_COLORS: Record<BeltRank, string> = {
-  white:  '#C8C4BF',
-  blue:   '#1E4D8C',
-  purple: '#6B2D8B',
-  brown:  '#7B4A2D',
-  black:  '#1C1C1C',
-};
-
-export const PATCH_COLORS: Record<BeltRank, string> = {
-  white:  '#0D0D0D',
-  blue:   '#0D0D0D',
-  purple: '#0D0D0D',
-  brown:  '#0D0D0D',
-  black:  '#C41E3A',
-};
+// Re-export so existing consumers (AppShell, DashboardPage, ProfilePage, ProfileContext) don't break.
+export { type BeltRank, BELT_COLORS, PATCH_COLORS };
 
 interface BeltBarProps {
   rank?: string | null;
@@ -101,9 +87,7 @@ function BeltBarInner({
     return () => [t0, t1, t2, t3, t4, t5].forEach(clearTimeout);
   }, []);
 
-  // Subtle woven-fabric texture: 1 px dark line every 3 px
-  const ribbed = (color: string) =>
-    `repeating-linear-gradient(to bottom, transparent 0px, transparent 2px, rgba(0,0,0,0.10) 2px, rgba(0,0,0,0.10) 3px), ${color}`;
+  // ribbed() imported from '../lib/belt.ts'
 
   const knotTop  = Math.round((BELT_H - KNOT_C_H) / 2);  // centres knot on belt midline
   // Tail zones (% of tail height, top → bottom):
@@ -219,7 +203,7 @@ function BeltBarInner({
         }
       `}</style>
 
-      <div style={{ position: 'relative', height: BELT_H + TAIL_H, marginTop: 3, overflow: 'visible' }}>
+      <div style={{ position: 'relative', height: BELT_H + TAIL_H, marginTop: 3, overflow: 'visible', filter: 'drop-shadow(0 0 3px rgba(196,145,95,0.35))' }}>
 
         {/* ── Belt bar ── */}
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: BELT_H, overflow: 'hidden' }}>

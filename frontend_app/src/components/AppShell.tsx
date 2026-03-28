@@ -152,7 +152,7 @@ export default function AppShell({ children }: Props) {
             <div style={{
               position: 'absolute',
               top: '-8px', left: '-14px', right: '-14px', bottom: '-6px',
-              background: 'radial-gradient(ellipse at 35% 45%, rgba(6,14,10,0.55) 0%, rgba(6,14,10,0.20) 50%, transparent 78%)',
+              background: 'radial-gradient(ellipse at 35% 45%, rgba(30,22,12,0.60) 0%, rgba(13,20,16,0.30) 50%, transparent 78%)',
               pointerEvents: 'none',
             }} />
             <h1
