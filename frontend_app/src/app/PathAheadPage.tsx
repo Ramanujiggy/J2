@@ -407,7 +407,7 @@ export default function PathAheadPage() {
   const rafRef         = useRef<number | undefined>(undefined);
   const carouselRef    = useRef<HTMLDivElement>(null);
 
-  const CARD_H      = 420;
+  const CARD_H      = 330;
   const STACK_PEEK  = 20;
   const carouselSpring = 'transform 0.38s cubic-bezier(0.25, 1.3, 0.4, 1)';
 
