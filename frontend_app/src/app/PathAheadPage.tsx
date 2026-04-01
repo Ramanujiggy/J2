@@ -399,89 +399,79 @@ export default function PathAheadPage() {
   const [intentions, setIntentions] = useState<Intention[]>([]);
   const [loading,    setLoading]    = useState(true);
 
-  // Carousel — absolute stack layout
-  const [activeDayIndex, setActiveDayIndex] = useState(5);
-  const [dragX,          setDragX]          = useState(0);
-  const [isDragging,     setIsDragging]     = useState(false);
-  const touchStartX    = useRef(0);
-  const touchStartY    = useRef(0);
-  const touchStartTime = useRef(0);
-  const isHorizontalSwipe = useRef<boolean | null>(null);
-  const rafRef         = useRef<number | undefined>(undefined);
-  const carouselRef    = useRef<HTMLDivElement>(null);
-  const desktopCarouselRef = useRef<HTMLDivElement>(null);
-  const scrollRafRef   = useRef<number | undefined>(undefined);
+  // Week scroll ref
+  const weekScrollRef = useRef<HTMLDivElement>(null);
+  const MINI_CARD_W = 110;
+  const MINI_CARD_GAP = 10;
 
-  const CARD_H      = 330;
-  const STACK_PEEK  = 20;
-  const carouselSpring = 'transform 0.38s cubic-bezier(0.25, 1.3, 0.4, 1)';
-  const DESKTOP_CARD_W = 130;
-  const DESKTOP_GAP    = 12;
+  // Rep Roulette — expand/collapse + drill history
+  const [rouletteOpen, setRouletteOpen] = useState(false);
+  const [drillHistory, setDrillHistory] = useState<number[]>(
+    () => [Math.floor(Math.random() * ROULETTE_DRILLS.length)]
+  );
+  const [drillHistoryIndex, setDrillHistoryIndex] = useState(0);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current    = e.touches[0].clientX;
-    touchStartY.current    = e.touches[0].clientY;
-    touchStartTime.current = Date.now();
-    isHorizontalSwipe.current = null;
-    setIsDragging(true);
+  // Roulette swipe state
+  const rouletteTouchStartX    = useRef(0);
+  const rouletteTouchStartY    = useRef(0);
+  const rouletteTouchStartTime = useRef(0);
+  const rouletteIsHorizontal   = useRef<boolean | null>(null);
+  const rouletteRafRef         = useRef<number | undefined>(undefined);
+  const [rouletteDragX,      setRouletteDragX]      = useState(0);
+  const [rouletteIsDragging, setRouletteIsDragging] = useState(false);
+
+  const handleRouletteTouchStart = (e: React.TouchEvent) => {
+    rouletteTouchStartX.current    = e.touches[0].clientX;
+    rouletteTouchStartY.current    = e.touches[0].clientY;
+    rouletteTouchStartTime.current = Date.now();
+    rouletteIsHorizontal.current   = null;
+    setRouletteIsDragging(true);
   };
-  const handleTouchMove = (e: React.TouchEvent) => {
-    const rawDx = e.touches[0].clientX - touchStartX.current;
-    const dy    = e.touches[0].clientY - touchStartY.current;
+  const handleRouletteTouchMove = (e: React.TouchEvent) => {
+    const rawDx = e.touches[0].clientX - rouletteTouchStartX.current;
+    const dy    = e.touches[0].clientY - rouletteTouchStartY.current;
 
     // Direction lock — decide on first significant movement
-    if (isHorizontalSwipe.current === null) {
+    if (rouletteIsHorizontal.current === null) {
       if (Math.abs(rawDx) > 8 || Math.abs(dy) > 8) {
-        isHorizontalSwipe.current = Math.abs(rawDx) > Math.abs(dy);
+        rouletteIsHorizontal.current = Math.abs(rawDx) > Math.abs(dy);
       }
       return;
     }
-    if (!isHorizontalSwipe.current) return; // vertical scroll — don't interfere
+    if (!rouletteIsHorizontal.current) return;
 
-    // Edge rubber-band — dampen drag at boundaries
+    // Rubber-band at left edge (no history to go back to)
     let dx = rawDx;
-    if ((activeDayIndex === 0 && rawDx > 0) || (activeDayIndex === 10 && rawDx < 0)) {
+    if (drillHistoryIndex === 0 && rawDx > 0) {
       dx = rawDx * 0.3;
     }
 
-    if (rafRef.current !== undefined) return;
-    rafRef.current = requestAnimationFrame(() => {
-      setDragX(dx);
-      rafRef.current = undefined;
+    if (rouletteRafRef.current !== undefined) return;
+    rouletteRafRef.current = requestAnimationFrame(() => {
+      setRouletteDragX(dx);
+      rouletteRafRef.current = undefined;
     });
   };
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (rafRef.current !== undefined) { cancelAnimationFrame(rafRef.current); rafRef.current = undefined; }
-    const dx  = e.changedTouches[0].clientX - touchStartX.current;
-    const dt  = Date.now() - touchStartTime.current;
+  const handleRouletteTouchEnd = (e: React.TouchEvent) => {
+    if (rouletteRafRef.current !== undefined) { cancelAnimationFrame(rouletteRafRef.current); rouletteRafRef.current = undefined; }
+    const dx  = e.changedTouches[0].clientX - rouletteTouchStartX.current;
+    const dt  = Date.now() - rouletteTouchStartTime.current;
     const vel = Math.abs(dx) / Math.max(dt, 1);
     if (Math.abs(dx) > 45 || vel > 0.35) {
-      if (dx < 0) setActiveDayIndex(i => Math.min(10, i + 1));
-      else        setActiveDayIndex(i => Math.max(0, i - 1));
+      if (dx < 0) {
+        // Swipe left → new random drill
+        const currentDrill = drillHistory[drillHistoryIndex];
+        const next = (currentDrill + 1 + Math.floor(Math.random() * (ROULETTE_DRILLS.length - 1))) % ROULETTE_DRILLS.length;
+        setDrillHistory(prev => [...prev.slice(0, drillHistoryIndex + 1), next]);
+        setDrillHistoryIndex(i => i + 1);
+      } else {
+        // Swipe right → previous drill from history
+        setDrillHistoryIndex(i => Math.max(0, i - 1));
+      }
     }
-    setDragX(0);
-    setIsDragging(false);
+    setRouletteDragX(0);
+    setRouletteIsDragging(false);
   };
-
-  // Keyboard navigation for mobile carousel
-  const handleCarouselKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowLeft')  { setActiveDayIndex(i => Math.max(0, i - 1));  e.preventDefault(); }
-    if (e.key === 'ArrowRight') { setActiveDayIndex(i => Math.min(10, i + 1)); e.preventDefault(); }
-  };
-
-  // Desktop carousel — scroll position sync
-  const handleDesktopScroll = useCallback(() => {
-    if (scrollRafRef.current !== undefined) return;
-    scrollRafRef.current = requestAnimationFrame(() => {
-      scrollRafRef.current = undefined;
-      const el = desktopCarouselRef.current;
-      if (!el) return;
-      const cardStep = DESKTOP_CARD_W + DESKTOP_GAP;
-      const centerOffset = el.clientWidth / 2;
-      const centerIndex = Math.round((el.scrollLeft + centerOffset - DESKTOP_CARD_W / 2) / cardStep);
-      setActiveDayIndex(Math.max(0, Math.min(10, centerIndex)));
-    });
-  }, []);
 
   // Modals
   const [logOpen,             setLogOpen]             = useState(false);
@@ -608,21 +598,6 @@ export default function PathAheadPage() {
 
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
-  // ── Rep Roulette ────────────────────────────────────────────────────────
-
-  const [drillIndex,  setDrillIndex]  = useState(() => Math.floor(Math.random() * ROULETTE_DRILLS.length));
-  const [spinPhase,   setSpinPhase]   = useState<'idle' | 'out' | 'in'>('idle');
-
-  const handleSpin = () => {
-    if (spinPhase !== 'idle') return;
-    setSpinPhase('out');
-    setTimeout(() => {
-      setDrillIndex(i => (i + 1 + Math.floor(Math.random() * (ROULETTE_DRILLS.length - 1))) % ROULETTE_DRILLS.length);
-      setSpinPhase('in');
-      setTimeout(() => setSpinPhase('idle'), 310);
-    }, 290);
-  };
-
   const handleDeleteIntention = async () => {
     if (!deleteConfirm) {
       setDeleteConfirm(true);
@@ -639,12 +614,12 @@ export default function PathAheadPage() {
     }
   };
 
-  // Desktop carousel — scroll to today on mount
+  // Week scroll — center today on mount
   useEffect(() => {
-    const el = desktopCarouselRef.current;
+    const el = weekScrollRef.current;
     if (!el) return;
-    el.scrollTo({ left: 5 * (DESKTOP_CARD_W + DESKTOP_GAP), behavior: 'instant' as ScrollBehavior });
-  }, []);
+    el.scrollTo({ left: todayDowOffset * (MINI_CARD_W + MINI_CARD_GAP), behavior: 'instant' as ScrollBehavior });
+  }, [todayDowOffset]);
 
   // ── Render ─────────────────────────────────────────────────────────────
 
@@ -677,14 +652,6 @@ export default function PathAheadPage() {
         @keyframes j2IntentFadeIn {
           from { opacity: 0; }
           to   { opacity: 1; }
-        }
-        @keyframes j2RepOut {
-          from { transform: rotateX(0deg);   opacity: 1; }
-          to   { transform: rotateX(90deg);  opacity: 0; }
-        }
-        @keyframes j2RepIn {
-          from { transform: rotateX(-90deg); opacity: 0; }
-          to   { transform: rotateX(0deg);   opacity: 1; }
         }
         .j2-day-scroll { scrollbar-width: thin; scrollbar-color: rgba(196,145,95,0.55) rgba(0,0,0,0.18); }
         .j2-day-scroll::-webkit-scrollbar { height: 6px; }
@@ -835,204 +802,167 @@ export default function PathAheadPage() {
         }} />
       )}
 
-      {/* ── Day carousel + indicator ─────────────────────────────── */}
-      <div>
-      {/* Mobile stacked carousel */}
-      <div className="sm:hidden">
-        <div
-          ref={carouselRef}
-          data-testid="day-carousel"
-          tabIndex={0}
-          role="listbox"
-          aria-label="Day cards"
-          style={{
-            position: 'relative',
-            height: CARD_H + STACK_PEEK,
-            touchAction: 'pan-y',
-            outline: 'none',
-          }}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onKeyDown={handleCarouselKeyDown}
+      {/* ── Rep Roulette (expand/collapse + swipe) ──────────────── */}
+      <div
+        className="rounded-xl overflow-hidden"
+        style={{
+          backgroundColor: 'rgba(255,255,255,0.03)',
+          border: `1px solid ${COPPER_BORDER}`,
+        }}
+      >
+        {/* Header — always visible, clickable */}
+        <button
+          onClick={() => setRouletteOpen(o => !o)}
+          className="w-full flex items-center justify-between px-4 py-2.5"
+          style={{ background: 'transparent' }}
+          data-testid="roulette-header"
         >
-          {windowDays.map((day, i) => {
-            const dayStr  = toDateString(day);
-            const offset  = i - activeDayIndex;
+          <span className="text-sm font-semibold uppercase tracking-wide" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
+            Rep Roulette
+          </span>
+          <span style={{
+            color: 'rgba(196,145,95,0.7)',
+            transform: rouletteOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 0.3s ease',
+            fontSize: 14,
+          }}>
+            ▾
+          </span>
+        </button>
 
-            // Only render active + 2 cards behind
-            if (offset < 0 || offset > 2) return null;
+        {/* Expandable body */}
+        <div style={{
+          maxHeight: rouletteOpen ? 250 : 0,
+          opacity: rouletteOpen ? 1 : 0,
+          overflow: 'hidden',
+          transition: 'max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease',
+        }}>
+          <div
+            className="px-4 pb-3"
+            style={{ touchAction: 'pan-y' }}
+            data-testid="roulette-drill-area"
+            onTouchStart={handleRouletteTouchStart}
+            onTouchMove={handleRouletteTouchMove}
+            onTouchEnd={handleRouletteTouchEnd}
+          >
+            {/* Drill content with drag-follow */}
+            <div style={{
+              transform: `translateX(${rouletteIsDragging ? rouletteDragX : 0}px)`,
+              transition: rouletteIsDragging ? 'none' : 'transform 0.38s cubic-bezier(0.25, 1.3, 0.4, 1)',
+            }}>
+              <p className="text-xl font-semibold mb-0.5" style={{ color: 'rgba(242,228,168,0.85)' }}>
+                {ROULETTE_DRILLS[drillHistory[drillHistoryIndex]].name}
+              </p>
+              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                {ROULETTE_DRILLS[drillHistory[drillHistoryIndex]].focus}
+                <span style={{ color: 'rgba(255,255,255,0.2)', margin: '0 6px' }}>·</span>
+                {ROULETTE_DRILLS[drillHistory[drillHistoryIndex]].suggestion}
+              </p>
+              <p className="text-sm mt-2 leading-relaxed" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                {ROULETTE_DRILLS[drillHistory[drillHistoryIndex]].description}
+              </p>
+            </div>
 
-            const isActive = offset === 0;
-            const progress = isDragging ? Math.min(1, Math.abs(dragX) / 110) : 0;
-
-            let cardTransform: string;
-            let cardOpacity: number;
-            let cardZIndex: number;
-
-            if (isActive) {
-              const rot = isDragging ? Math.max(-6, Math.min(6, dragX / 20)) : 0;
-              const tx  = isDragging ? dragX : 0;
-              const dragScale = isDragging ? Math.max(0.95, 1 - Math.abs(dragX) * 0.0003) : 1;
-              cardTransform = `translateX(${tx}px) rotateZ(${rot}deg) scale(${dragScale})`;
-              cardZIndex    = 10;
-              cardOpacity   = 1 - progress * 0.7;
-            } else if (offset === 1) {
-              const scale = 0.95 + progress * 0.05;
-              const ty    = 10  - progress * 10;
-              cardTransform = `translateY(${ty}px) scale(${scale})`;
-              cardZIndex    = 9;
-              cardOpacity   = 1;
-            } else {
-              const scale = 0.90 + progress * 0.03;
-              const ty    = 20  - progress * 5;
-              cardTransform = `translateY(${ty}px) scale(${scale})`;
-              cardZIndex    = 8;
-              cardOpacity   = 1;
-            }
-
-            const { dayHasIntention, intentionBrightness } = getIntentionInfo(dayStr);
-
-            return (
-              <div
-                key={dayStr}
-                role="option"
-                aria-selected={isActive}
-                style={{
-                  position: 'absolute', top: 0, left: 0, right: 0,
-                  transform: cardTransform,
-                  opacity: cardOpacity,
-                  zIndex: cardZIndex,
-                  transition: isDragging ? 'none' : carouselSpring,
-                  transformOrigin: isActive ? '50% 85%' : '50% 50%',
-                }}
-              >
-                <DayCard
-                  day={day}
-                  today={today}
-                  sessions={sessionsByDate.get(dayStr) ?? []}
-                  intention={dayHasIntention ? activeIntention : null}
-                  intentionBrightness={intentionBrightness}
-                  onLogSession={(date) => { setLogDate(date ? toDateString(date) : null); setLogOpen(true); }}
-                  onViewSession={(ss, d) => {
-                    setDetailSessions(ss);
-                    setDetailSessionIndex(0);
-                    setDetailDate(d);
-                    setDetailIntention(dayHasIntention ? activeIntention : null);
-                  }}
-                />
-              </div>
-            );
-          })}
+            {/* Swipe hint + position indicator */}
+            <div className="flex items-center justify-between mt-3">
+              <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.15)' }}>
+                ← swipe →
+              </span>
+              {drillHistory.length > 1 && (
+                <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                  {drillHistoryIndex + 1} of {drillHistory.length}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Desktop horizontal scroll carousel */}
-      <div className="hidden sm:block">
-        <div
-          ref={desktopCarouselRef}
-          data-testid="day-carousel-desktop"
-          className="j2-day-scroll"
-          style={{
-            display: 'flex',
-            gap: DESKTOP_GAP,
-            overflowX: 'auto',
-            scrollSnapType: 'x mandatory',
-            scrollBehavior: 'smooth',
-            paddingBottom: 8,
-          }}
-          onScroll={handleDesktopScroll}
-        >
-          {windowDays.map((day, i) => {
-            const dayStr = toDateString(day);
-            const { dayHasIntention, intentionBrightness } = getIntentionInfo(dayStr);
+      {/* ── Week view (horizontal scroll, mini day cards) ──────── */}
+      <div
+        ref={weekScrollRef}
+        data-testid="week-scroll"
+        className="j2-day-scroll"
+        style={{
+          display: 'flex',
+          gap: MINI_CARD_GAP,
+          overflowX: 'auto',
+          scrollSnapType: 'x mandatory',
+          scrollBehavior: 'smooth',
+          paddingBottom: 6,
+        }}
+      >
+        {weekDays.map((day) => {
+          const dayStr = toDateString(day);
+          const daySessions = sessionsByDate.get(dayStr) ?? [];
+          const isToday = dayStr === toDateString(today);
+          const isPast  = dayStr < toDateString(today);
+          const sessionCount = daySessions.length;
+          const totalMinutes = daySessions.reduce((sum, s) => sum + Number(s.duration), 0);
+          const primarySession = sessionCount > 0
+            ? [...daySessions].sort((a, b) => Number(b.intensity) - Number(a.intensity))[0]
+            : null;
+          const intensityColor = primarySession ? (INTENSITY_COLOR[primarySession.intensity] ?? '#CDDFA0') : null;
+          const { dayHasIntention } = getIntentionInfo(dayStr);
 
-            return (
-              <div
-                key={dayStr}
-                style={{
-                  flexShrink: 0,
-                  width: DESKTOP_CARD_W,
-                  scrollSnapAlign: 'start',
-                  outline: i === activeDayIndex ? '2px solid rgba(196,145,95,0.4)' : '2px solid transparent',
-                  outlineOffset: 2,
-                  borderRadius: 16,
-                  transition: 'outline-color 0.3s ease',
-                }}
-                onClick={() => setActiveDayIndex(i)}
-              >
-                <DayCard
-                  compact
-                  day={day}
-                  today={today}
-                  sessions={sessionsByDate.get(dayStr) ?? []}
-                  intention={dayHasIntention ? activeIntention : null}
-                  intentionBrightness={intentionBrightness}
-                  onLogSession={(date) => { setLogDate(date ? toDateString(date) : null); setLogOpen(true); }}
-                  onViewSession={(ss, d) => {
-                    setDetailSessions(ss);
-                    setDetailSessionIndex(0);
-                    setDetailDate(d);
-                    setDetailIntention(dayHasIntention ? activeIntention : null);
-                  }}
-                />
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Day-initial indicator — Mon–Sun of current week */}
-      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 4 }}>
-        {weekDays.map((day, i) => {
-          const winIndex   = 5 + (i - todayDowOffset);
-          const active     = winIndex === activeDayIndex;
-          const isIndToday = toDateString(day) === toDateString(today);
-          const initial    = ['S','M','T','W','T','F','S'][day.getDay()];
-          const clickable  = winIndex >= 0 && winIndex <= 10;
           return (
             <button
-              key={i}
+              key={dayStr}
               onClick={() => {
-                if (!clickable) return;
-                setActiveDayIndex(winIndex);
-                desktopCarouselRef.current?.scrollTo({
-                  left: winIndex * (DESKTOP_CARD_W + DESKTOP_GAP),
-                  behavior: 'smooth',
-                });
+                if (sessionCount > 0) {
+                  setDetailSessions(daySessions);
+                  setDetailSessionIndex(0);
+                  setDetailDate(day);
+                  setDetailIntention(dayHasIntention ? activeIntention : null);
+                } else {
+                  setLogDate(toDateString(day));
+                  setLogOpen(true);
+                }
               }}
+              className="flex flex-col items-center justify-center gap-1 rounded-xl"
               style={{
-                flex: 1, padding: '4px 0 6px',
-                border: 'none', background: 'transparent',
-                cursor: clickable ? 'pointer' : 'default',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                flexShrink: 0,
+                width: MINI_CARD_W,
+                minHeight: 100,
+                scrollSnapAlign: 'start',
+                backgroundColor: CARD_BG,
+                border: isToday ? '1px solid rgba(196,145,95,0.7)' : '1px solid rgba(255,255,255,0.07)',
+                boxShadow: isToday
+                  ? '0 0 12px rgba(196,145,95,0.2), 0 2px 8px rgba(0,0,0,0.3)'
+                  : '0 2px 4px rgba(0,0,0,0.15)',
+                animation: isToday ? 'j2-today-pulse 4s ease-in-out infinite' : undefined,
+                padding: '10px 6px',
+                borderBottom: dayHasIntention
+                  ? '2px solid rgba(242,228,168,0.35)'
+                  : undefined,
+                transition: 'box-shadow 0.3s ease',
               }}
             >
-              <span style={{
-                fontSize: 10,
-                fontWeight: active ? 700 : 400,
-                letterSpacing: '0.08em',
-                color: isIndToday
-                  ? (active ? '#C4915F' : 'rgba(196,145,95,0.4)')
-                  : (active ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.2)'),
-                transition: 'color 0.2s ease, font-weight 0.2s ease',
-              }}>
-                {initial}
+              {/* Day name */}
+              <span className="text-[10px] font-medium uppercase tracking-wide" style={{ color: isToday ? '#C4915F' : 'rgba(255,255,255,0.35)' }}>
+                {DAY_NAMES[day.getDay()]}
               </span>
-              <span style={{
-                width: active ? 14 : 3,
-                height: 2,
-                borderRadius: 1,
-                backgroundColor: isIndToday
-                  ? (active ? '#C4915F' : 'rgba(196,145,95,0.25)')
-                  : (active ? 'rgba(255,255,255,0.55)' : 'transparent'),
-                transition: 'all 0.2s ease',
-              }} />
+              {/* Date */}
+              <span className="text-sm font-bold" style={{ color: isToday ? '#C4915F' : 'rgba(255,255,255,0.85)' }}>
+                {MONTH_NAMES[day.getMonth()]} {day.getDate()}
+              </span>
+              {/* Session indicator */}
+              {sessionCount > 0 ? (
+                <>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: intensityColor! }} />
+                  <span className="text-[11px] font-semibold text-white">{formatDuration(totalMinutes)}</span>
+                </>
+              ) : isToday ? (
+                <span className="text-[11px] font-semibold" style={{ color: 'rgba(196,145,95,0.85)' }}>+ Mat Time</span>
+              ) : isPast ? (
+                <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.15)' }}>Rest</span>
+              ) : (
+                <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.12)' }}>—</span>
+              )}
             </button>
           );
         })}
       </div>
-      </div>{/* end carousel + indicator wrapper */}
 
       {/* ── Weekly summary card ───────────────────────────────────── */}
       {windowStats.count > 0 && (
@@ -1145,50 +1075,6 @@ export default function PathAheadPage() {
           </div>
         </div>
       )}
-
-      {/* ── Rep Roulette ──────────────────────────────────────────── */}
-      <div style={{ perspective: '800px' }}>
-        <div
-          className="rounded-xl px-4 py-2.5"
-          style={{
-            position: 'relative',
-            overflow: 'hidden',
-            backgroundColor: 'rgba(255,255,255,0.03)',
-            border: `1px solid ${COPPER_BORDER}`,
-            animation: spinPhase === 'out'
-              ? 'j2RepOut 0.29s ease-in forwards'
-              : spinPhase === 'in'
-                ? 'j2RepIn 0.31s ease-out forwards'
-                : 'none',
-          }}
-        >
-          {/* Header row */}
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold uppercase tracking-wide" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>Rep Roulette</span>
-            <button
-              onClick={handleSpin}
-              disabled={spinPhase !== 'idle'}
-              className="text-xs font-medium px-2.5 py-1 rounded-lg transition-colors disabled:opacity-40"
-              style={{ backgroundColor: 'rgba(196,145,95,0.15)', color: 'rgba(196,145,95,0.85)' }}
-            >
-              ⟳ Spin
-            </button>
-          </div>
-
-          {/* Drill display */}
-          <p
-            className="text-xl font-semibold mb-0.5"
-            style={{ color: 'rgba(242,228,168,0.85)' }}
-          >
-            {ROULETTE_DRILLS[drillIndex].name}
-          </p>
-          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
-            {ROULETTE_DRILLS[drillIndex].focus}
-            <span style={{ color: 'rgba(255,255,255,0.2)', margin: '0 6px' }}>·</span>
-            {ROULETTE_DRILLS[drillIndex].suggestion}
-          </p>
-        </div>
-      </div>
 
       {/* ── Modals ────────────────────────────────────────────────── */}
 

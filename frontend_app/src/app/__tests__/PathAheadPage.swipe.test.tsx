@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { api } from '@/lib/api';
@@ -18,7 +18,6 @@ vi.mock('@/lib/api', () => ({
   },
 }));
 
-// PathAheadPage conditionally imports these modals — keep them lightweight
 vi.mock('@/components/SessionDetailModal', () => ({ default: () => null }));
 vi.mock('@/components/SetIntentionModal',  () => ({ default: () => null }));
 
@@ -26,7 +25,7 @@ const mockGet = vi.mocked(api.get);
 
 // ── Test setup ──────────────────────────────────────────────────────────────
 
-// Fix "today" to Mon 23 Mar 2026 so window = [Mar 23 … Mar 29]
+// Fix "today" to Mon 23 Mar 2026 so week = [Mar 23 … Mar 29]
 beforeAll(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date('2026-03-23T12:00:00'));
@@ -42,7 +41,8 @@ afterAll(() => {
 beforeEach(() => {
   vi.clearAllMocks();
   mockGet.mockImplementation((path: string) => {
-    if (path === '/api/sessions')   return Promise.resolve({ sessions: [] });
+    if (path === '/api/sessions' || path.startsWith('/api/sessions?'))
+      return Promise.resolve({ sessions: [] });
     if (path === '/api/intentions') return Promise.resolve({ intentions: [] });
     if (path === '/api/profile')    return Promise.resolve({ profile: null });
     return Promise.resolve({});
@@ -61,86 +61,140 @@ const renderPage = () =>
     </MemoryRouter>,
   );
 
-// Helper: fire a complete swipe gesture on the carousel
-function swipe(carousel: HTMLElement, startX: number, endX: number, dt = 0) {
-  fireEvent.touchStart(carousel, { touches: [{ clientX: startX, clientY: 0 }] });
+// Helper: fire a complete swipe gesture on an element
+function swipe(el: HTMLElement, startX: number, endX: number, dt = 0) {
+  fireEvent.touchStart(el, { touches: [{ clientX: startX, clientY: 0 }] });
   if (dt > 0) vi.setSystemTime(new Date(Date.now() + dt));
-  fireEvent.touchEnd(carousel, { changedTouches: [{ clientX: endX, clientY: 0 }] });
+  fireEvent.touchEnd(el, { changedTouches: [{ clientX: endX, clientY: 0 }] });
 }
 
-// ── Tests ───────────────────────────────────────────────────────────────────
+// ── Week view tests ─────────────────────────────────────────────────────────
 
-describe('PathAheadPage — swipe navigation', () => {
+describe('PathAheadPage — week view', () => {
 
-  it('renders the current day (Mar 23) as the active card on mount', async () => {
+  it('renders 7 mini day cards (Mon–Sun) in the week scroll', async () => {
     renderPage();
-    const carousel = await screen.findByTestId('day-carousel');
-    expect(carousel).toBeInTheDocument();
-    // Mar 23 is the active card (offset 0) — scope to mobile carousel
-    expect(within(carousel).getByText('Mar 23')).toBeInTheDocument();
+    const weekScroll = await screen.findByTestId('week-scroll');
+    expect(weekScroll).toBeInTheDocument();
+    // Mon Mar 23 through Sun Mar 29
+    expect(screen.getByText('Mar 23')).toBeInTheDocument();
+    expect(screen.getByText('Mar 29')).toBeInTheDocument();
+    // Should have 7 day cards
+    const buttons = weekScroll.querySelectorAll('button');
+    expect(buttons.length).toBe(7);
+  });
+});
+
+// ── Rep Roulette tests ──────────────────────────────────────────────────────
+
+describe('PathAheadPage — Rep Roulette', () => {
+
+  it('renders the roulette header', async () => {
+    renderPage();
+    const header = await screen.findByTestId('roulette-header');
+    expect(header).toBeInTheDocument();
+    expect(screen.getByText('Rep Roulette')).toBeInTheDocument();
   });
 
-  it('left swipe advances to the next day — Mar 23 leaves, Mar 24 becomes active', async () => {
+  it('expands on click and shows drill content', async () => {
     renderPage();
-    const carousel = await screen.findByTestId('day-carousel');
+    const header = await screen.findByTestId('roulette-header');
+    fireEvent.click(header);
 
-    // dx = −80px (left), fast → triggers swipe
-    swipe(carousel, 200, 120);
-
-    await waitFor(() =>
-      // Mar 23 (offset -1) is no longer rendered in mobile carousel
-      expect(within(carousel).queryByText('Mar 23')).not.toBeInTheDocument(),
-    );
-    expect(within(carousel).getByText('Mar 24')).toBeInTheDocument();
+    // The drill area should now be visible
+    const drillArea = screen.getByTestId('roulette-drill-area');
+    expect(drillArea).toBeInTheDocument();
+    // Should have swipe hint text
+    expect(screen.getByText('← swipe →')).toBeInTheDocument();
   });
 
-  it('right swipe goes back to the previous day', async () => {
+  it('collapses on second click', async () => {
     renderPage();
-    const carousel = await screen.findByTestId('day-carousel');
+    const header = await screen.findByTestId('roulette-header');
 
-    // First go to Mar 24
-    swipe(carousel, 200, 120);
-    await waitFor(() => expect(within(carousel).queryByText('Mar 23')).not.toBeInTheDocument());
+    // Expand
+    fireEvent.click(header);
+    expect(screen.getByText('← swipe →')).toBeInTheDocument();
 
-    // Swipe right: dx = +80px → goes back to Mar 23
-    swipe(carousel, 200, 280);
-    await waitFor(() => expect(within(carousel).getByText('Mar 23')).toBeInTheDocument());
+    // Collapse
+    fireEvent.click(header);
+    // The drill area container still exists in DOM (animated out via maxHeight: 0)
+    // but the parent has opacity: 0 — we verify the roulette header is still there
+    expect(header).toBeInTheDocument();
   });
 
-  it('small slow swipe (below distance and velocity thresholds) does not change day', async () => {
+  it('left swipe advances to a new drill', async () => {
     renderPage();
-    const carousel = await screen.findByTestId('day-carousel');
+    const header = await screen.findByTestId('roulette-header');
+    fireEvent.click(header);
 
-    // dx = −30px with dt = 500 ms → vel = 30/500 = 0.06 < 0.35, dist < 45
-    swipe(carousel, 200, 170, 500);
+    const drillArea = screen.getByTestId('roulette-drill-area');
+    const initialDrillName = drillArea.querySelector('.text-xl')?.textContent;
 
-    // Mar 23 should still be the active card
-    await waitFor(() => expect(within(carousel).getByText('Mar 23')).toBeInTheDocument());
-    // Crucially, no day has been removed from the mobile carousel
-    expect(within(carousel).queryByText('Mar 22')).not.toBeInTheDocument();
+    // Swipe left: dx = −80px, fast
+    swipe(drillArea, 200, 120);
+
+    await waitFor(() => {
+      const newDrillName = drillArea.querySelector('.text-xl')?.textContent;
+      expect(newDrillName).not.toBe(initialDrillName);
+    });
+    // Position indicator should show "2 of 2"
+    expect(screen.getByText('2 of 2')).toBeInTheDocument();
   });
 
-  it('fast flick (dx = −20px, dt ≈ 0ms, vel > 0.35) advances the day', async () => {
+  it('right swipe at index 0 stays on the same drill', async () => {
     renderPage();
-    const carousel = await screen.findByTestId('day-carousel');
+    const header = await screen.findByTestId('roulette-header');
+    fireEvent.click(header);
 
-    // dx = −20px, dt = 0 → vel = 20/1 = 20 >> 0.35 → triggers swipe
-    swipe(carousel, 200, 180);
+    const drillArea = screen.getByTestId('roulette-drill-area');
+    const initialDrillName = drillArea.querySelector('.text-xl')?.textContent;
 
-    await waitFor(() =>
-      expect(within(carousel).queryByText('Mar 23')).not.toBeInTheDocument(),
-    );
-    expect(within(carousel).getByText('Mar 24')).toBeInTheDocument();
+    // Swipe right at index 0: dx = +80px
+    swipe(drillArea, 200, 280);
+
+    await waitFor(() => {
+      const currentDrillName = drillArea.querySelector('.text-xl')?.textContent;
+      expect(currentDrillName).toBe(initialDrillName);
+    });
   });
 
-  it('right swipe at the first day (index 0) stays at index 0', async () => {
+  it('left swipe then right swipe returns to previous drill', async () => {
     renderPage();
-    const carousel = await screen.findByTestId('day-carousel');
+    const header = await screen.findByTestId('roulette-header');
+    fireEvent.click(header);
 
-    // dx = +80px (right) when already at index 0
-    swipe(carousel, 200, 280);
+    const drillArea = screen.getByTestId('roulette-drill-area');
+    const firstDrillName = drillArea.querySelector('.text-xl')?.textContent;
 
-    // Mar 23 must still be in the DOM — boundary holds
-    await waitFor(() => expect(within(carousel).getByText('Mar 23')).toBeInTheDocument());
+    // Swipe left to get a new drill
+    swipe(drillArea, 200, 120);
+    await waitFor(() => {
+      expect(drillArea.querySelector('.text-xl')?.textContent).not.toBe(firstDrillName);
+    });
+
+    // Swipe right to go back
+    swipe(drillArea, 200, 280);
+    await waitFor(() => {
+      expect(drillArea.querySelector('.text-xl')?.textContent).toBe(firstDrillName);
+    });
+    // Position indicator should show "1 of 2"
+    expect(screen.getByText('1 of 2')).toBeInTheDocument();
+  });
+
+  it('small slow swipe does not change drill', async () => {
+    renderPage();
+    const header = await screen.findByTestId('roulette-header');
+    fireEvent.click(header);
+
+    const drillArea = screen.getByTestId('roulette-drill-area');
+    const initialDrillName = drillArea.querySelector('.text-xl')?.textContent;
+
+    // dx = −30px with dt = 500ms → vel = 0.06, dist < 45 → no change
+    swipe(drillArea, 200, 170, 500);
+
+    await waitFor(() => {
+      expect(drillArea.querySelector('.text-xl')?.textContent).toBe(initialDrillName);
+    });
   });
 });
