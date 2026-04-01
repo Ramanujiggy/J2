@@ -420,6 +420,10 @@ export default function PathAheadPage() {
   const [rouletteDragX,      setRouletteDragX]      = useState(0);
   const [rouletteIsDragging, setRouletteIsDragging] = useState(false);
 
+  // Training Telemetry — expand/collapse + stat toggle
+  const [telemetryOpen, setTelemetryOpen] = useState(false);
+  const [telemetryStat, setTelemetryStat] = useState<'sessions' | 'hours'>('sessions');
+
   const handleRouletteTouchStart = (e: React.TouchEvent) => {
     rouletteTouchStartX.current    = e.touches[0].clientX;
     rouletteTouchStartY.current    = e.touches[0].clientY;
@@ -653,6 +657,12 @@ export default function PathAheadPage() {
           from { opacity: 0; }
           to   { opacity: 1; }
         }
+        @keyframes j2RouletteEdgeBounce {
+          0%        { transform: translateX(0); }
+          15%       { transform: translateX(-12px); }
+          30%       { transform: translateX(3px); }
+          40%, 100% { transform: translateX(0); }
+        }
         .j2-day-scroll { scrollbar-width: thin; scrollbar-color: rgba(196,145,95,0.55) rgba(0,0,0,0.18); }
         .j2-day-scroll::-webkit-scrollbar { height: 6px; }
         .j2-day-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.18); border-radius: 3px; }
@@ -802,19 +812,126 @@ export default function PathAheadPage() {
         }} />
       )}
 
-      {/* ── Rep Roulette (expand/collapse + swipe) ──────────────── */}
-      <div
-        className="rounded-xl overflow-hidden"
-        style={{
-          backgroundColor: 'rgba(255,255,255,0.03)',
-          border: `1px solid ${COPPER_BORDER}`,
-        }}
-      >
-        {/* Header — always visible, clickable */}
+      {/* ── Telemetry expanded panel (above tiles) ──────────────── */}
+      <div style={{
+        maxHeight: telemetryOpen ? 200 : 0,
+        opacity: telemetryOpen ? 1 : 0,
+        overflow: 'hidden',
+        transition: 'max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease',
+      }}>
+        <div
+          className="rounded-xl px-4 py-2.5 mb-2"
+          style={{
+            position: 'relative',
+            overflow: 'hidden',
+            backgroundColor: 'rgba(255,255,255,0.03)',
+            border: `1px solid ${COPPER_BORDER}`,
+          }}
+        >
+          {/* Particle / glow layer */}
+          <div style={{
+            position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0,
+            WebkitMaskImage: 'linear-gradient(to top, black 0%, rgba(0,0,0,0.85) 45%, transparent 100%)',
+            maskImage: 'linear-gradient(to top, black 0%, rgba(0,0,0,0.85) 45%, transparent 100%)',
+          }}>
+            <div style={{
+              position: 'absolute',
+              bottom: -10, left: '50%',
+              transform: 'translateX(-50%)',
+              width: '50%', height: 40,
+              borderRadius: '50%',
+              background: 'radial-gradient(ellipse at center bottom, rgba(196,145,95,0.15) 0%, transparent 80%)',
+              animation: 'j2IntentCopperPulse 5.5s ease-in-out infinite',
+            }} />
+            <div style={{
+              position: 'absolute',
+              bottom: 0, left: 0, right: 0, height: 18,
+              background: 'linear-gradient(to top, rgba(196,145,95,0.12) 0%, transparent 100%)',
+              animation: 'j2IntentCopperPulse 4.5s ease-in-out infinite',
+              transformOrigin: 'center bottom',
+            }} />
+            {STATS_PARTICLES.map((p, i) => (
+              <span key={i} style={{
+                position: 'absolute',
+                left: p.left, bottom: p.bottom,
+                width: p.size, height: p.size,
+                borderRadius: '50%',
+                backgroundColor: 'rgba(218,116,34,0.75)',
+                boxShadow: '0 0 5px 2px rgba(218,116,34,0.45)',
+                filter: 'brightness(1.2)',
+                ['--drift' as string]: p.drift,
+                animation: `j2IntentParticleRise ${p.duration}s ease-in-out infinite ${p.delay}s`,
+                userSelect: 'none',
+              } as React.CSSProperties} />
+            ))}
+          </div>
+          {/* Content */}
+          <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold uppercase tracking-wide" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>Training Telemetry</span>
+              <span style={{
+                display: 'inline-block', width: 20, height: 1.5,
+                borderRadius: 1,
+                backgroundColor: 'rgba(196,145,95,0.55)',
+                boxShadow: '0 0 6px 2px rgba(196,145,95,0.3)',
+                verticalAlign: 'middle',
+              }} />
+            </div>
+            <div className="flex items-center gap-3 text-sm flex-wrap">
+              <span className="text-white/50">
+                <span className="font-semibold text-white">{windowStats.count}</span> session{windowStats.count !== 1 ? 's' : ''}
+              </span>
+              <span className="text-white/20">·</span>
+              <span className="text-white/50">
+                <span className="font-semibold text-white">{formatDuration(windowStats.totalMinutes)}</span> total
+              </span>
+            </div>
+            {windowStats.topTagLabel && (() => {
+              const { topTagLabel, topTagCount, count, tag2Label } = windowStats;
+              const pct = count > 0 ? topTagCount / count : 0;
+              let before: string;
+              let highlight: string;
+              let after: string | null = null;
+              let highlight2: string | null = null;
+              if (tag2Label && pct < 0.7) {
+                before = 'Splitting time between ';
+                highlight = topTagLabel!;
+                after = ' and ';
+                highlight2 = tag2Label;
+              } else if (pct === 1 && count > 1) {
+                before = `All ${count} sessions went into `;
+                highlight = topTagLabel!;
+              } else {
+                before = 'Recent sessions have been leaning into ';
+                highlight = topTagLabel!;
+              }
+              return (
+                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', margin: 0, lineHeight: 1.45 }}>
+                  {before}
+                  <strong style={{ color: 'rgba(218,116,34,0.85)', fontWeight: 600 }}>{highlight}</strong>
+                  {after && highlight2 ? (
+                    <>{after}<strong style={{ color: 'rgba(218,116,34,0.85)', fontWeight: 600 }}>{highlight2}</strong></>
+                  ) : null}
+                  {'.'}
+                </p>
+              );
+            })()}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Tiles row ───────────────────────────────────────────── */}
+      <div style={{ display: 'flex', gap: 10 }}>
+        {/* Rep Roulette tile */}
         <button
-          onClick={() => setRouletteOpen(o => !o)}
-          className="w-full flex items-center justify-between px-4 py-2.5"
-          style={{ background: 'transparent' }}
+          onClick={() => { if (rouletteOpen) { setRouletteOpen(false); } else { setRouletteOpen(true); setTelemetryOpen(false); } }}
+          className="flex-1 rounded-xl flex flex-col items-center justify-center gap-1.5"
+          style={{
+            minHeight: 90,
+            backgroundColor: rouletteOpen ? 'rgba(242,228,168,0.06)' : CARD_BG,
+            border: `1px solid ${rouletteOpen ? 'rgba(242,228,168,0.25)' : COPPER_BORDER}`,
+            transition: 'background-color 0.3s ease, border-color 0.3s ease',
+          }}
           data-testid="roulette-header"
         >
           <span className="text-sm font-semibold uppercase tracking-wide" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
@@ -824,28 +941,72 @@ export default function PathAheadPage() {
             color: 'rgba(196,145,95,0.7)',
             transform: rouletteOpen ? 'rotate(180deg)' : 'rotate(0deg)',
             transition: 'transform 0.3s ease',
-            fontSize: 14,
-          }}>
-            ▾
-          </span>
+            fontSize: 12,
+          }}>▾</span>
         </button>
 
-        {/* Expandable body */}
-        <div style={{
-          maxHeight: rouletteOpen ? 250 : 0,
-          opacity: rouletteOpen ? 1 : 0,
-          overflow: 'hidden',
-          transition: 'max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease',
-        }}>
-          <div
-            className="px-4 pb-3"
-            style={{ touchAction: 'pan-y' }}
-            data-testid="roulette-drill-area"
-            onTouchStart={handleRouletteTouchStart}
-            onTouchMove={handleRouletteTouchMove}
-            onTouchEnd={handleRouletteTouchEnd}
+        {/* Training Telemetry tile */}
+        <button
+          onClick={() => { if (telemetryOpen) { setTelemetryOpen(false); } else { setTelemetryOpen(true); setRouletteOpen(false); } }}
+          className="flex-1 rounded-xl flex flex-col items-center justify-center gap-0.5"
+          style={{
+            minHeight: 90,
+            backgroundColor: telemetryOpen ? 'rgba(196,145,95,0.06)' : CARD_BG,
+            border: `1px solid ${telemetryOpen ? 'rgba(196,145,95,0.35)' : COPPER_BORDER}`,
+            transition: 'background-color 0.3s ease, border-color 0.3s ease',
+          }}
+          data-testid="telemetry-header"
+        >
+          <span className="text-[10px] font-medium uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            Telemetry
+          </span>
+          <span
+            className="text-lg font-bold"
+            style={{ color: 'rgba(255,255,255,0.85)' }}
+            onClick={(e) => { e.stopPropagation(); setTelemetryStat(s => s === 'sessions' ? 'hours' : 'sessions'); }}
           >
-            {/* Drill content with drag-follow */}
+            {telemetryStat === 'sessions'
+              ? windowStats.count
+              : formatDuration(windowStats.totalMinutes)}
+          </span>
+          <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            {telemetryStat === 'sessions'
+              ? `session${windowStats.count !== 1 ? 's' : ''}`
+              : 'total'}
+          </span>
+          <span style={{
+            color: 'rgba(196,145,95,0.7)',
+            transform: telemetryOpen ? 'rotate(0deg)' : 'rotate(180deg)',
+            transition: 'transform 0.3s ease',
+            fontSize: 12,
+          }}>▴</span>
+        </button>
+      </div>
+
+      {/* ── Roulette expanded panel (below tiles) ──────────────── */}
+      <div style={{
+        maxHeight: rouletteOpen ? 250 : 0,
+        opacity: rouletteOpen ? 1 : 0,
+        overflow: 'hidden',
+        transition: 'max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease',
+      }}>
+        <div
+          className="rounded-xl px-4 py-3"
+          style={{
+            touchAction: 'pan-y',
+            backgroundColor: 'rgba(242,228,168,0.04)',
+            border: '1px solid rgba(242,228,168,0.15)',
+          }}
+          data-testid="roulette-drill-area"
+          onTouchStart={handleRouletteTouchStart}
+          onTouchMove={handleRouletteTouchMove}
+          onTouchEnd={handleRouletteTouchEnd}
+        >
+          {/* Bounce affordance wrapper */}
+          <div style={{
+            animation: rouletteOpen ? 'j2RouletteEdgeBounce 0.8s ease 0.4s both' : 'none',
+          }}>
+            {/* Drag-follow content */}
             <div style={{
               transform: `translateX(${rouletteIsDragging ? rouletteDragX : 0}px)`,
               transition: rouletteIsDragging ? 'none' : 'transform 0.38s cubic-bezier(0.25, 1.3, 0.4, 1)',
@@ -861,18 +1022,6 @@ export default function PathAheadPage() {
               <p className="text-sm mt-2 leading-relaxed" style={{ color: 'rgba(255,255,255,0.35)' }}>
                 {ROULETTE_DRILLS[drillHistory[drillHistoryIndex]].description}
               </p>
-            </div>
-
-            {/* Swipe hint + position indicator */}
-            <div className="flex items-center justify-between mt-3">
-              <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.15)' }}>
-                ← swipe →
-              </span>
-              {drillHistory.length > 1 && (
-                <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
-                  {drillHistoryIndex + 1} of {drillHistory.length}
-                </span>
-              )}
             </div>
           </div>
         </div>
@@ -963,118 +1112,6 @@ export default function PathAheadPage() {
           );
         })}
       </div>
-
-      {/* ── Weekly summary card ───────────────────────────────────── */}
-      {windowStats.count > 0 && (
-        <div
-          className="rounded-xl px-4 py-2.5"
-          style={{
-            position: 'relative',
-            overflow: 'hidden',
-            backgroundColor: 'rgba(255,255,255,0.03)',
-            border: `1px solid ${COPPER_BORDER}`,
-          }}
-        >
-          {/* Particle / glow layer — copper toned, gradient masked */}
-          <div style={{
-            position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0,
-            WebkitMaskImage: 'linear-gradient(to top, black 0%, rgba(0,0,0,0.85) 45%, transparent 100%)',
-            maskImage: 'linear-gradient(to top, black 0%, rgba(0,0,0,0.85) 45%, transparent 100%)',
-          }}>
-            <div style={{
-              position: 'absolute',
-              bottom: -10, left: '50%',
-              transform: 'translateX(-50%)',
-              width: '50%', height: 40,
-              borderRadius: '50%',
-              background: 'radial-gradient(ellipse at center bottom, rgba(196,145,95,0.15) 0%, transparent 80%)',
-              animation: 'j2IntentCopperPulse 5.5s ease-in-out infinite',
-            }} />
-            <div style={{
-              position: 'absolute',
-              bottom: 0, left: 0, right: 0, height: 18,
-              background: 'linear-gradient(to top, rgba(196,145,95,0.12) 0%, transparent 100%)',
-              animation: 'j2IntentCopperPulse 4.5s ease-in-out infinite',
-              transformOrigin: 'center bottom',
-            }} />
-            {STATS_PARTICLES.map((p, i) => (
-              <span key={i} style={{
-                position: 'absolute',
-                left: p.left, bottom: p.bottom,
-                width: p.size, height: p.size,
-                borderRadius: '50%',
-                backgroundColor: 'rgba(218,116,34,0.75)',
-                boxShadow: '0 0 5px 2px rgba(218,116,34,0.45)',
-                filter: 'brightness(1.2)',
-                ['--drift' as string]: p.drift,
-                animation: `j2IntentParticleRise ${p.duration}s ease-in-out infinite ${p.delay}s`,
-                userSelect: 'none',
-              } as React.CSSProperties} />
-            ))}
-          </div>
-
-          {/* Content */}
-          <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-
-            {/* Header row */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold uppercase tracking-wide" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>Training Telemetry</span>
-              <span style={{
-                display: 'inline-block', width: 20, height: 1.5,
-                borderRadius: 1,
-                backgroundColor: 'rgba(196,145,95,0.55)',
-                boxShadow: '0 0 6px 2px rgba(196,145,95,0.3)',
-                verticalAlign: 'middle',
-              }} />
-            </div>
-
-            {/* Stats */}
-            <div className="flex items-center gap-3 text-sm flex-wrap">
-              <span className="text-white/50">
-                <span className="font-semibold text-white">{windowStats.count}</span> session{windowStats.count !== 1 ? 's' : ''}
-              </span>
-              <span className="text-white/20">·</span>
-              <span className="text-white/50">
-                <span className="font-semibold text-white">{formatDuration(windowStats.totalMinutes)}</span> total
-              </span>
-            </div>
-
-            {/* Prose sentence — only when tags exist */}
-            {windowStats.topTagLabel && (() => {
-              const { topTagLabel, topTagCount, count, tag2Label } = windowStats;
-              const pct = count > 0 ? topTagCount / count : 0;
-              let before: string;
-              let highlight: string;
-              let after: string | null = null;
-              let highlight2: string | null = null;
-
-              if (tag2Label && pct < 0.7) {
-                before = 'Splitting time between ';
-                highlight = topTagLabel!;
-                after = ' and ';
-                highlight2 = tag2Label;
-              } else if (pct === 1 && count > 1) {
-                before = `All ${count} sessions went into `;
-                highlight = topTagLabel!;
-              } else {
-                before = 'Recent sessions have been leaning into ';
-                highlight = topTagLabel!;
-              }
-
-              return (
-                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', margin: 0, lineHeight: 1.45 }}>
-                  {before}
-                  <strong style={{ color: 'rgba(218,116,34,0.85)', fontWeight: 600 }}>{highlight}</strong>
-                  {after && highlight2 ? (
-                    <>{after}<strong style={{ color: 'rgba(218,116,34,0.85)', fontWeight: 600 }}>{highlight2}</strong></>
-                  ) : null}
-                  {'.'}
-                </p>
-              );
-            })()}
-          </div>
-        </div>
-      )}
 
       {/* ── Modals ────────────────────────────────────────────────── */}
 

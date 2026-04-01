@@ -101,11 +101,10 @@ describe('PathAheadPage — Rep Roulette', () => {
     const header = await screen.findByTestId('roulette-header');
     fireEvent.click(header);
 
-    // The drill area should now be visible
+    // The drill area should now be visible with a drill name
     const drillArea = screen.getByTestId('roulette-drill-area');
     expect(drillArea).toBeInTheDocument();
-    // Should have swipe hint text
-    expect(screen.getByText('← swipe →')).toBeInTheDocument();
+    expect(drillArea.querySelector('.text-xl')).toBeTruthy();
   });
 
   it('collapses on second click', async () => {
@@ -114,7 +113,7 @@ describe('PathAheadPage — Rep Roulette', () => {
 
     // Expand
     fireEvent.click(header);
-    expect(screen.getByText('← swipe →')).toBeInTheDocument();
+    expect(screen.getByTestId('roulette-drill-area')).toBeInTheDocument();
 
     // Collapse
     fireEvent.click(header);
@@ -138,8 +137,6 @@ describe('PathAheadPage — Rep Roulette', () => {
       const newDrillName = drillArea.querySelector('.text-xl')?.textContent;
       expect(newDrillName).not.toBe(initialDrillName);
     });
-    // Position indicator should show "2 of 2"
-    expect(screen.getByText('2 of 2')).toBeInTheDocument();
   });
 
   it('right swipe at index 0 stays on the same drill', async () => {
@@ -178,8 +175,6 @@ describe('PathAheadPage — Rep Roulette', () => {
     await waitFor(() => {
       expect(drillArea.querySelector('.text-xl')?.textContent).toBe(firstDrillName);
     });
-    // Position indicator should show "1 of 2"
-    expect(screen.getByText('1 of 2')).toBeInTheDocument();
   });
 
   it('small slow swipe does not change drill', async () => {
