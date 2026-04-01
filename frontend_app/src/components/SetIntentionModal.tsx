@@ -81,7 +81,7 @@ export default function SetIntentionModal({ weekStart, onSaved, onClose }: Props
         style={{
           backgroundColor: '#152E22',
           border: '1px solid rgba(196,145,95,0.45)',
-          maxHeight: 'calc(100dvh - 2rem)',
+          maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem)',
           overflowY: 'auto',
         }}
         onClick={e => e.stopPropagation()}
