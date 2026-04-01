@@ -30,7 +30,8 @@ J2/
 ├── .husky/pre-commit         Runs backend tests before every commit
 ├── backend_api/              Node.js API server (port 5000)
 │   ├── src/
-│   │   ├── app.ts            Entry point — env validation, migrations, Express setup, routes
+│   │   ├── app.ts            Express config, middleware, routes — exports `app` (no `listen()`)
+│   │   ├── server.ts         Entry point — calls `app.listen()` and runs migrations
 │   │   ├── config/db.ts      pg pool + query helper
 │   │   ├── controllers/      authController, sessionController, profileController, intentionController
 │   │   ├── middleware/       authMiddleware (JWT verification)
