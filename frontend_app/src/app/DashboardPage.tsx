@@ -133,10 +133,17 @@ export default function DashboardPage() {
       {logOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm px-5"
-          style={{ backgroundColor: 'rgba(38, 70, 83, 0.85)' }}
+          style={{ backgroundColor: 'rgba(13, 26, 20, 0.85)', backdropFilter: 'blur(12px) saturate(1.2)' }}
           onClick={() => setLogOpen(false)}
         >
-          <div onClick={e => e.stopPropagation()} className="w-full max-w-lg overflow-y-auto max-h-[85vh]">
+          <div
+            onClick={e => e.stopPropagation()}
+            className="w-full sm:max-w-lg animate-j2-modal-in"
+            style={{
+              maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem)',
+              overflowY: 'auto',
+            }}
+          >
             <LogSessionForm
               onSuccess={() => { fetchSessions(); setLogOpen(false); }}
               onCancel={() => setLogOpen(false)}

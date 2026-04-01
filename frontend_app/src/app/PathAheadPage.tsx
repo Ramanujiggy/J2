@@ -1200,9 +1200,8 @@ export default function PathAheadPage() {
         >
           <div
             onClick={e => e.stopPropagation()}
-            className="w-full sm:max-w-lg rounded-2xl animate-j2-modal-in"
+            className="w-full sm:max-w-lg animate-j2-modal-in"
             style={{
-              border: `1px solid ${COPPER_BORDER}`,
               maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem)',
               overflowY: 'auto',
             }}
