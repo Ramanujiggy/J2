@@ -17,7 +17,7 @@ const HEATMAP_REST_PRIMARY = '#1A3226'; // rest days — slightly lighter than C
 const HEATMAP_REST_ALT     = '#1B3427'; // alternate month rest (odd months)
 const HEATMAP_FUTURE_ALT   = '#10241A'; // alternate month future-day color
 
-const GRID_COLS_MOBILE  = '2rem repeat(7, minmax(0, 1fr))';
+const GRID_COLS_MOBILE  = '1.5rem repeat(7, minmax(0, 1fr))';
 const GRID_COLS_DESKTOP = '2rem repeat(7, minmax(0, 1fr)) 13rem 7rem';
 
 const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -209,6 +209,16 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
   const [selectedSession, setSelectedSession] = useState<{ session: SessionSummary; date: Date } | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const pendingScroll = useRef(false);
+
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 639px)');
+    setIsMobile(mql.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
+
   const currentCalYear = new Date().getFullYear();
 
   const handleTodayClick = useCallback(() => {
@@ -290,6 +300,12 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
       .j2-heatmap-grid { grid-template-columns: ${GRID_COLS_MOBILE}; }
       @media (min-width: 640px) { .j2-heatmap-grid { grid-template-columns: ${GRID_COLS_DESKTOP}; } }
 
+      .j2-heatmap-month { font-size: 14px; }
+      @media (min-width: 640px) { .j2-heatmap-month { font-size: 20px; } }
+
+      .j2-heatmap-scroll { max-height: min(480px, 60dvh); }
+      @media (min-width: 640px) { .j2-heatmap-scroll { max-height: 480px; } }
+
       @keyframes j2CalIntentRise {
         0%   { transform: translateY(0) translateX(0); opacity: 0; }
         8%   { opacity: 1; }
@@ -369,7 +385,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
       )}
 
       {/* Scrollable calendar — hidden when empty */}
-      {sessions.length > 0 && <div ref={scrollContainerRef} className="overflow-y-auto relative j2-heatmap-scroll" style={{ maxHeight: 480 }}>
+      {sessions.length > 0 && <div ref={scrollContainerRef} className="overflow-y-auto relative j2-heatmap-scroll">
 
         {/* Sticky column headers */}
         <div
@@ -425,7 +441,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                   && year === now.getFullYear();
                 return (
                   <div
-                    className="font-semibold"
+                    className="font-semibold j2-heatmap-month"
                     style={{
                       color: isCurrentMonth ? 'rgba(242,228,168,0.95)' : 'rgba(242,228,168,0.6)',
                       textShadow: isCurrentMonth ? '0 0 10px rgba(242,228,168,0.45)' : 'none',
@@ -433,7 +449,6 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                       zIndex: 1,
                       writingMode: 'vertical-rl',
                       transform: 'rotate(180deg)',
-                      fontSize: '20px',
                       letterSpacing: '0.05em',
                       display: 'flex',
                       alignItems: 'center',
@@ -470,45 +485,47 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                   if (daySessions[0]) setSelectedSession({ session: daySessions[0], date });
                 };
 
-                return (
+                const cellEl = (
+                  <div className="px-0.5 py-1" style={{ position: 'relative', zIndex: 1 }}>
+                    <div
+                      className="rounded flex items-end px-1 j2-heatmap-cell"
+                      style={{
+                        height: '40px',
+                        backgroundColor: (() => {
+                          if (!isCurrentYear) return '#0D1812'; // flat muted — clearly inactive, no opacity trick
+                          const isAltMonth = date.getMonth() % 2 === 1;
+                          if (isFuture && day.count === 0) return isAltMonth ? HEATMAP_FUTURE_ALT : HEATMAP_FUTURE;
+                          if (day.count === 0) return isAltMonth ? HEATMAP_REST_ALT : HEATMAP_REST_PRIMARY;
+                          return cellColor(day);
+                        })(),
+                        cursor: isClickable ? 'pointer' : 'default',
+                        paddingBottom: '3px',
+                        border: hasResonance
+                          ? '1px solid rgba(196,145,95,0.7)'
+                          : '1px solid rgba(242,228,168,0.13)',
+                        boxShadow: hasResonance
+                          ? '0 0 8px 2px rgba(196,145,95,0.35), inset 0 0 5px rgba(196,145,95,0.18)'
+                          : 'inset 0 1px 0 rgba(255,255,255,0.05)',
+                      }}
+                      onClick={handleClick}
+                    >
+                      <span
+                        className="leading-none select-none pointer-events-none whitespace-nowrap"
+                        style={{ fontSize: '10px', fontWeight: 500, color: 'rgba(255,255,255,0.65)' }}
+                      >
+                        {date.getDate()}
+                        {!isMobile && day.count > 0 && ` | ${(day.totalMinutes / 60).toFixed(1)}h`}
+                      </span>
+                    </div>
+                  </div>
+                );
+
+                return isMobile ? (
+                  <div key={key}>{cellEl}</div>
+                ) : (
                   <Tooltip key={key}>
-                    <TooltipTrigger asChild>
-                      <div className="px-0.5 py-1" style={{ position: 'relative', zIndex: 1 }}>
-                        <div
-                          className="rounded flex items-end px-1 j2-heatmap-cell"
-                          style={{
-                            height: '40px',
-                            backgroundColor: (() => {
-                              if (!isCurrentYear) return '#0D1812'; // flat muted — clearly inactive, no opacity trick
-                              const isAltMonth = date.getMonth() % 2 === 1;
-                              if (isFuture && day.count === 0) return isAltMonth ? HEATMAP_FUTURE_ALT : HEATMAP_FUTURE;
-                              if (day.count === 0) return isAltMonth ? HEATMAP_REST_ALT : HEATMAP_REST_PRIMARY;
-                              return cellColor(day);
-                            })(),
-                            cursor: isClickable ? 'pointer' : 'default',
-                            paddingBottom: '3px',
-                            border: hasResonance
-                              ? '1px solid rgba(196,145,95,0.7)'
-                              : '1px solid rgba(242,228,168,0.13)',
-                            boxShadow: hasResonance
-                              ? '0 0 8px 2px rgba(196,145,95,0.35), inset 0 0 5px rgba(196,145,95,0.18)'
-                              : 'inset 0 1px 0 rgba(255,255,255,0.05)',
-                          }}
-                          onClick={handleClick}
-                        >
-                          <span
-                            className="leading-none select-none pointer-events-none whitespace-nowrap"
-                            style={{ fontSize: '10px', fontWeight: 500, color: 'rgba(255,255,255,0.65)' }}
-                          >
-                            {date.getDate()}
-                            {day.count > 0 && ` | ${(day.totalMinutes / 60).toFixed(1)}h`}
-                          </span>
-                        </div>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">
-                      <p>{tooltip}</p>
-                    </TooltipContent>
+                    <TooltipTrigger asChild>{cellEl}</TooltipTrigger>
+                    <TooltipContent side="top"><p>{tooltip}</p></TooltipContent>
                   </Tooltip>
                 );
               })}
