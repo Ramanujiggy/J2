@@ -4,7 +4,7 @@ import { SKILL_TAGS } from '../lib/constants.ts';
 import { api } from '../lib/api.ts';
 import { CARD_BG, COPPER_BORDER } from '../lib/theme.ts';
 
-const COPPER_DIM = 'rgba(184,122,85,0.85)';
+const COPPER_DIM = 'rgba(196,145,95,0.85)';
 const COPPER_FG  = 'rgba(218,116,34,0.85)';
 
 interface Props {
@@ -137,15 +137,15 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0, zIndex: 60,
-        backgroundColor: 'rgba(17,30,43,0.92)',
-        backdropFilter: 'blur(4px)',
-        display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
-        padding: '1.5rem 1rem',
-        overflowY: 'auto',
+        backgroundColor: 'rgba(13,26,20,0.85)',
+        backdropFilter: 'blur(12px) saturate(1.2)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '1rem',
       }}
     >
       <div
         onClick={e => e.stopPropagation()}
+        className="animate-j2-modal-in"
         style={{
           width: '100%', maxWidth: 680,
           backgroundColor: CARD_BG,
@@ -153,6 +153,8 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
           borderRadius: '1rem',
           padding: '1.5rem',
           position: 'relative',
+          maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem)',
+          overflowY: 'auto',
         }}
       >
         {/* Header */}
@@ -177,7 +179,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
               style={{
                 border: `2px dashed ${COPPER_BORDER}`,
                 padding: '3rem 2rem',
-                backgroundColor: 'rgba(184,122,85,0.04)',
+                backgroundColor: 'rgba(196,145,95,0.04)',
               }}
             >
               <span style={{ fontSize: 32 }}>📂</span>
@@ -200,7 +202,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
               <p className="text-xs text-white/40 mb-1 uppercase tracking-wide">Expected columns</p>
               <div className="flex flex-wrap gap-2 mt-2">
                 {['Date', '@Hrs', 'Goals/Drilling', 'Restriction'].map(col => (
-                  <span key={col} className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: 'rgba(184,122,85,0.12)', color: COPPER_DIM }}>
+                  <span key={col} className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: 'rgba(196,145,95,0.12)', color: COPPER_DIM }}>
                     {col}
                   </span>
                 ))}
@@ -278,7 +280,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
                   onClick={handleImport}
                   disabled={!canImport || importing}
                   className="text-sm font-semibold px-5 py-2 rounded-lg transition-colors disabled:opacity-40"
-                  style={{ backgroundColor: canImport && !importing ? 'rgba(218,116,34,0.85)' : 'rgba(184,122,85,0.2)', color: 'white' }}
+                  style={{ backgroundColor: canImport && !importing ? 'rgba(218,116,34,0.85)' : 'rgba(196,145,95,0.2)', color: 'white' }}
                 >
                   {importing ? 'Importing…' : `Import ${activeRows.length} session${activeRows.length !== 1 ? 's' : ''}`}
                 </button>
@@ -304,7 +306,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
             <button
               onClick={onClose}
               className="mt-2 text-sm font-medium px-5 py-2 rounded-lg"
-              style={{ backgroundColor: 'rgba(184,122,85,0.2)', color: COPPER_DIM }}
+              style={{ backgroundColor: 'rgba(196,145,95,0.2)', color: COPPER_DIM }}
             >
               Done
             </button>
@@ -334,7 +336,7 @@ const SESSION_TYPE_OPTIONS: { value: SessionType; label: string }[] = [
   { value: 'competition_training', label: 'Comp'    },
 ];
 
-const COPPER_BORDER_STR = 'rgba(184,122,85,0.45)';
+const COPPER_BORDER_STR = 'rgba(196,145,95,0.45)';
 
 function ReviewRow({ row, onUpdate, onToggleTag }: ReviewRowProps) {
   const needsTag = !row.skip && row.tags.length === 0;
@@ -343,7 +345,7 @@ function ReviewRow({ row, onUpdate, onToggleTag }: ReviewRowProps) {
   const rowBg = row.skip
     ? 'rgba(255,255,255,0.02)'
     : row.isDuplicate
-      ? 'rgba(184,122,85,0.07)'
+      ? 'rgba(196,145,95,0.07)'
       : hasErrors
         ? 'rgba(245,158,11,0.06)'
         : 'rgba(255,255,255,0.03)';
@@ -399,7 +401,7 @@ function ReviewRow({ row, onUpdate, onToggleTag }: ReviewRowProps) {
               onClick={() => onUpdate({ gi_nogi: opt.value })}
               className="text-xs px-2 py-0.5 transition-colors"
               style={{
-                backgroundColor: row.gi_nogi === opt.value ? 'rgba(184,122,85,0.3)' : 'transparent',
+                backgroundColor: row.gi_nogi === opt.value ? 'rgba(196,145,95,0.3)' : 'transparent',
                 color: row.gi_nogi === opt.value ? 'rgba(218,116,34,0.9)' : 'rgba(255,255,255,0.4)',
               }}
             >
@@ -417,7 +419,7 @@ function ReviewRow({ row, onUpdate, onToggleTag }: ReviewRowProps) {
               onClick={() => onUpdate({ session_type: opt.value })}
               className="text-xs px-2 py-0.5 transition-colors"
               style={{
-                backgroundColor: row.session_type === opt.value ? 'rgba(184,122,85,0.3)' : 'transparent',
+                backgroundColor: row.session_type === opt.value ? 'rgba(196,145,95,0.3)' : 'transparent',
                 color: row.session_type === opt.value ? 'rgba(218,116,34,0.9)' : 'rgba(255,255,255,0.4)',
               }}
             >
@@ -435,7 +437,7 @@ function ReviewRow({ row, onUpdate, onToggleTag }: ReviewRowProps) {
               onClick={() => onUpdate({ intensity: n })}
               className="w-5 h-5 rounded text-[10px] font-semibold transition-colors"
               style={{
-                backgroundColor: row.intensity === n ? 'rgba(184,122,85,0.5)' : 'rgba(255,255,255,0.07)',
+                backgroundColor: row.intensity === n ? 'rgba(196,145,95,0.5)' : 'rgba(255,255,255,0.07)',
                 color: row.intensity === n ? 'rgba(218,116,34,0.95)' : 'rgba(255,255,255,0.3)',
               }}
             >
@@ -465,9 +467,9 @@ function ReviewRow({ row, onUpdate, onToggleTag }: ReviewRowProps) {
                 onClick={() => onToggleTag(tag.value as SkillTagValue)}
                 className="text-[10px] px-2 py-0.5 rounded-full transition-colors"
                 style={{
-                  backgroundColor: active ? 'rgba(184,122,85,0.25)' : 'rgba(255,255,255,0.06)',
+                  backgroundColor: active ? 'rgba(196,145,95,0.25)' : 'rgba(255,255,255,0.06)',
                   color: active ? 'rgba(218,116,34,0.9)' : 'rgba(255,255,255,0.3)',
-                  border: active ? `1px solid rgba(184,122,85,0.4)` : '1px solid rgba(255,255,255,0.08)',
+                  border: active ? `1px solid rgba(196,145,95,0.4)` : '1px solid rgba(255,255,255,0.08)',
                 }}
               >
                 {tag.label}
@@ -499,7 +501,7 @@ function ReviewRow({ row, onUpdate, onToggleTag }: ReviewRowProps) {
       {/* Duplicate badge */}
       {!row.skip && row.isDuplicate && (
         <div className="mt-1.5">
-          <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ color: 'rgba(218,116,34,0.8)', backgroundColor: 'rgba(184,122,85,0.12)' }}>
+          <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ color: 'rgba(218,116,34,0.8)', backgroundColor: 'rgba(196,145,95,0.12)' }}>
             ◎ Date already exists in your log
           </span>
         </div>

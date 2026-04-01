@@ -73,15 +73,15 @@ export default function SetIntentionModal({ weekStart, onSaved, onClose }: Props
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm px-4"
-      style={{ backgroundColor: 'rgba(17, 30, 43, 0.92)' }}
+      style={{ backgroundColor: 'rgba(13, 26, 20, 0.85)', backdropFilter: 'blur(12px) saturate(1.2)' }}
       onClick={onClose}
     >
       <div
-        className="w-full sm:max-w-sm rounded-2xl p-6"
+        className="w-full sm:max-w-sm rounded-2xl p-6 animate-j2-modal-in"
         style={{
-          backgroundColor: '#1a2c38',
-          border: '1px solid rgba(184,122,85,0.45)',
-          maxHeight: 'calc(100dvh - 2rem)',
+          backgroundColor: '#152E22',
+          border: '1px solid rgba(196,145,95,0.45)',
+          maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem)',
           overflowY: 'auto',
         }}
         onClick={e => e.stopPropagation()}

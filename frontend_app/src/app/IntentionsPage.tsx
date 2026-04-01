@@ -4,6 +4,7 @@ import { api } from '../lib/api.ts';
 import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER_BORDER } from '../lib/theme.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
+import LoadingScreen from '../components/LoadingScreen.tsx';
 
 interface Intention {
   id: string;
@@ -81,13 +82,7 @@ export default function IntentionsPage() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-sm text-white/30">Loading…</p>
-      </div>
-    );
-  }
+  if (loading) return <LoadingScreen />;
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-5">
@@ -153,7 +148,7 @@ export default function IntentionsPage() {
                     title={hasJournal ? intention.journal_entry! : 'Add a journal entry'}
                   >
                     {hasJournal ? (
-                      <span className="text-xs group-hover:opacity-90 transition-opacity" style={{ color: 'rgba(240,223,160,0.6)' }}>
+                      <span className="text-xs group-hover:opacity-90 transition-opacity" style={{ color: 'rgba(242,228,168,0.6)' }}>
                         ✦ {journalSnippet}
                       </span>
                     ) : (
@@ -190,7 +185,7 @@ export default function IntentionsPage() {
                   title={hasJournal ? intention.journal_entry! : 'Add a journal entry'}
                 >
                   {hasJournal ? (
-                    <span className="text-xs truncate group-hover:opacity-90 transition-opacity" style={{ color: 'rgba(240,223,160,0.6)' }}>
+                    <span className="text-xs truncate group-hover:opacity-90 transition-opacity" style={{ color: 'rgba(242,228,168,0.6)' }}>
                       ✦ {journalSnippet}
                     </span>
                   ) : (

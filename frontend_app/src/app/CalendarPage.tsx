@@ -35,9 +35,10 @@ export default function CalendarPage() {
 
   const fetchAll = useCallback(async () => {
     try {
+      setLoading(true);
       setFetchError(null);
       const [sesData, intData] = await Promise.all([
-        api.get<SessionsResponse>('/api/sessions'),
+        api.get<SessionsResponse>(`/api/sessions?from=${displayYear}-01-01&to=${displayYear}-12-31`),
         api.get<IntentionsResponse>('/api/intentions'),
       ]);
       setSessions(sesData.sessions ?? []);
@@ -49,7 +50,7 @@ export default function CalendarPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [displayYear]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 

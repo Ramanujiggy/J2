@@ -31,12 +31,24 @@ export const createSession = async (
     return result.rows[0];
 };
 
-export const getSessionsByUser = async (userId: string): Promise<Session[]> => {
+export const getSessionsByUser = async (userId: string, from?: string, to?: string): Promise<Session[]> => {
+    const params: unknown[] = [userId];
+    let whereExtra = '';
+    if (from) { params.push(from); whereExtra += ` AND date >= $${params.length}`; }
+    if (to)   { params.push(to);   whereExtra += ` AND date <= $${params.length}`; }
     const result = await query(
-        'SELECT * FROM training_sessions WHERE user_id = $1 ORDER BY date DESC',
-        [userId]
+        `SELECT * FROM training_sessions WHERE user_id = $1${whereExtra} ORDER BY date DESC`,
+        params
     );
     return result.rows;
+};
+
+export const deleteSession = async (id: string, userId: string): Promise<boolean> => {
+    const result = await query(
+        'DELETE FROM training_sessions WHERE id = $1 AND user_id = $2',
+        [id, userId]
+    );
+    return (result.rowCount ?? 0) > 0;
 };
 
 export interface BulkSessionInput {

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jornada — Grapple Loader Preview</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #111e2b;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, sans-serif;
+      color: rgba(255,255,255,0.5);
+      gap: 60px;
+    }
+
+    h1 {
+      font-size: 13px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(240,223,160,0.4);
+      margin-bottom: -40px;
+    }
+
+    /* ── Sizes row ────────────────────────────────────────────── */
+    .sizes {
+      display: flex;
+      align-items: center;
+      gap: 56px;
+    }
+
+    .size-demo {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .size-label {
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      color: rgba(255,255,255,0.18);
+    }
+
+    /* ── Loader container ─────────────────────────────────────── */
+    .grapple-loader {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Mat glow — radial pulse beneath the figures */
+    .grapple-glow {
+      position: absolute;
+      border-radius: 50%;
+      background: radial-gradient(
+        ellipse at center,
+        rgba(184,122,85,0.45) 0%,
+        rgba(184,122,85,0.15) 45%,
+        transparent 72%
+      );
+      animation: j2GrappleGlow 3.2s ease-in-out infinite;
+    }
+
+    /* Swaying figures */
+    .grapple-figures {
+      position: relative;
+      z-index: 1;
+      animation: j2GuardPassSway 2.8s ease-in-out infinite;
+      transform-origin: center center;
+    }
+
+    .grapple-figures svg {
+      display: block;
+      animation: j2GrapplePulse 2.6s ease-in-out infinite;
+      filter: drop-shadow(0 0 4px rgba(184,122,85,0.5));
+    }
+
+    /* Loading text beneath */
+    .grapple-label {
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.2);
+      margin-top: 4px;
+    }
+
+    /* ── Keyframes ────────────────────────────────────────────── */
+    @keyframes j2GuardPassSway {
+      0%, 100% { transform: rotate(-2deg) translateX(-1px); }
+      50%       { transform: rotate(2deg)  translateX(1px);  }
+    }
+
+    @keyframes j2GrappleGlow {
+      0%, 100% { opacity: 0.55; transform: scale(1);    }
+      50%       { opacity: 1;    transform: scale(1.18); }
+    }
+
+    @keyframes j2GrapplePulse {
+      0%, 100% { transform: scale(1);    }
+      50%       { transform: scale(1.04); }
+    }
+
+    /* ── Page-context mock ────────────────────────────────────── */
+    .page-mock {
+      width: 360px;
+      height: 200px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(184,122,85,0.15);
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .page-mock-label {
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      color: rgba(255,255,255,0.18);
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Jornada · Guard Pass Loader</h1>
+
+  <!-- Three sizes side by side -->
+  <div class="sizes">
+
+    <!-- 48px -->
+    <div class="size-demo">
+      <div class="grapple-loader" style="width:60px;height:60px;">
+        <div class="grapple-glow" style="width:50px;height:50px;"></div>
+        <div class="grapple-figures">
+          <svg width="44" height="44" viewBox="-50 -50 100 100"
+               fill="none"
+               stroke="rgba(240,223,160,0.92)"
+               stroke-width="5.5"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               xmlns="http://www.w3.org/2000/svg">
+            <!-- TOP PLAYER: guard passer, crouching -->
+            <circle cx="4" cy="-34" r="6" fill="rgba(240,223,160,0.92)" stroke="none"/>
+            <path d="M 4,-28 C 2,-18 0,-8 -2,2"/>
+            <path d="M 2,-20 C -2,-10 -4,0 0,12"/>
+            <path d="M 2,-20 C 10,-14 18,-6 20,2"/>
+            <path d="M -2,2 C -8,12 -14,22 -18,30"/>
+            <path d="M -18,30 C -20,36 -20,42 -16,45"/>
+            <path d="M -2,2 C 8,10 18,18 24,26"/>
+            <path d="M 24,26 C 28,34 28,41 24,44"/>
+            <!-- BOTTOM PLAYER: guard, on back, legs raised -->
+            <circle cx="-28" cy="26" r="6" fill="rgba(240,223,160,0.92)" stroke="none"/>
+            <path d="M -22,24 C -10,22 0,24 8,26"/>
+            <path d="M 8,26 C 10,14 12,2 8,-12"/>
+            <path d="M 8,-12 C 6,-20 2,-26 -4,-24"/>
+            <path d="M 8,26 C 20,16 28,4 28,-8"/>
+            <path d="M 28,-8 C 30,-18 30,-26 24,-30"/>
+            <path d="M -18,20 C -10,10 -4,2 2,-8"/>
+          </svg>
+        </div>
+      </div>
+      <span class="size-label">48px</span>
+    </div>
+
+    <!-- 96px (primary / app use) -->
+    <div class="size-demo">
+      <div class="grapple-loader" style="width:120px;height:120px;">
+        <div class="grapple-glow" style="width:100px;height:100px;"></div>
+        <div class="grapple-figures">
+          <svg width="96" height="96" viewBox="-50 -50 100 100"
+               fill="none"
+               stroke="rgba(240,223,160,0.92)"
+               stroke-width="5.5"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               xmlns="http://www.w3.org/2000/svg">
+            <!-- TOP PLAYER: guard passer, crouching -->
+            <circle cx="4" cy="-34" r="6" fill="rgba(240,223,160,0.92)" stroke="none"/>
+            <path d="M 4,-28 C 2,-18 0,-8 -2,2"/>
+            <path d="M 2,-20 C -2,-10 -4,0 0,12"/>
+            <path d="M 2,-20 C 10,-14 18,-6 20,2"/>
+            <path d="M -2,2 C -8,12 -14,22 -18,30"/>
+            <path d="M -18,30 C -20,36 -20,42 -16,45"/>
+            <path d="M -2,2 C 8,10 18,18 24,26"/>
+            <path d="M 24,26 C 28,34 28,41 24,44"/>
+            <!-- BOTTOM PLAYER: guard, on back, legs raised -->
+            <circle cx="-28" cy="26" r="6" fill="rgba(240,223,160,0.92)" stroke="none"/>
+            <path d="M -22,24 C -10,22 0,24 8,26"/>
+            <path d="M 8,26 C 10,14 12,2 8,-12"/>
+            <path d="M 8,-12 C 6,-20 2,-26 -4,-24"/>
+            <path d="M 8,26 C 20,16 28,4 28,-8"/>
+            <path d="M 28,-8 C 30,-18 30,-26 24,-30"/>
+            <path d="M -18,20 C -10,10 -4,2 2,-8"/>
+          </svg>
+        </div>
+      </div>
+      <div class="grapple-label">Loading</div>
+      <span class="size-label">96px · app default</span>
+    </div>
+
+    <!-- 140px -->
+    <div class="size-demo">
+      <div class="grapple-loader" style="width:160px;height:160px;">
+        <div class="grapple-glow" style="width:140px;height:140px;"></div>
+        <div class="grapple-figures">
+          <svg width="140" height="140" viewBox="-50 -50 100 100"
+               fill="none"
+               stroke="rgba(240,223,160,0.92)"
+               stroke-width="5.5"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               xmlns="http://www.w3.org/2000/svg">
+            <!-- TOP PLAYER: guard passer, crouching -->
+            <circle cx="4" cy="-34" r="6" fill="rgba(240,223,160,0.92)" stroke="none"/>
+            <path d="M 4,-28 C 2,-18 0,-8 -2,2"/>
+            <path d="M 2,-20 C -2,-10 -4,0 0,12"/>
+            <path d="M 2,-20 C 10,-14 18,-6 20,2"/>
+            <path d="M -2,2 C -8,12 -14,22 -18,30"/>
+            <path d="M -18,30 C -20,36 -20,42 -16,45"/>
+            <path d="M -2,2 C 8,10 18,18 24,26"/>
+            <path d="M 24,26 C 28,34 28,41 24,44"/>
+            <!-- BOTTOM PLAYER: guard, on back, legs raised -->
+            <circle cx="-28" cy="26" r="6" fill="rgba(240,223,160,0.92)" stroke="none"/>
+            <path d="M -22,24 C -10,22 0,24 8,26"/>
+            <path d="M 8,26 C 10,14 12,2 8,-12"/>
+            <path d="M 8,-12 C 6,-20 2,-26 -4,-24"/>
+            <path d="M 8,26 C 20,16 28,4 28,-8"/>
+            <path d="M 28,-8 C 30,-18 30,-26 24,-30"/>
+            <path d="M -18,20 C -10,10 -4,2 2,-8"/>
+          </svg>
+        </div>
+      </div>
+      <span class="size-label">140px</span>
+    </div>
+
+  </div>
+
+  <!-- In-context mock: how it looks inside a page card -->
+  <div class="page-mock">
+    <div class="grapple-loader" style="width:80px;height:80px;">
+      <div class="grapple-glow" style="width:66px;height:66px;"></div>
+      <div class="grapple-figures">
+        <svg width="64" height="64" viewBox="-50 -50 100 100"
+             fill="none"
+             stroke="rgba(240,223,160,0.92)"
+             stroke-width="5.5"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             xmlns="http://www.w3.org/2000/svg">
+          <!-- TOP PLAYER: guard passer, crouching -->
+          <circle cx="4" cy="-34" r="6" fill="rgba(240,223,160,0.92)" stroke="none"/>
+          <path d="M 4,-28 C 2,-18 0,-8 -2,2"/>
+          <path d="M 2,-20 C -2,-10 -4,0 0,12"/>
+          <path d="M 2,-20 C 10,-14 18,-6 20,2"/>
+          <path d="M -2,2 C -8,12 -14,22 -18,30"/>
+          <path d="M -18,30 C -20,36 -20,42 -16,45"/>
+          <path d="M -2,2 C 8,10 18,18 24,26"/>
+          <path d="M 24,26 C 28,34 28,41 24,44"/>
+          <!-- BOTTOM PLAYER: guard, on back, legs raised -->
+          <circle cx="-28" cy="26" r="6" fill="rgba(240,223,160,0.92)" stroke="none"/>
+          <path d="M -22,24 C -10,22 0,24 8,26"/>
+          <path d="M 8,26 C 10,14 12,2 8,-12"/>
+          <path d="M 8,-12 C 6,-20 2,-26 -4,-24"/>
+          <path d="M 8,26 C 20,16 28,4 28,-8"/>
+          <path d="M 28,-8 C 30,-18 30,-26 24,-30"/>
+          <path d="M -18,20 C -10,10 -4,2 2,-8"/>
+        </svg>
+      </div>
+    </div>
+    <span class="page-mock-label">Loading…</span>
+  </div>
+
+</body>
+</html>

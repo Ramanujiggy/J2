@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { verifyToken } from '../middleware/authMiddleware.js';
-import { logSession, getSessions, updateSession, importSessions } from '../controllers/sessionController.js';
+import { logSession, getSessions, updateSession, deleteSession, importSessions } from '../controllers/sessionController.js';
 
 const router = Router();
 
@@ -13,7 +13,10 @@ router.get('/sessions', verifyToken, getSessions);
 // PUT /api/sessions/:id — update an existing session (protected)
 router.put('/sessions/:id', verifyToken, updateSession);
 
-// POST /api/sessions/import — bulk import sessions from CSV (protected)
+// DELETE /api/sessions/:id — delete a session (protected, ownership enforced)
+router.delete('/sessions/:id', verifyToken, deleteSession);
+
+// POST /api/sessions/import — bulk import sessions (protected)
 router.post('/sessions/import', verifyToken, importSessions);
 
 export default router;

@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { createSession, getSessionsByUser, updateSession as updateSessionModel, bulkInsertSessions, type BulkSessionInput } from '../models/sessionModel.js';
+import { createSession, getSessionsByUser, updateSession as updateSessionModel, deleteSession as deleteSessionModel, bulkInsertSessions, type BulkSessionInput } from '../models/sessionModel.js';
 
 const VALID_TAGS = new Set(['standup', 'guard_retention', 'submissions', 'pin_escapes', 'guard_passing']);
 const VALID_GI_NOGI = new Set(['gi', 'no_gi']);
@@ -73,10 +73,44 @@ export const getSessions = async (req: Request, res: Response): Promise<void> =>
             return;
         }
 
-        const sessions = await getSessionsByUser(userId);
+        const { from, to } = req.query as { from?: string; to?: string };
+        if (from && !DATE_RE.test(from)) {
+            res.status(400).json({ message: 'from must be a valid YYYY-MM-DD date.' });
+            return;
+        }
+        if (to && !DATE_RE.test(to)) {
+            res.status(400).json({ message: 'to must be a valid YYYY-MM-DD date.' });
+            return;
+        }
+
+        const sessions = await getSessionsByUser(userId, from, to);
         res.json({ sessions });
     } catch (err) {
         console.error('❌ Error fetching sessions:', err);
+        res.status(500).json({ message: 'Server error.' });
+    }
+};
+
+export const deleteSession = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            res.status(401).json({ message: 'Unauthorized.' });
+            return;
+        }
+
+        const { id } = req.params;
+        if (!id) { res.status(400).json({ message: 'Session id is required.' }); return; }
+        const deleted = await deleteSessionModel(id, userId);
+
+        if (!deleted) {
+            res.status(404).json({ message: 'Session not found.' });
+            return;
+        }
+
+        res.json({ message: 'Session deleted.' });
+    } catch (err) {
+        console.error('❌ Error deleting session:', err);
         res.status(500).json({ message: 'Server error.' });
     }
 };
