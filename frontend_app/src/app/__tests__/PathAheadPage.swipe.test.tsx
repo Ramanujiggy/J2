@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { vi, describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { api } from '@/lib/api';
@@ -76,8 +76,8 @@ describe('PathAheadPage — swipe navigation', () => {
     renderPage();
     const carousel = await screen.findByTestId('day-carousel');
     expect(carousel).toBeInTheDocument();
-    // Mar 23 is the active card (offset 0)
-    expect(screen.getByText('Mar 23')).toBeInTheDocument();
+    // Mar 23 is the active card (offset 0) — scope to mobile carousel
+    expect(within(carousel).getByText('Mar 23')).toBeInTheDocument();
   });
 
   it('left swipe advances to the next day — Mar 23 leaves, Mar 24 becomes active', async () => {
@@ -88,10 +88,10 @@ describe('PathAheadPage — swipe navigation', () => {
     swipe(carousel, 200, 120);
 
     await waitFor(() =>
-      // Mar 23 (offset -1) is no longer rendered
-      expect(screen.queryByText('Mar 23')).not.toBeInTheDocument(),
+      // Mar 23 (offset -1) is no longer rendered in mobile carousel
+      expect(within(carousel).queryByText('Mar 23')).not.toBeInTheDocument(),
     );
-    expect(screen.getByText('Mar 24')).toBeInTheDocument();
+    expect(within(carousel).getByText('Mar 24')).toBeInTheDocument();
   });
 
   it('right swipe goes back to the previous day', async () => {
@@ -100,24 +100,24 @@ describe('PathAheadPage — swipe navigation', () => {
 
     // First go to Mar 24
     swipe(carousel, 200, 120);
-    await waitFor(() => expect(screen.queryByText('Mar 23')).not.toBeInTheDocument());
+    await waitFor(() => expect(within(carousel).queryByText('Mar 23')).not.toBeInTheDocument());
 
     // Swipe right: dx = +80px → goes back to Mar 23
     swipe(carousel, 200, 280);
-    await waitFor(() => expect(screen.getByText('Mar 23')).toBeInTheDocument());
+    await waitFor(() => expect(within(carousel).getByText('Mar 23')).toBeInTheDocument());
   });
 
   it('small slow swipe (below distance and velocity thresholds) does not change day', async () => {
     renderPage();
     const carousel = await screen.findByTestId('day-carousel');
 
-    // dx = −30px with dt = 500 ms → vel = 30/500 = 0.06 < 0.35, dist < 55
+    // dx = −30px with dt = 500 ms → vel = 30/500 = 0.06 < 0.35, dist < 45
     swipe(carousel, 200, 170, 500);
 
     // Mar 23 should still be the active card
-    await waitFor(() => expect(screen.getByText('Mar 23')).toBeInTheDocument());
-    // Crucially, no day has been removed from the DOM
-    expect(screen.queryByText('Mar 22')).not.toBeInTheDocument();
+    await waitFor(() => expect(within(carousel).getByText('Mar 23')).toBeInTheDocument());
+    // Crucially, no day has been removed from the mobile carousel
+    expect(within(carousel).queryByText('Mar 22')).not.toBeInTheDocument();
   });
 
   it('fast flick (dx = −20px, dt ≈ 0ms, vel > 0.35) advances the day', async () => {
@@ -128,9 +128,9 @@ describe('PathAheadPage — swipe navigation', () => {
     swipe(carousel, 200, 180);
 
     await waitFor(() =>
-      expect(screen.queryByText('Mar 23')).not.toBeInTheDocument(),
+      expect(within(carousel).queryByText('Mar 23')).not.toBeInTheDocument(),
     );
-    expect(screen.getByText('Mar 24')).toBeInTheDocument();
+    expect(within(carousel).getByText('Mar 24')).toBeInTheDocument();
   });
 
   it('right swipe at the first day (index 0) stays at index 0', async () => {
@@ -141,6 +141,6 @@ describe('PathAheadPage — swipe navigation', () => {
     swipe(carousel, 200, 280);
 
     // Mar 23 must still be in the DOM — boundary holds
-    await waitFor(() => expect(screen.getByText('Mar 23')).toBeInTheDocument());
+    await waitFor(() => expect(within(carousel).getByText('Mar 23')).toBeInTheDocument());
   });
 });

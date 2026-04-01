@@ -173,9 +173,10 @@ interface DayCardProps {
   intentionBrightness: number;
   onLogSession: (date?: Date) => void;
   onViewSession: (sessions: SessionSummary[], date: Date) => void;
+  compact?: boolean;
 }
 
-function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSession, onViewSession }: DayCardProps) {
+function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSession, onViewSession, compact = false }: DayCardProps) {
   const [hovered, setHovered] = useState(false);
 
   const todayStr   = toDateString(today);
@@ -213,8 +214,8 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
         background: `linear-gradient(160deg, rgba(255,255,255,0.035) 0%, transparent 55%), ${CARD_BG}`,
         border: `1px solid ${borderColor}`,
         boxShadow: hovered ? `${boxShadow}, 0 16px 40px rgba(0,0,0,0.6)` : boxShadow,
-        minHeight: 320,
-        transform: hovered ? 'translateY(-6px)' : 'translateY(0)',
+        minHeight: compact ? 260 : 320,
+        transform: hovered ? `translateY(${compact ? -3 : -6}px)` : 'translateY(0)',
         transition: 'transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1)',
         animation: isToday ? 'j2-today-pulse 4s ease-in-out infinite' : undefined,
         willChange: 'transform',
@@ -234,7 +235,7 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
       )}
 
       {/* Card header */}
-      <div className="px-4 pt-4 pb-3 border-b border-white/5">
+      <div className={`${compact ? 'px-3 pt-3 pb-2' : 'px-4 pt-4 pb-3'} border-b border-white/5`}>
         <div className="flex items-center justify-between">
           <p className="text-[11px] font-medium text-white/40 uppercase tracking-wide">
             {DAY_NAMES[day.getDay()]}
@@ -249,7 +250,7 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
           )}
         </div>
         <p
-          className="text-lg font-bold mt-0.5"
+          className={`${compact ? 'text-base' : 'text-lg'} font-bold mt-0.5`}
           style={{ color: isToday ? '#C4915F' : 'rgba(255,255,255,0.9)' }}
         >
           {MONTH_NAMES[day.getMonth()]} {day.getDate()}
@@ -282,7 +283,7 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
           {/* Tags (up to 4) */}
           {primarySession!.tags && primarySession!.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-2">
-              {primarySession!.tags.slice(0, 4).map(tag => {
+              {primarySession!.tags.slice(0, compact ? 2 : 4).map(tag => {
                 const found = SKILL_TAGS.find(s => s.value === tag);
                 return (
                   <span
@@ -403,21 +404,46 @@ export default function PathAheadPage() {
   const [dragX,          setDragX]          = useState(0);
   const [isDragging,     setIsDragging]     = useState(false);
   const touchStartX    = useRef(0);
+  const touchStartY    = useRef(0);
   const touchStartTime = useRef(0);
+  const isHorizontalSwipe = useRef<boolean | null>(null);
   const rafRef         = useRef<number | undefined>(undefined);
   const carouselRef    = useRef<HTMLDivElement>(null);
+  const desktopCarouselRef = useRef<HTMLDivElement>(null);
+  const scrollRafRef   = useRef<number | undefined>(undefined);
 
   const CARD_H      = 330;
   const STACK_PEEK  = 20;
   const carouselSpring = 'transform 0.38s cubic-bezier(0.25, 1.3, 0.4, 1)';
+  const DESKTOP_CARD_W = 130;
+  const DESKTOP_GAP    = 12;
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current    = e.touches[0].clientX;
+    touchStartY.current    = e.touches[0].clientY;
     touchStartTime.current = Date.now();
+    isHorizontalSwipe.current = null;
     setIsDragging(true);
   };
   const handleTouchMove = (e: React.TouchEvent) => {
-    const dx = e.touches[0].clientX - touchStartX.current;
+    const rawDx = e.touches[0].clientX - touchStartX.current;
+    const dy    = e.touches[0].clientY - touchStartY.current;
+
+    // Direction lock — decide on first significant movement
+    if (isHorizontalSwipe.current === null) {
+      if (Math.abs(rawDx) > 8 || Math.abs(dy) > 8) {
+        isHorizontalSwipe.current = Math.abs(rawDx) > Math.abs(dy);
+      }
+      return;
+    }
+    if (!isHorizontalSwipe.current) return; // vertical scroll — don't interfere
+
+    // Edge rubber-band — dampen drag at boundaries
+    let dx = rawDx;
+    if ((activeDayIndex === 0 && rawDx > 0) || (activeDayIndex === 10 && rawDx < 0)) {
+      dx = rawDx * 0.3;
+    }
+
     if (rafRef.current !== undefined) return;
     rafRef.current = requestAnimationFrame(() => {
       setDragX(dx);
@@ -429,13 +455,33 @@ export default function PathAheadPage() {
     const dx  = e.changedTouches[0].clientX - touchStartX.current;
     const dt  = Date.now() - touchStartTime.current;
     const vel = Math.abs(dx) / Math.max(dt, 1);
-    if (Math.abs(dx) > 55 || vel > 0.35) {
+    if (Math.abs(dx) > 45 || vel > 0.35) {
       if (dx < 0) setActiveDayIndex(i => Math.min(10, i + 1));
       else        setActiveDayIndex(i => Math.max(0, i - 1));
     }
     setDragX(0);
     setIsDragging(false);
   };
+
+  // Keyboard navigation for mobile carousel
+  const handleCarouselKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowLeft')  { setActiveDayIndex(i => Math.max(0, i - 1));  e.preventDefault(); }
+    if (e.key === 'ArrowRight') { setActiveDayIndex(i => Math.min(10, i + 1)); e.preventDefault(); }
+  };
+
+  // Desktop carousel — scroll position sync
+  const handleDesktopScroll = useCallback(() => {
+    if (scrollRafRef.current !== undefined) return;
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = undefined;
+      const el = desktopCarouselRef.current;
+      if (!el) return;
+      const cardStep = DESKTOP_CARD_W + DESKTOP_GAP;
+      const centerOffset = el.clientWidth / 2;
+      const centerIndex = Math.round((el.scrollLeft + centerOffset - DESKTOP_CARD_W / 2) / cardStep);
+      setActiveDayIndex(Math.max(0, Math.min(10, centerIndex)));
+    });
+  }, []);
 
   // Modals
   const [logOpen,             setLogOpen]             = useState(false);
@@ -506,6 +552,25 @@ export default function PathAheadPage() {
     ? addDays(intentionStartStr, activeIntention.duration_days ?? 7)
     : null;
 
+  // Shared intention-brightness helper — used by both mobile and desktop carousels
+  const getIntentionInfo = useCallback((dayStr: string) => {
+    const dayHasIntention = activeIntention !== null
+      && intentionStartStr !== null && intentionEndStr !== null
+      && dayStr >= intentionStartStr && dayStr <= intentionEndStr;
+    let intentionBrightness = 1.15;
+    if (dayHasIntention) {
+      const todayStr = toDateString(today);
+      const daysFromToday = Math.max(0, Math.round(
+        (new Date(dayStr + 'T00:00:00').getTime() - new Date(todayStr + 'T00:00:00').getTime()) / 86400000
+      ));
+      const duration = activeIntention!.duration_days ?? 7;
+      intentionBrightness = duration <= 1
+        ? 1.3
+        : Math.max(0.78, 1.3 - 0.52 * (daysFromToday / (duration - 1)));
+    }
+    return { dayHasIntention, intentionBrightness };
+  }, [activeIntention, intentionStartStr, intentionEndStr, today]);
+
   // Sessions indexed by date string — all sessions per day
   const sessionsByDate = useMemo(() => {
     const map = new Map<string, SessionSummary[]>();
@@ -574,6 +639,13 @@ export default function PathAheadPage() {
     }
   };
 
+  // Desktop carousel — scroll to today on mount
+  useEffect(() => {
+    const el = desktopCarouselRef.current;
+    if (!el) return;
+    el.scrollTo({ left: 5 * (DESKTOP_CARD_W + DESKTOP_GAP), behavior: 'instant' as ScrollBehavior });
+  }, []);
+
   // ── Render ─────────────────────────────────────────────────────────────
 
   if (loading) return <LoadingScreen />;
@@ -614,6 +686,11 @@ export default function PathAheadPage() {
           from { transform: rotateX(-90deg); opacity: 0; }
           to   { transform: rotateX(0deg);   opacity: 1; }
         }
+        .j2-day-scroll { scrollbar-width: thin; scrollbar-color: rgba(196,145,95,0.55) rgba(0,0,0,0.18); }
+        .j2-day-scroll::-webkit-scrollbar { height: 6px; }
+        .j2-day-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.18); border-radius: 3px; }
+        .j2-day-scroll::-webkit-scrollbar-thumb { background: rgba(196,145,95,0.55); border-radius: 3px; border: 1px solid rgba(0,0,0,0.25); }
+        .j2-day-scroll::-webkit-scrollbar-thumb:hover { filter: brightness(1.12); }
       `}</style>
 
       {/* ── Page title ────────────────────────────────────────────── */}
@@ -758,99 +835,151 @@ export default function PathAheadPage() {
         }} />
       )}
 
-      {/* ── Day stack + indicator — wrapped to remove space-y-5 gap */}
+      {/* ── Day carousel + indicator ─────────────────────────────── */}
       <div>
-      <div
-        ref={carouselRef}
-        data-testid="day-carousel"
-        style={{
-          position: 'relative',
-          height: CARD_H + STACK_PEEK,
-          touchAction: 'pan-y',
-        }}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
-        {windowDays.map((day, i) => {
-          const dayStr  = toDateString(day);
-          const offset  = i - activeDayIndex;
+      {/* Mobile stacked carousel */}
+      <div className="sm:hidden">
+        <div
+          ref={carouselRef}
+          data-testid="day-carousel"
+          tabIndex={0}
+          role="listbox"
+          aria-label="Day cards"
+          style={{
+            position: 'relative',
+            height: CARD_H + STACK_PEEK,
+            touchAction: 'pan-y',
+            outline: 'none',
+          }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onKeyDown={handleCarouselKeyDown}
+        >
+          {windowDays.map((day, i) => {
+            const dayStr  = toDateString(day);
+            const offset  = i - activeDayIndex;
 
-          // Only render active + 2 cards behind
-          if (offset < 0 || offset > 2) return null;
+            // Only render active + 2 cards behind
+            if (offset < 0 || offset > 2) return null;
 
-          const isActive = offset === 0;
-          const progress = isDragging ? Math.min(1, Math.abs(dragX) / 110) : 0;
+            const isActive = offset === 0;
+            const progress = isDragging ? Math.min(1, Math.abs(dragX) / 110) : 0;
 
-          let cardTransform: string;
-          let cardOpacity: number;
-          let cardZIndex: number;
+            let cardTransform: string;
+            let cardOpacity: number;
+            let cardZIndex: number;
 
-          if (isActive) {
-            const rot = isDragging ? Math.max(-6, Math.min(6, dragX / 20)) : 0;
-            const tx  = isDragging ? dragX : 0;
-            cardTransform = `translateX(${tx}px) rotateZ(${rot}deg)`;
-            cardZIndex    = 10;
-            cardOpacity   = 1 - progress * 0.7;
-          } else if (offset === 1) {
-            const scale = 0.95 + progress * 0.05;
-            const ty    = 10  - progress * 10;
-            cardTransform = `translateY(${ty}px) scale(${scale})`;
-            cardZIndex    = 9;
-            cardOpacity   = 1;
-          } else {
-            const scale = 0.90 + progress * 0.03;
-            const ty    = 20  - progress * 5;
-            cardTransform = `translateY(${ty}px) scale(${scale})`;
-            cardZIndex    = 8;
-            cardOpacity   = 1;
-          }
+            if (isActive) {
+              const rot = isDragging ? Math.max(-6, Math.min(6, dragX / 20)) : 0;
+              const tx  = isDragging ? dragX : 0;
+              const dragScale = isDragging ? Math.max(0.95, 1 - Math.abs(dragX) * 0.0003) : 1;
+              cardTransform = `translateX(${tx}px) rotateZ(${rot}deg) scale(${dragScale})`;
+              cardZIndex    = 10;
+              cardOpacity   = 1 - progress * 0.7;
+            } else if (offset === 1) {
+              const scale = 0.95 + progress * 0.05;
+              const ty    = 10  - progress * 10;
+              cardTransform = `translateY(${ty}px) scale(${scale})`;
+              cardZIndex    = 9;
+              cardOpacity   = 1;
+            } else {
+              const scale = 0.90 + progress * 0.03;
+              const ty    = 20  - progress * 5;
+              cardTransform = `translateY(${ty}px) scale(${scale})`;
+              cardZIndex    = 8;
+              cardOpacity   = 1;
+            }
 
-          const dayHasIntention = activeIntention !== null && intentionStartStr !== null && intentionEndStr !== null
-            && dayStr >= intentionStartStr
-            && dayStr <= intentionEndStr;
+            const { dayHasIntention, intentionBrightness } = getIntentionInfo(dayStr);
 
-          let intentionBrightness = 1.15;
-          if (dayHasIntention) {
-            const todayStr = toDateString(today);
-            const daysFromToday = Math.max(0, Math.round(
-              (new Date(dayStr + 'T00:00:00').getTime() - new Date(todayStr + 'T00:00:00').getTime()) / 86400000
-            ));
-            const duration = activeIntention!.duration_days ?? 7;
-            intentionBrightness = duration <= 1
-              ? 1.3
-              : Math.max(0.78, 1.3 - 0.52 * (daysFromToday / (duration - 1)));
-          }
-
-          return (
-            <div
-              key={dayStr}
-              style={{
-                position: 'absolute', top: 0, left: 0, right: 0,
-                transform: cardTransform,
-                opacity: cardOpacity,
-                zIndex: cardZIndex,
-                transition: isDragging ? 'none' : carouselSpring,
-                transformOrigin: isActive ? '50% 85%' : '50% 50%',
-              }}
-            >
-              <DayCard
-                day={day}
-                today={today}
-                sessions={sessionsByDate.get(dayStr) ?? []}
-                intention={dayHasIntention ? activeIntention : null}
-                intentionBrightness={intentionBrightness}
-                onLogSession={(date) => { setLogDate(date ? toDateString(date) : null); setLogOpen(true); }}
-                onViewSession={(ss, d) => {
-                  setDetailSessions(ss);
-                  setDetailSessionIndex(0);
-                  setDetailDate(d);
-                  setDetailIntention(dayHasIntention ? activeIntention : null);
+            return (
+              <div
+                key={dayStr}
+                role="option"
+                aria-selected={isActive}
+                style={{
+                  position: 'absolute', top: 0, left: 0, right: 0,
+                  transform: cardTransform,
+                  opacity: cardOpacity,
+                  zIndex: cardZIndex,
+                  transition: isDragging ? 'none' : carouselSpring,
+                  transformOrigin: isActive ? '50% 85%' : '50% 50%',
                 }}
-              />
-            </div>
-          );
-        })}
+              >
+                <DayCard
+                  day={day}
+                  today={today}
+                  sessions={sessionsByDate.get(dayStr) ?? []}
+                  intention={dayHasIntention ? activeIntention : null}
+                  intentionBrightness={intentionBrightness}
+                  onLogSession={(date) => { setLogDate(date ? toDateString(date) : null); setLogOpen(true); }}
+                  onViewSession={(ss, d) => {
+                    setDetailSessions(ss);
+                    setDetailSessionIndex(0);
+                    setDetailDate(d);
+                    setDetailIntention(dayHasIntention ? activeIntention : null);
+                  }}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Desktop horizontal scroll carousel */}
+      <div className="hidden sm:block">
+        <div
+          ref={desktopCarouselRef}
+          data-testid="day-carousel-desktop"
+          className="j2-day-scroll"
+          style={{
+            display: 'flex',
+            gap: DESKTOP_GAP,
+            overflowX: 'auto',
+            scrollSnapType: 'x mandatory',
+            scrollBehavior: 'smooth',
+            paddingBottom: 8,
+          }}
+          onScroll={handleDesktopScroll}
+        >
+          {windowDays.map((day, i) => {
+            const dayStr = toDateString(day);
+            const { dayHasIntention, intentionBrightness } = getIntentionInfo(dayStr);
+
+            return (
+              <div
+                key={dayStr}
+                style={{
+                  flexShrink: 0,
+                  width: DESKTOP_CARD_W,
+                  scrollSnapAlign: 'start',
+                  outline: i === activeDayIndex ? '2px solid rgba(196,145,95,0.4)' : '2px solid transparent',
+                  outlineOffset: 2,
+                  borderRadius: 16,
+                  transition: 'outline-color 0.3s ease',
+                }}
+                onClick={() => setActiveDayIndex(i)}
+              >
+                <DayCard
+                  compact
+                  day={day}
+                  today={today}
+                  sessions={sessionsByDate.get(dayStr) ?? []}
+                  intention={dayHasIntention ? activeIntention : null}
+                  intentionBrightness={intentionBrightness}
+                  onLogSession={(date) => { setLogDate(date ? toDateString(date) : null); setLogOpen(true); }}
+                  onViewSession={(ss, d) => {
+                    setDetailSessions(ss);
+                    setDetailSessionIndex(0);
+                    setDetailDate(d);
+                    setDetailIntention(dayHasIntention ? activeIntention : null);
+                  }}
+                />
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Day-initial indicator — Mon–Sun of current week */}
@@ -864,7 +993,14 @@ export default function PathAheadPage() {
           return (
             <button
               key={i}
-              onClick={() => { if (clickable) setActiveDayIndex(winIndex); }}
+              onClick={() => {
+                if (!clickable) return;
+                setActiveDayIndex(winIndex);
+                desktopCarouselRef.current?.scrollTo({
+                  left: winIndex * (DESKTOP_CARD_W + DESKTOP_GAP),
+                  behavior: 'smooth',
+                });
+              }}
               style={{
                 flex: 1, padding: '4px 0 6px',
                 border: 'none', background: 'transparent',
