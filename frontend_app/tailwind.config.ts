@@ -102,8 +102,8 @@ export default {
           to:   { opacity: '0', transform: 'translateY(-8px)' },
         },
         'j2-modal-in': {
-          from: { scale: '0.95', translate: '0 8px' },
-          to:   { scale: '1',    translate: '0 0'  },
+          from: { transform: 'scale(0.95) translateY(8px)' },
+          to:   { transform: 'scale(1) translateY(0)' },
         },
         'j2-backdrop-in': {
           from: { opacity: '0' },
