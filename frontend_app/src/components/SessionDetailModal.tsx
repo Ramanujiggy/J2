@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { api } from '../lib/api.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
 import type { SessionSummary } from './TrainingHeatmap.tsx';
@@ -153,7 +154,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
   // Displayed session tags in order
   const sessionTagObjects = SKILL_TAGS.filter(({ value }) => session.tags.includes(value));
 
-  return (
+  return createPortal(
     <>
       <style>{`
         @keyframes j2IntentParticleRise {
@@ -176,7 +177,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
 
       {/* Backdrop — perspective origin for the 3D card flip */}
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm px-4"
+        className="fixed inset-0 z-50 flex items-center justify-center px-4 animate-j2-backdrop-in"
         style={{ backgroundColor: 'rgba(13, 26, 20, 0.85)', backdropFilter: 'blur(12px) saturate(1.2)', perspective: '1200px' }}
         onClick={onClose}
       >
@@ -569,6 +570,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
 
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }

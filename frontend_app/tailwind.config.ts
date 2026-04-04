@@ -102,8 +102,12 @@ export default {
           to:   { opacity: '0', transform: 'translateY(-8px)' },
         },
         'j2-modal-in': {
-          from: { opacity: '0', scale: '0.95', translate: '0 8px' },
-          to:   { opacity: '1', scale: '1',    translate: '0 0'  },
+          from: { scale: '0.95', translate: '0 8px' },
+          to:   { scale: '1',    translate: '0 0'  },
+        },
+        'j2-backdrop-in': {
+          from: { opacity: '0' },
+          to:   { opacity: '1' },
         },
         'j2-today-pulse': {
           '0%, 100%': { borderColor: 'rgba(196,145,95,0.7)', boxShadow: '0 0 16px rgba(196,145,95,0.2)' },
@@ -124,7 +128,8 @@ export default {
         'j2-card-enter': 'j2-card-enter 500ms cubic-bezier(0.16, 1, 0.3, 1) both',
         'j2-page-in':   'j2-page-in 350ms cubic-bezier(0.0, 0.55, 0.15, 1.0) both',
         'j2-page-out':  'j2-page-out 200ms ease-in both',
-        'j2-modal-in':  'j2-modal-in 400ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both',
+        'j2-modal-in':    'j2-modal-in 400ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both',
+        'j2-backdrop-in': 'j2-backdrop-in 250ms ease both',
         'j2-today-pulse': 'j2-today-pulse 4s ease-in-out infinite',
         'j2-shimmer':   'j2-shimmer 1.2s ease-out both',
       },
