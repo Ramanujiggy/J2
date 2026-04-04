@@ -180,16 +180,19 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
         style={{ backgroundColor: 'rgba(13, 26, 20, 0.85)', backdropFilter: 'blur(12px) saturate(1.2)', perspective: '1200px' }}
         onClick={onClose}
       >
-        {/* Modal box = the flipper — no visual styling here so preserve-3d works */}
+        {/* Outer wrapper: entrance animation only — must not own transform so flip works */}
         <div
           className="w-full sm:max-w-md animate-j2-modal-in"
+          onClick={e => e.stopPropagation()}
+        >
+        {/* Inner flipper: 3D flip only — no animation class here */}
+        <div
           style={{
             position: 'relative',
             transformStyle: 'preserve-3d',
             transition: 'transform 0.45s cubic-bezier(0.4, 0, 0.2, 1)',
             transform: isEditing ? 'rotateY(180deg)' : 'rotateY(0deg)',
           }}
-          onClick={e => e.stopPropagation()}
         >
           {/* ── FRONT FACE — view summary ── */}
           <div
@@ -563,7 +566,8 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
             </div>
           </div>
 
-        </div>
+        </div>{/* end inner flipper */}
+        </div>{/* end outer entrance-animation wrapper */}
       </div>
     </>
   );
