@@ -9,7 +9,9 @@ import type { SessionSummary, SessionsResponse, Intention } from '../types/api.t
 import PageContent from '../components/PageContent.tsx';
 import { SKILL_TAGS, CATEGORY_COLORS, MONTH_NAMES } from '../lib/constants.ts';
 
-const WINDOW_DAYS: Partial<Record<TimeWindow, number>> = { '30d': 30, '60d': 60, '90d': 90 };
+const WINDOW_DAYS: Partial<Record<TimeWindow, number>> = {
+  '7d': 7, '14d': 14, '30d': 30, '90d': 90, '180d': 180, '1y': 365,
+};
 
 function formatWeek(weekStart: string): string {
   const d = new Date(weekStart.slice(0, 10) + 'T00:00:00');
@@ -46,16 +48,22 @@ export default function AnalyticsPage() {
   const [loading,     setLoading]     = useState(true);
   const [fetchError,  setFetchError]  = useState<string | null>(null);
   const [focusOpen,   setFocusOpen]   = useState(false);
-  const [timeWindow,  setTimeWindow]  = useState<TimeWindow>('90d');
+  const [timeWindow,   setTimeWindow]   = useState<TimeWindow>('30d');
+  const [customRange,  setCustomRange]  = useState<{ start: string; end: string } | null>(null);
 
   const fetchAll = useCallback(async () => {
     try {
       setLoading(true);
       setFetchError(null);
-      const days = WINDOW_DAYS[timeWindow];
-      const sessionUrl = days != null
-        ? `/api/sessions?from=${new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10)}`
-        : '/api/sessions';
+      const sessionUrl = (() => {
+        if (timeWindow === 'custom' && customRange) {
+          return `/api/sessions?from=${customRange.start}&to=${customRange.end}`;
+        }
+        const days = WINDOW_DAYS[timeWindow];
+        return days != null
+          ? `/api/sessions?from=${new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10)}`
+          : '/api/sessions';
+      })();
       const [sesRes, intRes] = await Promise.all([
         api.get<SessionsResponse>(sessionUrl),
         api.get<{ intentions: Intention[] }>('/api/intentions'),
@@ -69,7 +77,7 @@ export default function AnalyticsPage() {
     } finally {
       setLoading(false);
     }
-  }, [timeWindow]);
+  }, [timeWindow, customRange]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
   useOnlineRefetch(fetchAll);
@@ -91,7 +99,13 @@ export default function AnalyticsPage() {
       {fetchError && <p className="text-sm text-red-400">{fetchError}</p>}
 
       <ErrorBoundary>
-        <SkillRadar sessions={allSessions} timeWindow={timeWindow} onWindowChange={setTimeWindow} />
+        <SkillRadar
+          sessions={allSessions}
+          timeWindow={timeWindow}
+          onWindowChange={setTimeWindow}
+          customRange={customRange}
+          onCustomRangeChange={setCustomRange}
+        />
       </ErrorBoundary>
 
       {/* ── Intention vs Ambient Focus ─────────────────────────── */}

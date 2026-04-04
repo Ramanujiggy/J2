@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Info, Triangle, Target, BarChart2, Layers, BookOpen, type LucideIcon } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { SKILL_TAGS } from '../lib/constants.ts';
 import { CARD_BG, COPPER, COPPER_BORDER, CARD_SHADOW, PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
 import type { SessionSummary } from './TrainingHeatmap.tsx';
+import TimeRangeBar from './TimeRangeBar.tsx';
 
 // ─── Pentagon math (Grappling Prism) ─────────────────────────────────────────
 
@@ -158,7 +159,7 @@ const SEG_COMP  = 'rgba(220,90,80,0.80)';
 // ─── Rail config ──────────────────────────────────────────────────────────────
 
 type ViewMode = 'prism' | 'volume' | 'split' | 'format';
-export type TimeWindow = '30d' | '60d' | '90d' | 'all';
+export type TimeWindow = '7d' | '14d' | '30d' | '90d' | '180d' | '1y' | 'custom';
 
 const RAIL_VIEWS: { id: ViewMode; label: string; Icon: LucideIcon }[] = [
   { id: 'prism',  label: 'Grappling Prism',  Icon: Target    },
@@ -192,9 +193,11 @@ interface SkillRadarProps {
   sessions: SessionSummary[];
   timeWindow: TimeWindow;
   onWindowChange: (w: TimeWindow) => void;
+  customRange: { start: string; end: string } | null;
+  onCustomRangeChange: (r: { start: string; end: string } | null) => void;
 }
 
-export default function SkillRadar({ sessions, timeWindow, onWindowChange }: SkillRadarProps) {
+export default function SkillRadar({ sessions, timeWindow, onWindowChange, customRange, onCustomRangeChange }: SkillRadarProps) {
   const [subtitleRevealed, setSubtitleRevealed] = useState(false);
   const [displayMode, setDisplayMode] = useState<'hours' | 'pct'>('hours');
   const [viewMode, setViewMode] = useState<ViewMode>('prism');
@@ -235,11 +238,22 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange }: Ski
   }
 
   // ── Filtered sessions ──
-  const WINDOW_DAYS: Partial<Record<TimeWindow, number>> = { '30d': 30, '60d': 60, '90d': 90 };
-  const cutoff = WINDOW_DAYS[timeWindow] != null
-    ? new Date(Date.now() - WINDOW_DAYS[timeWindow]! * 86_400_000)
-    : null;
-  const filtered = cutoff ? sessions.filter(s => new Date(s.date) >= cutoff) : sessions;
+  const WINDOW_DAYS: Partial<Record<TimeWindow, number>> = {
+    '7d': 7, '14d': 14, '30d': 30, '90d': 90, '180d': 180, '1y': 365,
+  };
+  const filtered = useMemo(() => {
+    if (timeWindow === 'custom' && customRange) {
+      const start = new Date(customRange.start + 'T00:00:00');
+      const end   = new Date(customRange.end   + 'T23:59:59');
+      return sessions.filter(s => {
+        const d = new Date(s.date + 'T00:00:00');
+        return d >= start && d <= end;
+      });
+    }
+    const days = WINDOW_DAYS[timeWindow];
+    const cutoff = days != null ? new Date(Date.now() - days * 86_400_000) : null;
+    return cutoff ? sessions.filter(s => new Date(s.date) >= cutoff) : sessions;
+  }, [sessions, timeWindow, customRange]);
 
   // ── Prism data ──
   const hoursMap: Record<string, number> = Object.fromEntries(SKILL_TAGS.map(({ value }) => [value, 0]));
@@ -437,10 +451,6 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange }: Ski
     );
   }
 
-  const btnBase     = 'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors';
-  const btnActive   = 'bg-brand-orange text-white';
-  const btnInactive = 'bg-white/10 text-white/60 hover:bg-white/20';
-
   const isVolume = viewMode === 'volume';
 
   return (
@@ -468,13 +478,12 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange }: Ski
             </TooltipContent>
           </Tooltip>
         </div>
-        <div className="flex flex-wrap gap-1.5">
-          {(['30d', '60d', '90d', 'all'] as TimeWindow[]).map(w => (
-            <button key={w} onClick={() => onWindowChange(w)} className={`${btnBase} ${timeWindow === w ? btnActive : btnInactive}`}>
-              {w === '30d' ? '30 Days' : w === '60d' ? '60 Days' : w === '90d' ? '90 Days' : 'All Time'}
-            </button>
-          ))}
-        </div>
+        <TimeRangeBar
+          value={timeWindow}
+          onChange={onWindowChange}
+          customRange={customRange}
+          onCustomRange={onCustomRangeChange}
+        />
       </div>
 
       {/* ── Subtitle reveal — outside drum, never clipped — desktop only ── */}
