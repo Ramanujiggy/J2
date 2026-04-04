@@ -175,38 +175,33 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
         }
       `}</style>
 
-      {/* Backdrop — perspective origin for the 3D card flip */}
+      {/* Backdrop */}
       <div
         className="fixed inset-0 z-50 flex items-center justify-center px-4 animate-j2-backdrop-in"
-        style={{ backgroundColor: 'rgba(13, 26, 20, 0.85)', backdropFilter: 'blur(12px) saturate(1.2)', perspective: '1200px' }}
+        style={{ backgroundColor: 'rgba(13, 26, 20, 0.85)', backdropFilter: 'blur(12px) saturate(1.2)' }}
         onClick={onClose}
       >
-        {/* Outer: entrance animation + preserve-3d (must have preserve-3d so the inner's 3d context is not flattened) */}
+        {/* Card */}
         <div
           className="w-full sm:max-w-md animate-j2-modal-in"
           onClick={e => e.stopPropagation()}
-          style={{ transformStyle: 'preserve-3d' }}
-        >
-        {/* Inner flipper: only rotateY — no animation class (CSS individual transform props on preserve-3d break backfaceVisibility in WebKit) */}
-        <div
           style={{
             position: 'relative',
-            transformStyle: 'preserve-3d',
-            transition: 'transform 0.45s cubic-bezier(0.4, 0, 0.2, 1)',
-            transform: isEditing ? 'rotateY(180deg)' : 'rotateY(0deg)',
+            backgroundColor: '#152E22',
+            border: '1px solid rgba(196,145,95,0.45)',
+            borderRadius: '1rem',
+            overflow: 'hidden',
           }}
         >
-          {/* ── FRONT FACE — view summary ── */}
+          {/* ── VIEW PANEL ── */}
           <div
             style={{
-              backfaceVisibility: 'hidden',
-              WebkitBackfaceVisibility: 'hidden',
+              position: isEditing ? 'absolute' : 'relative',
+              inset: 0,
+              transition: 'opacity 280ms ease, transform 280ms cubic-bezier(0.16, 1, 0.3, 1)',
+              opacity: isEditing ? 0 : 1,
+              transform: isEditing ? 'translateX(-16px)' : 'translateX(0)',
               pointerEvents: isEditing ? 'none' : 'auto',
-              position: 'relative',
-              backgroundColor: '#152E22',
-              border: '1px solid rgba(196,145,95,0.45)',
-              borderRadius: '1rem',
-              // no overflow here — overflow on a child of preserve-3d breaks backfaceVisibility in Safari
             }}
           >
             {/* Intention particle layer */}
@@ -407,23 +402,18 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
             </div>
           </div>
 
-          {/* ── BACK FACE — edit form ── */}
+          {/* ── EDIT PANEL ── */}
           <div
             style={{
-              position: 'absolute',
+              position: isEditing ? 'relative' : 'absolute',
               inset: 0,
-              backfaceVisibility: 'hidden',
-              WebkitBackfaceVisibility: 'hidden',
+              transition: 'opacity 280ms ease, transform 280ms cubic-bezier(0.16, 1, 0.3, 1)',
+              opacity: isEditing ? 1 : 0,
+              transform: isEditing ? 'translateX(0)' : 'translateX(16px)',
               pointerEvents: isEditing ? 'auto' : 'none',
-              transform: 'rotateY(180deg)',
-              backgroundColor: '#152E22',
-              border: '1px solid rgba(196,145,95,0.45)',
-              borderRadius: '1rem',
-              // no overflow here — same reason as front face
             }}
           >
-          {/* Inner scroll wrapper owns overflow + padding */}
-          <div style={{ overflowY: 'auto', height: '100%', padding: '1.5rem' }}>
+          <div style={{ overflowY: 'auto', maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem)', padding: '1.5rem' }}>
             {/* Date header */}
             <p className="text-2xl font-bold mb-4" style={{ color: intensityColor }}>
               {dateLabel}
@@ -572,8 +562,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
           </div>{/* end inner scroll wrapper */}
           </div>{/* end back face */}
 
-        </div>{/* end inner flipper */}
-        </div>{/* end outer animation wrapper */}
+        </div>{/* end card */}
       </div>
     </>,
     document.body
