@@ -312,15 +312,15 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
         to   { opacity: 1; }
       }
 
-      /* Year navigation page flip — forward (next year): pivots at left spine */
+      /* Year navigation — forward (next year): slides in from right */
       @keyframes j2PageFlipForward {
-        0%   { transform: perspective(1000px) rotateY(22deg); transform-origin: left center; opacity: 0.35; }
-        100% { transform: perspective(1000px) rotateY(0deg);  transform-origin: left center; opacity: 1; }
+        from { opacity: 0.15; transform: translateX(20px); }
+        to   { opacity: 1;    transform: translateX(0); }
       }
-      /* Year navigation page flip — back (prev year): pivots at right spine */
+      /* Year navigation — back (prev year): slides in from left */
       @keyframes j2PageFlipBack {
-        0%   { transform: perspective(1000px) rotateY(-22deg); transform-origin: right center; opacity: 0.35; }
-        100% { transform: perspective(1000px) rotateY(0deg);   transform-origin: right center; opacity: 1; }
+        from { opacity: 0.15; transform: translateX(-20px); }
+        to   { opacity: 1;    transform: translateX(0); }
       }
     `}</style>
     {/* Stacked journal pages peeking out below-right */}

@@ -25,10 +25,10 @@ export default function PageTransition({ children }: Props) {
 
       const enterTimer = setTimeout(() => {
         setPhase('visible');
-      }, 350);
+      }, 360);
 
       return () => clearTimeout(enterTimer);
-    }, 200);
+    }, 240);
 
     return () => clearTimeout(exitTimer);
   }, [location.pathname, children]);
@@ -42,9 +42,9 @@ export default function PageTransition({ children }: Props) {
 
   const style: React.CSSProperties =
     phase === 'exiting'
-      ? { animation: 'j2-page-out 200ms ease-in both' }
+      ? { animation: 'j2-page-out 240ms ease-out both' }
       : phase === 'entering'
-        ? { animation: 'j2-page-in 350ms cubic-bezier(0.0, 0.55, 0.15, 1.0) both' }
+        ? { animation: 'j2-page-in 360ms cubic-bezier(0.16, 1, 0.3, 1) both' }
         : {};
 
   return (

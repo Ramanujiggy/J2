@@ -9,7 +9,7 @@ import SessionDetailModal from '../components/SessionDetailModal.tsx';
 import SetIntentionModal from '../components/SetIntentionModal.tsx';
 import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER_BORDER, PAGE_BG } from '../lib/theme.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
-import LoadingScreen from '../components/LoadingScreen.tsx';
+import PageContent from '../components/PageContent.tsx';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -611,9 +611,8 @@ export default function PathAheadPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────
 
-  if (loading) return <LoadingScreen />;
-
   return (
+    <PageContent ready={!loading}>
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 space-y-3">
       <style>{`
         @keyframes j2IntentParticleRise {
@@ -1145,5 +1144,6 @@ export default function PathAheadPage() {
         />
       )}
     </div>
+    </PageContent>
   );
 }

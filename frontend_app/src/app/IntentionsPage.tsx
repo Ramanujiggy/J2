@@ -5,7 +5,7 @@ import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER_BORDER } from '../lib/theme.ts'
 import { SKILL_TAGS, CATEGORY_COLORS, MONTH_NAMES } from '../lib/constants.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import type { Intention, SessionSummary, IntentionsResponse, SessionsResponse } from '../types/api.ts';
-import LoadingScreen from '../components/LoadingScreen.tsx';
+import PageContent from '../components/PageContent.tsx';
 
 function formatWeek(weekStart: string): string {
   const d = new Date(weekStart.slice(0, 10) + 'T00:00:00');
@@ -55,9 +55,8 @@ export default function IntentionsPage() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  if (loading) return <LoadingScreen />;
-
   return (
+    <PageContent ready={!loading}>
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-5">
 
       <h2
@@ -171,5 +170,6 @@ export default function IntentionsPage() {
         </div>
       )}
     </div>
+    </PageContent>
   );
 }
