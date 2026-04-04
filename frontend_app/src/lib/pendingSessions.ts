@@ -1,4 +1,4 @@
-import type { SessionSummary } from '../components/TrainingHeatmap.tsx';
+import type { SessionSummary } from '../types/api.ts';
 
 const STORAGE_KEY = 'journada-pending-sessions';
 

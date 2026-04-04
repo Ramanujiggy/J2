@@ -9,7 +9,7 @@
 import { useState, useEffect } from 'react';
 import { type BeltRank, BELT_COLORS, PATCH_COLORS, ribbed } from '../lib/belt.ts';
 
-// Re-export so existing consumers (AppShell, DashboardPage, ProfilePage, ProfileContext) don't break.
+// Re-export so existing consumers (AppShell, ProfilePage, ProfileContext) don't break.
 export { type BeltRank, BELT_COLORS, PATCH_COLORS };
 
 interface BeltBarProps {

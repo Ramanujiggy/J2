@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { api, ApiError } from '../lib/api.ts';
 import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
-import { SKILL_TAGS, ROULETTE_DRILLS } from '../lib/constants.ts';
-import type { SessionSummary } from '../components/TrainingHeatmap.tsx';
+import { SKILL_TAGS, ROULETTE_DRILLS, CATEGORY_COLORS, MONTH_NAMES } from '../lib/constants.ts';
+import type { SessionSummary, Intention, IntentionsResponse, SessionsResponse } from '../types/api.ts';
 import LogSessionForm from '../components/LogSessionForm.tsx';
 import SessionDetailModal from '../components/SessionDetailModal.tsx';
 import SetIntentionModal from '../components/SetIntentionModal.tsx';
@@ -13,18 +13,6 @@ import LoadingScreen from '../components/LoadingScreen.tsx';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-interface Intention {
-  id: string;
-  user_id: string;
-  week_start: string;
-  intent_label: string;
-  intent_category: string | null;
-  duration_days: number;
-  created_at: string;
-}
-
-interface IntentionsResponse  { intentions: Intention[] }
-interface SessionsResponse    { sessions: SessionSummary[] }
 interface DeleteResponse      { message: string }
 
 // ── Date helpers ───────────────────────────────────────────────────────────
@@ -57,8 +45,6 @@ function formatDuration(minutes: number): string {
 }
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
 const INTENSITY_COLOR: Record<number, string> = {
   1: '#CDDFA0',
   2: '#CDDFA0',
@@ -71,14 +57,6 @@ const SESSION_TYPE_LABELS: Record<string, string> = {
   class:                'Class',
   drilling:             'Drilling',
   competition_training: 'Competition',
-};
-
-const CATEGORY_COLORS: Record<string, string> = {
-  technical:   '#60a5fa',
-  physical:    '#f87171',
-  mental:      '#a78bfa',
-  positional:  '#34d399',
-  competitive: '#fbbf24',
 };
 
 // ── Tooltip ────────────────────────────────────────────────────────────────

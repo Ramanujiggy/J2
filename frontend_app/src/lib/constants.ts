@@ -40,3 +40,13 @@ export const SKILL_TAGS = [
 ] as const;
 
 export type SkillTag = typeof SKILL_TAGS[number]['value'];
+
+export const CATEGORY_COLORS: Record<string, string> = {
+  technical:   '#60a5fa',
+  physical:    '#f87171',
+  mental:      '#a78bfa',
+  positional:  '#34d399',
+  competitive: '#fbbf24',
+};
+
+export const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;

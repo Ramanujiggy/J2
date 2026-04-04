@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import { api } from '../lib/api.ts';
 import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import type { BeltRank } from '../components/BeltBar.tsx';
+import type { ProfileResponse } from '../types/api.ts';
 
 interface ProfileContextValue {
   beltRank: BeltRank | null;
@@ -16,10 +17,6 @@ const ProfileContext = createContext<ProfileContextValue>({
   intentionsEnabled: true,
   refreshProfile: () => {},
 });
-
-interface ProfileResponse {
-  profile: { belt_rank: string | null; stripes: number; intentions_enabled: boolean } | null;
-}
 
 export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const [beltRank, setBeltRank] = useState<BeltRank | null>(null);

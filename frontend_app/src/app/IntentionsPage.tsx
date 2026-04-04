@@ -2,37 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.ts';
 import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER_BORDER } from '../lib/theme.ts';
-import { SKILL_TAGS } from '../lib/constants.ts';
+import { SKILL_TAGS, CATEGORY_COLORS, MONTH_NAMES } from '../lib/constants.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
+import type { Intention, SessionSummary, IntentionsResponse, SessionsResponse } from '../types/api.ts';
 import LoadingScreen from '../components/LoadingScreen.tsx';
-
-interface Intention {
-  id: string;
-  user_id: string;
-  week_start: string;
-  intent_label: string;
-  intent_category: string | null;
-  journal_entry: string | null;
-  created_at: string;
-}
-
-interface SessionSummary {
-  date: string | Date;
-  tags?: string[];
-}
-
-interface IntentionsResponse { intentions: Intention[] }
-interface SessionsResponse   { sessions: SessionSummary[] }
-
-const CATEGORY_COLORS: Record<string, string> = {
-  technical:   '#60a5fa',
-  physical:    '#f87171',
-  mental:      '#a78bfa',
-  positional:  '#34d399',
-  competitive: '#fbbf24',
-};
-
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 function formatWeek(weekStart: string): string {
   const d = new Date(weekStart.slice(0, 10) + 'T00:00:00');

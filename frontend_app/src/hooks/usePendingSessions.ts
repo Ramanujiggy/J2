@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getPending, clearPending } from '../lib/pendingSessions.ts';
-import type { SessionSummary } from '../components/TrainingHeatmap.tsx';
+import type { SessionSummary } from '../types/api.ts';
 
 /**
  * Returns pending sessions (logged while offline, not yet synced).

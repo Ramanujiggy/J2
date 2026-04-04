@@ -3,28 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.ts';
 import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER_BORDER, CARD_SHADOW } from '../lib/theme.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
+import { CATEGORY_COLORS, MONTH_NAMES } from '../lib/constants.ts';
+import type { Intention, IntentionsResponse } from '../types/api.ts';
 import LoadingScreen from '../components/LoadingScreen.tsx';
-
-interface Intention {
-  id: string;
-  week_start: string;
-  intent_label: string;
-  intent_category: string | null;
-  duration_days: number;
-  journal_entry: string | null;
-}
-
-interface IntentionsResponse { intentions: Intention[] }
-
-const CATEGORY_COLORS: Record<string, string> = {
-  technical:   '#60a5fa',
-  physical:    '#f87171',
-  mental:      '#a78bfa',
-  positional:  '#34d399',
-  competitive: '#fbbf24',
-};
-
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 function formatWeek(weekStart: string): string {
   const d = new Date(weekStart.slice(0, 10) + 'T00:00:00');

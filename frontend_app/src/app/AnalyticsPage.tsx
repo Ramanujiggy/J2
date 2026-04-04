@@ -5,31 +5,9 @@ import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import SkillRadar, { type TimeWindow } from '../components/SkillRadar.tsx';
 import ErrorBoundary from '../components/ErrorBoundary.tsx';
 import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER_BORDER, CARD_SHADOW } from '../lib/theme.ts';
-import type { SessionSummary } from '../components/TrainingHeatmap.tsx';
+import type { SessionSummary, SessionsResponse, Intention } from '../types/api.ts';
 import LoadingScreen from '../components/LoadingScreen.tsx';
-import { SKILL_TAGS } from '../lib/constants.ts';
-
-interface SessionsResponse {
-  sessions: SessionSummary[];
-}
-
-interface Intention {
-  id: string;
-  week_start: string;
-  intent_label: string;
-  intent_category: string | null;
-  duration_days: number;
-}
-
-const CATEGORY_COLORS: Record<string, string> = {
-  technical:   '#60a5fa',
-  physical:    '#f87171',
-  mental:      '#a78bfa',
-  positional:  '#34d399',
-  competitive: '#fbbf24',
-};
-
-const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+import { SKILL_TAGS, CATEGORY_COLORS, MONTH_NAMES } from '../lib/constants.ts';
 
 const WINDOW_DAYS: Partial<Record<TimeWindow, number>> = { '30d': 30, '60d': 60, '90d': 90 };
 

@@ -11,7 +11,8 @@ import {
 } from '@/components/ui/tooltip';
 import SessionDetailModal from './SessionDetailModal.tsx';
 import { CARD_BG, COPPER_BORDER, CARD_SHADOW, HEATMAP_REST, HEATMAP_FUTURE, HEATMAP_OUTSIDE_YEAR, HEATMAP_HEADER_BG, PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
-import type { CalendarIntention } from '../app/CalendarPage.tsx';
+import type { SessionSummary, CalendarIntention } from '../types/api.ts';
+export type { SessionSummary };
 
 const HEATMAP_REST_PRIMARY = '#1A3226'; // rest days — slightly lighter than CARD_BG so cells sit above the surface
 const HEATMAP_REST_ALT     = '#1B3427'; // alternate month rest (odd months)
@@ -61,17 +62,6 @@ function addDaysToStr(dateStr: string, days: number): string {
   const d = new Date(dateStr + 'T00:00:00');
   d.setDate(d.getDate() + days);
   return localDateKey(d);
-}
-
-export interface SessionSummary {
-  id: string;
-  date: string;
-  duration: number;
-  intensity: number;
-  gi_nogi: 'gi' | 'no_gi';
-  session_type: 'class' | 'drilling' | 'competition_training';
-  notes?: string;
-  tags: string[];
 }
 
 interface DayData {

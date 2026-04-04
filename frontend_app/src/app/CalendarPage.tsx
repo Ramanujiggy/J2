@@ -2,25 +2,10 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { api, ApiError } from '../lib/api.ts';
 import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
-import TrainingHeatmap, { type SessionSummary } from '../components/TrainingHeatmap.tsx';
+import TrainingHeatmap from '../components/TrainingHeatmap.tsx';
 import ErrorBoundary from '../components/ErrorBoundary.tsx';
 import { PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
-
-interface SessionsResponse {
-  sessions: SessionSummary[];
-}
-
-export interface CalendarIntention {
-  id: string;
-  week_start: string;
-  intent_label: string;
-  intent_category: string | null;
-  duration_days: number;
-}
-
-interface IntentionsResponse {
-  intentions: CalendarIntention[];
-}
+import type { SessionSummary, CalendarIntention, SessionsResponse, IntentionsResponse } from '../types/api.ts';
 
 export default function CalendarPage() {
   const [sessions,    setSessions]    = useState<SessionSummary[]>([]);
