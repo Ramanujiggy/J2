@@ -908,7 +908,7 @@ export default function PathAheadPage() {
         {/* Rep Roulette tile */}
         <button
           onClick={() => { if (rouletteOpen) { setRouletteOpen(false); } else { setRouletteOpen(true); setTelemetryOpen(false); } }}
-          className="flex-1 rounded-xl flex flex-col items-center justify-center gap-1.5"
+          className="flex-1 rounded-xl flex flex-col items-center justify-center gap-1.5 touch-manipulation"
           style={{
             minHeight: 90,
             backgroundColor: rouletteOpen ? 'rgba(242,228,168,0.06)' : CARD_BG,
@@ -931,7 +931,7 @@ export default function PathAheadPage() {
         {/* Training Telemetry tile */}
         <button
           onClick={() => { if (telemetryOpen) { setTelemetryOpen(false); } else { setTelemetryOpen(true); setRouletteOpen(false); } }}
-          className="flex-1 rounded-xl flex flex-col items-center justify-center gap-0.5"
+          className="flex-1 rounded-xl flex flex-col items-center justify-center gap-0.5 touch-manipulation"
           style={{
             minHeight: 90,
             backgroundColor: telemetryOpen ? 'rgba(196,145,95,0.06)' : CARD_BG,
@@ -1051,7 +1051,7 @@ export default function PathAheadPage() {
                   setLogOpen(true);
                 }
               }}
-              className="flex flex-col items-center justify-center gap-1 rounded-xl"
+              className="flex flex-col items-center justify-center gap-1 rounded-xl touch-manipulation"
               style={{
                 flexShrink: 0,
                 width: MINI_CARD_W,

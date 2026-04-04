@@ -533,7 +533,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
               <button
                 key={id}
                 onClick={() => handleViewChange(id)}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-medium transition-colors min-h-[44px]"
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-medium transition-colors min-h-[44px] touch-manipulation"
                 style={{
                   backgroundColor: isActive ? COPPER : 'transparent',
                   color: isActive ? '#fff' : 'rgba(255,255,255,0.4)',
@@ -565,7 +565,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
             <div className="flex overflow-hidden rounded-lg text-xs" style={{ border: '1px solid rgba(255,255,255,0.12)' }}>
               <button
                 onClick={() => setDisplayMode('hours')}
-                className="px-3 py-2"
+                className="px-3 py-2 touch-manipulation"
                 style={{
                   backgroundColor: displayMode === 'hours' ? 'rgba(218,116,34,0.8)' : 'transparent',
                   color: displayMode === 'hours' ? 'white' : 'rgba(255,255,255,0.4)',
@@ -574,7 +574,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
               >h</button>
               <button
                 onClick={() => setDisplayMode('pct')}
-                className="px-3 py-2"
+                className="px-3 py-2 touch-manipulation"
                 style={{
                   backgroundColor: displayMode === 'pct' ? 'rgba(218,116,34,0.8)' : 'transparent',
                   color: displayMode === 'pct' ? 'white' : 'rgba(255,255,255,0.4)',
