@@ -104,13 +104,17 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate }: { o
         tags:         selectedTags,
       });
 
-      if (data.message !== 'Session logged.') {
+      if (data.message !== 'Session logged.' && !(data as any)._offline) {
         setError(data.message ?? 'Failed to log session.');
         return;
       }
 
       resetForm();
-      toast({ title: 'Session logged!' });
+      toast({
+        title: (data as any)._offline
+          ? 'Session saved offline — will sync when connected.'
+          : 'Session logged!',
+      });
       onSuccess?.();
     } catch {
       setError('Something went wrong. Please try again.');

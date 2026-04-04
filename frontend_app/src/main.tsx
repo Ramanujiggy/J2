@@ -19,3 +19,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     </BrowserRouter>
   </React.StrictMode>
 );
+
+// Register service worker (PWA)
+import { registerSW } from 'virtual:pwa-register';
+const updateSW = registerSW({
+  onNeedRefresh() { updateSW(true); },
+  onOfflineReady() { console.log('Journada ready for offline use.'); },
+});

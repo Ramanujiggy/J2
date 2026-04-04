@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Full bleed background — no rounded corners for maskable -->
+  <rect width="512" height="512" fill="#0D1A14"/>
+  <radialGradient id="g" cx="50%" cy="48%" r="30%">
+    <stop offset="0%" stop-color="#F2E4A8" stop-opacity="0.12"/>
+    <stop offset="100%" stop-color="#0D1A14" stop-opacity="0"/>
+  </radialGradient>
+  <rect width="512" height="512" fill="url(#g)"/>
+  <!-- "J" scaled down to fit in 80% safe zone -->
+  <text x="256" y="340" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="260" font-weight="bold" fill="#F2E4A8" letter-spacing="-6">J</text>
+  <rect x="160" y="374" width="192" height="4" rx="2" fill="#C4915F" opacity="0.7"/>
+</svg>

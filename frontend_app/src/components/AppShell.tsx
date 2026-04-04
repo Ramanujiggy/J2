@@ -6,6 +6,8 @@ import WaveBackground from './WaveBackground.tsx';
 import BeltBar, { type BeltRank, BELT_COLORS, PATCH_COLORS } from './BeltBar.tsx';
 import { PAGE_BG, PALE_YELLOW, GLOW_TITLE, GLOW_NAV, COPPER_BORDER } from '../lib/theme.ts';
 import PageTransition from './PageTransition.tsx';
+import OfflineBanner from './OfflineBanner.tsx';
+import { useOnlineSync } from '../hooks/useOnlineSync.ts';
 
 // Lucide-style inline SVG icons — no extra dep needed
 function HomeIcon({ active }: { active: boolean }) {
@@ -89,6 +91,8 @@ export default function AppShell({ children }: Props) {
     logout();
     navigate('/');
   };
+
+  useOnlineSync();
 
   const TABS = ALL_TABS.filter(t => !t.intentionsGated || intentionsEnabled);
   const activeTab = TABS.find(t => location.pathname.startsWith(t.path))?.path ?? '/home';
@@ -206,6 +210,9 @@ export default function AppShell({ children }: Props) {
           />
         </nav>
       </header>
+
+      {/* ── Offline indicator ─────────────────────────────────────── */}
+      <OfflineBanner />
 
       {/* ── Page content ────────────────────────────────────────── */}
       <main className="flex-1 overflow-auto sm:pb-0 j2-app-scroll" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px) + 8px)' }}>

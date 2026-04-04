@@ -42,10 +42,17 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       },
     });
   } catch (err) {
-    const hint = BASE_URL === ''
-      ? ' (VITE_API_BASE_URL is not set — redeploy after setting it)'
-      : ` (backend: ${BASE_URL})`;
-    throw new ApiError(0, `Cannot reach the server${hint}.`);
+    // For write operations, queue for offline sync instead of throwing
+    if (options.method && options.method !== 'GET') {
+      const { enqueue } = await import('./offlineQueue.ts');
+      await enqueue(
+        options.method as 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+        path,
+        options.body ? JSON.parse(options.body as string) : undefined,
+      );
+      return { message: 'Queued for sync.', _offline: true } as T;
+    }
+    throw new ApiError(0, 'Cannot reach the server. Check your internet connection and try again.');
   }
 
   if (!res.ok) {
