@@ -196,6 +196,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
             style={{
               backfaceVisibility: 'hidden',
               WebkitBackfaceVisibility: 'hidden',
+              pointerEvents: isEditing ? 'none' : 'auto',
               position: 'relative',
               backgroundColor: '#152E22',
               border: '1px solid rgba(196,145,95,0.45)',
@@ -359,10 +360,10 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                 {!confirmDelete ? (
                   <button
                     onClick={() => setConfirmDelete(true)}
-                    className="text-xs transition-colors"
-                    style={{ color: 'rgba(255,255,255,0.25)' }}
-                    onMouseEnter={e => (e.currentTarget.style.color = 'rgba(239,68,68,0.8)')}
-                    onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.25)')}
+                    className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+                    style={{ color: 'rgba(196,145,95,0.6)', backgroundColor: 'rgba(255,255,255,0.04)' }}
+                    onMouseEnter={e => { e.currentTarget.style.color = 'rgba(239,68,68,0.85)'; e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.1)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.color = 'rgba(196,145,95,0.6)'; e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)'; }}
                   >
                     Delete session
                   </button>
@@ -390,8 +391,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                 {!confirmDelete && (
                   <button
                     onClick={() => setIsEditing(true)}
-                    className="text-sm font-semibold px-5 py-2 rounded-lg transition-colors"
-                    style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.65)' }}
+                    className="bg-brand-orange hover:bg-brand-orange/90 text-white text-sm font-semibold px-5 py-2 rounded-lg transition-colors"
                   >
                     Edit
                   </button>
@@ -407,6 +407,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
               inset: 0,
               backfaceVisibility: 'hidden',
               WebkitBackfaceVisibility: 'hidden',
+              pointerEvents: isEditing ? 'auto' : 'none',
               transform: 'rotateY(180deg)',
               backgroundColor: '#152E22',
               border: '1px solid rgba(196,145,95,0.45)',
