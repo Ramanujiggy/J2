@@ -456,9 +456,8 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
   return (
     <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
 
-      {/* ── Header: title (left) + time window buttons (right) ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-        <div className="flex items-center gap-1.5">
+      {/* ── Header: title row ── */}
+      <div className="flex items-center gap-1.5 mb-2">
           <h2 className="text-lg font-semibold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
             {VIEW_META[viewMode].title}
           </h2>
@@ -477,7 +476,10 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
               </p>
             </TooltipContent>
           </Tooltip>
-        </div>
+      </div>
+
+      {/* ── Time range bar — always full-width row ── */}
+      <div className="mb-3">
         <TimeRangeBar
           value={timeWindow}
           onChange={onWindowChange}

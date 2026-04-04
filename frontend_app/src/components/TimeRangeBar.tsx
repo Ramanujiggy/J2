@@ -63,7 +63,7 @@ export default function TimeRangeBar({ value, onChange, customRange, onCustomRan
   return (
     <>
       {/* ── Bar ──────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-1.5 flex-wrap">
+      <div className="flex items-center gap-1.5 w-full">
 
         {/* Primary tier */}
         {PRIMARY.map(({ id, label }) => (
@@ -112,13 +112,10 @@ export default function TimeRangeBar({ value, onChange, customRange, onCustomRan
             : <ChevronRight size={13} strokeWidth={2.5} />}
         </button>
 
-        {/* Spacer — pushes calendar to right */}
-        <div className="flex-1" />
-
-        {/* Calendar / custom range button */}
+        {/* Calendar / custom range button — ml-auto pushes it to right */}
         {isCustomActive ? (
           <button
-            className={`${pill} flex items-center gap-1`}
+            className={`${pill} flex items-center gap-1 ml-auto`}
             style={{ ...active, paddingLeft: '8px', paddingRight: '6px' }}
             onClick={openPicker}
           >
@@ -134,7 +131,7 @@ export default function TimeRangeBar({ value, onChange, customRange, onCustomRan
           </button>
         ) : (
           <button
-            className={`${pill} flex items-center justify-center`}
+            className={`${pill} flex items-center justify-center ml-auto`}
             style={inactive}
             onClick={openPicker}
             aria-label="Pick custom date range"
