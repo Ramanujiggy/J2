@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { api, ApiError } from '../lib/api.ts';
 import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
+import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import TrainingHeatmap, { type SessionSummary } from '../components/TrainingHeatmap.tsx';
 import ErrorBoundary from '../components/ErrorBoundary.tsx';
 import { PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
@@ -56,6 +57,9 @@ export default function CalendarPage() {
   useEffect(() => { fetchAll(); }, [fetchAll]);
   useOnlineRefetch(fetchAll);
 
+  const pendingSessions = usePendingSessions();
+  const allSessions = useMemo(() => [...sessions, ...pendingSessions], [sessions, pendingSessions]);
+
   const currentYear = new Date().getFullYear();
 
   return (
@@ -104,7 +108,7 @@ export default function CalendarPage() {
           } : undefined}
         >
           <TrainingHeatmap
-            sessions={sessions}
+            sessions={allSessions}
             intentions={intentions}
             loading={loading}
             onSessionUpdated={fetchAll}

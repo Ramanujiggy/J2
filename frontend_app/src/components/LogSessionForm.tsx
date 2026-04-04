@@ -94,19 +94,34 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate }: { o
 
     setLoading(true);
     try {
-      const data = await api.post<LogSessionResponse>('/api/sessions', {
+      const sessionSnapshot = {
         date:         form.date,
-        duration:     durationMinutes,
-        notes:        form.notes,
-        gi_nogi:      form.gi_nogi,
+        duration:     durationMinutes!,
         intensity:    form.intensity,
+        gi_nogi:      form.gi_nogi,
         session_type: form.session_type,
-        tags:         selectedTags,
+        notes:        form.notes || undefined,
+        tags:         [...selectedTags],
+      };
+
+      const data = await api.post<LogSessionResponse>('/api/sessions', {
+        date:         sessionSnapshot.date,
+        duration:     sessionSnapshot.duration,
+        notes:        form.notes,
+        gi_nogi:      sessionSnapshot.gi_nogi,
+        intensity:    sessionSnapshot.intensity,
+        session_type: sessionSnapshot.session_type,
+        tags:         sessionSnapshot.tags,
       });
 
       if (data.message !== 'Session logged.' && !(data as any)._offline) {
         setError(data.message ?? 'Failed to log session.');
         return;
+      }
+
+      if ((data as any)._offline) {
+        const { addPending } = await import('../lib/pendingSessions.ts');
+        addPending({ id: `pending-${Date.now()}`, ...sessionSnapshot });
       }
 
       resetForm();

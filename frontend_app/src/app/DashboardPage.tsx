@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.ts';
 import { api, ApiError } from '../lib/api.ts';
+import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import WaveBackground from '../components/WaveBackground.tsx';
 import { PAGE_BG, PALE_YELLOW, GLOW_TITLE, GLOW_SOFT, GLOW_NAV, COPPER_BORDER } from '../lib/theme.ts';
 import TrainingHeatmap, { type SessionSummary } from '../components/TrainingHeatmap.tsx';
@@ -61,6 +62,9 @@ export default function DashboardPage() {
     fetchProfile();
   }, [fetchSessions, fetchProfile]);
 
+  const pendingSessions = usePendingSessions();
+  const allSessions = useMemo(() => [...sessions, ...pendingSessions], [sessions, pendingSessions]);
+
   const handleLogout = () => {
     logout();
     navigate('/');
@@ -115,7 +119,7 @@ export default function DashboardPage() {
             </button>
           </div>
           <ErrorBoundary>
-            <TrainingHeatmap sessions={sessions} loading={sessionsLoading} onSessionUpdated={fetchSessions} beltRank={beltRank} stripes={stripes} />
+            <TrainingHeatmap sessions={allSessions} loading={sessionsLoading} onSessionUpdated={fetchSessions} beltRank={beltRank} stripes={stripes} />
           </ErrorBoundary>
         </section>
 
@@ -123,7 +127,7 @@ export default function DashboardPage() {
         <section>
           <h2 className="text-2xl font-bold tracking-tight mb-4" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>Analytics</h2>
           <ErrorBoundary>
-            <SkillRadar sessions={sessions} />
+            <SkillRadar sessions={allSessions} />
           </ErrorBoundary>
         </section>
 

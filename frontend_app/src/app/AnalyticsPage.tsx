@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { api, ApiError } from '../lib/api.ts';
 import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
+import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import SkillRadar, { type TimeWindow } from '../components/SkillRadar.tsx';
 import ErrorBoundary from '../components/ErrorBoundary.tsx';
 import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER_BORDER, CARD_SHADOW } from '../lib/theme.ts';
@@ -95,6 +96,9 @@ export default function AnalyticsPage() {
   useEffect(() => { fetchAll(); }, [fetchAll]);
   useOnlineRefetch(fetchAll);
 
+  const pendingSessions = usePendingSessions();
+  const allSessions = useMemo(() => [...sessions, ...pendingSessions], [sessions, pendingSessions]);
+
   if (loading) return <LoadingScreen />;
 
   return (
@@ -110,7 +114,7 @@ export default function AnalyticsPage() {
       {fetchError && <p className="text-sm text-red-400">{fetchError}</p>}
 
       <ErrorBoundary>
-        <SkillRadar sessions={sessions} timeWindow={timeWindow} onWindowChange={setTimeWindow} />
+        <SkillRadar sessions={allSessions} timeWindow={timeWindow} onWindowChange={setTimeWindow} />
       </ErrorBoundary>
 
       {/* ── Intention vs Ambient Focus ─────────────────────────── */}
@@ -146,7 +150,7 @@ export default function AnalyticsPage() {
 
               <div className="divide-y divide-white/[0.05]">
                 {intentions.map(intention => {
-                  const top = topTagInRange(sessions, intention.week_start, intention.duration_days);
+                  const top = topTagInRange(allSessions, intention.week_start, intention.duration_days);
                   const categoryColor = CATEGORY_COLORS[intention.intent_category ?? ''] ?? 'rgba(255,255,255,0.3)';
                   return (
                     <div

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { api, ApiError } from '../lib/api.ts';
 import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
+import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import { SKILL_TAGS, ROULETTE_DRILLS } from '../lib/constants.ts';
 import type { SessionSummary } from '../components/TrainingHeatmap.tsx';
 import LogSessionForm from '../components/LogSessionForm.tsx';
@@ -514,6 +515,9 @@ export default function PathAheadPage() {
   useEffect(() => { fetchAll(); }, [fetchAll]);
   useOnlineRefetch(fetchAll);
 
+  const pendingSessions = usePendingSessions();
+  const allSessions = useMemo(() => [...sessions, ...pendingSessions], [sessions, pendingSessions]);
+
   // ── Window computation ─────────────────────────────────────────────────
 
   const today = useMemo(() => new Date(), []);
@@ -570,19 +574,19 @@ export default function PathAheadPage() {
   // Sessions indexed by date string — all sessions per day
   const sessionsByDate = useMemo(() => {
     const map = new Map<string, SessionSummary[]>();
-    sessions.forEach(s => {
+    allSessions.forEach(s => {
       const key = typeof s.date === 'string' ? s.date.slice(0, 10) : toDateString(new Date(s.date));
       const existing = map.get(key) ?? [];
       map.set(key, [...existing, s]);
     });
     return map;
-  }, [sessions]);
+  }, [allSessions]);
 
   // ── Window stats ───────────────────────────────────────────────────────
 
   const windowStats = useMemo(() => {
     const windowDateStrings = new Set(windowDays.map(toDateString));
-    const windowSessions = sessions.filter(s => {
+    const windowSessions = allSessions.filter(s => {
       const key = typeof s.date === 'string' ? s.date.slice(0, 10) : toDateString(new Date(s.date));
       return windowDateStrings.has(key);
     });
@@ -598,7 +602,7 @@ export default function PathAheadPage() {
     const tag2Entry   = sorted[1] ?? null;
     const tag2Label   = tag2Entry ? (SKILL_TAGS.find(s => s.value === tag2Entry[0])?.label ?? tag2Entry[0]) : null;
     return { count: windowSessions.length, totalMinutes, topTagLabel, topTagCount, tag2Label };
-  }, [sessions, windowDays]);
+  }, [allSessions, windowDays]);
 
   // ── Intent delete ──────────────────────────────────────────────────────
 
