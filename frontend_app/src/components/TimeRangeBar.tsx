@@ -34,7 +34,7 @@ export default function TimeRangeBar({ value, onChange, customRange, onCustomRan
   const [draftStart, setDraftStart] = useState('');
   const [draftEnd, setDraftEnd]     = useState('');
 
-  const pill  = 'px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none';
+  const pill  = 'px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none touch-manipulation';
   const active   = { backgroundColor: COPPER,      color: '#fff' };
   const inactive = { backgroundColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.55)' };
 

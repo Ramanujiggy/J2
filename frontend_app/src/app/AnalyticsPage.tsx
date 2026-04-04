@@ -53,7 +53,6 @@ export default function AnalyticsPage() {
 
   const fetchAll = useCallback(async () => {
     try {
-      setLoading(true);
       setFetchError(null);
       const sessionUrl = (() => {
         if (timeWindow === 'custom' && customRange) {
