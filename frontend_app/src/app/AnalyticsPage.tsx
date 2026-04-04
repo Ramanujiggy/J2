@@ -6,7 +6,7 @@ import SkillRadar, { type TimeWindow } from '../components/SkillRadar.tsx';
 import ErrorBoundary from '../components/ErrorBoundary.tsx';
 import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER_BORDER, CARD_SHADOW } from '../lib/theme.ts';
 import type { SessionSummary, SessionsResponse, Intention } from '../types/api.ts';
-import LoadingScreen from '../components/LoadingScreen.tsx';
+import PageContent from '../components/PageContent.tsx';
 import { SKILL_TAGS, CATEGORY_COLORS, MONTH_NAMES } from '../lib/constants.ts';
 
 const WINDOW_DAYS: Partial<Record<TimeWindow, number>> = { '30d': 30, '60d': 60, '90d': 90 };
@@ -77,9 +77,8 @@ export default function AnalyticsPage() {
   const pendingSessions = usePendingSessions();
   const allSessions = useMemo(() => [...sessions, ...pendingSessions], [sessions, pendingSessions]);
 
-  if (loading) return <LoadingScreen />;
-
   return (
+    <PageContent ready={!loading}>
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-5">
 
       <h2
@@ -179,5 +178,6 @@ export default function AnalyticsPage() {
       )}
 
     </div>
+    </PageContent>
   );
 }

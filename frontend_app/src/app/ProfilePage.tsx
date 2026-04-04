@@ -6,7 +6,7 @@ import { api } from '../lib/api.ts';
 import { useAuth } from '../hooks/useAuth.ts';
 import { CARD_BG, COPPER_BORDER, CARD_SHADOW, PALE_YELLOW } from '../lib/theme.ts';
 import CsvImportModal from '../components/CsvImportModal.tsx';
-import LoadingScreen from '../components/LoadingScreen.tsx';
+import PageContent from '../components/PageContent.tsx';
 import { type BeltRank } from '../components/BeltBar.tsx';
 import { useProfile } from '../context/ProfileContext.tsx';
 import {
@@ -154,9 +154,7 @@ export default function ProfilePage() {
       <main className="flex-1 max-w-xl w-full mx-auto px-4 sm:px-6 py-6">
         <h2 className="text-lg font-semibold text-white mb-6">Your Profile</h2>
 
-        {loading ? (
-          <LoadingScreen />
-        ) : (
+        <PageContent ready={!loading}>
           <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl p-6" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
 
             {/* Name */}
@@ -283,7 +281,7 @@ export default function ProfilePage() {
             </button>
 
           </form>
-        )}
+        </PageContent>
 
         {/* Import section */}
         <div

@@ -5,7 +5,7 @@ import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER_BORDER, CARD_SHADOW } from '../
 import { useProfile } from '../context/ProfileContext.tsx';
 import { CATEGORY_COLORS, MONTH_NAMES } from '../lib/constants.ts';
 import type { Intention, IntentionsResponse } from '../types/api.ts';
-import LoadingScreen from '../components/LoadingScreen.tsx';
+import PageContent from '../components/PageContent.tsx';
 
 function formatWeek(weekStart: string): string {
   const d = new Date(weekStart.slice(0, 10) + 'T00:00:00');
@@ -68,10 +68,13 @@ export default function JournalEntryPage() {
     await save(text);
   };
 
-  if (loading) return <LoadingScreen />;
+  const categoryColor = intention?.intent_category
+    ? (CATEGORY_COLORS[intention.intent_category] ?? 'rgba(255,255,255,0.4)')
+    : null;
 
-  if (!intention) {
-    return (
+  return (
+    <PageContent ready={!loading}>
+    {!intention ? (
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6">
         <p className="text-sm text-red-400">Intention not found.</p>
         <button
@@ -81,14 +84,7 @@ export default function JournalEntryPage() {
           ← Back to Intentions
         </button>
       </div>
-    );
-  }
-
-  const categoryColor = intention.intent_category
-    ? (CATEGORY_COLORS[intention.intent_category] ?? 'rgba(255,255,255,0.4)')
-    : null;
-
-  return (
+    ) : (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 space-y-5">
 
       {/* Back */}
@@ -168,5 +164,7 @@ export default function JournalEntryPage() {
       )}
 
     </div>
+    )}
+    </PageContent>
   );
 }
