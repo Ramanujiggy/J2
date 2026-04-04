@@ -14,7 +14,7 @@ Development areas identified from codebase assessment. Updated as work progresse
 | `[ ]` | **Password reset token hashing** | Reset tokens are stored in plaintext. Hash with SHA-256 before insert; compare hash on validation. Prevents account takeover if the `password_reset_tokens` table is ever exposed. |
 | `[~]` | **Frontend testing** | React Testing Library test files started (`HomePage.test.tsx`, `LogSessionForm.test.tsx`, `PathAheadPage.swipe.test.tsx`). More coverage needed: CalendarPage, auth flow, SessionDetailModal. |
 | `[x]` | **Pagination on session fetch** | `GET /api/sessions` supports optional `?from` and `?to` date params (YYYY-MM-DD). CalendarPage scopes to the selected year; AnalyticsPage scopes to the active time window (30/60/90d); PathAheadPage scopes to a precise 11-day carousel window (today ± 5 days) — constant payload regardless of history length. Full session history is never loaded in a single payload. |
-| `[x]` | **PWA / offline support** | Installable PWA with Workbox service worker (vite-plugin-pwa), web manifest + icons, IndexedDB offline write queue with auto-sync on reconnect, offline UI indicators (`OfflineBanner` + sync toasts). |
+| `[x]` | **PWA / offline support** | Installable PWA with Workbox service worker (vite-plugin-pwa), web manifest + icons, IndexedDB offline write queue with auto-sync on reconnect, offline UI indicators (`OfflineBanner` + sync toasts), application-level read cache (IndexedDB, 24h expiry) for data persistence across offline navigation, optimistic pending sessions (sessions logged offline appear immediately in UI via localStorage + `usePendingSessions` hook). |
 
 ---
 
@@ -44,6 +44,18 @@ Development areas identified from codebase assessment. Updated as work progresse
 | `[ ]` | **Tournament record** | Log competition results: event name, weight class, wins/losses. The `competition_training` session type exists but there's no competition results model. |
 | `[ ]` | **Belt rank milestones** | Timeline of when each belt/stripe was achieved, either inferred from profile change history or manually entered. Show on Profile ("Blue belt for 14 months"). |
 | `[ ]` | **Positional sparring tracker** | Quick-log specific positions trained (e.g. "20 min closed guard top"). Complements existing session tags with finer granularity. |
+
+---
+
+## Code Health & Cleanup
+
+| Status | Area | Description |
+|---|---|---|
+| `[ ]` | **Consolidate duplicate types** | `Intention`, `SessionsResponse`, `IntentionsResponse`, `ProfileResponse` are each defined in 3–6 files. Create `src/types/api.ts` as single source of truth. |
+| `[ ]` | **Consolidate duplicate constants** | `CATEGORY_COLORS` and `MONTH_NAMES` are copy-pasted across 4 files each. Move to `src/lib/constants.ts`. |
+| `[ ]` | **Delete DashboardPage.tsx** | Legacy page, not routed (replaced by PathAheadPage + CalendarPage + AnalyticsPage). `/dashboard` already redirects to `/home`. |
+| `[ ]` | **Split PathAheadPage.tsx** | 1,170+ lines. Extract `DayCard` to `src/components/DayCard.tsx` and particle animation helpers to `src/lib/particles.ts`. |
+| `[ ]` | **Add useOnlineRefetch to ProfilePage** | ProfilePage directly calls `api.get` in useEffect but doesn't refetch on reconnect. All other data-fetching pages use `useOnlineRefetch`. |
 
 ---
 
