@@ -102,8 +102,8 @@ export default {
           to:   { opacity: '0', transform: 'translateY(-8px)' },
         },
         'j2-modal-in': {
-          from: { opacity: '0', transform: 'scale(0.95) translateY(8px)' },
-          to:   { opacity: '1', transform: 'scale(1) translateY(0)' },
+          from: { opacity: '0', scale: '0.95', translate: '0 8px' },
+          to:   { opacity: '1', scale: '1',    translate: '0 0'  },
         },
         'j2-today-pulse': {
           '0%, 100%': { borderColor: 'rgba(196,145,95,0.7)', boxShadow: '0 0 16px rgba(196,145,95,0.2)' },

@@ -180,13 +180,10 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
         style={{ backgroundColor: 'rgba(13, 26, 20, 0.85)', backdropFilter: 'blur(12px) saturate(1.2)', perspective: '1200px' }}
         onClick={onClose}
       >
-        {/* Outer wrapper: entrance animation only — must not own transform so flip works */}
+        {/* Flipper: entrance animation (scale/translate) composes with inline flip transform (rotateY) */}
         <div
           className="w-full sm:max-w-md animate-j2-modal-in"
           onClick={e => e.stopPropagation()}
-        >
-        {/* Inner flipper: 3D flip only — no animation class here */}
-        <div
           style={{
             position: 'relative',
             transformStyle: 'preserve-3d',
@@ -204,10 +201,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
               backgroundColor: '#152E22',
               border: '1px solid rgba(196,145,95,0.45)',
               borderRadius: '1rem',
-              overflow: 'hidden',
-              maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem)',
-              overflowY: 'auto',
-              padding: '1.5rem',
+              // no overflow here — overflow on a child of preserve-3d breaks backfaceVisibility in Safari
             }}
           >
             {/* Intention particle layer */}
@@ -241,8 +235,13 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
               </div>
             )}
 
-            {/* Content above particle layer */}
-            <div style={{ position: 'relative', zIndex: 1 }}>
+            {/* Content above particle layer — owns scroll + padding so face div stays overflow-free */}
+            <div style={{
+              position: 'relative', zIndex: 1,
+              overflowY: 'auto',
+              maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem)',
+              padding: '1.5rem',
+            }}>
               {/* Session navigator */}
               {(sessionCount ?? 1) > 1 && onNavigate && (
                 <div className="flex items-center gap-2 mb-3">
@@ -415,10 +414,11 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
               backgroundColor: '#152E22',
               border: '1px solid rgba(196,145,95,0.45)',
               borderRadius: '1rem',
-              overflowY: 'auto',
-              padding: '1.5rem',
+              // no overflow here — same reason as front face
             }}
           >
+          {/* Inner scroll wrapper owns overflow + padding */}
+          <div style={{ overflowY: 'auto', height: '100%', padding: '1.5rem' }}>
             {/* Date header */}
             <p className="text-2xl font-bold mb-4" style={{ color: intensityColor }}>
               {dateLabel}
@@ -564,10 +564,10 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                 </button>
               </div>
             </div>
-          </div>
+          </div>{/* end inner scroll wrapper */}
+          </div>{/* end back face */}
 
-        </div>{/* end inner flipper */}
-        </div>{/* end outer entrance-animation wrapper */}
+        </div>
       </div>
     </>
   );
