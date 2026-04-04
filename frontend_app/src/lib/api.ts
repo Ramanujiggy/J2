@@ -52,6 +52,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       );
       return { message: 'Queued for sync.', _offline: true } as T;
     }
+    // For reads, try app-level cache before giving up
+    const { getCached } = await import('./apiCache.ts');
+    const cached = await getCached<T>(path);
+    if (cached) return cached;
     throw new ApiError(0, 'Cannot reach the server. Check your internet connection and try again.');
   }
 
@@ -66,7 +70,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
 
   assertJson(res);
-  return res.json() as Promise<T>;
+  const data = await res.json() as T;
+
+  // Cache successful GET responses for offline fallback (fire-and-forget)
+  if (!options.method || options.method === 'GET') {
+    import('./apiCache.ts').then(({ setCached }) => setCached(path, data));
+  }
+
+  return data;
 }
 
 export const api = {

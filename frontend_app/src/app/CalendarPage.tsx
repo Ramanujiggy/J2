@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api, ApiError } from '../lib/api.ts';
+import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import TrainingHeatmap, { type SessionSummary } from '../components/TrainingHeatmap.tsx';
 import ErrorBoundary from '../components/ErrorBoundary.tsx';
 import { PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
@@ -53,6 +54,7 @@ export default function CalendarPage() {
   }, [displayYear]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+  useOnlineRefetch(fetchAll);
 
   const currentYear = new Date().getFullYear();
 

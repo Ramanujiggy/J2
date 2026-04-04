@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { api } from '../lib/api.ts';
+import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import type { BeltRank } from '../components/BeltBar.tsx';
 
 interface ProfileContextValue {
@@ -41,6 +42,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     refreshProfile();
   }, [refreshProfile]);
+  useOnlineRefetch(refreshProfile);
 
   return (
     <ProfileContext.Provider value={{ beltRank, stripes, intentionsEnabled, refreshProfile }}>

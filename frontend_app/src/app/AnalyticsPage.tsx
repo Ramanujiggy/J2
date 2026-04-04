@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api, ApiError } from '../lib/api.ts';
+import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import SkillRadar, { type TimeWindow } from '../components/SkillRadar.tsx';
 import ErrorBoundary from '../components/ErrorBoundary.tsx';
 import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER_BORDER, CARD_SHADOW } from '../lib/theme.ts';
@@ -92,6 +93,7 @@ export default function AnalyticsPage() {
   }, [timeWindow]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+  useOnlineRefetch(fetchAll);
 
   if (loading) return <LoadingScreen />;
 

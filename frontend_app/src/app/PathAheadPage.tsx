@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { api, ApiError } from '../lib/api.ts';
+import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { SKILL_TAGS, ROULETTE_DRILLS } from '../lib/constants.ts';
 import type { SessionSummary } from '../components/TrainingHeatmap.tsx';
 import LogSessionForm from '../components/LogSessionForm.tsx';
@@ -511,6 +512,7 @@ export default function PathAheadPage() {
   }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+  useOnlineRefetch(fetchAll);
 
   // ── Window computation ─────────────────────────────────────────────────
 
