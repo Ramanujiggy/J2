@@ -181,10 +181,14 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
         style={{ backgroundColor: 'rgba(13, 26, 20, 0.85)', backdropFilter: 'blur(12px) saturate(1.2)', perspective: '1200px' }}
         onClick={onClose}
       >
-        {/* Flipper: entrance animation (scale/translate) composes with inline flip transform (rotateY) */}
+        {/* Outer: entrance animation + preserve-3d (must have preserve-3d so the inner's 3d context is not flattened) */}
         <div
           className="w-full sm:max-w-md animate-j2-modal-in"
           onClick={e => e.stopPropagation()}
+          style={{ transformStyle: 'preserve-3d' }}
+        >
+        {/* Inner flipper: only rotateY — no animation class (CSS individual transform props on preserve-3d break backfaceVisibility in WebKit) */}
+        <div
           style={{
             position: 'relative',
             transformStyle: 'preserve-3d',
@@ -568,7 +572,8 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
           </div>{/* end inner scroll wrapper */}
           </div>{/* end back face */}
 
-        </div>
+        </div>{/* end inner flipper */}
+        </div>{/* end outer animation wrapper */}
       </div>
     </>,
     document.body
