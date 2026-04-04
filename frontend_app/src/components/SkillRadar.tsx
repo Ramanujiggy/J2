@@ -161,11 +161,11 @@ const SEG_COMP  = 'rgba(220,90,80,0.80)';
 type ViewMode = 'prism' | 'volume' | 'split' | 'format';
 export type TimeWindow = '7d' | '14d' | '30d' | '90d' | '180d' | '1y' | 'custom';
 
-const RAIL_VIEWS: { id: ViewMode; label: string; Icon: LucideIcon }[] = [
-  { id: 'prism',  label: 'Grappling Prism',  Icon: Target    },
-  { id: 'volume', label: 'Volume by Month',   Icon: BarChart2 },
-  { id: 'split',  label: 'The Two Worlds',    Icon: Layers    },
-  { id: 'format', label: 'Session Format',    Icon: BookOpen  },
+const RAIL_VIEWS: { id: ViewMode; label: string; short: string; Icon: LucideIcon }[] = [
+  { id: 'prism',  label: 'Grappling Prism',  short: 'Prism',  Icon: Target    },
+  { id: 'volume', label: 'Volume by Month',   short: 'Volume', Icon: BarChart2 },
+  { id: 'split',  label: 'The Two Worlds',    short: 'Split',  Icon: Layers    },
+  { id: 'format', label: 'Session Format',    short: 'Format', Icon: BookOpen  },
 ];
 
 const VIEW_META: Record<ViewMode, { title: string; subtitle: string }> = {
@@ -286,7 +286,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
 
   // ── Volume stats ──
   const monthlyHoursArr = Array(12).fill(0) as number[];
-  for (const s of sessions) {
+  for (const s of filtered) {
     const m = sessionMonth(s.date);
     if (!isNaN(m)) monthlyHoursArr[m] += s.duration / 60;
   }
@@ -316,7 +316,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
 
   // ── Chart renderer — shared by mobile and desktop ──
   function renderChart(mode: ViewMode) {
-    if (mode === 'volume') return <VolumeChart sessions={sessions} />;
+    if (mode === 'volume') return <VolumeChart sessions={filtered} />;
     if (mode === 'split') return (
       <DonutChart segments={[
         { value: giHours,   color: SEG_GI   },
@@ -522,68 +522,71 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
         </div>
       </div>
 
-      {/* ── Mobile controls row: view tabs (left) + h/% toggle (right) ── */}
-      <div className="flex sm:hidden items-center justify-between gap-2 mb-2">
+      {/* ── Mobile: full redesign ── */}
+      <div className="sm:hidden flex flex-col gap-4">
 
-        {/* View tab icons */}
-        <div className="flex gap-1">
-          {RAIL_VIEWS.map(({ id, label, Icon }) => {
-            const active = viewMode === id;
+        {/* View tabs — full-width segmented control */}
+        <div className="flex gap-1 p-1 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
+          {RAIL_VIEWS.map(({ id, short, Icon }) => {
+            const isActive = viewMode === id;
             return (
               <button
                 key={id}
                 onClick={() => handleViewChange(id)}
-                aria-label={label}
-                className="w-9 h-9 flex items-center justify-center rounded-md transition-all"
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-medium transition-colors min-h-[44px]"
                 style={{
-                  color: active ? PALE_YELLOW : 'rgba(242,228,168,0.25)',
-                  backgroundColor: active ? 'rgba(242,228,168,0.08)' : 'transparent',
+                  backgroundColor: isActive ? COPPER : 'transparent',
+                  color: isActive ? '#fff' : 'rgba(255,255,255,0.4)',
                 }}
               >
-                <Icon size={15} strokeWidth={active ? 2 : 1.5}
-                  style={{ filter: active ? `drop-shadow(0 0 4px ${PALE_YELLOW}88)` : 'none' }} />
+                <Icon size={13} strokeWidth={isActive ? 2 : 1.5} />
+                <span>{short}</span>
               </button>
             );
           })}
         </div>
 
-        {/* h/% toggle */}
-        <div style={{
-          transformOrigin: 'center center',
-          transform: isVolume ? 'scaleY(0.04)' : 'scaleY(1)',
-          transition: 'transform 300ms cubic-bezier(0.4,0,0.2,1)',
-        }}>
-          <div className="flex overflow-hidden text-xs" style={{
-            border: `1px solid ${isVolume ? 'transparent' : 'rgba(255,255,255,0.1)'}`,
-            backgroundColor: isVolume ? PALE_YELLOW : 'transparent',
-            borderRadius: isVolume ? '1px' : '6px',
-            transition: 'border-color 250ms ease, background-color 250ms ease, border-radius 250ms ease',
-          }}>
-            <button onClick={() => setDisplayMode('hours')} className="px-3 py-1.5" style={{
-              color: isVolume ? 'transparent' : displayMode === 'hours' ? 'white' : 'rgba(255,255,255,0.4)',
-              backgroundColor: !isVolume && displayMode === 'hours' ? 'rgba(218,116,34,0.8)' : 'transparent',
-              transition: 'color 200ms ease, background-color 200ms ease',
-              pointerEvents: isVolume ? 'none' : 'auto',
-            }}>h</button>
-            <button onClick={() => setDisplayMode('pct')} className="px-3 py-1.5" style={{
-              color: isVolume ? 'transparent' : displayMode === 'pct' ? 'white' : 'rgba(255,255,255,0.4)',
-              backgroundColor: !isVolume && displayMode === 'pct' ? 'rgba(218,116,34,0.8)' : 'transparent',
-              transition: 'color 200ms ease, background-color 200ms ease',
-              pointerEvents: isVolume ? 'none' : 'auto',
-            }}>%</button>
-          </div>
-        </div>
-
-      </div>
-
-      {/* ── Mobile: simple flat layout (no drum, no animation) ── */}
-      <div className="sm:hidden flex flex-col gap-5">
-        <div className="mx-auto" style={{ width: 210 }}>
+        {/* Chart — responsive, scales with card width */}
+        <div className="w-full max-w-[280px] mx-auto">
           {renderChart(viewMode)}
         </div>
+
+        {/* h/% toggle + breakdown */}
         <div>
+          {/* Toggle row — fades out on volume view */}
+          <div
+            className="flex justify-end mb-2"
+            style={{
+              opacity: isVolume ? 0 : 1,
+              pointerEvents: isVolume ? 'none' : 'auto',
+              transition: 'opacity 200ms ease',
+            }}
+          >
+            <div className="flex overflow-hidden rounded-lg text-xs" style={{ border: '1px solid rgba(255,255,255,0.12)' }}>
+              <button
+                onClick={() => setDisplayMode('hours')}
+                className="px-3 py-2"
+                style={{
+                  backgroundColor: displayMode === 'hours' ? 'rgba(218,116,34,0.8)' : 'transparent',
+                  color: displayMode === 'hours' ? 'white' : 'rgba(255,255,255,0.4)',
+                  transition: 'background-color 150ms ease, color 150ms ease',
+                }}
+              >h</button>
+              <button
+                onClick={() => setDisplayMode('pct')}
+                className="px-3 py-2"
+                style={{
+                  backgroundColor: displayMode === 'pct' ? 'rgba(218,116,34,0.8)' : 'transparent',
+                  color: displayMode === 'pct' ? 'white' : 'rgba(255,255,255,0.4)',
+                  transition: 'background-color 150ms ease, color 150ms ease',
+                }}
+              >%</button>
+            </div>
+          </div>
+
           {renderBreakdownContent(viewMode)}
         </div>
+
       </div>
 
       {/* ── Desktop: drum | rail column ── */}
