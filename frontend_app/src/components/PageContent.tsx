@@ -16,13 +16,19 @@ export default function PageContent({ ready, children }: Props) {
   const [phase, setPhase] = useState<Phase>(ready ? 'ready' : 'loading');
 
   useEffect(() => {
-    if (ready && phase === 'loading') {
+    if (ready) {
       setPhase('fading');
       const t = setTimeout(() => setPhase('ready'), 280);
       return () => clearTimeout(t);
     }
-    if (!ready && phase !== 'loading') setPhase('loading');
-  }, [ready, phase]);
+    setPhase('loading');
+    // `phase` is intentionally excluded from deps. Including it causes React's
+    // effect cleanup to cancel the 280 ms timer on every phase change (loading →
+    // fading), permanently trapping the component in 'fading' state where the
+    // content div's `pointer-events: none` is inherited by every descendant
+    // button, making the entire page untappable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
 
   if (phase === 'ready') return <>{children}</>;
 
@@ -30,11 +36,11 @@ export default function PageContent({ ready, children }: Props) {
 
   return (
     <div style={{ position: 'relative' }}>
-      {/* Content fades in beneath the loader */}
+      {/* Content fades in */}
       <div style={{
         opacity: fading ? 1 : 0,
         transition: fading ? 'opacity 280ms ease' : 'none',
-        pointerEvents: fading ? 'none' : 'auto',
+        pointerEvents: fading ? 'auto' : 'none',
       }}>
         {children}
       </div>
