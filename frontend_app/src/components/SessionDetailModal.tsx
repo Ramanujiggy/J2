@@ -393,7 +393,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                 {!confirmDelete && (
                   <button
                     onClick={() => setIsEditing(true)}
-                    className="bg-brand-orange hover:bg-brand-orange/90 text-white text-sm font-semibold px-5 py-2 rounded-lg transition-colors"
+                    className="bg-brand-orange hover:bg-brand-orange/90 text-white text-sm font-semibold px-5 py-2 rounded-full transition-colors"
                   >
                     Edit
                   </button>
@@ -553,7 +553,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="bg-brand-orange hover:bg-brand-orange/90 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2 rounded-lg transition-colors"
+                  className="bg-brand-orange hover:bg-brand-orange/90 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2 rounded-full transition-colors"
                 >
                   {saving ? 'Saving…' : 'Save'}
                 </button>

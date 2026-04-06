@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronRight, ChevronLeft, CalendarDays, X } from 'lucide-react';
 import type { TimeWindow } from './SkillRadar.tsx';
 import { CARD_BG, COPPER_BORDER, PALE_YELLOW, COPPER } from '../lib/theme.ts';
@@ -141,8 +142,8 @@ export default function TimeRangeBar({ value, onChange, customRange, onCustomRan
         )}
       </div>
 
-      {/* ── Date picker modal ────────────────────────────────────────── */}
-      {pickerOpen && (
+      {/* ── Date picker modal (portalled to body to escape ancestor transforms) ── */}
+      {pickerOpen && createPortal(
         <>
           {/* Backdrop */}
           <div
@@ -155,9 +156,12 @@ export default function TimeRangeBar({ value, onChange, customRange, onCustomRan
           <div
             className="fixed z-50 rounded-2xl p-5 shadow-xl"
             style={{
-              top: '50%', left: '50%',
-              transform: 'translate(-50%, -50%)',
+              top: 'clamp(15%, 20vh, 30%)',
+              left: '50%',
+              transform: 'translateX(-50%)',
               width: 'min(320px, calc(100vw - 32px))',
+              maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 4rem)',
+              overflowY: 'auto',
               backgroundColor: CARD_BG,
               border: `1px solid ${COPPER_BORDER}`,
               animation: 'j2-modal-in 400ms cubic-bezier(0.16, 1, 0.3, 1) both',
@@ -218,14 +222,15 @@ export default function TimeRangeBar({ value, onChange, customRange, onCustomRan
               <button
                 onClick={applyCustom}
                 disabled={!draftStart || !draftEnd || draftStart > draftEnd}
-                className="px-4 py-2 rounded-lg text-xs font-semibold transition-opacity disabled:opacity-40"
+                className="px-4 py-2 rounded-full text-xs font-semibold transition-opacity disabled:opacity-40"
                 style={{ backgroundColor: COPPER, color: '#fff' }}
               >
                 Apply
               </button>
             </div>
           </div>
-        </>
+        </>,
+        document.body,
       )}
     </>
   );

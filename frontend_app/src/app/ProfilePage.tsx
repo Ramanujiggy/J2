@@ -275,7 +275,7 @@ export default function ProfilePage() {
             <button
               type="submit"
               disabled={saving}
-              className="bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50"
+              className="bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold px-6 py-2.5 rounded-full transition-colors disabled:opacity-50"
             >
               {saving ? 'Saving…' : 'Save Profile'}
             </button>

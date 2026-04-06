@@ -188,7 +188,7 @@ export default function SetIntentionModal({ weekStart, onSaved, onClose }: Props
             <button
               type="submit"
               disabled={saving || !label.trim()}
-              className="bg-brand-orange hover:bg-brand-orange/90 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2 rounded-lg transition-colors"
+              className="bg-brand-orange hover:bg-brand-orange/90 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2 rounded-full transition-colors"
             >
               {saving ? 'Setting…' : writeJournal ? 'Set & Write' : 'Set Intent'}
             </button>

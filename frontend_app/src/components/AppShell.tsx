@@ -223,7 +223,9 @@ export default function AppShell({ children }: Props) {
       <nav
         className="sm:hidden fixed bottom-0 left-0 right-0 flex border-t z-40"
         style={{
-          backgroundColor: PAGE_BG,
+          backgroundColor: 'rgba(13,26,20,0.82)',
+          backdropFilter: 'saturate(180%) blur(20px)',
+          WebkitBackdropFilter: 'saturate(180%) blur(20px)',
           borderTopColor: COPPER_BORDER,
           paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
         }}

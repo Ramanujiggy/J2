@@ -286,7 +286,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate }: { o
           <button
             type="submit"
             disabled={loading}
-            className="ml-auto bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50"
+            className="ml-auto bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold px-6 py-2.5 rounded-full transition-colors disabled:opacity-50"
           >
             {loading ? 'Saving...' : 'Log Session'}
           </button>

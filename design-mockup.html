@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Journada — Design Upgrade Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  /* ─── Reset ─────────────────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ─── Toggle state ──────────────────────────────────────────────────── */
+  :root {
+    --toggle: 1; /* 1 = upgraded, 0 = current */
+  }
+  body.current { --toggle: 0; }
+
+  /* ─── Journada Palette ──────────────────────────────────────────────── */
+  :root {
+    /* Surfaces — 4-level hierarchy (upgrade #6) */
+    --surface-0: #0D1A14;   /* page bg */
+    --surface-1: #152E22;   /* card bg */
+    --surface-2: #1A3829;   /* elevated — NEW */
+    --surface-3: #1E4030;   /* modal/overlay — NEW */
+
+    /* Accents */
+    --gold:        #F2E4A8;
+    --copper:      #C4915F;
+    --orange:      #DA7422;
+    --green:       #6FD08C;
+    --light-green: #CDDFA0;
+
+    /* Text opacity hierarchy (upgrade #9) */
+    --text-primary:   rgba(255,255,255,0.92);
+    --text-secondary: rgba(255,255,255,0.60);
+    --text-tertiary:  rgba(255,255,255,0.35);
+    --text-disabled:  rgba(255,255,255,0.20);
+
+    /* Borders */
+    --border-copper:  rgba(196,145,95,0.45);
+    --border-whisper: rgba(255,255,255,0.06);
+
+    /* Shadows */
+    --shadow-current: 0 2px 4px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.35);
+    --shadow-upgraded: 0 0 0 1px rgba(196,145,95,0.06), 0 2px 6px rgba(13,26,20,0.3), 0 8px 24px rgba(0,0,0,0.35);
+
+    /* Glows */
+    --glow-title: 0 0 14px rgba(242,228,168,0.45), 0 0 32px rgba(242,228,168,0.2);
+    --glow-soft:  0 0 14px rgba(242,228,168,0.3), 0 0 30px rgba(242,228,168,0.14);
+  }
+
+  /* ─── Base ──────────────────────────────────────────────────────────── */
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-feature-settings: "cv01", "ss03"; /* upgrade #1 — Linear */
+    background: var(--surface-0);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  body.current {
+    font-feature-settings: normal; /* revert */
+  }
+
+  /* ─── Toggle Banner ─────────────────────────────────────────────────── */
+  .toggle-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 14px 24px;
+    background: rgba(13,26,20,0.92);
+    backdrop-filter: saturate(180%) blur(20px);
+    border-top: 1px solid var(--border-whisper);
+  }
+  .toggle-bar label {
+    font-size: 13px;
+    font-weight: 510;
+    color: var(--text-secondary);
+    letter-spacing: -0.1px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .toggle-bar label.active { color: var(--gold); }
+  .toggle-switch {
+    position: relative;
+    width: 48px; height: 26px;
+    background: var(--surface-2);
+    border-radius: 13px;
+    border: 1px solid var(--border-whisper);
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+  .toggle-switch.on { background: var(--orange); }
+  .toggle-switch .thumb {
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 18px; height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .toggle-switch.on .thumb { transform: translateX(22px); }
+
+  /* ─── Annotations ───────────────────────────────────────────────────── */
+  .annotation {
+    position: absolute;
+    font-size: 10px;
+    font-weight: 510;
+    color: var(--orange);
+    background: rgba(218,116,34,0.12);
+    border: 1px solid rgba(218,116,34,0.25);
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s;
+    letter-spacing: 0.2px;
+    text-transform: uppercase;
+  }
+  body:not(.current) .annotation { opacity: 1; }
+
+  /* ─── Navigation — frosted glass (upgrade #3) ───────────────────────── */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    height: 56px;
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  /* Upgraded: frosted glass */
+  body:not(.current) nav {
+    background: rgba(13,26,20,0.78);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid var(--border-whisper);
+  }
+  /* Current: solid */
+  body.current nav {
+    background: var(--surface-1);
+    border-bottom: 1px solid var(--border-copper);
+    backdrop-filter: none;
+  }
+
+  .nav-brand {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--gold);
+    text-shadow: var(--glow-title);
+    letter-spacing: -0.3px;
+  }
+  .nav-links {
+    display: flex;
+    gap: 28px;
+    list-style: none;
+  }
+  .nav-links a {
+    text-decoration: none;
+    font-size: 13px;
+    color: var(--text-secondary);
+    transition: color 0.2s, text-shadow 0.2s;
+    letter-spacing: -0.1px;
+  }
+  body:not(.current) .nav-links a { font-weight: 510; }
+  body.current .nav-links a { font-weight: 400; }
+  .nav-links a:hover { color: var(--gold); text-shadow: var(--glow-soft); }
+  .nav-links a.active { color: var(--gold); text-shadow: var(--glow-soft); }
+
+  /* ─── Hero Section ──────────────────────────────────────────────────── */
+  .hero {
+    position: relative;
+    padding: 72px 24px 56px;
+    text-align: center;
+  }
+  .hero h1 {
+    font-family: 'DM Serif Display', serif;
+    color: var(--gold);
+    text-shadow: var(--glow-title);
+    margin-bottom: 12px;
+    transition: all 0.5s;
+  }
+  /* Upgraded: tighter line-height + letter-spacing (upgrades #2, #5) */
+  body:not(.current) .hero h1 {
+    font-size: 52px;
+    line-height: 1.02;
+    letter-spacing: -0.8px;
+  }
+  body.current .hero h1 {
+    font-size: 48px;
+    line-height: 1.2;
+    letter-spacing: normal;
+  }
+  .hero .subtitle {
+    font-size: 17px;
+    color: var(--text-secondary);
+    max-width: 460px;
+    margin: 0 auto 32px;
+    line-height: 1.55;
+    transition: all 0.5s;
+  }
+  body:not(.current) .hero .subtitle {
+    letter-spacing: -0.2px;
+    font-weight: 400;
+  }
+
+  /* ─── Buttons (upgrade #4 — pill CTAs) ──────────────────────────────── */
+  .btn-row {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-feature-settings: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--orange);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  body:not(.current) .btn-primary {
+    padding: 12px 32px;
+    border-radius: 9999px; /* pill */
+  }
+  body.current .btn-primary {
+    padding: 10px 20px;
+    border-radius: 8px; /* standard */
+  }
+  .btn-primary:hover { transform: scale(1.03); filter: brightness(1.08); }
+  .btn-primary:active { transform: scale(0.97); }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-feature-settings: inherit;
+    font-size: 14px;
+    color: var(--text-secondary);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  /* Upgraded: ghost pill with whisper border */
+  body:not(.current) .btn-secondary {
+    padding: 10px 24px;
+    border-radius: 9999px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border-whisper);
+    font-weight: 510;
+  }
+  /* Current: plain text link */
+  body.current .btn-secondary {
+    padding: 10px 16px;
+    border-radius: 8px;
+    background: transparent;
+    border: 1px solid var(--border-copper);
+    font-weight: 400;
+  }
+  .btn-secondary:hover { color: var(--gold); border-color: rgba(196,145,95,0.3); }
+
+  /* ─── Section: Alternating rhythm (Apple) ───────────────────────────── */
+  .section { padding: 56px 24px; position: relative; }
+  .section-lifted {
+    background: var(--surface-1);
+    transition: background 0.5s;
+  }
+  body.current .section-lifted { background: var(--surface-0); }
+
+  .section-title {
+    font-family: 'DM Serif Display', serif;
+    color: var(--gold);
+    text-shadow: var(--glow-soft);
+    margin-bottom: 8px;
+    transition: all 0.5s;
+  }
+  body:not(.current) .section-title {
+    font-size: 32px;
+    line-height: 1.05;
+    letter-spacing: -0.5px;
+  }
+  body.current .section-title {
+    font-size: 28px;
+    line-height: 1.2;
+    letter-spacing: normal;
+  }
+  .section-subtitle {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    margin-bottom: 32px;
+    letter-spacing: -0.1px;
+  }
+
+  /* ─── Cards — chromatic shadows + whisper borders (upgrades #5, #6) ── */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+  .card {
+    padding: 24px;
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+  }
+  /* Upgraded card */
+  body:not(.current) .card {
+    background: var(--surface-1);
+    border: 1px solid var(--border-whisper);
+    border-radius: 16px;
+    box-shadow: var(--shadow-upgraded);
+  }
+  /* Current card */
+  body.current .card {
+    background: var(--surface-1);
+    border: 1px solid var(--border-copper);
+    border-radius: 12px;
+    box-shadow: var(--shadow-current);
+  }
+  .card:hover { transform: translateY(-2px); }
+  body:not(.current) .card:hover {
+    border-color: rgba(196,145,95,0.25);
+    box-shadow: 0 0 0 1px rgba(196,145,95,0.1), 0 4px 12px rgba(13,26,20,0.4), 0 12px 32px rgba(0,0,0,0.4);
+  }
+  .card-icon {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    margin-bottom: 16px;
+    transition: all 0.5s;
+  }
+  body:not(.current) .card-icon {
+    background: rgba(218,116,34,0.12);
+    border: 1px solid rgba(218,116,34,0.15);
+  }
+  body.current .card-icon {
+    background: rgba(218,116,34,0.2);
+    border: none;
+  }
+  .card h3 {
+    font-size: 16px;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    transition: all 0.5s;
+  }
+  body:not(.current) .card h3 {
+    font-weight: 590;
+    letter-spacing: -0.2px;
+  }
+  body.current .card h3 {
+    font-weight: 600;
+    letter-spacing: normal;
+  }
+  .card p {
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--text-secondary);
+    transition: all 0.5s;
+  }
+  body:not(.current) .card p { letter-spacing: -0.1px; }
+
+  /* ─── Week Scroll — circular controls (upgrade #10) ────────────────── */
+  .week-strip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    margin: 0 auto;
+    max-width: 560px;
+    position: relative;
+  }
+  .week-arrow {
+    width: 36px; height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 16px;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    flex-shrink: 0;
+  }
+  body:not(.current) .week-arrow {
+    background: rgba(255,255,255,0.04);
+    border-radius: 50%;
+    border: 1px solid var(--border-whisper);
+  }
+  body.current .week-arrow {
+    background: var(--surface-1);
+    border-radius: 8px;
+    border: 1px solid var(--border-copper);
+  }
+  .week-arrow:hover { color: var(--gold); background: rgba(255,255,255,0.08); }
+
+  .day-cards {
+    display: flex;
+    gap: 8px;
+    overflow: hidden;
+    flex: 1;
+  }
+  .day-card {
+    flex: 1;
+    min-width: 56px;
+    padding: 12px 6px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  body:not(.current) .day-card {
+    background: var(--surface-1);
+    border: 1px solid var(--border-whisper);
+    border-radius: 14px;
+  }
+  body.current .day-card {
+    background: var(--surface-1);
+    border: 1px solid var(--border-copper);
+    border-radius: 10px;
+  }
+  .day-card:hover { transform: translateY(-2px); }
+  .day-card.today {
+    border-color: rgba(196,145,95,0.7);
+    box-shadow: 0 0 16px rgba(196,145,95,0.2);
+  }
+  .day-name {
+    font-size: 10px;
+    font-weight: 510;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .day-num {
+    font-size: 18px;
+    font-weight: 590;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+  }
+  .day-card.today .day-num { color: var(--gold); }
+  .day-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--green);
+    margin: 6px auto 0;
+  }
+  .day-dot.empty { background: transparent; }
+
+  /* ─── Stats row ─────────────────────────────────────────────────────── */
+  .stats-row {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  .stat-card {
+    flex: 1;
+    min-width: 120px;
+    padding: 20px 16px;
+    text-align: center;
+    transition: all 0.5s;
+  }
+  body:not(.current) .stat-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border-whisper);
+    border-radius: 16px;
+    box-shadow: none;
+  }
+  body.current .stat-card {
+    background: var(--surface-1);
+    border: 1px solid var(--border-copper);
+    border-radius: 12px;
+    box-shadow: var(--shadow-current);
+  }
+  .stat-value {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--gold);
+    text-shadow: var(--glow-soft);
+    letter-spacing: -0.5px;
+    line-height: 1.1;
+  }
+  .stat-label {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-top: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  body:not(.current) .stat-label { font-weight: 510; }
+
+  /* ─── Pill badges / tags ────────────────────────────────────────────── */
+  .tag-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; justify-content: center; }
+  .tag {
+    font-size: 11px;
+    color: var(--text-secondary);
+    transition: all 0.5s;
+  }
+  body:not(.current) .tag {
+    padding: 4px 14px;
+    border-radius: 9999px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border-whisper);
+    font-weight: 510;
+    letter-spacing: 0.1px;
+  }
+  body.current .tag {
+    padding: 3px 10px;
+    border-radius: 6px;
+    background: rgba(196,145,95,0.12);
+    border: 1px solid rgba(196,145,95,0.25);
+    font-weight: 400;
+  }
+
+  /* ─── Session List Demo ─────────────────────────────────────────────── */
+  .session-list {
+    max-width: 600px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .session-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 20px;
+    transition: all 0.5s;
+    cursor: pointer;
+  }
+  body:not(.current) .session-item {
+    background: var(--surface-1);
+    border: 1px solid var(--border-whisper);
+    border-radius: 14px;
+  }
+  body.current .session-item {
+    background: var(--surface-1);
+    border: 1px solid var(--border-copper);
+    border-radius: 10px;
+    box-shadow: var(--shadow-current);
+  }
+  .session-item:hover { transform: translateX(4px); }
+  .session-type-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .session-info { flex: 1; }
+  .session-title {
+    font-size: 15px;
+    color: var(--text-primary);
+    margin-bottom: 3px;
+  }
+  body:not(.current) .session-title { font-weight: 510; letter-spacing: -0.15px; }
+  body.current .session-title { font-weight: 500; }
+  .session-meta {
+    font-size: 12px;
+    color: var(--text-tertiary);
+  }
+  .session-duration {
+    font-size: 14px;
+    font-weight: 590;
+    color: var(--copper);
+    letter-spacing: -0.2px;
+  }
+
+  /* ─── Heatmap mini preview ──────────────────────────────────────────── */
+  .heatmap-hero {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 32px;
+    transition: all 0.5s;
+  }
+  body:not(.current) .heatmap-hero {
+    background: var(--surface-1);
+    border: 1px solid var(--border-whisper);
+    border-radius: 20px;
+  }
+  body.current .heatmap-hero {
+    background: var(--surface-1);
+    border: 1px solid var(--border-copper);
+    border-radius: 12px;
+    box-shadow: var(--shadow-current);
+  }
+  .heatmap-grid {
+    display: grid;
+    grid-template-columns: repeat(14, 1fr);
+    gap: 3px;
+  }
+  .heatmap-cell {
+    aspect-ratio: 1;
+    border-radius: 3px;
+    transition: all 0.3s;
+  }
+  .heatmap-cell:hover { transform: scale(1.3); }
+
+  /* ─── Content container ─────────────────────────────────────────────── */
+  .container { max-width: 960px; margin: 0 auto; }
+
+  /* ─── Bottom spacer for toggle bar ──────────────────────────────────── */
+  .bottom-spacer { height: 80px; }
+
+  /* ─── Annotation positioning ────────────────────────────────────────── */
+  .anno-nav { top: 64px; right: 24px; }
+  .anno-typo { top: -28px; left: 50%; transform: translateX(-50%); }
+  .anno-btn { top: -28px; left: 0; }
+  .anno-shadow { bottom: -28px; right: 12px; }
+  .anno-border { top: -28px; right: 12px; }
+  .anno-surface { top: 12px; right: 12px; }
+  .anno-weight { bottom: -28px; left: 12px; }
+  .anno-circle { top: -28px; left: 0; }
+  .anno-ghost { top: -28px; right: 0; }
+  .anno-rhythm { top: 12px; left: 24px; }
+
+  /* ─── Comparison labels ─────────────────────────────────────────────── */
+  .compare-banner {
+    text-align: center;
+    padding: 24px;
+    font-size: 11px;
+    font-weight: 510;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    transition: all 0.4s;
+  }
+  body:not(.current) .compare-banner {
+    color: var(--green);
+  }
+  body.current .compare-banner {
+    color: var(--text-tertiary);
+  }
+  body:not(.current) .compare-banner::before { content: "Upgraded Design"; }
+  body.current .compare-banner::before { content: "Current Design"; }
+</style>
+</head>
+<body>
+
+<!-- ═══ Navigation ═══════════════════════════════════════════════════════ -->
+<nav>
+  <div class="nav-brand">Journada</div>
+  <ul class="nav-links">
+    <li><a href="#" class="active">Path Ahead</a></li>
+    <li><a href="#">Calendar</a></li>
+    <li><a href="#">Analytics</a></li>
+    <li><a href="#">Intentions</a></li>
+    <li><a href="#">Profile</a></li>
+  </ul>
+  <div class="annotation anno-nav">Frosted glass nav — Apple</div>
+</nav>
+
+<div class="compare-banner"></div>
+
+<!-- ═══ Hero ═════════════════════════════════════════════════════════════ -->
+<section class="hero">
+  <div class="annotation anno-typo">Tighter line-height + letter-spacing</div>
+  <h1>Path Ahead</h1>
+  <p class="subtitle">
+    Your training journey this week. Tap a day to log a session or review what you've trained.
+  </p>
+  <div class="btn-row" style="position:relative;">
+    <div class="annotation anno-btn">Pill CTAs — Apple / Spotify</div>
+    <button class="btn-primary">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      Log Session
+    </button>
+    <button class="btn-secondary" style="position:relative;">
+      <div class="annotation anno-ghost">Ghost pill — Linear</div>
+      Set Intention
+    </button>
+  </div>
+</section>
+
+<!-- ═══ Week Strip ══════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="container">
+    <div class="week-strip" style="position:relative;">
+      <div class="annotation anno-circle">Circular controls — Apple / Airbnb</div>
+      <button class="week-arrow">&lsaquo;</button>
+      <div class="day-cards">
+        <div class="day-card">
+          <div class="day-name">Mon</div>
+          <div class="day-num">31</div>
+          <div class="day-dot"></div>
+        </div>
+        <div class="day-card">
+          <div class="day-name">Tue</div>
+          <div class="day-num">1</div>
+          <div class="day-dot empty"></div>
+        </div>
+        <div class="day-card">
+          <div class="day-name">Wed</div>
+          <div class="day-num">2</div>
+          <div class="day-dot"></div>
+        </div>
+        <div class="day-card today">
+          <div class="day-name">Thu</div>
+          <div class="day-num">3</div>
+          <div class="day-dot empty"></div>
+        </div>
+        <div class="day-card">
+          <div class="day-name">Fri</div>
+          <div class="day-num">4</div>
+          <div class="day-dot empty"></div>
+        </div>
+        <div class="day-card">
+          <div class="day-name">Sat</div>
+          <div class="day-num">5</div>
+          <div class="day-dot empty"></div>
+        </div>
+        <div class="day-card">
+          <div class="day-name">Sun</div>
+          <div class="day-num">6</div>
+          <div class="day-dot empty"></div>
+        </div>
+      </div>
+      <button class="week-arrow">&rsaquo;</button>
+    </div>
+
+    <div class="tag-row">
+      <span class="tag">Gi</span>
+      <span class="tag">No-Gi</span>
+      <span class="tag">Drilling</span>
+      <span class="tag">Competition Prep</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ Stats — alternating section (Apple rhythm) ═══════════════════ -->
+<section class="section section-lifted" style="position:relative;">
+  <div class="annotation anno-rhythm">Section rhythm — Apple</div>
+  <div class="container">
+    <div style="text-align:center; margin-bottom:28px;">
+      <div class="section-title">This Week</div>
+      <div class="section-subtitle">April 1 — April 6, 2026</div>
+    </div>
+    <div class="stats-row" style="position:relative;">
+      <div class="annotation anno-surface">4-level surface hierarchy — Linear</div>
+      <div class="stat-card">
+        <div class="stat-value">2</div>
+        <div class="stat-label">Sessions</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">3.5h</div>
+        <div class="stat-label">Mat Time</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">4</div>
+        <div class="stat-label">Day Streak</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">67%</div>
+        <div class="stat-label">Weekly Goal</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ Recent Sessions ═════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="container">
+    <div style="text-align:center; margin-bottom:28px;">
+      <div class="section-title">Recent Sessions</div>
+      <div class="section-subtitle">Your last few training logs</div>
+    </div>
+    <div class="session-list" style="position:relative;">
+      <div class="annotation anno-border">Whisper borders — Linear / Notion</div>
+      <div class="session-item">
+        <div class="session-type-dot" style="background: var(--orange)"></div>
+        <div class="session-info">
+          <div class="session-title">Gi Class — Guard passing drills</div>
+          <div class="session-meta">Wed, Apr 2 &middot; Competition prep</div>
+        </div>
+        <div class="session-duration">1.5h</div>
+      </div>
+      <div class="session-item">
+        <div class="session-type-dot" style="background: var(--green)"></div>
+        <div class="session-info">
+          <div class="session-title">No-Gi — Half guard sweeps</div>
+          <div class="session-meta">Mon, Mar 31 &middot; Technique</div>
+        </div>
+        <div class="session-duration">2.0h</div>
+      </div>
+      <div class="session-item">
+        <div class="session-type-dot" style="background: var(--copper)"></div>
+        <div class="session-info">
+          <div class="session-title">Open Mat — Sparring rounds</div>
+          <div class="session-meta">Sat, Mar 29 &middot; Rolling</div>
+        </div>
+        <div class="session-duration">1.5h</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ Feature Cards — chromatic shadows ═══════════════════════════════ -->
+<section class="section section-lifted">
+  <div class="container">
+    <div style="text-align:center; margin-bottom:28px;">
+      <div class="section-title">Training Insights</div>
+      <div class="section-subtitle">Understanding your progress</div>
+    </div>
+    <div class="card-grid">
+      <div class="card" style="position:relative;">
+        <div class="annotation anno-shadow">Chromatic 3-layer shadow — Stripe / Airbnb</div>
+        <div class="card-icon">&#x1f94b;</div>
+        <h3>Skill Radar</h3>
+        <p>See your strengths across guard, passing, submissions, sweeps, and takedowns over time.</p>
+      </div>
+      <div class="card" style="position:relative;">
+        <div class="annotation anno-weight">Font-weight 510/590 — Linear</div>
+        <div class="card-icon">&#x1f4c8;</div>
+        <h3>Volume Trends</h3>
+        <p>Track weekly mat hours and session frequency with time-window analysis.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">&#x1f525;</div>
+        <h3>Consistency</h3>
+        <p>Your training heatmap and streak tracker — see the rhythm of your practice.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ Heatmap Hero (data-as-hero — Apple) ════════════════════════════ -->
+<section class="section">
+  <div class="container">
+    <div style="text-align:center; margin-bottom:28px;">
+      <div class="section-title">Training Heatmap</div>
+      <div class="section-subtitle">January — April 2026</div>
+    </div>
+    <div class="heatmap-hero">
+      <div class="heatmap-grid" id="heatmap"></div>
+    </div>
+  </div>
+</section>
+
+<div class="bottom-spacer"></div>
+
+<!-- ═══ Toggle Bar ════════════════════════════════════════════════════ -->
+<div class="toggle-bar">
+  <label id="lbl-current">Current</label>
+  <div class="toggle-switch on" id="toggle">
+    <div class="thumb"></div>
+  </div>
+  <label id="lbl-upgraded" class="active">Upgraded</label>
+</div>
+
+<script>
+  // Toggle between current and upgraded
+  const toggle = document.getElementById('toggle');
+  const lblCurrent = document.getElementById('lbl-current');
+  const lblUpgraded = document.getElementById('lbl-upgraded');
+  let upgraded = true;
+
+  toggle.addEventListener('click', () => {
+    upgraded = !upgraded;
+    document.body.classList.toggle('current', !upgraded);
+    toggle.classList.toggle('on', upgraded);
+    lblCurrent.classList.toggle('active', !upgraded);
+    lblUpgraded.classList.toggle('active', upgraded);
+  });
+
+  // Generate heatmap cells
+  const grid = document.getElementById('heatmap');
+  const hues = [
+    'rgba(10,22,16,1)',       // empty/rest
+    'rgba(30,80,50,0.5)',     // light
+    'rgba(111,208,140,0.35)', // medium-light
+    'rgba(111,208,140,0.55)', // medium
+    'rgba(111,208,140,0.75)', // medium-high
+    'rgba(111,208,140,1)',    // high
+    'rgba(218,116,34,0.6)',   // intense (orange)
+  ];
+  for (let i = 0; i < 14 * 7; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'heatmap-cell';
+    // Weighted random — more rest days, fewer intense
+    const r = Math.random();
+    let idx;
+    if (r < 0.35) idx = 0;
+    else if (r < 0.50) idx = 1;
+    else if (r < 0.65) idx = 2;
+    else if (r < 0.78) idx = 3;
+    else if (r < 0.88) idx = 4;
+    else if (r < 0.95) idx = 5;
+    else idx = 6;
+    cell.style.backgroundColor = hues[idx];
+    grid.appendChild(cell);
+  }
+</script>
+</body>
+</html>

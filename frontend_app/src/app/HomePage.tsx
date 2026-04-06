@@ -191,7 +191,7 @@ export default function HomePage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-50 j2-press"
+                className="w-full bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold py-2.5 rounded-full transition-colors disabled:opacity-50 j2-press"
               >
                 {loading
                   ? 'Please wait...'

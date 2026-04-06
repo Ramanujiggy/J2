@@ -70,7 +70,7 @@ export default function ResetPasswordPage() {
             </p>
             <button
               onClick={() => navigate('/')}
-              className="w-full bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold py-2.5 rounded-lg transition-colors"
+              className="w-full bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold py-2.5 rounded-full transition-colors"
             >
               Go to Log In
             </button>
@@ -112,7 +112,7 @@ export default function ResetPasswordPage() {
             <button
               type="submit"
               disabled={loading || !token}
-              className="w-full bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-50"
+              className="w-full bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold py-2.5 rounded-full transition-colors disabled:opacity-50"
             >
               {loading ? 'Updating...' : 'Update Password'}
             </button>
