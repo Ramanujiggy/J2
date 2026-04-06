@@ -157,8 +157,10 @@ export default function TimeRangeBar({ value, onChange, customRange, onCustomRan
             className="fixed z-50 rounded-2xl p-5 shadow-xl"
             style={{
               top: 'clamp(15%, 20vh, 30%)',
-              left: '50%',
-              transform: 'translateX(-50%)',
+              left: 0,
+              right: 0,
+              marginLeft: 'auto',
+              marginRight: 'auto',
               width: 'min(320px, calc(100vw - 32px))',
               maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 4rem)',
               overflowY: 'auto',
