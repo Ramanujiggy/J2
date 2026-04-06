@@ -10,9 +10,11 @@ Development areas identified from codebase assessment. Updated as work progresse
 
 | Status | Area | Description |
 |---|---|---|
-| `[~]` | **Testing** | Vitest backend suite exists (auth, sessions, JWT middleware) + Husky pre-commit hook configured. ⚠️ Currently failing — fixture/mock setup incomplete. Fix before next release. |
+| `[~]` | **Testing — backend** | Vitest backend suite exists (auth, sessions, JWT middleware) + Husky pre-commit hook configured. ⚠️ Currently broken — Vitest 4.x requires Node 22+ (`styleText` from `node:util`), system runs Node 20.11.1. Fix: upgrade Node to v22 LTS or downgrade Vitest to 3.x. |
 | `[ ]` | **Password reset token hashing** | Reset tokens are stored in plaintext. Hash with SHA-256 before insert; compare hash on validation. Prevents account takeover if the `password_reset_tokens` table is ever exposed. |
-| `[~]` | **Frontend testing** | React Testing Library test files started (`HomePage.test.tsx`, `LogSessionForm.test.tsx`, `PathAheadPage.swipe.test.tsx`). More coverage needed: CalendarPage, auth flow, SessionDetailModal. |
+| `[~]` | **Frontend testing** | 3 test files (22 tests, all passing): `HomePage.test.tsx`, `LogSessionForm.test.tsx`, `PathAheadPage.swipe.test.tsx`. Coverage ~10%. High-value additions: `api.ts` (offline queue/cache — riskiest untested code), `SessionDetailModal` (complex 3D flip, just had a bug), all hooks, shared test render wrapper with providers. |
+| `[~]` | **E2E testing (Playwright)** | 3 spec files (19 tests × 3 viewports): auth UI, visual screenshots, mobile tap regression guards. Core user journeys untested: log session, edit/delete session, set intention, CSV import, profile updates. Also needs: CI/CD workflow, test data cleanup, rate-limit handling. |
+| `[ ]` | **CI/CD pipeline** | No GitHub Actions workflow exists. Tests only run manually. Add workflow to run frontend unit tests + Playwright E2E on every PR. |
 | `[x]` | **Pagination on session fetch** | `GET /api/sessions` supports optional `?from` and `?to` date params (YYYY-MM-DD). CalendarPage scopes to the selected year; AnalyticsPage scopes to the active time window (30/60/90d); PathAheadPage scopes to a precise 11-day carousel window (today ± 5 days) — constant payload regardless of history length. Full session history is never loaded in a single payload. |
 | `[x]` | **PWA / offline support** | Installable PWA with Workbox service worker (vite-plugin-pwa), web manifest + icons, IndexedDB offline write queue with auto-sync on reconnect, offline UI indicators (`OfflineBanner` + sync toasts), application-level read cache (IndexedDB, 24h expiry) for data persistence across offline navigation, optimistic pending sessions (sessions logged offline appear immediately in UI via localStorage + `usePendingSessions` hook). |
 
@@ -51,9 +53,9 @@ Development areas identified from codebase assessment. Updated as work progresse
 
 | Status | Area | Description |
 |---|---|---|
-| `[ ]` | **Consolidate duplicate types** | `Intention`, `SessionsResponse`, `IntentionsResponse`, `ProfileResponse` are each defined in 3–6 files. Create `src/types/api.ts` as single source of truth. |
-| `[ ]` | **Consolidate duplicate constants** | `CATEGORY_COLORS` and `MONTH_NAMES` are copy-pasted across 4 files each. Move to `src/lib/constants.ts`. |
-| `[ ]` | **Delete DashboardPage.tsx** | Legacy page, not routed (replaced by PathAheadPage + CalendarPage + AnalyticsPage). `/dashboard` already redirects to `/home`. |
+| `[x]` | **Consolidate duplicate types** | Created `src/types/api.ts` as single source of truth for `SessionSummary`, `Intention`, `CalendarIntention`, `SessionsResponse`, `IntentionsResponse`, `ProfileResponse`. All 8 consumer files updated to import from there. |
+| `[x]` | **Consolidate duplicate constants** | `CATEGORY_COLORS` and `MONTH_NAMES` moved to `src/lib/constants.ts`. All 4 consumer files updated. |
+| `[x]` | **Delete DashboardPage.tsx** | Deleted. 161 lines of dead code removed. |
 | `[ ]` | **Split PathAheadPage.tsx** | 1,170+ lines. Extract `DayCard` to `src/components/DayCard.tsx` and particle animation helpers to `src/lib/particles.ts`. |
 | `[ ]` | **Add useOnlineRefetch to ProfilePage** | ProfilePage directly calls `api.get` in useEffect but doesn't refetch on reconnect. All other data-fetching pages use `useOnlineRefetch`. |
 
