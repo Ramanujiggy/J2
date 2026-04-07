@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.ts';
 import { api, ApiError } from '../lib/api.ts';
 import WaveBackground from '../components/WaveBackground.tsx';
-import { CARD_BG, COPPER_BORDER, CARD_SHADOW, PALE_YELLOW, GLOW_TITLE, GLOW_NAV } from '../lib/theme.ts';
+import { CARD_BG, COPPER_BORDER, CARD_SHADOW, PALE_YELLOW, GLOW_TITLE, GLOW_NAV, SURFACE_2 } from '../lib/theme.ts';
 
 type Mode = 'login' | 'register' | 'forgot';
 
@@ -101,7 +101,7 @@ export default function HomePage() {
 
         {/* Mode toggle — sliding pill, only show for login/register */}
         {mode !== 'forgot' && (
-          <div className="flex rounded-lg overflow-hidden mb-6 border border-white/10 relative" style={{ backgroundColor: 'rgba(255,255,255,0.04)' }}>
+          <div className="flex rounded-lg overflow-hidden mb-6 border border-white/10 relative" style={{ backgroundColor: SURFACE_2 }}>
             {/* Sliding pill background */}
             <div
               className="absolute top-0 bottom-0 rounded-lg"

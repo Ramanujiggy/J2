@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.ts';
-import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER_BORDER } from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER_BORDER, SURFACE_2, SURFACE_2_BORDER } from '../lib/theme.ts';
 import { SKILL_TAGS, CATEGORY_COLORS, MONTH_NAMES } from '../lib/constants.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import type { Intention, SessionSummary, IntentionsResponse, SessionsResponse } from '../types/api.ts';
@@ -69,7 +69,7 @@ export default function IntentionsPage() {
       {!intentionsEnabled && (
         <div
           className="rounded-xl px-4 py-2.5 text-sm"
-          style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.35)' }}
+          style={{ backgroundColor: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}`, color: 'rgba(255,255,255,0.35)' }}
         >
           Intentions are currently disabled — viewing history only.
         </div>
@@ -78,7 +78,7 @@ export default function IntentionsPage() {
       {intentions.length === 0 ? (
         <div
           className="rounded-xl px-6 py-10 text-center"
-          style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: `1px solid ${COPPER_BORDER}` }}
+          style={{ backgroundColor: SURFACE_2, border: `1px solid ${COPPER_BORDER}` }}
         >
           <p className="text-white/30 text-sm">No intentions set yet.</p>
           <p className="text-white/20 text-xs mt-1">Set your first weekly intention from the Home tab.</p>
@@ -107,7 +107,7 @@ export default function IntentionsPage() {
               <div
                 key={intention.id}
                 className="rounded-xl px-4 py-3 sm:grid sm:grid-cols-[80px_1fr_1fr_100px] sm:gap-4 sm:items-center"
-                style={{ backgroundColor: CARD_BG, border: `1px solid rgba(255,255,255,0.06)` }}
+                style={{ backgroundColor: CARD_BG, border: `1px solid ${SURFACE_2_BORDER}` }}
               >
                 {/* Mobile: top row — week + journal link */}
                 <div className="flex items-center justify-between sm:contents">

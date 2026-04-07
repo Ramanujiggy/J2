@@ -7,7 +7,7 @@ import type { SessionSummary, Intention, IntentionsResponse, SessionsResponse } 
 import LogSessionForm from '../components/LogSessionForm.tsx';
 import SessionDetailModal from '../components/SessionDetailModal.tsx';
 import SetIntentionModal from '../components/SetIntentionModal.tsx';
-import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER_BORDER, PAGE_BG } from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER_BORDER, PAGE_BG, SURFACE_2, SURFACE_2_BORDER, SURFACE_3 } from '../lib/theme.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import PageContent from '../components/PageContent.tsx';
 
@@ -174,7 +174,7 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
   const intensityColor = primarySession ? (INTENSITY_COLOR[primarySession.intensity] ?? '#CDDFA0') : null;
 
   // Border + shadow — today gets a breathing copper glow, with intention adds yellow
-  const borderColor = isToday ? 'rgba(196,145,95,0.7)' : 'rgba(255,255,255,0.07)';
+  const borderColor = isToday ? 'rgba(196,145,95,0.7)' : SURFACE_2_BORDER;
   const baseShadow  = isToday
     ? intention
       ? '0 0 18px rgba(242,228,168,0.13), 0 0 22px rgba(196,145,95,0.18), 0 4px 16px rgba(0,0,0,0.5)'
@@ -269,7 +269,7 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
                   <span
                     key={tag}
                     className="text-[10px] px-1.5 py-0.5 rounded"
-                    style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}
+                    style={{ backgroundColor: SURFACE_3, color: 'rgba(255,255,255,0.5)' }}
                   >
                     {found?.label ?? tag}
                   </span>
@@ -668,8 +668,8 @@ export default function PathAheadPage() {
             position: 'relative',
             overflow: 'hidden',
             minHeight: 40,
-            backgroundColor: activeIntention ? 'rgba(242,228,168,0.06)' : 'rgba(255,255,255,0.03)',
-            border: `1px solid ${activeIntention ? 'rgba(242,228,168,0.18)' : 'rgba(255,255,255,0.06)'}`,
+            backgroundColor: activeIntention ? 'rgba(242,228,168,0.06)' : SURFACE_2,
+            border: `1px solid ${activeIntention ? 'rgba(242,228,168,0.18)' : SURFACE_2_BORDER}`,
             boxShadow: activeIntention ? '0 0 12px rgba(242,228,168,0.08)' : 'none',
           }}
         >
@@ -807,7 +807,7 @@ export default function PathAheadPage() {
           style={{
             position: 'relative',
             overflow: 'hidden',
-            backgroundColor: 'rgba(255,255,255,0.03)',
+            backgroundColor: SURFACE_2,
             border: `1px solid ${COPPER_BORDER}`,
           }}
         >

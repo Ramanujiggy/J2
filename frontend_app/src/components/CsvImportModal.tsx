@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import { parseCSV, type ParsedRow, type GiNogi, type SessionType, type SkillTagValue } from '../lib/csvParser.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
 import { api } from '../lib/api.ts';
-import { CARD_BG, COPPER_BORDER } from '../lib/theme.ts';
+import { CARD_BG, COPPER_BORDER, SURFACE_2, SURFACE_2_BORDER, SURFACE_3, SURFACE_3_BORDER } from '../lib/theme.ts';
 
 const COPPER_DIM = 'rgba(196,145,95,0.85)';
 const COPPER_FG  = 'rgba(218,116,34,0.85)';
@@ -197,7 +197,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
 
             <div
               className="mt-4 rounded-lg px-4 py-3"
-              style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
+              style={{ backgroundColor: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}` }}
             >
               <p className="text-xs text-white/40 mb-1 uppercase tracking-wide">Expected columns</p>
               <div className="flex flex-wrap gap-2 mt-2">
@@ -206,7 +206,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
                     {col}
                   </span>
                 ))}
-                <span className="text-xs px-2 py-0.5 rounded text-white/25 line-through" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
+                <span className="text-xs px-2 py-0.5 rounded text-white/25 line-through" style={{ backgroundColor: SURFACE_2 }}>
                   Hrs-Running total
                 </span>
               </div>
@@ -225,7 +225,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
             {/* Summary banner */}
             <div
               className="rounded-lg px-4 py-3 mb-4 text-sm"
-              style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+              style={{ backgroundColor: SURFACE_2, border: `1px solid ${SURFACE_3_BORDER}` }}
             >
               <span className="text-white/70">
                 Found <strong className="text-white">{totalFound}</strong> sessions
@@ -262,7 +262,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
             )}
 
             {/* Footer */}
-            <div className="flex items-center justify-between mt-5 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+            <div className="flex items-center justify-between mt-5 pt-4" style={{ borderTop: `1px solid ${SURFACE_3_BORDER}` }}>
               <button
                 onClick={() => setStep('upload')}
                 className="text-sm text-white/40 hover:text-white/70 transition-colors"
@@ -348,15 +348,15 @@ function ReviewRow({ row, onUpdate, onToggleTag }: ReviewRowProps) {
       ? 'rgba(196,145,95,0.07)'
       : hasErrors
         ? 'rgba(245,158,11,0.06)'
-        : 'rgba(255,255,255,0.03)';
+        : SURFACE_2;
 
   const rowBorder = row.skip
-    ? 'rgba(255,255,255,0.06)'
+    ? SURFACE_2_BORDER
     : row.isDuplicate
       ? COPPER_BORDER_STR
       : hasErrors
         ? 'rgba(245,158,11,0.3)'
-        : 'rgba(255,255,255,0.07)';
+        : SURFACE_2_BORDER;
 
   return (
     <div
@@ -375,7 +375,7 @@ function ReviewRow({ row, onUpdate, onToggleTag }: ReviewRowProps) {
           className="text-xs font-mono px-2 py-0.5 rounded"
           style={{
             color: row.date ? 'rgba(255,255,255,0.7)' : 'rgba(245,158,11,0.8)',
-            backgroundColor: 'rgba(255,255,255,0.06)',
+            backgroundColor: SURFACE_2,
             minWidth: 86,
           }}
         >
@@ -393,7 +393,7 @@ function ReviewRow({ row, onUpdate, onToggleTag }: ReviewRowProps) {
         />
 
         {/* Gi/No-gi toggle */}
-        <div className="flex rounded overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
+        <div className="flex rounded overflow-hidden" style={{ border: `1px solid ${SURFACE_3_BORDER}` }}>
           {GI_NOGI_OPTIONS.map(opt => (
             <button
               key={opt.value}
@@ -411,7 +411,7 @@ function ReviewRow({ row, onUpdate, onToggleTag }: ReviewRowProps) {
         </div>
 
         {/* Session type */}
-        <div className="flex rounded overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
+        <div className="flex rounded overflow-hidden" style={{ border: `1px solid ${SURFACE_3_BORDER}` }}>
           {SESSION_TYPE_OPTIONS.map(opt => (
             <button
               key={opt.value}
@@ -437,7 +437,7 @@ function ReviewRow({ row, onUpdate, onToggleTag }: ReviewRowProps) {
               onClick={() => onUpdate({ intensity: n })}
               className="w-5 h-5 rounded text-[10px] font-semibold transition-colors"
               style={{
-                backgroundColor: row.intensity === n ? 'rgba(196,145,95,0.5)' : 'rgba(255,255,255,0.07)',
+                backgroundColor: row.intensity === n ? 'rgba(196,145,95,0.5)' : SURFACE_3,
                 color: row.intensity === n ? 'rgba(218,116,34,0.95)' : 'rgba(255,255,255,0.3)',
               }}
             >
@@ -467,9 +467,9 @@ function ReviewRow({ row, onUpdate, onToggleTag }: ReviewRowProps) {
                 onClick={() => onToggleTag(tag.value as SkillTagValue)}
                 className="text-[10px] px-2 py-0.5 rounded-full transition-colors"
                 style={{
-                  backgroundColor: active ? 'rgba(196,145,95,0.25)' : 'rgba(255,255,255,0.06)',
+                  backgroundColor: active ? 'rgba(196,145,95,0.25)' : SURFACE_2,
                   color: active ? 'rgba(218,116,34,0.9)' : 'rgba(255,255,255,0.3)',
-                  border: active ? `1px solid rgba(196,145,95,0.4)` : '1px solid rgba(255,255,255,0.08)',
+                  border: active ? `1px solid rgba(196,145,95,0.4)` : `1px solid ${SURFACE_3_BORDER}`,
                 }}
               >
                 {tag.label}
@@ -531,7 +531,7 @@ function DurationCell({ duration, onSave, disabled }: DurationCellProps) {
         onClick={() => { setRaw(duration ? String(duration) : ''); setEditing(true); }}
         className="text-xs px-2 py-0.5 rounded transition-colors"
         style={{
-          backgroundColor: duration ? 'rgba(255,255,255,0.06)' : 'rgba(245,158,11,0.12)',
+          backgroundColor: duration ? SURFACE_2 : 'rgba(245,158,11,0.12)',
           color: duration ? 'rgba(255,255,255,0.6)' : 'rgba(245,158,11,0.9)',
           minWidth: 54,
         }}

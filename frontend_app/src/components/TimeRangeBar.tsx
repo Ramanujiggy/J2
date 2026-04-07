@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronRight, ChevronLeft, CalendarDays, X } from 'lucide-react';
 import type { TimeWindow } from './SkillRadar.tsx';
-import { CARD_BG, COPPER_BORDER, PALE_YELLOW, COPPER } from '../lib/theme.ts';
+import { CARD_BG, COPPER_BORDER, PALE_YELLOW, COPPER, SURFACE_3 } from '../lib/theme.ts';
 import { MONTH_NAMES } from '../lib/constants.ts';
 
 interface TimeRangeBarProps {
@@ -37,7 +37,7 @@ export default function TimeRangeBar({ value, onChange, customRange, onCustomRan
 
   const pill  = 'px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none touch-manipulation';
   const active   = { backgroundColor: COPPER,      color: '#fff' };
-  const inactive = { backgroundColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.55)' };
+  const inactive = { backgroundColor: SURFACE_3, color: 'rgba(255,255,255,0.55)' };
 
   function selectPreset(w: TimeWindow) {
     onChange(w);
@@ -183,7 +183,7 @@ export default function TimeRangeBar({ value, onChange, customRange, onCustomRan
                   onChange={e => setDraftStart(e.target.value)}
                   className="w-full rounded-lg px-3 py-2 text-sm text-white/90 outline-none focus:ring-1"
                   style={{
-                    backgroundColor: 'rgba(255,255,255,0.07)',
+                    backgroundColor: SURFACE_3,
                     border: `1px solid ${COPPER_BORDER}`,
                     colorScheme: 'dark',
                     // @ts-ignore
@@ -202,7 +202,7 @@ export default function TimeRangeBar({ value, onChange, customRange, onCustomRan
                   onChange={e => setDraftEnd(e.target.value)}
                   className="w-full rounded-lg px-3 py-2 text-sm text-white/90 outline-none focus:ring-1"
                   style={{
-                    backgroundColor: 'rgba(255,255,255,0.07)',
+                    backgroundColor: SURFACE_3,
                     border: `1px solid ${COPPER_BORDER}`,
                     colorScheme: 'dark',
                   }}

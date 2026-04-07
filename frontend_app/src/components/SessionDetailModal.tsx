@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../lib/api.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
+import { SURFACE_2, SURFACE_2_BORDER, SURFACE_3 } from '../lib/theme.ts';
 import type { SessionSummary } from './TrainingHeatmap.tsx';
 
 const INTENSITY_COLOR: Record<number, string> = {
@@ -286,7 +287,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                   {intention.intent_category && (
                     <span
                       className="text-[11px] px-2 py-0.5 rounded-full capitalize"
-                      style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.45)' }}
+                      style={{ backgroundColor: SURFACE_3, color: 'rgba(255,255,255,0.45)' }}
                     >
                       {intention.intent_category}
                     </span>
@@ -297,7 +298,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
               {/* Stat strip */}
               <div
                 className="flex gap-0 mb-5 rounded-xl overflow-hidden"
-                style={{ border: '1px solid rgba(255,255,255,0.07)', backgroundColor: 'rgba(255,255,255,0.03)' }}
+                style={{ border: `1px solid ${SURFACE_2_BORDER}`, backgroundColor: SURFACE_2 }}
               >
                 {[
                   { label: 'Style',     value: session.gi_nogi === 'gi' ? 'Gi' : 'No-Gi' },
@@ -308,7 +309,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                   <div
                     key={label}
                     className="flex-1 px-3 py-3"
-                    style={{ borderRight: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.07)' : 'none' }}
+                    style={{ borderRight: i < arr.length - 1 ? `1px solid ${SURFACE_2_BORDER}` : 'none' }}
                   >
                     <p className="text-[10px] font-medium mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>{label}</p>
                     <p className="text-sm font-semibold leading-tight" style={{ color: color ?? 'rgba(255,255,255,0.85)' }}>
@@ -332,7 +333,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                       <span
                         key={value}
                         className="px-2.5 py-1 rounded-lg text-xs font-medium"
-                        style={{ backgroundColor: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.55)' }}
+                        style={{ backgroundColor: SURFACE_3, color: 'rgba(255,255,255,0.55)' }}
                       >
                         {label}
                       </span>
@@ -363,9 +364,9 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                   <button
                     onClick={() => setConfirmDelete(true)}
                     className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
-                    style={{ color: 'rgba(196,145,95,0.6)', backgroundColor: 'rgba(255,255,255,0.04)' }}
+                    style={{ color: 'rgba(196,145,95,0.6)', backgroundColor: SURFACE_2 }}
                     onMouseEnter={e => { e.currentTarget.style.color = 'rgba(239,68,68,0.85)'; e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.1)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.color = 'rgba(196,145,95,0.6)'; e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.color = 'rgba(196,145,95,0.6)'; e.currentTarget.style.backgroundColor = SURFACE_2; }}
                   >
                     Delete session
                   </button>
@@ -461,7 +462,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                       style={
                         form.intensity === n
                           ? { backgroundColor: INTENSITY_COLOR[n], color: '#152E22' }
-                          : { backgroundColor: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.35)' }
+                          : { backgroundColor: SURFACE_3, color: 'rgba(255,255,255,0.35)' }
                       }
                     >{n}</button>
                   ))}
@@ -477,13 +478,13 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                       key={minutes}
                       onClick={() => selectPreset(minutes)}
                       className={`${chipBase} ${durationPreset === minutes ? chipActive : chipInactive}`}
-                      style={durationPreset !== minutes ? { backgroundColor: 'rgba(255,255,255,0.08)' } : {}}
+                      style={durationPreset !== minutes ? { backgroundColor: SURFACE_3 } : {}}
                     >{label}</button>
                   ))}
                   <button
                     onClick={selectCustom}
                     className={`${chipBase} ${durationPreset === 'custom' ? chipActive : chipInactive}`}
-                    style={durationPreset !== 'custom' ? { backgroundColor: 'rgba(255,255,255,0.08)' } : {}}
+                    style={durationPreset !== 'custom' ? { backgroundColor: SURFACE_3 } : {}}
                   >Custom</button>
                 </div>
                 {durationPreset === 'custom' && (
@@ -516,7 +517,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                     key={value}
                     onClick={() => toggleTag(value)}
                     className={`${chipBase} ${form.tags.includes(value) ? chipActive : chipInactive}`}
-                    style={!form.tags.includes(value) ? { backgroundColor: 'rgba(255,255,255,0.08)' } : {}}
+                    style={!form.tags.includes(value) ? { backgroundColor: SURFACE_3 } : {}}
                   >{label}</button>
                 ))}
               </div>
@@ -532,7 +533,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                 onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                 className="w-full rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 resize-none outline-none transition-colors border"
                 style={{
-                  backgroundColor: 'rgba(255,255,255,0.04)',
+                  backgroundColor: SURFACE_2,
                   borderColor: 'rgba(255,255,255,0.18)',
                 }}
               />

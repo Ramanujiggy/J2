@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { Info, Triangle, Target, BarChart2, Layers, BookOpen, type LucideIcon } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { SKILL_TAGS } from '../lib/constants.ts';
-import { CARD_BG, COPPER, COPPER_BORDER, CARD_SHADOW, PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
+import { CARD_BG, COPPER, COPPER_BORDER, CARD_SHADOW, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3_BORDER } from '../lib/theme.ts';
 import type { SessionSummary } from './TrainingHeatmap.tsx';
 import TimeRangeBar from './TimeRangeBar.tsx';
 
@@ -526,7 +526,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
       <div className="sm:hidden flex flex-col gap-4">
 
         {/* View tabs — full-width segmented control */}
-        <div className="flex gap-1 p-1 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
+        <div className="flex gap-1 p-1 rounded-xl" style={{ backgroundColor: SURFACE_2 }}>
           {RAIL_VIEWS.map(({ id, short, Icon }) => {
             const isActive = viewMode === id;
             return (
@@ -562,7 +562,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
               transition: 'opacity 200ms ease',
             }}
           >
-            <div className="flex overflow-hidden rounded-lg text-xs" style={{ border: '1px solid rgba(255,255,255,0.12)' }}>
+            <div className="flex overflow-hidden rounded-lg text-xs" style={{ border: `1px solid ${SURFACE_3_BORDER}` }}>
               <button
                 onClick={() => setDisplayMode('hours')}
                 className="px-3 py-2 touch-manipulation"
@@ -623,7 +623,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
             <div
               className="flex overflow-hidden text-xs"
               style={{
-                border: `1px solid ${isVolume ? 'transparent' : 'rgba(255,255,255,0.1)'}`,
+                border: `1px solid ${isVolume ? 'transparent' : SURFACE_3_BORDER}`,
                 backgroundColor: isVolume ? PALE_YELLOW : 'transparent',
                 borderRadius: isVolume ? '1px' : '6px',
                 transition: 'border-color 250ms ease, background-color 250ms ease, border-radius 250ms ease',

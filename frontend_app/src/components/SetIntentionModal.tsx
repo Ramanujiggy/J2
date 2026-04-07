@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.ts';
-import { PALE_YELLOW } from '../lib/theme.ts';
+import { PALE_YELLOW, SURFACE_2, SURFACE_3 } from '../lib/theme.ts';
 
 const CATEGORIES = [
   { value: 'technical',   label: 'Technical'   },
@@ -111,7 +111,7 @@ export default function SetIntentionModal({ weekStart, onSaved, onClose }: Props
               onChange={e => setLabel(e.target.value)}
               placeholder="e.g. Active Toes"
               className="w-full bg-white/8 border border-white/10 rounded-lg px-4 py-2.5 text-white text-sm placeholder-white/25 outline-none focus:border-white/25"
-              style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
+              style={{ backgroundColor: SURFACE_2 }}
               autoFocus
             />
           </div>
@@ -127,7 +127,7 @@ export default function SetIntentionModal({ weekStart, onSaved, onClose }: Props
                   onClick={() => setCategory(prev => prev === c.value ? '' : c.value)}
                   className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                   style={{
-                    backgroundColor: category === c.value ? 'rgba(218,116,34,0.8)' : 'rgba(255,255,255,0.07)',
+                    backgroundColor: category === c.value ? 'rgba(218,116,34,0.8)' : SURFACE_3,
                     color: category === c.value ? '#fff' : 'rgba(255,255,255,0.5)',
                   }}
                 >
@@ -148,7 +148,7 @@ export default function SetIntentionModal({ weekStart, onSaved, onClose }: Props
                   onClick={() => setDurationDays(d)}
                   className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                   style={{
-                    backgroundColor: durationDays === d ? 'rgba(218,116,34,0.8)' : 'rgba(255,255,255,0.07)',
+                    backgroundColor: durationDays === d ? 'rgba(218,116,34,0.8)' : SURFACE_3,
                     color: durationDays === d ? '#fff' : 'rgba(255,255,255,0.5)',
                   }}
                 >

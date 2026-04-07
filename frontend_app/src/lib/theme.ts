@@ -13,6 +13,26 @@ export const PAGE_BG = '#0D1A14' as const;
 /** Raised card / component background — sits visibly above the page. */
 export const CARD_BG = '#152E22' as const;
 
+// ─── Surface hierarchy ──────────────────────────────────────────────────────
+
+/** Level 0 — page background. Alias for PAGE_BG. */
+export const SURFACE_0 = PAGE_BG;
+
+/** Level 1 — primary raised card. Alias for CARD_BG. */
+export const SURFACE_1 = CARD_BG;
+
+/** Level 2 — sub-section within a card (feature groups, stat strips, info blocks). */
+export const SURFACE_2 = 'rgba(255,255,255,0.035)' as const;
+
+/** Level 3 — interactive element / input resting state within a card. */
+export const SURFACE_3 = 'rgba(255,255,255,0.08)' as const;
+
+/** Border pairing for SURFACE_2 containers. */
+export const SURFACE_2_BORDER = 'rgba(255,255,255,0.07)' as const;
+
+/** Border pairing for SURFACE_3 containers. */
+export const SURFACE_3_BORDER = 'rgba(255,255,255,0.10)' as const;
+
 // ─── Accents ─────────────────────────────────────────────────────────────────
 
 /** Champagne gold — all title text, nav links, and accent labels. */
@@ -26,10 +46,17 @@ export const COPPER = '#C4915F' as const;
 /** Standard card border (caramel at 45% opacity). */
 export const COPPER_BORDER = 'rgba(196,145,95,0.45)' as const;
 
-/** Standard card drop shadow — layered for depth. */
-export const CARD_SHADOW = '0 2px 4px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.35)' as const;
+/** Standard card drop shadow — 3-layer chromatic depth + whisper inset rim-light. */
+export const CARD_SHADOW =
+  '0 1px 3px rgba(0,0,0,0.24), 0 6px 16px rgba(13,26,20,0.45), 0 16px 48px rgba(196,145,95,0.06), inset 0 0 0 1px rgba(255,255,255,0.045)' as const;
 
-/** Card surface — subtle top-edge rim-light over card background. */
+/** Standalone whisper border — subtle inset rim-light for layered depth. */
+export const WHISPER_BORDER = 'inset 0 0 0 1px rgba(255,255,255,0.045)' as const;
+
+/**
+ * @deprecated Use SURFACE_1 for card backgrounds, or compose a gradient manually.
+ * This token is unused in the codebase and will be removed in a future cleanup.
+ */
 export const CARD_SURFACE = `linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 20%), ${CARD_BG}` as const;
 
 /** Title glow — used on the large "Journada" wordmark. */

@@ -4,7 +4,7 @@ import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 
 import { api } from '../lib/api.ts';
 import { useAuth } from '../hooks/useAuth.ts';
-import { CARD_BG, COPPER_BORDER, CARD_SHADOW, PALE_YELLOW } from '../lib/theme.ts';
+import { CARD_BG, COPPER_BORDER, CARD_SHADOW, PALE_YELLOW, SURFACE_2, SURFACE_2_BORDER } from '../lib/theme.ts';
 import CsvImportModal from '../components/CsvImportModal.tsx';
 import PageContent from '../components/PageContent.tsx';
 import { type BeltRank } from '../components/BeltBar.tsx';
@@ -249,7 +249,7 @@ export default function ProfilePage() {
             {/* Features */}
             <div
               className="rounded-xl px-4 py-3 space-y-3"
-              style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
+              style={{ backgroundColor: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}` }}
             >
               <p className="text-xs text-white/30 uppercase tracking-wide">Features</p>
               <label className="flex items-center justify-between gap-4 cursor-pointer group">
