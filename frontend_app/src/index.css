@@ -103,6 +103,17 @@
   overflow: hidden;
 }
 
+/* Dark overlay: uniformly darkens the cell background so the champagne
+   sheen has consistent contrast regardless of intensity color */
+.j2-streak-cell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.22);
+  pointer-events: none;
+  z-index: 0;
+}
+
 .j2-streak-cell::after {
   content: '';
   position: absolute;
@@ -113,11 +124,12 @@
   background: linear-gradient(
     to right,
     transparent,
-    rgba(242, 228, 168, 0.22) 50%,
+    rgba(242, 228, 168, 0.35) 50%,
     transparent
   );
   animation: j2-streak-sheen 5s ease-in-out infinite;
   pointer-events: none;
+  z-index: 1;
 }
 
 /* ─── Glassmorphism modal backdrop ────────────────────────────────────────── */
