@@ -483,10 +483,10 @@ export default function PathAheadPage() {
 
   const fetchAll = useCallback(async () => {
     try {
-      // Fetch 70 days back (covers the 10-week heatmap widget) through 5 days ahead
+      // Fetch 168 days back (covers the 24-week heatmap widget) through 5 days ahead
       // (covers the day-card carousel). The week carousel filters via sessionsByDate
       // so extra historical sessions don't affect it.
-      const from = new Date(Date.now() - 70 * 86_400_000).toISOString().slice(0, 10);
+      const from = new Date(Date.now() - 168 * 86_400_000).toISOString().slice(0, 10);
       const to   = new Date(Date.now() +  5 * 86_400_000).toISOString().slice(0, 10);
       const [sessRes, intRes] = await Promise.all([
         api.get<SessionsResponse>(`/api/sessions?from=${from}&to=${to}`),
