@@ -11,6 +11,7 @@ import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER, COPPER_BORDER, PAGE_BG, SURFAC
 import { CalendarDays, List } from 'lucide-react';
 import { useProfile } from '../context/ProfileContext.tsx';
 import PageContent from '../components/PageContent.tsx';
+import HeatmapPreviewWidget from '../components/HeatmapPreviewWidget.tsx';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -482,10 +483,11 @@ export default function PathAheadPage() {
 
   const fetchAll = useCallback(async () => {
     try {
-      // Scope to the 11-day carousel window (today ± 5 days) — the page never
-      // reads sessions outside this range; CalendarPage handles historical review.
-      const from = new Date(Date.now() - 5 * 86_400_000).toISOString().slice(0, 10);
-      const to   = new Date(Date.now() + 5 * 86_400_000).toISOString().slice(0, 10);
+      // Fetch 70 days back (covers the 10-week heatmap widget) through 5 days ahead
+      // (covers the day-card carousel). The week carousel filters via sessionsByDate
+      // so extra historical sessions don't affect it.
+      const from = new Date(Date.now() - 70 * 86_400_000).toISOString().slice(0, 10);
+      const to   = new Date(Date.now() +  5 * 86_400_000).toISOString().slice(0, 10);
       const [sessRes, intRes] = await Promise.all([
         api.get<SessionsResponse>(`/api/sessions?from=${from}&to=${to}`),
         api.get<IntentionsResponse>('/api/intentions'),
@@ -1319,6 +1321,9 @@ export default function PathAheadPage() {
           )}
         </div>
       )}
+
+      {/* ── Training history widget ───────────────────────────────── */}
+      <HeatmapPreviewWidget sessions={sessions} />
 
       {/* ── Modals ────────────────────────────────────────────────── */}
 

@@ -1,4 +1,4 @@
-// Compact heatmap — GitHub contribution-graph style, widget-ready.
+// Compact heatmap — vertical-scroll layout (weeks as rows, days as columns).
 // Purely visual: no modals, no tooltips, no click handlers.
 
 import { useMemo, useRef, useEffect } from 'react';
@@ -9,6 +9,8 @@ import type { SessionSummary } from '../types/api.ts';
 import { CARD_BG, COPPER_BORDER, CARD_SHADOW, HEATMAP_REST, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_2_BORDER } from '../lib/theme.ts';
 
 const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DOW_LABELS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const CELL_GAP = 4;
 
 const LEGEND = [
   { color: HEATMAP_REST, label: 'Rest' },
@@ -72,7 +74,7 @@ function CompactSkeleton() {
         ))}
       </div>
       {/* Grid skeleton */}
-      <div className="animate-pulse rounded-xl" style={{ height: 120, backgroundColor: SURFACE_2 }} />
+      <div className="animate-pulse rounded-xl" style={{ height: 200, backgroundColor: SURFACE_2 }} />
     </div>
   );
 }
@@ -93,28 +95,31 @@ export default function CompactHeatmap({ sessions, year, loading = false }: Comp
   const stats = useMemo(() => computeStats(sessions, year), [sessions, year]);
 
   const today = localDateKey(new Date());
-  const totalCols = columns.length;
   const scrollRef = useRef<HTMLDivElement>(null);
+  const todayRowRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to today's column on mount
+  // Scroll to today's week on mount
   useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
+    const container = scrollRef.current;
+    const row = todayRowRef.current;
+    if (!container || !row) return;
     const todayDate = new Date();
     if (todayDate.getFullYear() !== year) return;
-    const dayOfYear = Math.floor((todayDate.getTime() - new Date(year, 0, 1).getTime()) / 86400000);
-    const colIndex = Math.floor(dayOfYear / 7);
-    const cellWidth = 18 + 3; // cell size + gap
-    const scrollTarget = colIndex * cellWidth - el.clientWidth / 2 + cellWidth * 3;
-    el.scrollTo({ left: Math.max(0, scrollTarget), behavior: 'smooth' });
+    row.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }, [year, columns]);
 
   // Animated stats
   const animSessions = useCountUp(stats.totalSessions);
-  const animHours = useCountUp(Math.round(stats.totalMinutes / 60));
-  const animStreak = useCountUp(stats.streak);
-  const giPct = stats.totalMinutes > 0 ? Math.round((stats.giMinutes / stats.totalMinutes) * 100) : 0;
-  const animGiPct = useCountUp(giPct);
+  const animHours    = useCountUp(Math.round(stats.totalMinutes / 60));
+  const animStreak   = useCountUp(stats.streak);
+  const giPct        = stats.totalMinutes > 0 ? Math.round((stats.giMinutes / stats.totalMinutes) * 100) : 0;
+  const animGiPct    = useCountUp(giPct);
+
+  // Find which column index contains today (for todayRowRef)
+  const todayColIndex = useMemo(() => {
+    if (new Date().getFullYear() !== year) return -1;
+    return columns.findIndex(col => col.days.some(({ date }) => localDateKey(date) === today));
+  }, [columns, today, year]);
 
   return (
     <div
@@ -125,9 +130,9 @@ export default function CompactHeatmap({ sessions, year, loading = false }: Comp
       <div className="grid grid-cols-4 gap-2 sm:gap-3 mb-5">
         {[
           { value: Math.round(animSessions), label: 'Sessions' },
-          { value: Math.round(animHours), label: 'Hours', suffix: 'h' },
-          { value: Math.round(animGiPct), label: 'Gi', suffix: '%' },
-          { value: Math.round(animStreak), label: 'Streak', suffix: 'd' },
+          { value: Math.round(animHours),    label: 'Hours',   suffix: 'h' },
+          { value: Math.round(animGiPct),    label: 'Gi',      suffix: '%' },
+          { value: Math.round(animStreak),   label: 'Streak',  suffix: 'd' },
         ].map(({ value, label, suffix }) => (
           <div
             key={label}
@@ -147,80 +152,114 @@ export default function CompactHeatmap({ sessions, year, loading = false }: Comp
         ))}
       </div>
 
-      {/* ── Scrollable heatmap area ──────────────────────────────────── */}
-      <style>{`.j2-heatmap-scroll::-webkit-scrollbar { display: none; }`}</style>
+      {/* ── Vertical scroll container ─────────────────────────────── */}
+      <style>{`.j2-compact-scroll::-webkit-scrollbar { display: none; }`}</style>
       <div
         ref={scrollRef}
-        className="j2-heatmap-scroll"
+        className="j2-compact-scroll"
         style={{
-          overflowX: 'auto',
+          overflowY: 'auto',
           scrollbarWidth: 'none',
+          maxHeight: 'min(480px, 60dvh)',
           WebkitOverflowScrolling: 'touch',
         }}
       >
-        {/* Month labels */}
+        {/* Sticky day-of-week header */}
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: `repeat(${totalCols}, 18px)`,
-            gap: 3,
-            marginBottom: 4,
+            gridTemplateColumns: 'repeat(7, 1fr)',
+            gap: CELL_GAP,
+            position: 'sticky',
+            top: 0,
+            zIndex: 10,
+            backgroundColor: CARD_BG,
+            paddingBottom: 6,
+            marginBottom: 2,
           }}
         >
-          {columns.map((col, i) => (
-            <div key={i} style={{ minWidth: 0 }}>
-              {col.isMonthStart && (
-                <span
-                  className="text-[9px] sm:text-[10px] font-medium"
-                  style={{ color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}
-                >
-                  {MONTH_ABBR[col.monthIndex]}
-                </span>
-              )}
+          {DOW_LABELS.map(d => (
+            <div
+              key={d}
+              style={{
+                textAlign: 'center',
+                fontSize: 10,
+                fontWeight: 500,
+                color: 'rgba(255,255,255,0.30)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.03em',
+              }}
+            >
+              {d}
             </div>
           ))}
         </div>
 
-        {/* Heatmap grid (7 rows × N columns) */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: `repeat(${totalCols}, 18px)`,
-            gridTemplateRows: 'repeat(7, 18px)',
-            gridAutoFlow: 'column',
-            gap: 3,
-          }}
-        >
-          {columns.flatMap((col, colIdx) =>
-            col.days.map(({ date, day }, rowIdx) => {
-              const key = localDateKey(date);
-              const inYear = date.getFullYear() === year;
-              const isFuture = key > today;
-              const bg = !inYear
-                ? 'rgba(13,24,18,0.18)'
-                : isFuture
-                  ? '#10241A'
-                  : cellColor(day);
-
-              return (
+        {/* Week rows */}
+        {columns.map((col, colIdx) => {
+          const isToday = colIdx === todayColIndex;
+          return (
+            <div key={colIdx}>
+              {/* Month section label */}
+              {col.isMonthStart && (
                 <div
-                  key={`${colIdx}-${rowIdx}`}
                   style={{
-                    borderRadius: 3,
-                    backgroundColor: bg,
-                    transition: 'transform 0.2s ease',
-                    ...(key === today ? {
-                      outline: '1.5px solid rgba(196,145,95,0.7)',
-                      outlineOffset: -1,
-                    } : {}),
+                    fontSize: 10,
+                    fontWeight: 600,
+                    color: 'rgba(255,255,255,0.35)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                    paddingTop: colIdx === 0 ? 0 : 10,
+                    paddingBottom: 4,
+                    borderTop: colIdx === 0 ? 'none' : '1px solid rgba(255,255,255,0.05)',
+                    marginTop: colIdx === 0 ? 0 : 6,
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.4)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
-                />
-              );
-            })
-          )}
-        </div>
+                >
+                  {MONTH_ABBR[col.monthIndex]}
+                </div>
+              )}
+
+              {/* Week row */}
+              <div
+                ref={isToday ? todayRowRef : undefined}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(7, 1fr)',
+                  gap: CELL_GAP,
+                  marginBottom: CELL_GAP,
+                }}
+              >
+                {col.days.map(({ date, day }, dayIdx) => {
+                  const key = localDateKey(date);
+                  const inYear = date.getFullYear() === year;
+                  const isFuture = key > today;
+                  const isToday = key === today;
+                  const bg = !inYear
+                    ? 'rgba(13,24,18,0.18)'
+                    : isFuture
+                      ? '#10241A'
+                      : cellColor(day);
+
+                  return (
+                    <div
+                      key={`${colIdx}-${dayIdx}`}
+                      style={{
+                        aspectRatio: '1',
+                        minWidth: 0,
+                        borderRadius: 5,
+                        backgroundColor: bg,
+                        ...(isToday ? {
+                          outline: '1.5px solid rgba(196,145,95,0.7)',
+                          outlineOffset: -1,
+                        } : {}),
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* ── Legend ───────────────────────────────────────────────────── */}
