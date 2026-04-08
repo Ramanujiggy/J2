@@ -29,7 +29,7 @@ const SESSION_TYPES: { value: SessionType; label: string }[] = [
   { value: 'competition_training', label: 'Competition' },
 ];
 
-const btnBase = 'px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer';
+const btnBase = 'px-4 py-2 rounded-full text-sm font-medium transition-colors cursor-pointer';
 const btnActive = 'bg-brand-orange text-white';
 const btnInactive = 'bg-white/10 text-white/60 hover:bg-white/20';
 

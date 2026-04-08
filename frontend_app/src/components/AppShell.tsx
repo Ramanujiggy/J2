@@ -137,6 +137,9 @@ export default function AppShell({ children }: Props) {
           borderBottomColor: 'transparent',
           borderImage: 'linear-gradient(to right, transparent, rgba(196,145,95,0.5), transparent) 1',
           paddingTop: 'env(safe-area-inset-top, 0px)',
+          backgroundColor: 'rgba(13,26,20,0.82)',
+          backdropFilter: 'saturate(180%) blur(20px)',
+          WebkitBackdropFilter: 'saturate(180%) blur(20px)',
         }}
       >
         <WaveBackground />
