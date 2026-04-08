@@ -139,8 +139,11 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
         position: 'fixed', inset: 0, zIndex: 60,
         backgroundColor: 'rgba(13,26,20,0.85)',
         backdropFilter: 'blur(12px) saturate(1.2)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+        overflowY: 'auto',
         padding: '1rem',
+        paddingTop: 'max(1rem, env(safe-area-inset-top))',
+        paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
       }}
     >
       <div

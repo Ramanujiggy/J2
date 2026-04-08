@@ -670,11 +670,8 @@ export default function PathAheadPage() {
           30%       { transform: translateX(3px); }
           40%, 100% { transform: translateX(0); }
         }
-        .j2-day-scroll { scrollbar-width: thin; scrollbar-color: rgba(196,145,95,0.55) rgba(0,0,0,0.18); }
-        .j2-day-scroll::-webkit-scrollbar { height: 6px; }
-        .j2-day-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.18); border-radius: 3px; }
-        .j2-day-scroll::-webkit-scrollbar-thumb { background: rgba(196,145,95,0.55); border-radius: 3px; border: 1px solid rgba(0,0,0,0.25); }
-        .j2-day-scroll::-webkit-scrollbar-thumb:hover { filter: brightness(1.12); }
+        .j2-day-scroll { scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+        .j2-day-scroll::-webkit-scrollbar { display: none; }
       `}</style>
 
       {/* ── Page title ────────────────────────────────────────────── */}
@@ -1317,8 +1314,13 @@ export default function PathAheadPage() {
 
       {logOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm px-5"
-          style={{ backgroundColor: 'rgba(13, 26, 20, 0.85)', backdropFilter: 'blur(12px) saturate(1.2)' }}
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto backdrop-blur-sm px-5"
+          style={{
+            backgroundColor: 'rgba(13, 26, 20, 0.85)',
+            backdropFilter: 'blur(12px) saturate(1.2)',
+            paddingTop: 'max(1rem, env(safe-area-inset-top))',
+            paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
+          }}
           onClick={() => setLogOpen(false)}
         >
           <div

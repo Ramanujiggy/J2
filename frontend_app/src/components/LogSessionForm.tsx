@@ -182,7 +182,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate }: { o
                   key={value}
                   type="button"
                   onClick={() => setForm(prev => ({ ...prev, session_type: value }))}
-                  className={`${btnBase} ${form.session_type === value ? btnActive : btnInactive}`}
+                  className={`flex-1 ${btnBase} ${form.session_type === value ? btnActive : btnInactive}`}
                 >
                   {label}
                 </button>
@@ -229,7 +229,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate }: { o
                 key={n}
                 type="button"
                 onClick={() => setForm(prev => ({ ...prev, intensity: n }))}
-                className={`w-10 h-10 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
+                className={`flex-1 h-10 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
                   form.intensity === n ? btnActive : btnInactive
                 }`}
               >
