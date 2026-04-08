@@ -45,12 +45,12 @@ const INTENTION_COL_PARTICLES = [
 ] as const;
 
 // Local-time date key — avoids UTC shift from toISOString()
-function localDateKey(d: Date): string {
+export function localDateKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 // Normalize whatever the API sends for a date field into YYYY-MM-DD.
-function toDateKey(raw: unknown): string {
+export function toDateKey(raw: unknown): string {
   if (raw instanceof Date) return localDateKey(raw);
   const s = String(raw);
   const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -64,23 +64,23 @@ function addDaysToStr(dateStr: string, days: number): string {
   return localDateKey(d);
 }
 
-interface DayData {
+export interface DayData {
   count: number;
   totalMinutes: number;
   maxIntensity: number;
   notes: string[];
 }
 
-const EMPTY_DAY: DayData = { count: 0, totalMinutes: 0, maxIntensity: 0, notes: [] };
+export const EMPTY_DAY: DayData = { count: 0, totalMinutes: 0, maxIntensity: 0, notes: [] };
 
-function cellColor(day: DayData): string {
+export function cellColor(day: DayData): string {
   if (day.count === 0)          return HEATMAP_REST;
   if (day.maxIntensity <= 2)    return '#CDDFA0';
   if (day.maxIntensity === 3)   return '#6FD08C';
   return '#DA7422';
 }
 
-function buildDayMap(sessions: SessionSummary[]): Map<string, DayData> {
+export function buildDayMap(sessions: SessionSummary[]): Map<string, DayData> {
   const map = new Map<string, DayData>();
   for (const s of sessions) {
     const key = toDateKey(s.date);
@@ -139,7 +139,7 @@ function buildWeekRows(dayMap: Map<string, DayData>, year: number): { rows: Week
   return { rows, year };
 }
 
-function computeStats(sessions: SessionSummary[], year: number) {
+export function computeStats(sessions: SessionSummary[], year: number) {
   const thisYear = sessions.filter(s => toDateKey(s.date).slice(0, 4) === String(year));
   const totalSessions = thisYear.length;
   const totalMinutes = thisYear.reduce((sum, s) => sum + Number(s.duration), 0);

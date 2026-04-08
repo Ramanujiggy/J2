@@ -3,8 +3,10 @@ import { api, ApiError } from '../lib/api.ts';
 import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import TrainingHeatmap from '../components/TrainingHeatmap.tsx';
+import CompactHeatmap from '../components/CompactHeatmap.tsx';
 import ErrorBoundary from '../components/ErrorBoundary.tsx';
-import { PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
+import { LayoutGrid, CalendarDays } from 'lucide-react';
+import { PALE_YELLOW, GLOW_SOFT, COPPER, SURFACE_2 } from '../lib/theme.ts';
 import type { SessionSummary, CalendarIntention, SessionsResponse, IntentionsResponse } from '../types/api.ts';
 
 export default function CalendarPage() {
@@ -14,6 +16,16 @@ export default function CalendarPage() {
   const [fetchError,  setFetchError]  = useState<string | null>(null);
   const [displayYear, setDisplayYear] = useState(new Date().getFullYear());
   const [flipDir,     setFlipDir]     = useState<'forward' | 'back' | null>(null);
+
+  // View toggle — compact hero vs full detailed heatmap
+  type CalendarViewMode = 'compact' | 'detailed';
+  const [calView, setCalView] = useState<CalendarViewMode>(
+    () => (localStorage.getItem('j2_cal_view') as CalendarViewMode) || 'detailed'
+  );
+  const handleCalViewChange = useCallback((mode: CalendarViewMode) => {
+    setCalView(mode);
+    localStorage.setItem('j2_cal_view', mode);
+  }, []);
 
   const navigateYear = (dir: 1 | -1) => {
     setFlipDir(dir === 1 ? 'forward' : 'back');
@@ -59,26 +71,55 @@ export default function CalendarPage() {
           {displayYear} Mat Time
         </h2>
 
-        {/* Year navigation */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigateYear(-1)}
-            className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-colors"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
-          </button>
-          <span className="text-sm font-medium text-white/60 w-10 text-center">{displayYear}</span>
-          <button
-            onClick={() => navigateYear(1)}
-            disabled={displayYear >= currentYear}
-            className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-20 disabled:cursor-not-allowed"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 18l6-6-6-6" />
-            </svg>
-          </button>
+        <div className="flex items-center gap-3">
+          {/* View toggle */}
+          <div className="flex gap-0.5 p-0.5 rounded-lg" style={{ backgroundColor: SURFACE_2 }}>
+            {([
+              { id: 'compact' as const, Icon: LayoutGrid },
+              { id: 'detailed' as const, Icon: CalendarDays },
+            ]).map(({ id, Icon }) => {
+              const isActive = calView === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => handleCalViewChange(id)}
+                  className="flex items-center justify-center rounded-md transition-colors touch-manipulation"
+                  style={{
+                    width: 34,
+                    height: 30,
+                    backgroundColor: isActive ? COPPER : 'transparent',
+                    color: isActive ? '#fff' : 'rgba(255,255,255,0.35)',
+                    transition: 'background-color 200ms ease, color 200ms ease',
+                  }}
+                  aria-label={id === 'compact' ? 'Compact view' : 'Detailed view'}
+                >
+                  <Icon size={14} strokeWidth={isActive ? 2 : 1.5} />
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Year navigation */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigateYear(-1)}
+              className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-colors"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+            </button>
+            <span className="text-sm font-medium text-white/60 w-10 text-center">{displayYear}</span>
+            <button
+              onClick={() => navigateYear(1)}
+              disabled={displayYear >= currentYear}
+              className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-20 disabled:cursor-not-allowed"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -92,14 +133,22 @@ export default function CalendarPage() {
             animation: `j2PageFlip${flipDir === 'forward' ? 'Forward' : 'Back'} 380ms ease-out both`,
           } : undefined}
         >
-          <TrainingHeatmap
-            sessions={allSessions}
-            intentions={intentions}
-            loading={loading}
-            onSessionUpdated={fetchAll}
-            onGoToToday={() => setDisplayYear(currentYear)}
-            year={displayYear}
-          />
+          {calView === 'compact' ? (
+            <CompactHeatmap
+              sessions={allSessions}
+              year={displayYear}
+              loading={loading}
+            />
+          ) : (
+            <TrainingHeatmap
+              sessions={allSessions}
+              intentions={intentions}
+              loading={loading}
+              onSessionUpdated={fetchAll}
+              onGoToToday={() => setDisplayYear(currentYear)}
+              year={displayYear}
+            />
+          )}
         </div>
       </ErrorBoundary>
     </div>
