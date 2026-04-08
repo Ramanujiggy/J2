@@ -51,7 +51,7 @@ const INTENSITY_COLOR: Record<number, string> = {
   1: '#CDDFA0',
   2: '#CDDFA0',
   3: '#6FD08C',
-  4: '#DA7422',
+  4: '#D4A040',   // warm amber mid-step
   5: '#DA7422',
 };
 

@@ -32,7 +32,8 @@ const LEGEND = [
   { color: HEATMAP_REST, label: 'Rest' },
   { color: '#CDDFA0',    label: 'Easy' },
   { color: '#6FD08C',    label: 'Moderate' },
-  { color: '#DA7422',    label: 'High' },
+  { color: '#D4A040',    label: 'Hard' },
+  { color: '#DA7422',    label: 'Max' },
 ] as const;
 
 // Particles for the intention column on the active week
@@ -77,6 +78,7 @@ export function cellColor(day: DayData): string {
   if (day.count === 0)          return HEATMAP_REST;
   if (day.maxIntensity <= 2)    return '#CDDFA0';
   if (day.maxIntensity === 3)   return '#6FD08C';
+  if (day.maxIntensity === 4)   return '#D4A040';   // warm amber — bridges green→orange
   return '#DA7422';
 }
 
@@ -150,12 +152,14 @@ export function computeStats(sessions: SessionSummary[], year: number) {
   const cursor = new Date();
   if (!daySet.has(localDateKey(cursor))) cursor.setDate(cursor.getDate() - 1);
   let streak = 0;
+  const streakDays = new Set<string>();
   while (daySet.has(localDateKey(cursor))) {
+    streakDays.add(localDateKey(cursor));
     streak++;
     cursor.setDate(cursor.getDate() - 1);
   }
 
-  return { totalSessions, totalMinutes, giMinutes, nogiMinutes, streak };
+  return { totalSessions, totalMinutes, giMinutes, nogiMinutes, streak, streakDays };
 }
 
 interface TrainingHeatmapProps {
@@ -262,7 +266,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
   const todayStr = localDateKey(now);
   const dayMap = buildDayMap(sessions);
   const { rows, year } = buildWeekRows(dayMap, yearProp ?? new Date().getFullYear());
-  const { totalSessions, totalMinutes, giMinutes, nogiMinutes, streak } = computeStats(sessions, year);
+  const { totalSessions, totalMinutes, giMinutes, nogiMinutes, streak, streakDays } = computeStats(sessions, year);
   const hoursNum  = totalMinutes > 0 ? totalMinutes / 60 : 0;
   const giHoursNum = giMinutes > 0 ? giMinutes / 60 : 0;
   const nogiHoursNum = nogiMinutes > 0 ? nogiMinutes / 60 : 0;
@@ -466,6 +470,8 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                 const dayDateStr  = localDateKey(date);
                 const hasResonance = !!weekIntention && day.count > 0
                   && dayDateStr >= intentionStart && dayDateStr <= intentionEnd;
+                // Champagne streak glow: trained day that is part of the current active streak
+                const isInStreak = day.count > 0 && streakDays.has(dayDateStr);
 
                 const handleClick = () => {
                   if (!isClickable) return;
@@ -492,10 +498,14 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                         paddingBottom: '3px',
                         border: hasResonance
                           ? '1px solid rgba(196,145,95,0.7)'
-                          : '1px solid rgba(242,228,168,0.13)',
+                          : isInStreak
+                            ? '1px solid rgba(242,228,168,0.45)'
+                            : '1px solid rgba(242,228,168,0.13)',
                         boxShadow: hasResonance
                           ? '0 0 8px 2px rgba(196,145,95,0.35), inset 0 0 5px rgba(196,145,95,0.18)'
-                          : 'inset 0 1px 0 rgba(255,255,255,0.05)',
+                          : isInStreak
+                            ? '0 0 6px rgba(242,228,168,0.25), inset 0 0 0 1px rgba(242,228,168,0.15)'
+                            : 'inset 0 1px 0 rgba(255,255,255,0.05)',
                       }}
                       onClick={handleClick}
                     >
