@@ -2,7 +2,7 @@
 // Columns: Month label | Mon–Sun (7 day cells) | Intention | Journal
 // Sticky header keeps day labels visible. Month label appears at month boundaries.
 
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo, type CSSProperties } from 'react';
 import { useCountUp } from '../hooks/useCountUp.ts';
 import {
   Tooltip,
@@ -152,12 +152,16 @@ export function computeStats(sessions: SessionSummary[], year: number) {
   const cursor = new Date();
   if (!daySet.has(localDateKey(cursor))) cursor.setDate(cursor.getDate() - 1);
   let streak = 0;
-  const streakDays = new Set<string>();
+  const streakDaysList: string[] = [];
   while (daySet.has(localDateKey(cursor))) {
-    streakDays.add(localDateKey(cursor));
+    streakDaysList.push(localDateKey(cursor));
     streak++;
     cursor.setDate(cursor.getDate() - 1);
   }
+  // Map: date → chronological index (0 = oldest, N-1 = today)
+  // Used to stagger the sheen animation delay so it sweeps left→right across streak cells.
+  const streakDays = new Map<string, number>();
+  streakDaysList.reverse().forEach((d, i) => streakDays.set(d, i));
 
   return { totalSessions, totalMinutes, giMinutes, nogiMinutes, streak, streakDays };
 }
@@ -503,10 +507,12 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                             : '1px solid rgba(242,228,168,0.13)',
                         boxShadow: hasResonance
                           ? '0 0 8px 2px rgba(196,145,95,0.35), inset 0 0 5px rgba(196,145,95,0.18)'
-                          : isInStreak
-                            ? undefined  // animated via .j2-streak-cell keyframe
-                            : 'inset 0 1px 0 rgba(255,255,255,0.05)',
-                      }}
+                          : 'inset 0 1px 0 rgba(255,255,255,0.05)',
+                        // Stagger the sheen so it sweeps left→right across streak cells
+                        ...(isInStreak && !hasResonance
+                          ? { '--streak-delay': `${(streakDays.get(dayDateStr) ?? 0) * 0.085}s` }
+                          : {}),
+                      } as CSSProperties}
                       onClick={handleClick}
                     >
                       <span
