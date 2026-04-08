@@ -81,15 +81,44 @@
   transition: box-shadow 0.2s ease;
 }
 
-/* ─── Streak cell champagne pulse ─────────────────────────────────────────── */
+/* ─── Streak cell sheen sweep ─────────────────────────────────────────────── */
+/*
+ * Each streak cell gets the same sheen animation but with a delay proportional
+ * to its chronological position (--streak-delay, set inline). This makes the
+ * glint appear to sweep left→right across all consecutive streak cells.
+ *
+ * Period: 5s. Sheen crosses in the first 20% (~1s), then holds off-screen
+ * for the remaining 80% — so the effect reads as a flash, not a crawl.
+ */
 
-@keyframes j2-streak-pulse {
-  0%, 100% { box-shadow: 0 0 5px rgba(242,228,168,0.15), inset 0 0 0 1px rgba(242,228,168,0.10); }
-  50%       { box-shadow: 0 0 11px rgba(242,228,168,0.30), inset 0 0 0 1px rgba(242,228,168,0.20); }
+@keyframes j2-streak-sheen {
+  0%   { transform: skewX(-18deg) translateX(-200%); opacity: 0;   }
+  5%   { opacity: 1; }
+  20%  { transform: skewX(-18deg) translateX(350%);  opacity: 0;   }
+  100% { transform: skewX(-18deg) translateX(350%);  opacity: 0;   }
 }
 
 .j2-streak-cell {
-  animation: j2-streak-pulse 3.5s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.j2-streak-cell::after {
+  content: '';
+  position: absolute;
+  top: -30%;
+  left: 0;
+  width: 45%;
+  height: 160%;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(242, 228, 168, 0.22) 50%,
+    transparent
+  );
+  animation: j2-streak-sheen 5s ease-in-out infinite;
+  animation-delay: var(--streak-delay, 0s);
+  pointer-events: none;
 }
 
 /* ─── Glassmorphism modal backdrop ────────────────────────────────────────── */
