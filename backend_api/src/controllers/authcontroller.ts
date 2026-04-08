@@ -12,6 +12,10 @@ import { sendPasswordResetEmail } from '../services/emailService.js';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const isValidEmail = (email: string) => EMAIL_RE.test(email);
 
+// SHA-256 hash of a reset token — stored in DB so plaintext never persists
+const hashToken = (token: string): string =>
+    crypto.createHash('sha256').update(token).digest('hex');
+
 // ---- Register ---------------------------------------------------------------
 
 export const register = async (req: Request, res: Response) => {
@@ -130,7 +134,7 @@ export const requestPasswordReset = async (req: Request, res: Response) => {
             const token = crypto.randomBytes(32).toString('hex');
             const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
 
-            await passwordResetModel.createResetToken(user.id, token, expiresAt);
+            await passwordResetModel.createResetToken(user.id, hashToken(token), expiresAt);
 
             const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
             const resetLink = `${frontendUrl}/reset-password?token=${token}`;
@@ -161,7 +165,7 @@ export const resetPassword = async (req: Request, res: Response) => {
             return res.status(400).json({ message: 'Password must be at least 8 characters.' });
         }
 
-        const resetToken = await passwordResetModel.findValidToken(token);
+        const resetToken = await passwordResetModel.findValidToken(hashToken(token));
         if (!resetToken) {
             return res.status(400).json({ message: 'This reset link is invalid or has expired.' });
         }
