@@ -81,6 +81,17 @@
   transition: box-shadow 0.2s ease;
 }
 
+/* ─── Streak cell champagne pulse ─────────────────────────────────────────── */
+
+@keyframes j2-streak-pulse {
+  0%, 100% { box-shadow: 0 0 5px rgba(242,228,168,0.15), inset 0 0 0 1px rgba(242,228,168,0.10); }
+  50%       { box-shadow: 0 0 11px rgba(242,228,168,0.30), inset 0 0 0 1px rgba(242,228,168,0.20); }
+}
+
+.j2-streak-cell {
+  animation: j2-streak-pulse 3.5s ease-in-out infinite;
+}
+
 /* ─── Glassmorphism modal backdrop ────────────────────────────────────────── */
 
 .j2-glass {

@@ -484,7 +484,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                 const cellEl = (
                   <div className="px-0.5 py-1" style={{ position: 'relative', zIndex: 1 }}>
                     <div
-                      className="rounded flex items-end px-1 j2-heatmap-cell"
+                      className={`rounded flex items-end px-1 j2-heatmap-cell${isInStreak && !hasResonance ? ' j2-streak-cell' : ''}`}
                       style={{
                         height: '40px',
                         backgroundColor: (() => {
@@ -504,7 +504,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                         boxShadow: hasResonance
                           ? '0 0 8px 2px rgba(196,145,95,0.35), inset 0 0 5px rgba(196,145,95,0.18)'
                           : isInStreak
-                            ? '0 0 6px rgba(242,228,168,0.25), inset 0 0 0 1px rgba(242,228,168,0.15)'
+                            ? undefined  // animated via .j2-streak-cell keyframe
                             : 'inset 0 1px 0 rgba(255,255,255,0.05)',
                       }}
                       onClick={handleClick}
