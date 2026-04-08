@@ -7,7 +7,8 @@ import type { SessionSummary, Intention, IntentionsResponse, SessionsResponse } 
 import LogSessionForm from '../components/LogSessionForm.tsx';
 import SessionDetailModal from '../components/SessionDetailModal.tsx';
 import SetIntentionModal from '../components/SetIntentionModal.tsx';
-import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER_BORDER, PAGE_BG, SURFACE_2, SURFACE_2_BORDER, SURFACE_3 } from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER, COPPER_BORDER, PAGE_BG, SURFACE_2, SURFACE_2_BORDER, SURFACE_3, WHISPER_BORDER } from '../lib/theme.ts';
+import { CalendarDays, List } from 'lucide-react';
 import { useProfile } from '../context/ProfileContext.tsx';
 import PageContent from '../components/PageContent.tsx';
 
@@ -404,6 +405,16 @@ export default function PathAheadPage() {
   const [telemetryOpen, setTelemetryOpen] = useState(false);
   const [telemetryStat, setTelemetryStat] = useState<'sessions' | 'hours'>('sessions');
 
+  // Week view toggle — carousel (minimalist) vs list (detailed)
+  type WeekViewMode = 'carousel' | 'list';
+  const [weekView, setWeekView] = useState<WeekViewMode>(
+    () => (localStorage.getItem('j2_week_view') as WeekViewMode) || 'carousel'
+  );
+  const handleWeekViewChange = useCallback((mode: WeekViewMode) => {
+    setWeekView(mode);
+    localStorage.setItem('j2_week_view', mode);
+  }, []);
+
   const handleRouletteTouchStart = (e: React.TouchEvent) => {
     rouletteTouchStartX.current    = e.touches[0].clientX;
     rouletteTouchStartY.current    = e.touches[0].clientY;
@@ -560,6 +571,18 @@ export default function PathAheadPage() {
     return map;
   }, [allSessions]);
 
+  // Flat list of this-week sessions for the list view (sorted chronologically)
+  const weekSessionsList = useMemo(() => {
+    const list: { session: SessionSummary; day: Date; dayStr: string }[] = [];
+    for (const day of weekDays) {
+      const dayStr = toDateString(day);
+      for (const session of (sessionsByDate.get(dayStr) ?? [])) {
+        list.push({ session, day, dayStr });
+      }
+    }
+    return list;
+  }, [weekDays, sessionsByDate]);
+
   // ── Window stats ───────────────────────────────────────────────────────
 
   const windowStats = useMemo(() => {
@@ -602,12 +625,13 @@ export default function PathAheadPage() {
     }
   };
 
-  // Week scroll — center today on mount
+  // Week scroll — center today on mount (only in carousel mode)
   useEffect(() => {
+    if (weekView !== 'carousel') return;
     const el = weekScrollRef.current;
     if (!el) return;
     el.scrollTo({ left: todayDowOffset * (MINI_CARD_W + MINI_CARD_GAP), behavior: 'instant' as ScrollBehavior });
-  }, [todayDowOffset]);
+  }, [todayDowOffset, weekView]);
 
   // ── Render ─────────────────────────────────────────────────────────────
 
@@ -1010,91 +1034,284 @@ export default function PathAheadPage() {
         </div>
       </div>
 
-      {/* ── Week view (horizontal scroll, mini day cards) ──────── */}
-      <div
-        ref={weekScrollRef}
-        data-testid="week-scroll"
-        className="j2-day-scroll"
-        style={{
-          display: 'flex',
-          gap: MINI_CARD_GAP,
-          overflowX: 'auto',
-          scrollSnapType: 'x mandatory',
-          scrollBehavior: 'smooth',
-          paddingBottom: 6,
-        }}
-      >
-        {weekDays.map((day) => {
-          const dayStr = toDateString(day);
-          const daySessions = sessionsByDate.get(dayStr) ?? [];
-          const isToday = dayStr === toDateString(today);
-          const isPast  = dayStr < toDateString(today);
-          const sessionCount = daySessions.length;
-          const totalMinutes = daySessions.reduce((sum, s) => sum + Number(s.duration), 0);
-          const primarySession = sessionCount > 0
-            ? [...daySessions].sort((a, b) => Number(b.intensity) - Number(a.intensity))[0]
-            : null;
-          const intensityColor = primarySession ? (INTENSITY_COLOR[primarySession.intensity] ?? '#CDDFA0') : null;
-          const { dayHasIntention } = getIntentionInfo(dayStr);
-
-          return (
-            <button
-              key={dayStr}
-              onClick={() => {
-                if (sessionCount > 0) {
-                  setDetailSessions(daySessions);
-                  setDetailSessionIndex(0);
-                  setDetailDate(day);
-                  setDetailIntention(dayHasIntention ? activeIntention : null);
-                } else {
-                  setLogDate(toDateString(day));
-                  setLogOpen(true);
-                }
-              }}
-              className="flex flex-col items-center justify-center gap-1 rounded-xl touch-manipulation"
-              style={{
-                flexShrink: 0,
-                width: MINI_CARD_W,
-                minHeight: 100,
-                scrollSnapAlign: 'start',
-                backgroundColor: CARD_BG,
-                border: isToday ? '1px solid rgba(196,145,95,0.7)' : '1px solid rgba(255,255,255,0.07)',
-                boxShadow: isToday
-                  ? '0 0 12px rgba(196,145,95,0.2), 0 2px 8px rgba(0,0,0,0.3)'
-                  : '0 2px 4px rgba(0,0,0,0.15)',
-                animation: isToday ? 'j2-today-pulse 4s ease-in-out infinite' : undefined,
-                padding: '10px 6px',
-                borderBottom: dayHasIntention
-                  ? '2px solid rgba(242,228,168,0.35)'
-                  : undefined,
-                transition: 'box-shadow 0.3s ease',
-              }}
-            >
-              {/* Day name */}
-              <span className="text-[10px] font-medium uppercase tracking-wide" style={{ color: isToday ? '#C4915F' : 'rgba(255,255,255,0.35)' }}>
-                {DAY_NAMES[day.getDay()]}
-              </span>
-              {/* Date */}
-              <span className="text-sm font-bold" style={{ color: isToday ? '#C4915F' : 'rgba(255,255,255,0.85)' }}>
-                {MONTH_NAMES[day.getMonth()]} {day.getDate()}
-              </span>
-              {/* Session indicator */}
-              {sessionCount > 0 ? (
-                <>
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: intensityColor! }} />
-                  <span className="text-[11px] font-semibold text-white">{formatDuration(totalMinutes)}</span>
-                </>
-              ) : isToday ? (
-                <span className="text-[11px] font-semibold" style={{ color: 'rgba(196,145,95,0.85)' }}>+ Mat Time</span>
-              ) : isPast ? (
-                <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.15)' }}>Rest</span>
-              ) : (
-                <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.12)' }}>—</span>
-              )}
-            </button>
-          );
-        })}
+      {/* ── Week section header + view toggle ──────── */}
+      <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
+        <span
+          className="text-sm font-semibold uppercase tracking-wide"
+          style={{ color: 'rgba(255,255,255,0.4)', letterSpacing: '0.06em' }}
+        >
+          This Week
+        </span>
+        <div className="flex gap-0.5 p-0.5 rounded-lg" style={{ backgroundColor: SURFACE_2 }}>
+          {([
+            { id: 'carousel' as const, Icon: CalendarDays },
+            { id: 'list' as const, Icon: List },
+          ]).map(({ id, Icon }) => {
+            const isActive = weekView === id;
+            return (
+              <button
+                key={id}
+                onClick={() => handleWeekViewChange(id)}
+                className="flex items-center justify-center rounded-md transition-colors touch-manipulation"
+                style={{
+                  width: 34,
+                  height: 30,
+                  backgroundColor: isActive ? COPPER : 'transparent',
+                  color: isActive ? '#fff' : 'rgba(255,255,255,0.35)',
+                  transition: 'background-color 200ms ease, color 200ms ease',
+                }}
+                aria-label={id === 'carousel' ? 'Calendar view' : 'List view'}
+              >
+                <Icon size={14} strokeWidth={isActive ? 2 : 1.5} />
+              </button>
+            );
+          })}
+        </div>
       </div>
+
+      {/* ── Week view: carousel (minimalist) ──────── */}
+      {weekView === 'carousel' ? (
+        <div
+          ref={weekScrollRef}
+          data-testid="week-scroll"
+          className="j2-day-scroll"
+          style={{
+            display: 'flex',
+            gap: MINI_CARD_GAP,
+            overflowX: 'auto',
+            scrollSnapType: 'x mandatory',
+            scrollBehavior: 'smooth',
+            paddingBottom: 6,
+            animation: 'j2IntentFadeIn 250ms ease both',
+          }}
+        >
+          {weekDays.map((day) => {
+            const dayStr = toDateString(day);
+            const daySessions = sessionsByDate.get(dayStr) ?? [];
+            const isToday = dayStr === toDateString(today);
+            const isPast  = dayStr < toDateString(today);
+            const sessionCount = daySessions.length;
+            const totalMinutes = daySessions.reduce((sum, s) => sum + Number(s.duration), 0);
+            const primarySession = sessionCount > 0
+              ? [...daySessions].sort((a, b) => Number(b.intensity) - Number(a.intensity))[0]
+              : null;
+            const intensityColor = primarySession ? (INTENSITY_COLOR[primarySession.intensity] ?? '#CDDFA0') : null;
+            const { dayHasIntention } = getIntentionInfo(dayStr);
+
+            return (
+              <button
+                key={dayStr}
+                onClick={() => {
+                  if (sessionCount > 0) {
+                    setDetailSessions(daySessions);
+                    setDetailSessionIndex(0);
+                    setDetailDate(day);
+                    setDetailIntention(dayHasIntention ? activeIntention : null);
+                  } else {
+                    setLogDate(toDateString(day));
+                    setLogOpen(true);
+                  }
+                }}
+                className="flex flex-col items-center justify-center gap-1 rounded-xl touch-manipulation"
+                style={{
+                  flexShrink: 0,
+                  width: MINI_CARD_W,
+                  minHeight: 100,
+                  scrollSnapAlign: 'start',
+                  backgroundColor: CARD_BG,
+                  border: isToday ? '1px solid rgba(196,145,95,0.7)' : '1px solid rgba(255,255,255,0.07)',
+                  boxShadow: isToday
+                    ? '0 0 12px rgba(196,145,95,0.2), 0 2px 8px rgba(0,0,0,0.3)'
+                    : '0 2px 4px rgba(0,0,0,0.15)',
+                  animation: isToday ? 'j2-today-pulse 4s ease-in-out infinite' : undefined,
+                  padding: '10px 6px',
+                  borderBottom: dayHasIntention
+                    ? '2px solid rgba(242,228,168,0.35)'
+                    : undefined,
+                  transition: 'box-shadow 0.3s ease',
+                }}
+              >
+                {/* Day name */}
+                <span className="text-[10px] font-medium uppercase tracking-wide" style={{ color: isToday ? '#C4915F' : 'rgba(255,255,255,0.35)' }}>
+                  {DAY_NAMES[day.getDay()]}
+                </span>
+                {/* Date */}
+                <span className="text-sm font-bold" style={{ color: isToday ? '#C4915F' : 'rgba(255,255,255,0.85)' }}>
+                  {MONTH_NAMES[day.getMonth()]} {day.getDate()}
+                </span>
+                {/* Session indicator */}
+                {sessionCount > 0 ? (
+                  <>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: intensityColor! }} />
+                    <span className="text-[11px] font-semibold text-white">{formatDuration(totalMinutes)}</span>
+                  </>
+                ) : isToday ? (
+                  <span className="text-[11px] font-semibold" style={{ color: 'rgba(196,145,95,0.85)' }}>+ Mat Time</span>
+                ) : isPast ? (
+                  <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.15)' }}>Rest</span>
+                ) : (
+                  <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.12)' }}>—</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        /* ── Week view: detail list ──────── */
+        <div
+          data-testid="week-list"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+            animation: 'j2IntentFadeIn 250ms ease both',
+          }}
+        >
+          {weekSessionsList.length === 0 ? (
+            /* Empty state — no sessions this week */
+            <div style={{ textAlign: 'center', padding: '24px 16px' }}>
+              <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 14, marginBottom: 12 }}>
+                No sessions logged this week yet.
+              </p>
+              <button
+                onClick={() => { setLogDate(toDateString(today)); setLogOpen(true); }}
+                className="text-sm font-semibold touch-manipulation"
+                style={{
+                  color: COPPER,
+                  padding: '8px 16px',
+                  borderRadius: 10,
+                  border: '1px dashed rgba(196,145,95,0.5)',
+                  backgroundColor: SURFACE_2,
+                  transition: 'background-color 200ms ease',
+                }}
+              >
+                + Log Mat Time
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Today prompt — if today has no sessions */}
+              {(sessionsByDate.get(toDateString(today)) ?? []).length === 0 && (
+                <button
+                  onClick={() => { setLogDate(toDateString(today)); setLogOpen(true); }}
+                  className="w-full text-left touch-manipulation"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '14px 20px',
+                    borderRadius: 14,
+                    backgroundColor: SURFACE_2,
+                    border: '1px dashed rgba(196,145,95,0.5)',
+                    transition: 'transform 250ms cubic-bezier(0.16, 1, 0.3, 1)',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(4px)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateX(0)'; }}
+                >
+                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>
+                    Today — {MONTH_NAMES[today.getMonth()]} {today.getDate()}
+                  </span>
+                  <span style={{ color: COPPER, fontSize: 14, fontWeight: 600 }}>
+                    + Mat Time
+                  </span>
+                </button>
+              )}
+
+              {/* Session cards */}
+              {weekSessionsList.map(({ session, day, dayStr }) => {
+                const daySessions = sessionsByDate.get(dayStr) ?? [];
+                const isToday = dayStr === toDateString(today);
+                const intensityColor = INTENSITY_COLOR[session.intensity] ?? '#CDDFA0';
+                const giLabel = session.gi_nogi === 'gi' ? 'Gi' : 'No-Gi';
+                const typeLabel = SESSION_TYPE_LABELS[session.session_type] ?? session.session_type;
+                const primaryTag = session.tags?.[0]
+                  ? (SKILL_TAGS.find(s => s.value === session.tags[0])?.label ?? session.tags[0])
+                  : null;
+                const title = primaryTag ? `${giLabel} ${typeLabel} — ${primaryTag}` : `${giLabel} ${typeLabel}`;
+                const { dayHasIntention } = getIntentionInfo(dayStr);
+
+                return (
+                  <button
+                    key={session.id}
+                    onClick={() => {
+                      const idx = daySessions.findIndex(s => s.id === session.id);
+                      setDetailSessions(daySessions);
+                      setDetailSessionIndex(idx >= 0 ? idx : 0);
+                      setDetailDate(day);
+                      setDetailIntention(dayHasIntention ? activeIntention : null);
+                    }}
+                    className="w-full text-left touch-manipulation"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 14,
+                      padding: '16px 20px',
+                      borderRadius: 14,
+                      backgroundColor: CARD_BG,
+                      border: isToday
+                        ? '1px solid rgba(196,145,95,0.5)'
+                        : '1px solid rgba(255,255,255,0.06)',
+                      boxShadow: WHISPER_BORDER,
+                      transition: 'transform 250ms cubic-bezier(0.16, 1, 0.3, 1)',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(4px)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = 'translateX(0)'; }}
+                  >
+                    {/* Type dot */}
+                    <span
+                      style={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: '50%',
+                        backgroundColor: intensityColor,
+                        flexShrink: 0,
+                      }}
+                    />
+                    {/* Title + meta */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p
+                        style={{
+                          fontSize: 14,
+                          fontWeight: 600,
+                          color: 'rgba(255,255,255,0.88)',
+                          margin: 0,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        {title}
+                      </p>
+                      <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', margin: '2px 0 0' }}>
+                        {DAY_NAMES[day.getDay()]}, {MONTH_NAMES[day.getMonth()]} {day.getDate()}
+                        {session.tags?.length > 1 && (
+                          <>
+                            <span style={{ margin: '0 5px', color: 'rgba(255,255,255,0.15)' }}>·</span>
+                            {SKILL_TAGS.find(s => s.value === session.tags[1])?.label ?? session.tags[1]}
+                          </>
+                        )}
+                      </p>
+                    </div>
+                    {/* Duration */}
+                    <span
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 600,
+                        color: COPPER,
+                        flexShrink: 0,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {formatDuration(session.duration)}
+                    </span>
+                  </button>
+                );
+              })}
+            </>
+          )}
+        </div>
+      )}
 
       {/* ── Modals ────────────────────────────────────────────────── */}
 
