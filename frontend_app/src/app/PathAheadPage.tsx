@@ -223,7 +223,7 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
           </p>
           {isToday && (
             <span
-              className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+              className="text-[10px] font-bold px-1.5 py-0.5 rounded"
               style={{ backgroundColor: 'rgba(196,145,95,0.3)', color: '#C4915F', letterSpacing: '0.05em' }}
             >
               TODAY
@@ -269,7 +269,7 @@ function DayCard({ day, today, sessions, intention, intentionBrightness, onLogSe
                 return (
                   <span
                     key={tag}
-                    className="text-[10px] px-1.5 py-0.5 rounded"
+                    className="text-[11px] px-1.5 py-0.5 rounded"
                     style={{ backgroundColor: SURFACE_3, color: 'rgba(255,255,255,0.5)' }}
                   >
                     {found?.label ?? tag}
@@ -637,7 +637,7 @@ export default function PathAheadPage() {
 
   return (
     <PageContent ready={!loading}>
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 space-y-3">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 space-y-4">
       <style>{`
         @keyframes j2IntentParticleRise {
           0%   { transform: translateY(0) translateX(0);               opacity: 0;   }
@@ -777,14 +777,14 @@ export default function PathAheadPage() {
                   {deleteConfirm && (
                     <button
                       onClick={() => setDeleteConfirm(false)}
-                      className="text-[11px] text-white/25 hover:text-white/50 transition-colors"
+                      className="py-2 px-3 text-xs text-white/25 hover:text-white/50 transition-colors"
                     >
                       ×
                     </button>
                   )}
                   <button
                     onClick={handleDeleteIntention}
-                    className="text-[11px] transition-colors flex-shrink-0"
+                    className="py-2 px-3 text-xs transition-colors flex-shrink-0"
                     style={{ color: deleteConfirm ? 'rgba(248,113,113,0.85)' : 'rgba(255,255,255,0.25)' }}
                   >
                     {deleteConfirm ? 'Confirm?' : 'Delete'}
@@ -910,7 +910,7 @@ export default function PathAheadPage() {
                 highlight = topTagLabel!;
               }
               return (
-                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', margin: 0, lineHeight: 1.45 }}>
+                <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.55)', margin: 0, lineHeight: 1.45 }}>
                   {before}
                   <strong style={{ color: 'rgba(218,116,34,0.85)', fontWeight: 600 }}>{highlight}</strong>
                   {after && highlight2 ? (
@@ -961,7 +961,7 @@ export default function PathAheadPage() {
           }}
           data-testid="telemetry-header"
         >
-          <span className="text-[10px] font-medium uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.35)' }}>
             Telemetry
           </span>
           <span
@@ -973,7 +973,7 @@ export default function PathAheadPage() {
               ? windowStats.count
               : formatDuration(windowStats.totalMinutes)}
           </span>
-          <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
             {telemetryStat === 'sessions'
               ? `session${windowStats.count !== 1 ? 's' : ''}`
               : 'total'}
@@ -1025,6 +1025,16 @@ export default function PathAheadPage() {
               </p>
               <p className="text-sm mt-2 leading-relaxed" style={{ color: 'rgba(255,255,255,0.35)' }}>
                 {ROULETTE_DRILLS[drillHistory[drillHistoryIndex]].description}
+              </p>
+              <p style={{
+                fontSize: 11,
+                color: 'rgba(196,145,95,0.35)',
+                marginTop: 10,
+                textAlign: 'center',
+                letterSpacing: '0.04em',
+                userSelect: 'none',
+              }}>
+                ← swipe to browse →
               </p>
             </div>
           </div>
@@ -1129,7 +1139,7 @@ export default function PathAheadPage() {
                 }}
               >
                 {/* Day name */}
-                <span className="text-[10px] font-medium uppercase tracking-wide" style={{ color: isToday ? '#C4915F' : 'rgba(255,255,255,0.35)' }}>
+                <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: isToday ? '#C4915F' : 'rgba(255,255,255,0.35)' }}>
                   {DAY_NAMES[day.getDay()]}
                 </span>
                 {/* Date */}
