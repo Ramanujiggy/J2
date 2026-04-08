@@ -23,7 +23,8 @@ export default function JournalEntryPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
-  const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveTimeout  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const textareaRef  = useRef<HTMLTextAreaElement>(null);
 
   const fetchIntention = useCallback(async () => {
     try {
@@ -39,6 +40,14 @@ export default function JournalEntryPage() {
   }, [id]);
 
   useEffect(() => { fetchIntention(); }, [fetchIntention]);
+
+  // Auto-resize textarea to fit content — runs on mount and every text change
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [text]);
 
   // Autosave 1.5s after the user stops typing
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -134,12 +143,13 @@ export default function JournalEntryPage() {
           <p className="text-xs text-white/25 mb-3 italic">Intentions are disabled — entry is read-only.</p>
         )}
         <textarea
+          ref={textareaRef}
           value={text}
           onChange={intentionsEnabled ? handleChange : undefined}
           readOnly={!intentionsEnabled}
           placeholder="Describe the context and goals of your training intentions this week…"
           className="w-full bg-transparent resize-none outline-none text-sm text-white/80 placeholder-white/20 leading-relaxed"
-          style={{ minHeight: 280, cursor: intentionsEnabled ? 'text' : 'default' }}
+          style={{ minHeight: 200, height: 'auto', cursor: intentionsEnabled ? 'text' : 'default' }}
           autoFocus={intentionsEnabled}
         />
       </div>

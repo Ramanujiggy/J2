@@ -177,8 +177,13 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
 
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center px-4 animate-j2-backdrop-in"
-        style={{ backgroundColor: 'rgba(13, 26, 20, 0.85)', backdropFilter: 'blur(12px) saturate(1.2)' }}
+        className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto px-4 animate-j2-backdrop-in"
+        style={{
+          backgroundColor: 'rgba(13, 26, 20, 0.85)',
+          backdropFilter: 'blur(12px) saturate(1.2)',
+          paddingTop: 'max(1rem, env(safe-area-inset-top))',
+          paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
+        }}
         onClick={onClose}
       >
         {/* Card */}
