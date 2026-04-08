@@ -1,7 +1,7 @@
 // Compact heatmap — GitHub contribution-graph style, widget-ready.
 // Purely visual: no modals, no tooltips, no click handlers.
 
-import { useMemo } from 'react';
+import { useMemo, useRef, useEffect } from 'react';
 import { useCountUp } from '../hooks/useCountUp.ts';
 import { localDateKey, buildDayMap, cellColor, computeStats, EMPTY_DAY } from './TrainingHeatmap.tsx';
 import type { DayData } from './TrainingHeatmap.tsx';
@@ -94,6 +94,20 @@ export default function CompactHeatmap({ sessions, year, loading = false }: Comp
 
   const today = localDateKey(new Date());
   const totalCols = columns.length;
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to today's column on mount
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const todayDate = new Date();
+    if (todayDate.getFullYear() !== year) return;
+    const dayOfYear = Math.floor((todayDate.getTime() - new Date(year, 0, 1).getTime()) / 86400000);
+    const colIndex = Math.floor(dayOfYear / 7);
+    const cellWidth = 14 + 3; // cell size + gap
+    const scrollTarget = colIndex * cellWidth - el.clientWidth / 2 + cellWidth * 3;
+    el.scrollTo({ left: Math.max(0, scrollTarget), behavior: 'smooth' });
+  }, [year, columns]);
 
   // Animated stats
   const animSessions = useCountUp(stats.totalSessions);
@@ -133,70 +147,80 @@ export default function CompactHeatmap({ sessions, year, loading = false }: Comp
         ))}
       </div>
 
-      {/* ── Month labels ────────────────────────────────────────────── */}
+      {/* ── Scrollable heatmap area ──────────────────────────────────── */}
+      <style>{`.j2-heatmap-scroll::-webkit-scrollbar { display: none; }`}</style>
       <div
+        ref={scrollRef}
+        className="j2-heatmap-scroll"
         style={{
-          display: 'grid',
-          gridTemplateColumns: `repeat(${totalCols}, 1fr)`,
-          gap: 3,
-          marginBottom: 4,
-          paddingLeft: 0,
+          overflowX: 'auto',
+          scrollbarWidth: 'none',
+          WebkitOverflowScrolling: 'touch',
         }}
       >
-        {columns.map((col, i) => (
-          <div key={i} style={{ minWidth: 0 }}>
-            {col.isMonthStart && (
-              <span
-                className="text-[9px] sm:text-[10px] font-medium"
-                style={{ color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}
-              >
-                {MONTH_ABBR[col.monthIndex]}
-              </span>
-            )}
-          </div>
-        ))}
-      </div>
+        {/* Month labels */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${totalCols}, 14px)`,
+            gap: 3,
+            marginBottom: 4,
+          }}
+        >
+          {columns.map((col, i) => (
+            <div key={i} style={{ minWidth: 0 }}>
+              {col.isMonthStart && (
+                <span
+                  className="text-[9px] sm:text-[10px] font-medium"
+                  style={{ color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}
+                >
+                  {MONTH_ABBR[col.monthIndex]}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
 
-      {/* ── Heatmap grid (7 rows × N columns) ──────────────────────── */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: `repeat(${totalCols}, 1fr)`,
-          gridTemplateRows: 'repeat(7, 1fr)',
-          gridAutoFlow: 'column',
-          gap: 3,
-        }}
-      >
-        {columns.flatMap((col, colIdx) =>
-          col.days.map(({ date, day }, rowIdx) => {
-            const key = localDateKey(date);
-            const inYear = date.getFullYear() === year;
-            const isFuture = key > today;
-            const bg = !inYear
-              ? 'rgba(13,24,18,0.18)'
-              : isFuture
-                ? '#10241A'
-                : cellColor(day);
+        {/* Heatmap grid (7 rows × N columns) */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${totalCols}, 14px)`,
+            gridTemplateRows: 'repeat(7, 14px)',
+            gridAutoFlow: 'column',
+            gap: 3,
+          }}
+        >
+          {columns.flatMap((col, colIdx) =>
+            col.days.map(({ date, day }, rowIdx) => {
+              const key = localDateKey(date);
+              const inYear = date.getFullYear() === year;
+              const isFuture = key > today;
+              const bg = !inYear
+                ? 'rgba(13,24,18,0.18)'
+                : isFuture
+                  ? '#10241A'
+                  : cellColor(day);
 
-            return (
-              <div
-                key={`${colIdx}-${rowIdx}`}
-                style={{
-                  aspectRatio: '1',
-                  borderRadius: 3,
-                  backgroundColor: bg,
-                  transition: 'transform 0.2s ease',
-                  ...(key === today ? {
-                    outline: '1.5px solid rgba(196,145,95,0.7)',
-                    outlineOffset: -1,
-                  } : {}),
-                }}
-                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.4)'; }}
-                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
-              />
-            );
-          })
-        )}
+              return (
+                <div
+                  key={`${colIdx}-${rowIdx}`}
+                  style={{
+                    borderRadius: 3,
+                    backgroundColor: bg,
+                    transition: 'transform 0.2s ease',
+                    ...(key === today ? {
+                      outline: '1.5px solid rgba(196,145,95,0.7)',
+                      outlineOffset: -1,
+                    } : {}),
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.4)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+                />
+              );
+            })
+          )}
+        </div>
       </div>
 
       {/* ── Legend ───────────────────────────────────────────────────── */}
