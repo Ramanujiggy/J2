@@ -9,6 +9,7 @@ import CsvImportModal from '../components/CsvImportModal.tsx';
 import PageContent from '../components/PageContent.tsx';
 import { type BeltRank } from '../components/BeltBar.tsx';
 import { useProfile } from '../context/ProfileContext.tsx';
+import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import {
   Select,
   SelectContent,
@@ -75,7 +76,7 @@ export default function ProfilePage() {
   const [existingDates, setExistingDates] = useState<Set<string>>(new Set());
 
   // Load existing profile
-  useEffect(() => {
+  const fetchProfile = useCallback(() => {
     api.get<ProfileResponse>('/api/profile')
       .then(data => {
         const p = data.profile;
@@ -94,6 +95,9 @@ export default function ProfilePage() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { fetchProfile(); }, [fetchProfile]);
+  useOnlineRefetch(fetchProfile);
 
   // Initialise Google Places Autocomplete for the gym input
   const initAutocomplete = useCallback(async () => {
