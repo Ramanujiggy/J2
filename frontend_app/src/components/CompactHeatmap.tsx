@@ -104,7 +104,7 @@ export default function CompactHeatmap({ sessions, year, loading = false }: Comp
     if (todayDate.getFullYear() !== year) return;
     const dayOfYear = Math.floor((todayDate.getTime() - new Date(year, 0, 1).getTime()) / 86400000);
     const colIndex = Math.floor(dayOfYear / 7);
-    const cellWidth = 14 + 3; // cell size + gap
+    const cellWidth = 18 + 3; // cell size + gap
     const scrollTarget = colIndex * cellWidth - el.clientWidth / 2 + cellWidth * 3;
     el.scrollTo({ left: Math.max(0, scrollTarget), behavior: 'smooth' });
   }, [year, columns]);
@@ -162,7 +162,7 @@ export default function CompactHeatmap({ sessions, year, loading = false }: Comp
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: `repeat(${totalCols}, 14px)`,
+            gridTemplateColumns: `repeat(${totalCols}, 18px)`,
             gap: 3,
             marginBottom: 4,
           }}
@@ -185,8 +185,8 @@ export default function CompactHeatmap({ sessions, year, loading = false }: Comp
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: `repeat(${totalCols}, 14px)`,
-            gridTemplateRows: 'repeat(7, 14px)',
+            gridTemplateColumns: `repeat(${totalCols}, 18px)`,
+            gridTemplateRows: 'repeat(7, 18px)',
             gridAutoFlow: 'column',
             gap: 3,
           }}

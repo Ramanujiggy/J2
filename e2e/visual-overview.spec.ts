@@ -108,4 +108,29 @@ test.describe('Visual Overview', () => {
     await page.waitForTimeout(1000);
     await snap(page, '07-intentions', testInfo);
   });
+
+});
+
+// Standalone — not part of the serial chain above so it always runs
+test.describe('Compact Heatmap Visual', () => {
+  const COMPACT_EMAIL = `compact-${Date.now()}@journada-e2e.com`;
+  const COMPACT_PASSWORD = 'TestPass123!';
+
+  test('08 — Calendar compact heatmap view', async ({ page }, testInfo) => {
+    // Register a fresh account
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Register' }).click();
+    await page.getByPlaceholder('you@example.com').fill(COMPACT_EMAIL);
+    await page.getByPlaceholder('••••••••').fill(COMPACT_PASSWORD);
+    await page.locator('form').getByRole('button', { name: 'Create Account' }).click();
+    await page.waitForURL('**/home', { timeout: 15000 });
+
+    await page.goto('/calendar');
+    await page.waitForLoadState('networkidle');
+
+    // Switch to compact view
+    await page.getByRole('button', { name: 'Compact view' }).click();
+    await page.waitForTimeout(1200); // allow scroll-to-today animation
+    await snap(page, '08-calendar-compact', testInfo);
+  });
 });
