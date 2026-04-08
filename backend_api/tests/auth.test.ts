@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 
 // All vi.mock calls are hoisted — these run before any imports below
 vi.mock('../src/config/db.js', () => ({
@@ -176,5 +177,8 @@ describe('POST /auth/reset-password', () => {
     expect(res.status).toBe(200);
     expect(res.body.message).toMatch(/updated successfully/i);
     expect(vi.mocked(passwordResetModel.markTokenUsed)).toHaveBeenCalledWith('token-uuid-1');
+    // Verify the raw token is never passed to the model — only its SHA-256 hash
+    const expectedHash = crypto.createHash('sha256').update('validtoken').digest('hex');
+    expect(vi.mocked(passwordResetModel.findValidToken)).toHaveBeenCalledWith(expectedHash);
   });
 });
