@@ -59,6 +59,8 @@
 
   body {
     @apply text-white font-sans antialiased;
+    font-feature-settings: "cv01", "ss03";
+    -webkit-font-smoothing: antialiased;
   }
 }
 
