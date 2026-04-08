@@ -117,7 +117,6 @@
     transparent
   );
   animation: j2-streak-sheen 5s ease-in-out infinite;
-  animation-delay: var(--streak-delay, 0s);
   pointer-events: none;
 }
 
