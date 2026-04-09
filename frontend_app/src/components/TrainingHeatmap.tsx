@@ -498,9 +498,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                         paddingBottom: '3px',
                         border: hasResonance
                           ? '1px solid rgba(196,145,95,0.7)'
-                          : isInStreak
-                            ? '1px solid rgba(242,228,168,0.45)'
-                            : '1px solid rgba(242,228,168,0.13)',
+                          : '1px solid rgba(242,228,168,0.13)',
                         boxShadow: hasResonance
                           ? '0 0 8px 2px rgba(196,145,95,0.35), inset 0 0 5px rgba(196,145,95,0.18)'
                           : 'inset 0 1px 0 rgba(255,255,255,0.05)',
