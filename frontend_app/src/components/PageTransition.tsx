@@ -5,9 +5,10 @@ type Phase = 'visible' | 'exiting' | 'entering';
 
 interface Props {
   children: React.ReactNode;
+  direction?: 'forward' | 'back' | null;
 }
 
-export default function PageTransition({ children }: Props) {
+export default function PageTransition({ children, direction }: Props) {
   const location = useLocation();
   const [phase, setPhase] = useState<Phase>('visible');
   const [displayChildren, setDisplayChildren] = useState(children);
@@ -40,11 +41,17 @@ export default function PageTransition({ children }: Props) {
     }
   }, [children, phase]);
 
+  const enterAnim = direction === 'forward'
+    ? 'j2-page-slide-in-forward 360ms cubic-bezier(0.16, 1, 0.3, 1) both'
+    : direction === 'back'
+      ? 'j2-page-slide-in-back 360ms cubic-bezier(0.16, 1, 0.3, 1) both'
+      : 'j2-page-in 360ms cubic-bezier(0.16, 1, 0.3, 1) both';
+
   const style: React.CSSProperties =
     phase === 'exiting'
       ? { animation: 'j2-page-out 240ms ease-out both' }
       : phase === 'entering'
-        ? { animation: 'j2-page-in 360ms cubic-bezier(0.16, 1, 0.3, 1) both' }
+        ? { animation: enterAnim }
         : {};
 
   return (

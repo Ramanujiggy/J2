@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
@@ -94,9 +94,43 @@ export default function AppShell({ children }: Props) {
 
   useOnlineSync();
 
-  const TABS = ALL_TABS.filter(t => !t.intentionsGated || intentionsEnabled);
+  const TABS = useMemo(
+    () => ALL_TABS.filter(t => !t.intentionsGated || intentionsEnabled),
+    [intentionsEnabled],
+  );
   const activeTab = TABS.find(t => location.pathname.startsWith(t.path))?.path ?? '/home';
   const activeIdx = TABS.findIndex(t => t.path === activeTab);
+
+  // ── Directional navigation ──
+  const [navDirection, setNavDirection] = useState<'forward' | 'back' | null>(null);
+
+  const navigateDirectional = useCallback((path: string) => {
+    const fromIdx = TABS.findIndex(t => t.path === activeTab);
+    const toIdx   = TABS.findIndex(t => t.path === path);
+    setNavDirection(toIdx > fromIdx ? 'forward' : 'back');
+    navigate(path);
+  }, [TABS, activeTab, navigate]);
+
+  // ── Swipe gesture on <main> ──
+  const touchStartX    = useRef(0);
+  const touchStartY    = useRef(0);
+  const touchStartTime = useRef(0);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current    = e.touches[0].clientX;
+    touchStartY.current    = e.touches[0].clientY;
+    touchStartTime.current = Date.now();
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if ((e.target as Element).closest('[data-no-page-swipe]')) return;
+    const dx  = e.changedTouches[0].clientX - touchStartX.current;
+    const dy  = e.changedTouches[0].clientY - touchStartY.current;
+    const vel = Math.abs(dx) / Math.max(Date.now() - touchStartTime.current, 1);
+    if (Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx) * 0.7 || vel < 0.2) return;
+    const newIdx = Math.max(0, Math.min(TABS.length - 1, activeIdx + (dx < 0 ? 1 : -1)));
+    if (newIdx !== activeIdx) navigateDirectional(TABS[newIdx]!.path);
+  }, [TABS, activeIdx, navigateDirectional]);
 
   // ── Desktop sliding tab indicator ──
   const desktopNavRef = useRef<HTMLElement>(null);
@@ -180,7 +214,7 @@ export default function AppShell({ children }: Props) {
               <button
                 key={path}
                 ref={el => { if (el) desktopTabRefs.current.set(path, el); }}
-                onClick={() => navigate(path)}
+                onClick={() => navigateDirectional(path)}
                 className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium rounded-t-lg relative"
                 style={{
                   color: isActive ? PALE_YELLOW : 'rgba(255,255,255,0.4)',
@@ -218,8 +252,13 @@ export default function AppShell({ children }: Props) {
       <OfflineBanner />
 
       {/* ── Page content ────────────────────────────────────────── */}
-      <main className="flex-1 overflow-auto sm:pb-0 j2-app-scroll" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px) + 8px)' }}>
-        <PageTransition>{children}</PageTransition>
+      <main
+        className="flex-1 overflow-auto sm:pb-0 j2-app-scroll"
+        style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px) + 8px)' }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        <PageTransition direction={navDirection}>{children}</PageTransition>
       </main>
 
       {/* ── Mobile bottom nav — hidden on sm+ — with sliding dot ── */}

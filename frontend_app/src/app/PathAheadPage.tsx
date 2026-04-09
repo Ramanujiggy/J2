@@ -1004,6 +1004,7 @@ export default function PathAheadPage() {
             border: '1px solid rgba(242,228,168,0.15)',
           }}
           data-testid="roulette-drill-area"
+          data-no-page-swipe=""
           onTouchStart={handleRouletteTouchStart}
           onTouchMove={handleRouletteTouchMove}
           onTouchEnd={handleRouletteTouchEnd}
