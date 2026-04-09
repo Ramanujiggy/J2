@@ -47,7 +47,6 @@ export default function AnalyticsPage() {
   const [intentions,  setIntentions]  = useState<Intention[]>([]);
   const [loading,     setLoading]     = useState(true);
   const [fetchError,  setFetchError]  = useState<string | null>(null);
-  const [focusOpen,   setFocusOpen]   = useState(false);
   const [timeWindow,   setTimeWindow]   = useState<TimeWindow>('30d');
   const [customRange,  setCustomRange]  = useState<{ start: string; end: string } | null>(null);
 
@@ -110,27 +109,14 @@ export default function AnalyticsPage() {
       {/* ── Intention vs Ambient Focus ─────────────────────────── */}
       {intentions.length > 0 && (
         <div>
-          <button
-            onClick={() => setFocusOpen(v => !v)}
-            className="flex items-center gap-2 text-sm text-white/40 hover:text-white/70 transition-colors"
-          >
-            <svg
-              width="14" height="14" viewBox="0 0 24 24"
-              fill="none" stroke="currentColor" strokeWidth={2}
-              strokeLinecap="round" strokeLinejoin="round"
-              style={{ transform: focusOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
-            >
-              <path d="M9 18l6-6-6-6" />
-            </svg>
-            <span className="font-medium">Intention vs Training Telemetry</span>
-            <span className="text-xs text-white/20">({intentions.length})</span>
-          </button>
+          <h3 style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.60)', letterSpacing: '0.04em' }}>
+            Intention vs Training Telemetry
+          </h3>
 
-          {focusOpen && (
-            <div
-              className="mt-3 rounded-2xl overflow-hidden"
-              style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}
-            >
+          <div
+            className="mt-3 rounded-2xl overflow-hidden"
+            style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}
+          >
               {/* Column headers */}
               <div className="hidden sm:grid grid-cols-[80px_1fr_1fr] gap-4 px-4 pt-3 pb-2">
                 <span className="text-[11px] text-white/25 uppercase tracking-wide">Week</span>
@@ -191,7 +177,6 @@ export default function AnalyticsPage() {
                 })}
               </div>
             </div>
-          )}
         </div>
       )}
 
