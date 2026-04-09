@@ -97,6 +97,14 @@ export default {
           from: { opacity: '0', transform: 'translateY(6px) scale(0.99)' },
           to:   { opacity: '1', transform: 'translateY(0) scale(1)' },
         },
+        'j2-page-slide-in-forward': {
+          from: { opacity: '0', transform: 'translateX(22px) scale(0.99)' },
+          to:   { opacity: '1', transform: 'translateX(0) scale(1)' },
+        },
+        'j2-page-slide-in-back': {
+          from: { opacity: '0', transform: 'translateX(-22px) scale(0.99)' },
+          to:   { opacity: '1', transform: 'translateX(0) scale(1)' },
+        },
         'j2-page-out': {
           from: { opacity: '1', transform: 'scale(1)' },
           to:   { opacity: '0', transform: 'scale(0.97)' },
@@ -126,8 +134,10 @@ export default {
         'toggle-exit':  'toggle-exit  300ms cubic-bezier(0.4, 0, 0.8, 0.2) both',
         'toggle-enter': 'toggle-enter 360ms cubic-bezier(0.2, 1.1, 0.4, 1) both',
         'j2-card-enter': 'j2-card-enter 500ms cubic-bezier(0.16, 1, 0.3, 1) both',
-        'j2-page-in':   'j2-page-in 360ms cubic-bezier(0.16, 1, 0.3, 1) both',
-        'j2-page-out':  'j2-page-out 240ms ease-out both',
+        'j2-page-in':                'j2-page-in 360ms cubic-bezier(0.16, 1, 0.3, 1) both',
+        'j2-page-slide-in-forward': 'j2-page-slide-in-forward 360ms cubic-bezier(0.16, 1, 0.3, 1) both',
+        'j2-page-slide-in-back':    'j2-page-slide-in-back    360ms cubic-bezier(0.16, 1, 0.3, 1) both',
+        'j2-page-out':              'j2-page-out 240ms ease-out both',
         'j2-modal-in':    'j2-modal-in 400ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both',
         'j2-backdrop-in': 'j2-backdrop-in 250ms ease both',
         'j2-today-pulse': 'j2-today-pulse 4s ease-in-out infinite',
