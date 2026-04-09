@@ -1084,6 +1084,7 @@ export default function PathAheadPage() {
         <div
           ref={weekScrollRef}
           data-testid="week-scroll"
+          data-no-page-swipe=""
           className="j2-day-scroll"
           style={{
             display: 'flex',
