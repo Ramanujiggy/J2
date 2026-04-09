@@ -48,9 +48,9 @@ function formatDuration(minutes: number): string {
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const INTENSITY_COLOR: Record<number, string> = {
-  1: '#CDDFA0',
-  2: '#CDDFA0',
-  3: '#6FD08C',
+  1: '#A8CB72',
+  2: '#A8CB72',
+  3: '#52B56C',
   4: '#D4A040',   // warm amber mid-step
   5: '#DA7422',
 };

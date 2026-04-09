@@ -30,8 +30,8 @@ const MONTH_ABBR = [
 
 const LEGEND = [
   { color: HEATMAP_REST, label: 'Rest' },
-  { color: '#CDDFA0',    label: 'Easy' },
-  { color: '#6FD08C',    label: 'Moderate' },
+  { color: '#A8CB72',    label: 'Easy' },
+  { color: '#52B56C',    label: 'Moderate' },
   { color: '#D4A040',    label: 'Hard' },
   { color: '#DA7422',    label: 'Max' },
 ] as const;
@@ -76,8 +76,8 @@ export const EMPTY_DAY: DayData = { count: 0, totalMinutes: 0, maxIntensity: 0, 
 
 export function cellColor(day: DayData): string {
   if (day.count === 0)          return HEATMAP_REST;
-  if (day.maxIntensity <= 2)    return '#CDDFA0';
-  if (day.maxIntensity === 3)   return '#6FD08C';
+  if (day.maxIntensity <= 2)    return '#A8CB72';
+  if (day.maxIntensity === 3)   return '#52B56C';
   if (day.maxIntensity === 4)   return '#D4A040';   // warm amber — bridges green→orange
   return '#DA7422';
 }
