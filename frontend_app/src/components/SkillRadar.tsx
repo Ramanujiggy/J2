@@ -50,35 +50,69 @@ const SKILL_COLORS: Record<string, { fill: string; stroke: string; dot: string }
 };
 const DEFAULT_COLORS = { fill: 'rgba(82,181,108,0.22)', stroke: 'rgba(176,214,100,0.75)', dot: 'rgba(176,214,100,0.9)' };
 
-// ─── Stacked bar chart (Split + Format views) ────────────────────────────────
+// ─── Donut chart (Split + Format views) ──────────────────────────────────────
 
-interface StackedRow { label: string; h: number; total: number; color: string; }
+interface DonutSegment { value: number; color: string; label: string; }
 
-function StackedBarChart({ rows }: { rows: StackedRow[] }) {
-  const total = rows.reduce((s, r) => s + r.h, 0);
-  if (total === 0) return (
-    <div className="flex items-center justify-center h-full">
-      <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>No data</span>
-    </div>
-  );
+function describeArc(cx: number, cy: number, rOut: number, rIn: number, startDeg: number, endDeg: number): string {
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const s = toRad(startDeg), e = toRad(endDeg);
+  const large = endDeg - startDeg > 180 ? 1 : 0;
+  const cos = Math.cos, sin = Math.sin;
+  return [
+    `M ${(cx + rOut * cos(s)).toFixed(3)} ${(cy + rOut * sin(s)).toFixed(3)}`,
+    `A ${rOut} ${rOut} 0 ${large} 1 ${(cx + rOut * cos(e)).toFixed(3)} ${(cy + rOut * sin(e)).toFixed(3)}`,
+    `L ${(cx + rIn  * cos(e)).toFixed(3)} ${(cy + rIn  * sin(e)).toFixed(3)}`,
+    `A ${rIn}  ${rIn}  0 ${large} 0 ${(cx + rIn  * cos(s)).toFixed(3)} ${(cy + rIn  * sin(s)).toFixed(3)}`,
+    'Z',
+  ].join(' ');
+}
+
+function DonutChart({ segments, centerLabel, centerSub }: {
+  segments: DonutSegment[];
+  centerLabel: string;
+  centerSub: string;
+}) {
+  const nonZero = segments.filter(s => s.value > 0);
+  const total   = nonZero.reduce((a, s) => a + s.value, 0);
+
+  if (total === 0) {
+    return (
+      <svg viewBox="0 0 100 100" width="100%" aria-label="No data">
+        <circle cx={50} cy={50} r={31.5} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={17} />
+        <text x={50} y={50} textAnchor="middle" dominantBaseline="middle"
+          fill="rgba(255,255,255,0.2)" fontSize={6} fontFamily="sans-serif">No data</text>
+      </svg>
+    );
+  }
+
+  const CX = 50, CY = 50, R_OUT = 40, R_IN = 23;
+  const GAP_DEG = nonZero.length > 1 ? 3 : 0;
+  const availDeg = 360 - GAP_DEG * nonZero.length;
+
+  let angle = -90;
+  const arcs = nonZero.map(seg => {
+    const sweep = (seg.value / total) * availDeg;
+    const path  = describeArc(CX, CY, R_OUT, R_IN, angle, angle + sweep);
+    angle += sweep + GAP_DEG;
+    return { ...seg, path };
+  });
+
   return (
-    <div className="flex flex-col justify-center gap-3 w-full h-full px-2">
-      {rows.map(({ label, h, color }) => {
-        const pct = total > 0 ? (h / total) * 100 : 0;
-        return (
-          <div key={label} className="flex items-center gap-2">
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.50)', width: 56, flexShrink: 0 }}>{label}</span>
-            <div style={{ flex: 1, height: 8, borderRadius: 4, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-              <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 4,
-                            transition: 'width 450ms cubic-bezier(0.4,0,0.2,1)' }} />
-            </div>
-            <span style={{ fontSize: 11, color: 'rgba(242,228,168,0.65)', width: 46, textAlign: 'right', flexShrink: 0 }}>
-              {h.toFixed(1)}h
-            </span>
-          </div>
-        );
-      })}
-    </div>
+    <svg viewBox="0 0 100 100" width="100%" aria-label="Donut chart">
+      {arcs.map((seg, i) => (
+        <path key={i} d={seg.path} fill={seg.color} opacity={0.88} />
+      ))}
+      <text x={CX} y={CY - 5} textAnchor="middle" dominantBaseline="auto"
+        fill={PALE_YELLOW} fontSize={14} fontWeight={700} fontFamily="sans-serif"
+        style={{ textShadow: GLOW_SOFT }}>
+        {centerLabel}
+      </text>
+      <text x={CX} y={CY + 8} textAnchor="middle" dominantBaseline="auto"
+        fill="rgba(255,255,255,0.35)" fontSize={6} fontFamily="sans-serif">
+        {centerSub}
+      </text>
+    </svg>
   );
 }
 
@@ -187,9 +221,12 @@ interface WeekEntry { weekStart: Date; hours: number; count: number; isCurrent: 
 
 function WeeklyChart({ weeks }: { weeks: WeekEntry[] }) {
   const maxH = Math.max(...weeks.map(w => w.hours), 0.001);
-  const W = 280, H = 100, chartH = 72, baseY = 84;
-  const barW = 4, gap = 1, totalW = 52 * (barW + gap) - gap;
-  const offsetX = (W - totalW) / 2;
+  const barW = 8, gap = 3;
+  const chartH = 78, baseY = 90;
+  const contentW = 52 * (barW + gap) - gap; // 569
+  const W = contentW + 24;                   // 593, 12px margin each side
+  const H = 110;
+  const offsetX = 12;
 
   const monthLabels: { x: number; label: string }[] = [];
   let lastMonth = -1;
@@ -202,17 +239,17 @@ function WeeklyChart({ weeks }: { weeks: WeekEntry[] }) {
   });
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: '100%' }}>
+    <svg viewBox={`0 0 ${W} ${H}`} width={W} aria-label="Weekly training volume">
       {weeks.map((w, i) => {
-        const barH = Math.max((w.hours / maxH) * chartH, w.hours > 0 ? 2 : 0);
+        const barH = Math.max((w.hours / maxH) * chartH, w.hours > 0 ? 3 : 0);
         const x = offsetX + i * (barW + gap);
         const color = w.isCurrent
           ? 'rgba(82,181,108,0.90)'
           : w.hours > 0
-            ? 'rgba(82,181,108,0.50)'
-            : 'rgba(255,255,255,0.06)';
+            ? 'rgba(82,181,108,0.55)'
+            : 'rgba(255,255,255,0.07)';
         return (
-          <rect key={i} x={x} y={baseY - barH} width={barW} height={Math.max(barH, 1)} rx={1} fill={color}>
+          <rect key={i} x={x} y={baseY - barH} width={barW} height={Math.max(barH, 1)} rx={2} fill={color}>
             <title>{w.hours > 0
               ? `${w.weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: ${w.hours.toFixed(1)}h (${w.count} session${w.count !== 1 ? 's' : ''})`
               : 'No sessions'}</title>
@@ -220,7 +257,7 @@ function WeeklyChart({ weeks }: { weeks: WeekEntry[] }) {
         );
       })}
       {monthLabels.map(({ x, label }) => (
-        <text key={label + x} x={x} y={96} fontSize={7} fill="rgba(242,228,168,0.30)">{label}</text>
+        <text key={label + x} x={x} y={104} fontSize={9} fill="rgba(242,228,168,0.35)">{label}</text>
       ))}
     </svg>
   );
@@ -243,6 +280,17 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
   const [prevViewMode, setPrevViewMode] = useState<ViewMode | null>(null);
   const [slideDir, setSlideDir] = useState<'up' | 'down'>('up');
   const animLockTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const weeklyScrollRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll weekly chart to current week on mount / when switching to weekly view
+  useEffect(() => {
+    if (viewMode !== 'weekly') return;
+    const el = weeklyScrollRef.current;
+    if (!el) return;
+    // Current week is always at index 51; barW=8, gap=3, offsetX=12
+    const x = 12 + 51 * (8 + 3);
+    el.scrollTo({ left: Math.max(0, x - el.clientWidth / 2), behavior: 'smooth' });
+  }, [viewMode]);
 
   // Safety-net: clear the animation lock after 750ms even if onAnimationEnd doesn't fire (iOS Safari)
   useEffect(() => {
@@ -368,13 +416,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
   const avgWeeklyHours   = activeWeeks > 0 ? totalWeeklyHours / activeWeeks : 0;
 
   // ── Pre-computed row arrays ──
-  const prismRows  = SKILL_TAGS.map(({ value, label }, i) => ({ label, h: hours[i], total: totalTaggedHours, color: undefined as string | undefined }));
-  const splitRows  = [{ label: 'Gi', h: giHours, total: splitTotal, color: SEG_GI }, { label: 'No-Gi', h: nogiHours, total: splitTotal, color: SEG_NOGI }];
-  const formatRows = [
-    { label: 'Class',       h: classHours, total: formatTotal, color: SEG_CLASS },
-    { label: 'Drilling',    h: drillHours, total: formatTotal, color: SEG_DRILL },
-    { label: 'Competition', h: compHours,  total: formatTotal, color: SEG_COMP  },
-  ];
+  const prismRows = SKILL_TAGS.map(({ label }, i) => ({ label, h: hours[i], total: totalTaggedHours, color: undefined as string | undefined }));
 
   // ── Helpers ──
   function fmtVal(h: number, total: number): string {
@@ -389,9 +431,47 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
   // ── Chart renderer — shared by mobile and desktop ──
   function renderChart(mode: ViewMode) {
     if (mode === 'volume') return <VolumeChart sessions={filtered} />;
-    if (mode === 'weekly') return <WeeklyChart weeks={weeklyData} />;
-    if (mode === 'split') return <StackedBarChart rows={splitRows as StackedRow[]} />;
-    if (mode === 'format') return <StackedBarChart rows={formatRows as StackedRow[]} />;
+    if (mode === 'weekly') return (
+      <>
+        <style>{`.j2-weekly-scroll::-webkit-scrollbar { display: none; }`}</style>
+        <div
+          ref={weeklyScrollRef}
+          className="j2-weekly-scroll"
+          style={{ overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+        >
+          <WeeklyChart weeks={weeklyData} />
+        </div>
+      </>
+    );
+    if (mode === 'split') return (
+      <div className="flex justify-center">
+        <div style={{ width: 180, height: 180 }}>
+          <DonutChart
+            segments={[
+              { value: giHours,   color: SEG_GI,  label: 'Gi'    },
+              { value: nogiHours, color: SEG_NOGI, label: 'No-Gi' },
+            ]}
+            centerLabel={splitTotal > 0 ? `${Math.round((giHours / splitTotal) * 100)}%` : '—'}
+            centerSub="Gi"
+          />
+        </div>
+      </div>
+    );
+    if (mode === 'format') return (
+      <div className="flex justify-center">
+        <div style={{ width: 180, height: 180 }}>
+          <DonutChart
+            segments={[
+              { value: classHours, color: SEG_CLASS, label: 'Class'       },
+              { value: drillHours, color: SEG_DRILL, label: 'Drilling'    },
+              { value: compHours,  color: SEG_COMP,  label: 'Competition' },
+            ]}
+            centerLabel={formatTotal > 0 ? `${formatTotal.toFixed(0)}h` : '—'}
+            centerSub="total"
+          />
+        </div>
+      </div>
+    );
     // prism
     return (
       <svg viewBox="-20 -20 140 140" width="100%" aria-label="Skill radar chart">
@@ -692,7 +772,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
                 onClick={() => setDisplayMode('hours')}
                 className="px-3 py-2 touch-manipulation"
                 style={{
-                  backgroundColor: displayMode === 'hours' ? 'rgba(218,116,34,0.8)' : 'transparent',
+                  backgroundColor: displayMode === 'hours' ? COPPER : 'transparent',
                   color: displayMode === 'hours' ? 'white' : 'rgba(255,255,255,0.4)',
                   transition: 'background-color 150ms ease, color 150ms ease',
                 }}
@@ -701,7 +781,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
                 onClick={() => setDisplayMode('pct')}
                 className="px-3 py-2 touch-manipulation"
                 style={{
-                  backgroundColor: displayMode === 'pct' ? 'rgba(218,116,34,0.8)' : 'transparent',
+                  backgroundColor: displayMode === 'pct' ? COPPER : 'transparent',
                   color: displayMode === 'pct' ? 'white' : 'rgba(255,255,255,0.4)',
                   transition: 'background-color 150ms ease, color 150ms ease',
                 }}
@@ -759,7 +839,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
                 className="px-3 py-1.5"
                 style={{
                   color: isVolumeType ? 'transparent' : displayMode === 'hours' ? 'white' : 'rgba(255,255,255,0.4)',
-                  backgroundColor: !isVolumeType && displayMode === 'hours' ? 'rgba(218,116,34,0.8)' : 'transparent',
+                  backgroundColor: !isVolumeType && displayMode === 'hours' ? COPPER : 'transparent',
                   transition: 'color 200ms ease, background-color 200ms ease',
                   pointerEvents: isVolumeType ? 'none' : 'auto',
                 }}
@@ -769,7 +849,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
                 className="px-3 py-1.5"
                 style={{
                   color: isVolumeType ? 'transparent' : displayMode === 'pct' ? 'white' : 'rgba(255,255,255,0.4)',
-                  backgroundColor: !isVolumeType && displayMode === 'pct' ? 'rgba(218,116,34,0.8)' : 'transparent',
+                  backgroundColor: !isVolumeType && displayMode === 'pct' ? COPPER : 'transparent',
                   transition: 'color 200ms ease, background-color 200ms ease',
                   pointerEvents: isVolumeType ? 'none' : 'auto',
                 }}
