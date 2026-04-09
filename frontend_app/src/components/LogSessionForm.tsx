@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { api } from '../lib/api.ts';
+import { api, ApiError } from '../lib/api.ts';
 import { toast } from '../hooks/use-toast.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
 import { CARD_BG, COPPER, COPPER_BORDER, SURFACE_2, SURFACE_3 } from '../lib/theme.ts';
@@ -163,8 +163,18 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate }: { o
           : 'Session logged!',
       });
       onSuccess?.();
-    } catch {
-      setError('Something went wrong. Please try again.');
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.status === 0) {
+          setError("Couldn't reach the server — check your connection and try again.");
+        } else if (err.status >= 500) {
+          setError(`Couldn't save your session — the server ran into an unexpected error. Please try again. ${err.message ? `(${err.message})` : ''}`.trim());
+        } else {
+          setError(err.message || "Couldn't save your session. Please check your inputs and try again.");
+        }
+      } else {
+        setError("Couldn't save your session. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
