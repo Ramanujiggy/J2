@@ -1,175 +1,14 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Info, Triangle, Target, BarChart2, Layers, BookOpen, Activity, type LucideIcon } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
-import { SKILL_TAGS } from '../lib/constants.ts';
+import { SKILL_TAGS, MONTH_NAMES } from '../lib/constants.ts';
 import { CARD_BG, COPPER, COPPER_BORDER, CARD_SHADOW, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3_BORDER } from '../lib/theme.ts';
 import type { SessionSummary } from './TrainingHeatmap.tsx';
 import TimeRangeBar from './TimeRangeBar.tsx';
-
-// ─── Pentagon math (Grappling Prism) ─────────────────────────────────────────
-
-const CX = 50;
-const CY = 50;
-const R  = 38;
-const N  = SKILL_TAGS.length; // 5
-const LABEL_R = R + 11;
-
-function vertex(i: number, t: number): [number, number] {
-  const angle = (2 * Math.PI / N) * i - Math.PI / 2;
-  return [CX + R * t * Math.cos(angle), CY + R * t * Math.sin(angle)];
-}
-
-function toPoints(pts: [number, number][]): string {
-  return pts.map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`).join(' ');
-}
-
-function labelAttrs(i: number): {
-  textAnchor: 'start' | 'end' | 'middle';
-  dominantBaseline: 'auto' | 'hanging' | 'middle';
-} {
-  const angle = (2 * Math.PI / N) * i - Math.PI / 2;
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
-  return {
-    textAnchor: cos > 0.15 ? 'start' : cos < -0.15 ? 'end' : 'middle',
-    dominantBaseline: sin < -0.15 ? 'auto' : sin > 0.15 ? 'hanging' : 'middle',
-  };
-}
-
-function labelLines(label: string): string[] {
-  const i = label.indexOf(' ');
-  return i !== -1 ? [label.slice(0, i), label.slice(i + 1)] : [label];
-}
-
-const SKILL_COLORS: Record<string, { fill: string; stroke: string; dot: string }> = {
-  standup:     { fill: 'rgba(212,160,64,0.25)',  stroke: 'rgba(212,160,64,0.85)',  dot: 'rgba(212,160,64,1.0)'  },
-  guard:       { fill: 'rgba(82,181,108,0.25)',  stroke: 'rgba(82,181,108,0.85)',  dot: 'rgba(82,181,108,1.0)'  },
-  submissions: { fill: 'rgba(218,100,80,0.25)',  stroke: 'rgba(218,100,80,0.85)',  dot: 'rgba(218,100,80,1.0)'  },
-  pins:        { fill: 'rgba(196,145,95,0.25)',  stroke: 'rgba(196,145,95,0.85)',  dot: 'rgba(196,145,95,1.0)'  },
-  passing:     { fill: 'rgba(90,175,210,0.25)',  stroke: 'rgba(90,175,210,0.85)',  dot: 'rgba(90,175,210,1.0)'  },
-};
-const DEFAULT_COLORS = { fill: 'rgba(82,181,108,0.22)', stroke: 'rgba(176,214,100,0.75)', dot: 'rgba(176,214,100,0.9)' };
-
-// ─── Donut chart (Split + Format views) ──────────────────────────────────────
-
-interface DonutSegment { value: number; color: string; label: string; }
-
-function describeArc(cx: number, cy: number, rOut: number, rIn: number, startDeg: number, endDeg: number): string {
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const s = toRad(startDeg), e = toRad(endDeg);
-  const large = endDeg - startDeg > 180 ? 1 : 0;
-  const cos = Math.cos, sin = Math.sin;
-  return [
-    `M ${(cx + rOut * cos(s)).toFixed(3)} ${(cy + rOut * sin(s)).toFixed(3)}`,
-    `A ${rOut} ${rOut} 0 ${large} 1 ${(cx + rOut * cos(e)).toFixed(3)} ${(cy + rOut * sin(e)).toFixed(3)}`,
-    `L ${(cx + rIn  * cos(e)).toFixed(3)} ${(cy + rIn  * sin(e)).toFixed(3)}`,
-    `A ${rIn}  ${rIn}  0 ${large} 0 ${(cx + rIn  * cos(s)).toFixed(3)} ${(cy + rIn  * sin(s)).toFixed(3)}`,
-    'Z',
-  ].join(' ');
-}
-
-function DonutChart({ segments, centerLabel, centerSub }: {
-  segments: DonutSegment[];
-  centerLabel: string;
-  centerSub: string;
-}) {
-  const nonZero = segments.filter(s => s.value > 0);
-  const total   = nonZero.reduce((a, s) => a + s.value, 0);
-
-  if (total === 0) {
-    return (
-      <svg viewBox="0 0 100 100" width="100%" aria-label="No data">
-        <circle cx={50} cy={50} r={31.5} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={17} />
-        <text x={50} y={50} textAnchor="middle" dominantBaseline="middle"
-          fill="rgba(255,255,255,0.2)" fontSize={6} fontFamily="sans-serif">No data</text>
-      </svg>
-    );
-  }
-
-  const CX = 50, CY = 50, R_OUT = 40, R_IN = 23;
-  const GAP_DEG = nonZero.length > 1 ? 3 : 0;
-  const availDeg = 360 - GAP_DEG * nonZero.length;
-
-  let angle = -90;
-  const arcs = nonZero.map(seg => {
-    const sweep = (seg.value / total) * availDeg;
-    const path  = describeArc(CX, CY, R_OUT, R_IN, angle, angle + sweep);
-    angle += sweep + GAP_DEG;
-    return { ...seg, path };
-  });
-
-  return (
-    <svg viewBox="0 0 100 100" width="100%" aria-label="Donut chart">
-      {arcs.map((seg, i) => (
-        <path key={i} d={seg.path} fill={seg.color} opacity={0.88} />
-      ))}
-      <text x={CX} y={CY - 5} textAnchor="middle" dominantBaseline="auto"
-        fill={PALE_YELLOW} fontSize={14} fontWeight={700} fontFamily="sans-serif"
-        style={{ textShadow: GLOW_SOFT }}>
-        {centerLabel}
-      </text>
-      <text x={CX} y={CY + 8} textAnchor="middle" dominantBaseline="auto"
-        fill="rgba(255,255,255,0.35)" fontSize={6} fontFamily="sans-serif">
-        {centerSub}
-      </text>
-    </svg>
-  );
-}
-
-// ─── Volume bar chart ─────────────────────────────────────────────────────────
-
-const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-function sessionMonth(raw: unknown): number {
-  if (raw instanceof Date) return raw.getMonth();
-  const str = String(raw);
-  const match = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  return match ? parseInt(match[2], 10) - 1 : NaN;
-}
-
-function VolumeChart({ sessions }: { sessions: SessionSummary[] }) {
-  const monthlyHours = Array(12).fill(0) as number[];
-  for (const s of sessions) {
-    const m = sessionMonth(s.date);
-    if (isNaN(m)) continue;
-    monthlyHours[m] += s.duration / 60;
-  }
-  const maxH = Math.max(...monthlyHours, 0.001);
-  const currentMonth = new Date().getMonth();
-  const barW = 10;
-  const betweenGap = (140 - 8 - 12 * barW) / 11;
-  const chartH = 72;
-  const baseY  = 84;
-
-  return (
-    <svg viewBox="0 0 140 100" width="100%" aria-label="Monthly training volume">
-      <rect x="0" y="0" width="140" height="100" fill={CARD_BG} rx="12" />
-      {monthlyHours.map((h, m) => {
-        const barH = Math.max((h / maxH) * chartH, h > 0 ? 2 : 0);
-        const x = 4 + m * (barW + betweenGap);
-        const isCurrent = m === currentMonth;
-        const fill = isCurrent ? 'rgba(82,181,108,0.90)' : 'rgba(82,181,108,0.45)';
-        return (
-          <g key={m}>
-            {h > 0
-              ? <rect x={x} y={baseY - barH} width={barW} height={barH} rx="1.5" fill={fill}>
-                  <title>{`${MONTH_SHORT[m]}: ${h.toFixed(1)}h`}</title>
-                </rect>
-              : <rect x={x} y={baseY - 1}    width={barW} height={1}    rx="0.5" fill="rgba(255,255,255,0.07)">
-                  <title>{`${MONTH_SHORT[m]}: no sessions`}</title>
-                </rect>
-            }
-            <text x={x + barW / 2} y={94} textAnchor="middle"
-              fill={isCurrent ? PALE_YELLOW : 'rgba(242,228,168,0.25)'}
-              fontSize="4.5" fontFamily="sans-serif">
-              {MONTH_SHORT[m].slice(0, 1)}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
+import RadarChart, { SKILL_COLORS, DEFAULT_COLORS } from './charts/RadarChart.tsx';
+import DonutChart from './charts/DonutChart.tsx';
+import VolumeChart, { sessionMonth } from './charts/VolumeChart.tsx';
+import WeeklyChart from './charts/WeeklyChart.tsx';
 
 // ─── Segment colors ───────────────────────────────────────────────────────────
 
@@ -214,54 +53,6 @@ const VIEW_META: Record<ViewMode, { title: string; subtitle: string }> = {
     subtitle: 'Hours per week across the past 52 weeks — see the cadence of your training at a glance.',
   },
 };
-
-// ─── Weekly rhythm chart ──────────────────────────────────────────────────────
-
-interface WeekEntry { weekStart: Date; hours: number; count: number; isCurrent: boolean; }
-
-function WeeklyChart({ weeks }: { weeks: WeekEntry[] }) {
-  const maxH = Math.max(...weeks.map(w => w.hours), 0.001);
-  const barW = 8, gap = 3;
-  const chartH = 78, baseY = 90;
-  const contentW = 52 * (barW + gap) - gap; // 569
-  const W = contentW + 24;                   // 593, 12px margin each side
-  const H = 110;
-  const offsetX = 12;
-
-  const monthLabels: { x: number; label: string }[] = [];
-  let lastMonth = -1;
-  weeks.forEach((w, i) => {
-    const m = w.weekStart.getMonth();
-    if (m !== lastMonth) {
-      monthLabels.push({ x: offsetX + i * (barW + gap), label: MONTH_SHORT[m] });
-      lastMonth = m;
-    }
-  });
-
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} width={W} aria-label="Weekly training volume">
-      {weeks.map((w, i) => {
-        const barH = Math.max((w.hours / maxH) * chartH, w.hours > 0 ? 3 : 0);
-        const x = offsetX + i * (barW + gap);
-        const color = w.isCurrent
-          ? 'rgba(82,181,108,0.90)'
-          : w.hours > 0
-            ? 'rgba(82,181,108,0.55)'
-            : 'rgba(255,255,255,0.07)';
-        return (
-          <rect key={i} x={x} y={baseY - barH} width={barW} height={Math.max(barH, 1)} rx={2} fill={color}>
-            <title>{w.hours > 0
-              ? `${w.weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: ${w.hours.toFixed(1)}h (${w.count} session${w.count !== 1 ? 's' : ''})`
-              : 'No sessions'}</title>
-          </rect>
-        );
-      })}
-      {monthLabels.map(({ x, label }) => (
-        <text key={label + x} x={x} y={104} fontSize={9} fill="rgba(242,228,168,0.35)">{label}</text>
-      ))}
-    </svg>
-  );
-}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -370,8 +161,6 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
   const dominantIndex    = hours.indexOf(Math.max(...hours));
   const dominantSkill    = hasData ? SKILL_TAGS[dominantIndex].value : null;
   const polygonColors    = dominantSkill ? (SKILL_COLORS[dominantSkill] ?? DEFAULT_COLORS) : DEFAULT_COLORS;
-  const gridRings        = [0.25, 0.5, 0.75, 1].map(t => SKILL_TAGS.map((_, i) => vertex(i, t)) as [number, number][]);
-  const dataPolygon      = SKILL_TAGS.map((_, i) => vertex(i, Math.max(normalized[i], 0.02))) as [number, number][];
 
   // ── Split data ──
   const giHours    = filtered.filter(s => s.gi_nogi === 'gi').reduce((sum, s) => sum + s.duration / 60, 0);
@@ -508,42 +297,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
       </div>
     );
     // prism
-    return (
-      <svg viewBox="-20 -20 140 140" width="100%" aria-label="Skill radar chart">
-        <rect x="-20" y="-20" width="140" height="140" fill={CARD_BG} rx="12" />
-        {gridRings.map((pts, ri) => (
-          <polygon key={ri} points={toPoints(pts)} fill="none"
-            stroke={PALE_YELLOW} strokeOpacity={ri === 3 ? 0.25 : 0.12} strokeWidth="0.5" />
-        ))}
-        {SKILL_TAGS.map((_, i) => {
-          const [x, y] = vertex(i, 1);
-          return <line key={i} x1={CX} y1={CY} x2={x} y2={y}
-            stroke={PALE_YELLOW} strokeOpacity="0.18" strokeWidth="0.5" />;
-        })}
-        <polygon points={toPoints(dataPolygon)} fill={polygonColors.fill}
-          stroke={polygonColors.stroke} strokeWidth="1" strokeLinejoin="round" />
-        {dataPolygon.map(([x, y], i) => normalized[i] > 0.02 && (
-          <circle key={i} cx={x} cy={y} r="1.5" fill={polygonColors.dot} />
-        ))}
-        {SKILL_TAGS.map(({ label }, i) => {
-          const angle = (2 * Math.PI / N) * i - Math.PI / 2;
-          const lx = CX + LABEL_R * Math.cos(angle);
-          const ly = CY + LABEL_R * Math.sin(angle);
-          const { textAnchor, dominantBaseline } = labelAttrs(i);
-          const lines = labelLines(label);
-          const yOffset = lines.length > 1 ? -3 : 0;
-          return (
-            <text key={i} x={lx.toFixed(2)} y={(ly + yOffset).toFixed(2)}
-              textAnchor={textAnchor} dominantBaseline={dominantBaseline}
-              fill={PALE_YELLOW} fontSize="5" fontWeight="700" fontFamily="sans-serif">
-              {lines.map((line, li) => (
-                <tspan key={li} x={lx.toFixed(2)} dy={li === 0 ? '0' : '6'}>{line}</tspan>
-              ))}
-            </text>
-          );
-        })}
-      </svg>
-    );
+    return <RadarChart normalized={normalized} polygonColors={polygonColors} />;
   }
 
   // ── Breakdown / stats renderer — shared by mobile and desktop ──
@@ -553,7 +307,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
         <div className="flex flex-col gap-3">
           {[
             { label: 'Total',    value: totalVolHours > 0 ? `${totalVolHours.toFixed(1)}h` : '—', active: totalVolHours > 0, d: delta(totalVolHours, priorVolHours) },
-            { label: 'Peak',     value: totalVolHours > 0 ? MONTH_SHORT[peakMonthIdx]        : '—', active: totalVolHours > 0 },
+            { label: 'Peak',     value: totalVolHours > 0 ? MONTH_NAMES[peakMonthIdx]        : '—', active: totalVolHours > 0 },
             { label: 'Avg / mo', value: avgPerMonth   > 0 ? `${avgPerMonth.toFixed(1)}h`     : '—', active: avgPerMonth   > 0 },
           ].map(({ label, value, active, d }) => (
             <div key={label} className="flex items-baseline gap-2 flex-wrap">
