@@ -204,7 +204,7 @@ Tailwind brand tokens (in `tailwind.config.ts`): `brand.orange` `#DA7422`, `bran
 ### The Path Ahead (`PathAheadPage.tsx`)
 The main home view. Composed of:
 - **Intention banner** — shows the active weekly intention with animated particles, purple glow, and delete button
-- **Week navigation** — prev/next arrows to browse historical weeks
+- **View toggle** — switch between carousel and list display of the current week's sessions
 - **Day card stack** — swipeable deck of 7 day cards showing sessions per day. Swipe left/right (or tap the day indicator) to navigate. Cards use a z-axis absolute stack with velocity-based threshold and RAF-throttled drag for a natural flick feel. Active card pivots near the bottom edge (`transformOrigin: 50% 85%`) to match thumb position.
 - **Day-initial indicator** — tap any letter below the deck to jump directly to that day
 - **Weekly summary** — session count, total duration, Training Telemetry (top skill tag prose sentence)
@@ -237,7 +237,7 @@ Five views switched via a vertical icon rail. All views share the same card dime
 - **View transition**: exit fast-start 500ms, enter spring 560ms + 120ms delay — no overlap
 
 ### Weekly Intentions
-Set a short focus label (max 20 chars) and category (technical / physical / mental / positional / competitive) for any week. Active intentions display a glowing animated banner on the home screen and overlay each day card. Intentions have duration (1–30 days). Each intention can have a journal entry written via the Journal Entry page (autosaves on 1.5s debounce).
+Set a short focus label (max 20 chars) and category (technical / physical / mental / positional / competitive) for any week. Active intentions display a glowing animated banner on the home screen and overlay each day card. Intentions have duration (preset options: 3, 5, 7, or 14 days). Each intention can have a journal entry written via the Journal Entry page (autosaves on 1.5s debounce).
 
 ### CSV Import (`CsvImportModal.tsx`)
 Import historical training data from a spreadsheet CSV. Client-side parsing with PapaParse, row-by-row review with flagging of duplicates and validation errors, then atomic batch insert via `POST /api/sessions/import` (max 500 rows, transactional).

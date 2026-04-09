@@ -45,7 +45,7 @@ One row per training session. Linked to a user via `user_id`.
 | `polarity` | `varchar(10)` | nullable | `offense \| defense \| neutral` — shown for guard/pins headings |
 | `sub_skill_tag` | `text` | nullable | Optional free-text sub-skill (e.g. "K-Guard") |
 | `script_source` | `varchar(10)` | nullable | `directed \| organic` — class-led vs open mat |
-| `resonance` | `integer` | nullable, 1–10 | How aligned the session felt with active intention |
+| `resonance` | `integer` | nullable | How aligned the session felt with active intention (1–10, enforced at app layer only — no DB CHECK constraint) |
 | `created_at` | `timestamptz` | default `NOW()` | |
 
 #### Valid `tags` / `heading` values
@@ -83,16 +83,16 @@ Index: `idx_password_reset_tokens_token` on `token` for fast lookups.
 
 ### `weekly_intentions`
 
-One row per weekly training intention per user. One intention per user per week is enforced at the application layer (409 on duplicate).
+One row per weekly training intention per user. Uniqueness is enforced at both the DB level (`UNIQUE(user_id, week_start)`) and the application layer (409 on duplicate).
 
 | Column | Type | Constraints | Notes |
 |---|---|---|---|
 | `id` | `uuid` | PK, default `gen_random_uuid()` | |
 | `user_id` | `uuid` | FK → `users.id`, NOT NULL | |
 | `week_start` | `date` | NOT NULL | ISO Monday of the target week |
-| `intent_label` | `varchar(20)` | NOT NULL | Short label, max 20 chars |
-| `intent_category` | `varchar(50)` | nullable | `technical \| physical \| mental \| positional \| competitive` |
-| `duration_days` | `integer` | NOT NULL, default `7` | 1–30 |
+| `intent_label` | `text` | NOT NULL, `char_length ≤ 20` | Short label, max 20 chars |
+| `intent_category` | `text` | nullable, CHECK enum | `technical \| physical \| mental \| positional \| competitive` |
+| `duration_days` | `integer` | NOT NULL, default `7` | 1–30 (DB constraint); UI offers presets 3/5/7/14 |
 | `journal_entry` | `text` | nullable | Free-form reflection, saved via PATCH |
 | `created_at` | `timestamptz` | default `NOW()` | |
 
