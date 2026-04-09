@@ -1,23 +1,25 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Pencil } from 'lucide-react';
 import { api } from '../lib/api.ts';
 import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER_BORDER, SURFACE_2, SURFACE_2_BORDER } from '../lib/theme.ts';
 import { SKILL_TAGS, CATEGORY_COLORS, MONTH_NAMES } from '../lib/constants.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import type { Intention, SessionSummary, IntentionsResponse, SessionsResponse } from '../types/api.ts';
 import PageContent from '../components/PageContent.tsx';
+import SetIntentionModal from '../components/SetIntentionModal.tsx';
 
 function formatWeek(weekStart: string): string {
   const d = new Date(weekStart.slice(0, 10) + 'T00:00:00');
   return `${MONTH_NAMES[d.getMonth()]} ${d.getDate()}`;
 }
 
-// Compute the most frequent tag across a set of sessions in a given week
-function ambientFocus(sessions: SessionSummary[], weekStart: string): string | null {
+// Returns the most-trained skill tag label over the intention's actual duration window
+function ambientFocus(sessions: SessionSummary[], weekStart: string, durationDays: number): string | null {
   const weekStartSlice = weekStart.slice(0, 10);
-  const weekEnd = new Date(weekStartSlice + 'T00:00:00');
-  weekEnd.setDate(weekEnd.getDate() + 6);
-  const weekEndStr = weekEnd.toISOString().slice(0, 10);
+  const endDate = new Date(weekStartSlice + 'T00:00:00');
+  endDate.setDate(endDate.getDate() + durationDays - 1);
+  const weekEndStr = endDate.toISOString().slice(0, 10);
 
   const tagCounts: Record<string, number> = {};
   sessions.forEach(s => {
@@ -31,12 +33,23 @@ function ambientFocus(sessions: SessionSummary[], weekStart: string): string | n
   return top ? (SKILL_TAGS.find(s => s.value === top)?.label ?? top) : null;
 }
 
+// Checks if the intent label text overlaps meaningfully with the ambient focus label
+function computeAlignment(intentLabel: string, ambientLabel: string | null): 'aligned' | 'diverged' | 'no-data' {
+  if (!ambientLabel) return 'no-data';
+  const norm = (s: string) => s.toLowerCase();
+  const labelWords = norm(intentLabel).split(/\W+/).filter(w => w.length > 3);
+  const focusWords = norm(ambientLabel).split(/\W+/).filter(w => w.length > 3);
+  const match = labelWords.some(w => focusWords.includes(w)) || focusWords.some(w => labelWords.includes(w));
+  return match ? 'aligned' : 'diverged';
+}
+
 export default function IntentionsPage() {
   const navigate = useNavigate();
   const { intentionsEnabled } = useProfile();
-  const [intentions, setIntentions] = useState<Intention[]>([]);
-  const [sessions,   setSessions]   = useState<SessionSummary[]>([]);
-  const [loading,    setLoading]    = useState(true);
+  const [intentions,  setIntentions]  = useState<Intention[]>([]);
+  const [sessions,    setSessions]    = useState<SessionSummary[]>([]);
+  const [loading,     setLoading]     = useState(true);
+  const [editTarget,  setEditTarget]  = useState<Intention | null>(null);
 
   const fetchAll = useCallback(async () => {
     try {
@@ -94,11 +107,18 @@ export default function IntentionsPage() {
           </div>
 
           {intentions.map(intention => {
-            const ambient = ambientFocus(sessions, intention.week_start);
+            const ambient       = ambientFocus(sessions, intention.week_start, intention.duration_days);
+            const alignment     = computeAlignment(intention.intent_label, ambient);
+            const alignColor    = alignment === 'aligned'  ? 'rgba(82,181,108,0.85)'
+                                : alignment === 'diverged' ? 'rgba(218,116,34,0.6)'
+                                : 'rgba(255,255,255,0.08)';
+            const alignTitle    = alignment === 'aligned'  ? 'Training aligned with intention'
+                                : alignment === 'diverged' ? 'Training diverged from intention'
+                                : 'No sessions logged';
             const categoryColor = intention.intent_category
               ? (CATEGORY_COLORS[intention.intent_category] ?? 'rgba(255,255,255,0.4)')
               : 'rgba(255,255,255,0.4)';
-            const hasJournal = !!intention.journal_entry;
+            const hasJournal    = !!intention.journal_entry;
             const journalSnippet = hasJournal
               ? intention.journal_entry!.slice(0, 22) + (intention.journal_entry!.length > 22 ? '…' : '')
               : null;
@@ -109,11 +129,21 @@ export default function IntentionsPage() {
                 className="rounded-xl px-4 py-3 sm:grid sm:grid-cols-[80px_1fr_1fr_100px] sm:gap-4 sm:items-center"
                 style={{ backgroundColor: CARD_BG, border: `1px solid ${SURFACE_2_BORDER}` }}
               >
-                {/* Mobile: top row — week + journal link */}
+                {/* Mobile: top row — week + edit + journal link */}
                 <div className="flex items-center justify-between sm:contents">
-                  <p className="text-xs text-white/40 font-medium">{formatWeek(intention.week_start)}</p>
+                  {/* Week + edit button */}
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-white/40 font-medium">{formatWeek(intention.week_start)}</p>
+                    <button
+                      onClick={() => setEditTarget(intention)}
+                      className="text-white/20 hover:text-white/60 transition-colors"
+                      title="Edit intention"
+                    >
+                      <Pencil size={11} />
+                    </button>
+                  </div>
 
-                  {/* Journal entry link — right-aligned on mobile, own column on sm */}
+                  {/* Journal entry link — right-aligned on mobile */}
                   <button
                     onClick={() => navigate(`/intentions/${intention.id}/journal`)}
                     className="flex items-center gap-1.5 text-left transition-colors group sm:hidden"
@@ -142,13 +172,23 @@ export default function IntentionsPage() {
                   <span className="text-sm font-semibold text-white truncate">{intention.intent_label}</span>
                 </div>
 
-                {/* Ambient focus */}
-                <p className="text-xs sm:text-sm text-white/40 sm:text-white/50 mt-0.5 sm:mt-0">
-                  {ambient
-                    ? <><span className="text-white/20 sm:hidden">Ambient: </span>{ambient}</>
-                    : <span className="text-white/20 italic">no data</span>
-                  }
-                </p>
+                {/* Ambient focus + alignment dot */}
+                <div className="flex items-center gap-1.5 mt-0.5 sm:mt-0">
+                  <span
+                    title={alignTitle}
+                    style={{
+                      display: 'inline-block', width: 7, height: 7, borderRadius: '50%',
+                      backgroundColor: alignColor, flexShrink: 0,
+                    }}
+                  />
+                  {ambient ? (
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(218,116,34,0.85)' }}>
+                      ◎ {ambient}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-white/20 italic">no sessions</span>
+                  )}
+                </div>
 
                 {/* Journal entry link — desktop column only */}
                 <button
@@ -168,6 +208,16 @@ export default function IntentionsPage() {
             );
           })}
         </div>
+      )}
+
+      {/* Edit modal */}
+      {editTarget && (
+        <SetIntentionModal
+          weekStart={new Date(editTarget.week_start + 'T00:00:00')}
+          editIntention={editTarget}
+          onSaved={fetchAll}
+          onClose={() => setEditTarget(null)}
+        />
       )}
     </div>
     </PageContent>

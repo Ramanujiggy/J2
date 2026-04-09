@@ -58,6 +58,23 @@ export const updateJournalEntry = async (
   return result.rows[0] ?? null;
 };
 
+export const updateIntention = async (
+  userId: string,
+  id: string,
+  intentLabel: string,
+  intentCategory: string | null,
+  durationDays: number,
+): Promise<Intention | null> => {
+  const result = await query(
+    `UPDATE weekly_intentions
+     SET intent_label = $1, intent_category = $2, duration_days = $3
+     WHERE id = $4 AND user_id = $5
+     RETURNING *`,
+    [intentLabel, intentCategory, durationDays, id, userId],
+  );
+  return result.rows[0] ?? null;
+};
+
 export const deleteIntention = async (userId: string, id: string): Promise<boolean> => {
   const result = await query(
     `DELETE FROM weekly_intentions WHERE id = $1 AND user_id = $2`,

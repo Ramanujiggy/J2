@@ -342,6 +342,19 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
     return cutoff ? sessions.filter(s => new Date(s.date) >= cutoff) : sessions;
   }, [sessions, timeWindow, customRange]);
 
+  // ── Prior period (same window length, shifted back) — enables delta stats ──
+  const priorFiltered = useMemo(() => {
+    if (timeWindow === 'custom') return null;
+    const days = WINDOW_DAYS[timeWindow];
+    if (!days) return null;
+    const cutoff      = new Date(Date.now() - days * 86_400_000);
+    const priorCutoff = new Date(Date.now() - days * 2 * 86_400_000);
+    return sessions.filter(s => {
+      const d = new Date(s.date + 'T00:00:00');
+      return d >= priorCutoff && d < cutoff;
+    });
+  }, [sessions, timeWindow]);
+
   // ── Prism data ──
   const hoursMap: Record<string, number> = Object.fromEntries(SKILL_TAGS.map(({ value }) => [value, 0]));
   for (const s of filtered) {
@@ -415,8 +428,30 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
   const peakWeek         = weeklyData.reduce((best, w) => w.hours > best.hours ? w : best, weeklyData[0]);
   const avgWeeklyHours   = activeWeeks > 0 ? totalWeeklyHours / activeWeeks : 0;
 
+  // ── Prior period stats ──
+  const priorVolHours    = priorFiltered?.reduce((sum, s) => sum + s.duration / 60, 0) ?? null;
+  const priorSplitTotal  = priorFiltered
+    ? priorFiltered.filter(s => s.gi_nogi === 'gi' || s.gi_nogi === 'no_gi').reduce((sum, s) => sum + s.duration / 60, 0)
+    : null;
+  const priorFormatTotal = priorFiltered
+    ? priorFiltered.filter(s => ['class','drilling','competition_training'].includes(s.session_type)).reduce((sum, s) => sum + s.duration / 60, 0)
+    : null;
+
+  // Returns a delta badge string like "↑40%" or "↓12%", or null if unavailable
+  function delta(current: number, prior: number | null): string | null {
+    if (prior === null || prior < 0.01) return null;
+    const p = Math.round(((current - prior) / prior) * 100);
+    return (p >= 0 ? '↑' : '↓') + Math.abs(p) + '%';
+  }
+
   // ── Pre-computed row arrays ──
-  const prismRows = SKILL_TAGS.map(({ label }, i) => ({ label, h: hours[i], total: totalTaggedHours, color: undefined as string | undefined }));
+  const prismRows = SKILL_TAGS.map(({ label, value }, i) => ({
+    label,
+    h:          hours[i],
+    total:      totalTaggedHours,
+    color:      (SKILL_COLORS[value]?.dot ?? DEFAULT_COLORS.dot) as string,
+    isDominant: hasData && i === dominantIndex,
+  }));
 
   // ── Helpers ──
   function fmtVal(h: number, total: number): string {
@@ -445,7 +480,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
     );
     if (mode === 'split') return (
       <div className="flex justify-center">
-        <div style={{ width: 180, height: 180 }}>
+        <div style={{ width: '100%', maxWidth: 240, aspectRatio: '1' }}>
           <DonutChart
             segments={[
               { value: giHours,   color: SEG_GI,  label: 'Gi'    },
@@ -459,7 +494,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
     );
     if (mode === 'format') return (
       <div className="flex justify-center">
-        <div style={{ width: 180, height: 180 }}>
+        <div style={{ width: '100%', maxWidth: 240, aspectRatio: '1' }}>
           <DonutChart
             segments={[
               { value: classHours, color: SEG_CLASS, label: 'Class'       },
@@ -517,17 +552,18 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
       return (
         <div className="flex flex-col gap-3">
           {[
-            { label: 'Total',    value: totalVolHours > 0 ? `${totalVolHours.toFixed(1)}h` : '—', active: totalVolHours > 0 },
+            { label: 'Total',    value: totalVolHours > 0 ? `${totalVolHours.toFixed(1)}h` : '—', active: totalVolHours > 0, d: delta(totalVolHours, priorVolHours) },
             { label: 'Peak',     value: totalVolHours > 0 ? MONTH_SHORT[peakMonthIdx]        : '—', active: totalVolHours > 0 },
             { label: 'Avg / mo', value: avgPerMonth   > 0 ? `${avgPerMonth.toFixed(1)}h`     : '—', active: avgPerMonth   > 0 },
-          ].map(({ label, value, active }) => (
-            <div key={label} className="flex items-baseline gap-2">
+          ].map(({ label, value, active, d }) => (
+            <div key={label} className="flex items-baseline gap-2 flex-wrap">
               <span className="text-xs font-bold" style={{ color: PALE_YELLOW }}>{label}</span>
               <span className="text-xs" style={{ color: 'rgba(242,228,168,0.25)' }}>|</span>
               <span className="text-2xl font-bold" style={{
                 color: active ? PALE_YELLOW : 'rgba(255,255,255,0.15)',
                 textShadow: active ? GLOW_SOFT : 'none',
               }}>{value}</span>
+              {d && <span style={{ fontSize: 11, fontWeight: 600, alignSelf: 'center', color: d.startsWith('↑') ? 'rgba(82,181,108,0.85)' : 'rgba(218,90,70,0.75)' }}>{d}</span>}
             </div>
           ))}
         </div>
@@ -554,41 +590,50 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
         </div>
       );
     }
+
     if (mode === 'split') {
+      const giPct   = splitTotal > 0 ? Math.round((giHours   / splitTotal) * 100) : 0;
+      const nogiPct = splitTotal > 0 ? Math.round((nogiHours / splitTotal) * 100) : 0;
       return (
         <div className="flex flex-col gap-3">
           {[
-            { label: 'Total',    value: splitTotal > 0 ? `${splitTotal.toFixed(1)}h` : '—',                   active: splitTotal > 0 },
-            { label: 'Dominant', value: splitTotal > 0 ? (giHours >= nogiHours ? 'Gi' : 'No-Gi') : '—',       active: splitTotal > 0 },
-          ].map(({ label, value, active }) => (
-            <div key={label} className="flex items-baseline gap-2">
+            { label: 'Total',  value: splitTotal > 0 ? `${splitTotal.toFixed(1)}h` : '—',                 active: splitTotal > 0,  d: delta(splitTotal,  priorSplitTotal) },
+            { label: 'Gi',     value: giHours   > 0 ? `${giHours.toFixed(1)}h (${giPct}%)`   : '—',     active: giHours   > 0 },
+            { label: 'No-Gi',  value: nogiHours > 0 ? `${nogiHours.toFixed(1)}h (${nogiPct}%)` : '—',  active: nogiHours > 0 },
+          ].map(({ label, value, active, d }) => (
+            <div key={label} className="flex items-baseline gap-2 flex-wrap">
               <span className="text-xs font-bold" style={{ color: PALE_YELLOW }}>{label}</span>
               <span className="text-xs" style={{ color: 'rgba(242,228,168,0.25)' }}>|</span>
               <span className="text-2xl font-bold" style={{
                 color: active ? PALE_YELLOW : 'rgba(255,255,255,0.15)',
                 textShadow: active ? GLOW_SOFT : 'none',
               }}>{value}</span>
+              {d && <span style={{ fontSize: 11, fontWeight: 600, alignSelf: 'center', color: d.startsWith('↑') ? 'rgba(82,181,108,0.85)' : 'rgba(218,90,70,0.75)' }}>{d}</span>}
             </div>
           ))}
         </div>
       );
     }
     if (mode === 'format') {
-      const primaryIdx = [classHours, drillHours, compHours].indexOf(Math.max(classHours, drillHours, compHours));
-      const primaryLabel = ['Class', 'Drilling', 'Competition'][primaryIdx];
+      const clsPct   = formatTotal > 0 ? Math.round((classHours / formatTotal) * 100) : 0;
+      const drlPct   = formatTotal > 0 ? Math.round((drillHours / formatTotal) * 100) : 0;
+      const cmpPct   = formatTotal > 0 ? Math.round((compHours  / formatTotal) * 100) : 0;
       return (
         <div className="flex flex-col gap-3">
           {[
-            { label: 'Total',   value: formatTotal > 0 ? `${formatTotal.toFixed(1)}h` : '—', active: formatTotal > 0 },
-            { label: 'Primary', value: formatTotal > 0 ? primaryLabel : '—',                 active: formatTotal > 0 },
-          ].map(({ label, value, active }) => (
-            <div key={label} className="flex items-baseline gap-2">
+            { label: 'Total',  value: formatTotal > 0 ? `${formatTotal.toFixed(1)}h` : '—',              active: formatTotal > 0, d: delta(formatTotal, priorFormatTotal) },
+            { label: 'Class',  value: classHours > 0 ? `${classHours.toFixed(1)}h (${clsPct}%)` : '—', active: classHours > 0 },
+            { label: 'Drill',  value: drillHours > 0 ? `${drillHours.toFixed(1)}h (${drlPct}%)` : '—', active: drillHours > 0 },
+            { label: 'Comp',   value: compHours  > 0 ? `${compHours.toFixed(1)}h (${cmpPct}%)`  : '—', active: compHours  > 0 },
+          ].map(({ label, value, active, d }) => (
+            <div key={label} className="flex items-baseline gap-2 flex-wrap">
               <span className="text-xs font-bold" style={{ color: PALE_YELLOW }}>{label}</span>
               <span className="text-xs" style={{ color: 'rgba(242,228,168,0.25)' }}>|</span>
               <span className="text-2xl font-bold" style={{
                 color: active ? PALE_YELLOW : 'rgba(255,255,255,0.15)',
                 textShadow: active ? GLOW_SOFT : 'none',
               }}>{value}</span>
+              {d && <span style={{ fontSize: 11, fontWeight: 600, alignSelf: 'center', color: d.startsWith('↑') ? 'rgba(82,181,108,0.85)' : 'rgba(218,90,70,0.75)' }}>{d}</span>}
             </div>
           ))}
         </div>
@@ -599,17 +644,26 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
     const maxRowH = Math.max(...rows.map(r => r.h), 0.001);
     return (
       <div className="space-y-3">
-        {rows.map(({ label, h, total, color }) => {
+        {rows.map(({ label, h, total, color, isDominant }) => {
           const barW = displayMode === 'hours'
             ? (h > 0 ? Math.max((h / maxRowH) * BAR_MAX_PX, 6) : 2)
             : 1.5;
           return (
             <div key={label} className="flex items-center gap-2">
               <div className="flex items-center gap-1.5 flex-shrink-0">
-                {color && (
-                  <div className="flex-shrink-0" style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: color }} />
-                )}
-                <span className="text-xs font-bold" style={{ color: PALE_YELLOW }}>{label}</span>
+                <div
+                  className="flex-shrink-0"
+                  style={{
+                    width: 8, height: 8, borderRadius: 2,
+                    backgroundColor: h > 0 ? color : 'rgba(255,255,255,0.12)',
+                  }}
+                />
+                <span
+                  className="text-xs font-bold"
+                  style={{ color: isDominant ? color : PALE_YELLOW }}
+                >
+                  {label}{isDominant && h > 0 ? ' ★' : ''}
+                </span>
               </div>
               <div
                 className="flex-shrink-0"
@@ -617,7 +671,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
                   width:  `${barW}px`,
                   height: displayMode === 'hours' ? '5px' : '13px',
                   backgroundColor: h > 0
-                    ? (displayMode === 'hours' ? 'rgba(242,228,168,0.45)' : 'rgba(242,228,168,0.25)')
+                    ? (displayMode === 'hours' ? color.replace(/[\d.]+\)$/, '0.45)') : 'rgba(242,228,168,0.25)')
                     : 'rgba(255,255,255,0.1)',
                   borderRadius: displayMode === 'hours' ? '2.5px' : '1px',
                   transition: 'width 450ms cubic-bezier(0.4,0,0.2,1), height 300ms ease, border-radius 300ms ease',

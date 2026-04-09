@@ -13,6 +13,8 @@ const WINDOW_DAYS: Partial<Record<TimeWindow, number>> = {
   '7d': 7, '14d': 14, '30d': 30, '90d': 90, '180d': 180, '1y': 365,
 };
 
+const LS_WINDOW_KEY = 'j2-analytics-timeWindow';
+
 function formatWeek(weekStart: string): string {
   const d = new Date(weekStart.slice(0, 10) + 'T00:00:00');
   return `${MONTH_NAMES[d.getMonth()]} ${d.getDate()}`;
@@ -42,24 +44,46 @@ function topTagInRange(
   return { label, count: top[1] };
 }
 
+function computeAlignment(intentLabel: string, ambientLabel: string | null): 'aligned' | 'diverged' | 'no-data' {
+  if (!ambientLabel) return 'no-data';
+  const norm = (s: string) => s.toLowerCase();
+  const labelWords = norm(intentLabel).split(/\W+/).filter(w => w.length > 3);
+  const focusWords = norm(ambientLabel).split(/\W+/).filter(w => w.length > 3);
+  const match = labelWords.some(w => focusWords.includes(w)) || focusWords.some(w => labelWords.includes(w));
+  return match ? 'aligned' : 'diverged';
+}
+
 export default function AnalyticsPage() {
   const [sessions,    setSessions]    = useState<SessionSummary[]>([]);
   const [intentions,  setIntentions]  = useState<Intention[]>([]);
   const [loading,     setLoading]     = useState(true);
   const [fetchError,  setFetchError]  = useState<string | null>(null);
-  const [timeWindow,   setTimeWindow]   = useState<TimeWindow>('30d');
-  const [customRange,  setCustomRange]  = useState<{ start: string; end: string } | null>(null);
+
+  // Persist selected time window across visits
+  const [timeWindow, setTimeWindow] = useState<TimeWindow>(() => {
+    const stored = localStorage.getItem(LS_WINDOW_KEY);
+    return (stored as TimeWindow | null) ?? '30d';
+  });
+  useEffect(() => { localStorage.setItem(LS_WINDOW_KEY, timeWindow); }, [timeWindow]);
+
+  const [customRange, setCustomRange] = useState<{ start: string; end: string } | null>(null);
 
   const fetchAll = useCallback(async () => {
     try {
       setFetchError(null);
       const sessionUrl = (() => {
         if (timeWindow === 'custom' && customRange) {
-          return `/api/sessions?from=${customRange.start}&to=${customRange.end}`;
+          // Fetch prior period too for delta calculation
+          const start = new Date(customRange.start + 'T00:00:00');
+          const end   = new Date(customRange.end   + 'T23:59:59');
+          const durationMs = end.getTime() - start.getTime();
+          const priorStart = new Date(start.getTime() - durationMs).toISOString().slice(0, 10);
+          return `/api/sessions?from=${priorStart}&to=${customRange.end}`;
         }
         const days = WINDOW_DAYS[timeWindow];
+        // Fetch 2× the window so SkillRadar can compute prior-period deltas
         return days != null
-          ? `/api/sessions?from=${new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10)}`
+          ? `/api/sessions?from=${new Date(Date.now() - days * 2 * 86_400_000).toISOString().slice(0, 10)}`
           : '/api/sessions';
       })();
       const [sesRes, intRes] = await Promise.all([
@@ -126,7 +150,14 @@ export default function AnalyticsPage() {
 
               <div className="sm:divide-y sm:divide-white/[0.05] flex flex-col sm:block gap-2 sm:gap-0 p-3 sm:p-0">
                 {intentions.map(intention => {
-                  const top = topTagInRange(allSessions, intention.week_start, intention.duration_days);
+                  const top         = topTagInRange(allSessions, intention.week_start, intention.duration_days);
+                  const alignment   = computeAlignment(intention.intent_label, top?.label ?? null);
+                  const alignColor  = alignment === 'aligned'  ? 'rgba(82,181,108,0.85)'
+                                    : alignment === 'diverged' ? 'rgba(218,116,34,0.6)'
+                                    : 'rgba(255,255,255,0.08)';
+                  const alignTitle  = alignment === 'aligned'  ? 'Training aligned with intention'
+                                    : alignment === 'diverged' ? 'Training diverged from intention'
+                                    : 'No sessions logged';
                   const categoryColor = CATEGORY_COLORS[intention.intent_category ?? ''] ?? 'rgba(255,255,255,0.3)';
                   return (
                     <div
@@ -154,9 +185,15 @@ export default function AnalyticsPage() {
                         <span className="text-sm text-white/80 truncate">{intention.intent_label}</span>
                       </div>
 
-                      {/* Ambient Focus */}
+                      {/* Ambient Focus + alignment dot */}
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] text-white/25 sm:hidden">Telemetry: </span>
+                        <span
+                          title={alignTitle}
+                          style={{
+                            display: 'inline-block', width: 7, height: 7, borderRadius: '50%',
+                            backgroundColor: alignColor, flexShrink: 0,
+                          }}
+                        />
                         {top ? (
                           <>
                             <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(218,116,34,0.85)' }}>

@@ -121,6 +121,50 @@ export const patchJournalEntry = async (req: Request, res: Response) => {
   }
 };
 
+// ---- PATCH /api/intentions/:id -------------------------------------------
+// Body: { intent_label, intent_category?, duration_days? }
+// Updates label, category, and duration. week_start is immutable.
+
+export const patchIntention = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { id } = req.params;
+    const { intent_label, intent_category, duration_days } = req.body;
+
+    if (!intent_label || typeof intent_label !== 'string' || intent_label.trim() === '') {
+      return res.status(400).json({ message: 'intent_label is required.' });
+    }
+    if (intent_label.trim().length > 20) {
+      return res.status(400).json({ message: 'intent_label must be 20 characters or fewer.' });
+    }
+    if (intent_category !== undefined && intent_category !== null && !VALID_CATEGORIES.has(intent_category)) {
+      return res.status(400).json({ message: 'Invalid intent_category.' });
+    }
+
+    const durationDays = duration_days !== undefined ? Math.round(Number(duration_days)) : 7;
+    if (!Number.isFinite(durationDays) || durationDays < 1 || durationDays > 30) {
+      return res.status(400).json({ message: 'duration_days must be an integer between 1 and 30.' });
+    }
+
+    const updated = await intentionModel.updateIntention(
+      userId,
+      id!,
+      intent_label.trim(),
+      intent_category ?? null,
+      durationDays,
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: 'Intention not found or not owned by user.' });
+    }
+
+    res.status(200).json({ message: 'Intention updated.', intention: updated });
+  } catch (error) {
+    console.error('❌ Error updating intention:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 // ---- DELETE /api/intentions/:id ------------------------------------------
 // Deletes an intention. Only the owning user can delete.
 

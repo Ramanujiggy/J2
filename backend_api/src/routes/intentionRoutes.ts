@@ -5,6 +5,7 @@ import {
   getIntentions,
   getCurrentIntention,
   deleteIntention,
+  patchIntention,
   patchJournalEntry,
 } from '../controllers/intentionController.js';
 
@@ -16,6 +17,7 @@ router.use(verifyToken);
 router.post('/',        createIntention);
 router.get('/',         getIntentions);
 router.get('/current',  getCurrentIntention);
+router.patch('/:id',           patchIntention);
 router.delete('/:id',          deleteIntention);
 router.patch('/:id/journal',   patchJournalEntry);
 
