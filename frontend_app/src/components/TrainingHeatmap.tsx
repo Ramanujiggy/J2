@@ -29,11 +29,11 @@ const MONTH_ABBR = [
 ];
 
 const LEGEND = [
-  { color: HEATMAP_REST, label: 'Rest' },
-  { color: '#A8CB72',    label: 'Easy' },
-  { color: '#52B56C',    label: 'Moderate' },
-  { color: '#D4A040',    label: 'Hard' },
-  { color: '#DA7422',    label: 'Max' },
+  { color: HEATMAP_REST, label: 'Rest',     range: ''    },
+  { color: '#A8CB72',    label: 'Easy',     range: '1–2' },
+  { color: '#52B56C',    label: 'Moderate', range: '3'   },
+  { color: '#D4A040',    label: 'Hard',     range: '4'   },
+  { color: '#DA7422',    label: 'Max',      range: '5'   },
 ] as const;
 
 // Particles for the intention column on the active week
@@ -264,6 +264,9 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
 
   const now = new Date();
   const todayStr = localDateKey(now);
+  // Index into DOW array (Mon=0 … Sun=6) for the current day — used to highlight today's column header.
+  // Only applies when viewing the current year; -1 disables the highlight for past/future years.
+  const todayDowIndex = year === now.getFullYear() ? (now.getDay() + 6) % 7 : -1;
   const dayMap = buildDayMap(sessions);
   const { rows, year } = buildWeekRows(dayMap, yearProp ?? new Date().getFullYear());
   const { totalSessions, totalMinutes, giMinutes, nogiMinutes, streak, streakDays } = computeStats(sessions, year);
@@ -351,9 +354,11 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
           <p className="text-2xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>{nogiHours}h</p>
           <p className="text-xs mt-0.5" style={{ color: 'rgba(242,228,168,0.5)' }}>No-Gi hours</p>
         </div>
+        {/* Thin separator — streak is a consistency metric, distinct from volume */}
+        <div className="self-center flex-shrink-0" style={{ width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.08)' }} />
         <div>
           <p className="text-2xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>{Math.round(animStreak)}</p>
-          <p className="text-xs mt-0.5" style={{ color: 'rgba(242,228,168,0.5)' }}>Day streak</p>
+          <p className="text-xs mt-0.5" style={{ color: 'rgba(196,145,95,0.65)' }}>Day streak</p>
         </div>
         <div className="ml-auto flex items-center">
           <button
@@ -387,13 +392,23 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
           style={{ backgroundColor: HEATMAP_HEADER_BG, boxShadow: '0 3px 10px rgba(0,0,0,0.6)' }}
         >
           <div className="py-2" />
-          {DOW.map(d => (
-            <div key={d} className="py-2 text-center text-xs font-medium" style={{ color: 'rgba(242,228,168,0.5)' }}>
-              {d}
-            </div>
-          ))}
-          <div className="py-2 pl-4 text-xs font-medium hidden sm:block" style={{ color: 'rgba(242,228,168,0.5)' }}>Intention</div>
-          <div className="py-2 pl-3 text-xs font-medium hidden sm:block" style={{ color: 'rgba(242,228,168,0.5)' }}>Journal</div>
+          {DOW.map((d, i) => {
+            const isToday = i === todayDowIndex;
+            return (
+              <div
+                key={d}
+                className="py-2 text-center text-xs font-semibold"
+                style={{
+                  color: isToday ? 'rgba(242,228,168,0.92)' : 'rgba(242,228,168,0.55)',
+                  textShadow: isToday ? '0 0 10px rgba(242,228,168,0.35)' : 'none',
+                }}
+              >
+                {d}
+              </div>
+            );
+          })}
+          <div className="py-2 pl-4 text-xs font-semibold hidden sm:block" style={{ color: 'rgba(242,228,168,0.55)' }}>Intention</div>
+          <div className="py-2 pl-3 text-xs font-semibold hidden sm:block" style={{ color: 'rgba(242,228,168,0.55)' }}>Journal</div>
         </div>
 
         {/* Week rows */}
@@ -473,6 +488,8 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                 // Champagne streak glow: trained day that is part of the current active streak
                 const isInStreak = day.count > 0 && streakDays.has(dayDateStr);
 
+                const isToday = key === todayStr;
+
                 const handleClick = () => {
                   if (!isClickable) return;
                   const daySessions = sessions
@@ -486,6 +503,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                     <div
                       className={`rounded flex items-end px-1 j2-heatmap-cell${isInStreak ? ' j2-streak-cell' : ''}`}
                       style={{
+                        position: 'relative',
                         height: '40px',
                         backgroundColor: (() => {
                           if (!isCurrentYear) return '#0D1812'; // flat muted — clearly inactive, no opacity trick
@@ -505,6 +523,18 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                       }}
                       onClick={handleClick}
                     >
+                      {isToday && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: 0, left: 0, right: 0,
+                            height: 2,
+                            borderRadius: '3px 3px 0 0',
+                            backgroundColor: 'rgba(242,228,168,0.7)',
+                            pointerEvents: 'none',
+                          }}
+                        />
+                      )}
                       <span
                         className="leading-none select-none pointer-events-none whitespace-nowrap"
                         style={{ fontSize: '10px', fontWeight: 500, color: 'rgba(255,255,255,0.65)' }}
@@ -589,15 +619,18 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
       </div>}
 
       {/* Legend — hidden when empty */}
-      {sessions.length > 0 && <div className="flex items-center gap-4 mt-5 pt-4 border-t border-white/10 text-xs" style={{ color: 'rgba(242,228,168,0.5)' }}>
-        <span>Intensity</span>
-        {LEGEND.map(({ color, label }) => (
-          <div key={label} className="flex items-center gap-1.5">
-            <div className="rounded-sm w-3 h-3" style={{ backgroundColor: color }} />
-            <span>{label}</span>
-          </div>
-        ))}
-      </div>}
+      {sessions.length > 0 && (
+        <div className="flex items-center gap-4 mt-5 pt-4 border-t border-white/10">
+          <span className="text-xs font-medium flex-shrink-0 self-center" style={{ color: 'rgba(196,145,95,0.7)' }}>Intensity</span>
+          {LEGEND.map(({ color, label, range }) => (
+            <div key={label} className="flex flex-col items-center gap-0.5">
+              <div style={{ width: 28, height: 10, borderRadius: 3, backgroundColor: color }} />
+              <span className="text-[10px] leading-none" style={{ color: 'rgba(242,228,168,0.65)' }}>{label}</span>
+              <span className="text-[9px] leading-none" style={{ color: range ? 'rgba(255,255,255,0.32)' : 'transparent' }}>{range || '—'}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Session detail / edit modal */}
       {selectedSession && (

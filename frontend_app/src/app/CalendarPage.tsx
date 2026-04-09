@@ -71,7 +71,7 @@ export default function CalendarPage() {
           {displayYear} Mat Time
         </h2>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {/* View toggle */}
           <div className="flex gap-0.5 p-0.5 rounded-lg" style={{ backgroundColor: SURFACE_2 }}>
             {([
@@ -99,21 +99,28 @@ export default function CalendarPage() {
             })}
           </div>
 
-          {/* Year navigation */}
-          <div className="flex items-center gap-2">
+          {/* Year navigation — same pill treatment as view toggle */}
+          <div className="flex items-center p-0.5 rounded-lg" style={{ backgroundColor: SURFACE_2 }}>
             <button
               onClick={() => navigateYear(-1)}
-              className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-colors"
+              className="p-1.5 rounded-md hover:bg-white/5 transition-colors touch-manipulation"
+              style={{ color: 'rgba(242,228,168,0.45)' }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                 <path d="M15 18l-6-6 6-6" />
               </svg>
             </button>
-            <span className="text-sm font-medium text-white/60 w-10 text-center">{displayYear}</span>
+            <span
+              className="w-10 text-center select-none"
+              style={{ fontSize: 13, fontWeight: 600, color: 'rgba(242,228,168,0.85)' }}
+            >
+              {displayYear}
+            </span>
             <button
               onClick={() => navigateYear(1)}
               disabled={displayYear >= currentYear}
-              className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-20 disabled:cursor-not-allowed"
+              className="p-1.5 rounded-md hover:bg-white/5 transition-colors disabled:opacity-20 disabled:cursor-not-allowed touch-manipulation"
+              style={{ color: 'rgba(242,228,168,0.45)' }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 18l6-6-6-6" />
