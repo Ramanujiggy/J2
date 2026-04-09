@@ -126,6 +126,7 @@ describe('POST /api/sessions', () => {
       TEST_USER_ID, VALID_SESSION_BODY.date, VALID_SESSION_BODY.duration,
       VALID_SESSION_BODY.notes, VALID_SESSION_BODY.gi_nogi, VALID_SESSION_BODY.intensity,
       VALID_SESSION_BODY.session_type, VALID_SESSION_BODY.tags,
+      null, null, null, null, null,
     );
   });
 });
