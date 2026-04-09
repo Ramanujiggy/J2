@@ -484,7 +484,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                 const cellEl = (
                   <div className="px-0.5 py-1" style={{ position: 'relative', zIndex: 1 }}>
                     <div
-                      className={`rounded flex items-end px-1 j2-heatmap-cell${isInStreak && !hasResonance ? ' j2-streak-cell' : ''}`}
+                      className={`rounded flex items-end px-1 j2-heatmap-cell${isInStreak ? ' j2-streak-cell' : ''}`}
                       style={{
                         height: '40px',
                         backgroundColor: (() => {
