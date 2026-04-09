@@ -264,11 +264,11 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
 
   const now = new Date();
   const todayStr = localDateKey(now);
+  const dayMap = buildDayMap(sessions);
+  const { rows, year } = buildWeekRows(dayMap, yearProp ?? new Date().getFullYear());
   // Index into DOW array (Mon=0 … Sun=6) for the current day — used to highlight today's column header.
   // Only applies when viewing the current year; -1 disables the highlight for past/future years.
   const todayDowIndex = year === now.getFullYear() ? (now.getDay() + 6) % 7 : -1;
-  const dayMap = buildDayMap(sessions);
-  const { rows, year } = buildWeekRows(dayMap, yearProp ?? new Date().getFullYear());
   const { totalSessions, totalMinutes, giMinutes, nogiMinutes, streak, streakDays } = computeStats(sessions, year);
   const hoursNum  = totalMinutes > 0 ? totalMinutes / 60 : 0;
   const giHoursNum = giMinutes > 0 ? giMinutes / 60 : 0;
