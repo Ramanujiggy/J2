@@ -53,7 +53,9 @@ J2/
     │   │                     WaveBackground, ErrorBoundary
     │   ├── context/          AuthContext (JWT in localStorage), ProfileContext
     │   ├── hooks/            useAuth, useCountUp, useOnlineRefetch, useOnlineSync, usePendingSessions, use-toast
-    │   └── lib/              api.ts, constants.ts, theme.ts, utils.ts, csvParser.ts
+    │   ├── types/            api.ts (shared API response types)
+    │   └── lib/              api.ts, offlineQueue.ts, apiCache.ts, pendingSessions.ts,
+    │                         belt.ts, constants.ts, theme.ts, utils.ts, csvParser.ts
     └── docs/
         └── components.md     Component catalog
 ```
