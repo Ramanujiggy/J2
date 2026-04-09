@@ -92,7 +92,7 @@ One row per weekly training intention per user. One intention per user per week 
 | `week_start` | `date` | NOT NULL | ISO Monday of the target week |
 | `intent_label` | `varchar(20)` | NOT NULL | Short label, max 20 chars |
 | `intent_category` | `varchar(50)` | nullable | `technical \| physical \| mental \| positional \| competitive` |
-| `duration_days` | `integer` | nullable | 1–30, defaults to 7 |
+| `duration_days` | `integer` | NOT NULL, default `7` | 1–30 |
 | `journal_entry` | `text` | nullable | Free-form reflection, saved via PATCH |
 | `created_at` | `timestamptz` | default `NOW()` | |
 
@@ -144,7 +144,7 @@ ALTER TABLE users
   ADD COLUMN IF NOT EXISTS intentions_enabled BOOLEAN NOT NULL DEFAULT TRUE;
 
 -- 005_dynamic_pillar_engine.sql
--- Renames old tag values, adds pillar engine columns, renames intent_resonance → resonance.
+-- Renames old tag values, adds pillar engine columns, renames intent_resonance → resonance (1–10).
 UPDATE training_sessions SET tags = array_replace(tags, 'guard_retention', 'guard');
 UPDATE training_sessions SET tags = array_replace(tags, 'pin_escapes',     'pins');
 UPDATE training_sessions SET tags = array_replace(tags, 'guard_passing',   'passing');
@@ -152,10 +152,10 @@ ALTER TABLE training_sessions
   ADD COLUMN IF NOT EXISTS heading       varchar(20),
   ADD COLUMN IF NOT EXISTS polarity      varchar(10),
   ADD COLUMN IF NOT EXISTS sub_skill_tag text,
-  ADD COLUMN IF NOT EXISTS script_source varchar(10),
-  ADD COLUMN IF NOT EXISTS resonance     integer;
--- Also drop the old check constraint if it survived the rename:
--- ALTER TABLE training_sessions DROP CONSTRAINT IF EXISTS training_sessions_intent_resonance_check;
+  ADD COLUMN IF NOT EXISTS script_source varchar(10);
+ALTER TABLE training_sessions RENAME COLUMN intent_resonance TO resonance;
+-- The old check constraint (values 1–3) survives the rename. Drop it:
+ALTER TABLE training_sessions DROP CONSTRAINT IF EXISTS training_sessions_intent_resonance_check;
 ```
 
 ---

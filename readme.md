@@ -52,7 +52,7 @@ J2/
     │   │                     CsvImportModal, PageTransition, OfflineBanner,
     │   │                     WaveBackground, ErrorBoundary
     │   ├── context/          AuthContext (JWT in localStorage), ProfileContext
-    │   ├── hooks/            useAuth, useOnlineRefetch, useOnlineSync, usePendingSessions, use-toast
+    │   ├── hooks/            useAuth, useCountUp, useOnlineRefetch, useOnlineSync, usePendingSessions, use-toast
     │   └── lib/              api.ts, constants.ts, theme.ts, utils.ts, csvParser.ts
     └── docs/
         └── components.md     Component catalog
