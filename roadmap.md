@@ -11,7 +11,7 @@ Development areas identified from codebase assessment. Updated as work progresse
 | Status | Area | Description |
 |---|---|---|
 | `[~]` | **Testing — backend** | Vitest backend suite exists (auth, sessions, JWT middleware) + Husky pre-commit hook configured. ⚠️ Currently broken — Vitest 4.x requires Node 22+ (`styleText` from `node:util`), system runs Node 20.11.1. Fix: upgrade Node to v22 LTS or downgrade Vitest to 3.x. |
-| `[ ]` | **Password reset token hashing** | Reset tokens are stored in plaintext. Hash with SHA-256 before insert; compare hash on validation. Prevents account takeover if the `password_reset_tokens` table is ever exposed. |
+| `[x]` | **Password reset token hashing** | Reset tokens are stored as SHA-256 hashes. Raw token travels only in the email link; DB never holds the plaintext token. |
 | `[~]` | **Frontend testing** | 3 test files (22 tests, all passing): `HomePage.test.tsx`, `LogSessionForm.test.tsx`, `PathAheadPage.swipe.test.tsx`. Coverage ~10%. High-value additions: `api.ts` (offline queue/cache — riskiest untested code), `SessionDetailModal` (complex 3D flip, just had a bug), all hooks, shared test render wrapper with providers. |
 | `[~]` | **E2E testing (Playwright)** | 3 spec files (19 tests × 3 viewports): auth UI, visual screenshots, mobile tap regression guards. Core user journeys untested: log session, edit/delete session, set intention, CSV import, profile updates. Also needs: CI/CD workflow, test data cleanup, rate-limit handling. |
 | `[ ]` | **CI/CD pipeline** | No GitHub Actions workflow exists. Tests only run manually. Add workflow to run frontend unit tests + Playwright E2E on every PR. |
@@ -25,6 +25,7 @@ Development areas identified from codebase assessment. Updated as work progresse
 | Status | Area | Description |
 |---|---|---|
 | `[x]` | **Session data scoping** | CalendarPage fetches scoped to selected year (`?from&to`); AnalyticsPage fetches scoped to active time window (`?from`). Sessions re-fetched when year/window changes. |
+| `[ ]` | **ProfileContext listener leak** | `useOnlineRefetch(refreshProfile)` re-registers a new listener on every render because `refreshProfile` is not stabilized with `useCallback`. Wrap `refreshProfile` in `useCallback` with stable deps to prevent repeated registrations. |
 
 ---
 
@@ -56,8 +57,13 @@ Development areas identified from codebase assessment. Updated as work progresse
 | `[x]` | **Consolidate duplicate types** | Created `src/types/api.ts` as single source of truth for `SessionSummary`, `Intention`, `CalendarIntention`, `SessionsResponse`, `IntentionsResponse`, `ProfileResponse`. All 8 consumer files updated to import from there. |
 | `[x]` | **Consolidate duplicate constants** | `CATEGORY_COLORS` and `MONTH_NAMES` moved to `src/lib/constants.ts`. All 4 consumer files updated. |
 | `[x]` | **Delete DashboardPage.tsx** | Deleted. 161 lines of dead code removed. |
+| `[x]` | **Directional swipe navigation** | Pages slide in from right (forward) or left (backward) based on TABS order. Works via swipe on `<main>` and nav tab taps. Rep Roulette protected with `data-no-page-swipe`. |
+| `[x]` | **Add useOnlineRefetch to ProfilePage** | ProfilePage now refetches on reconnect via `useOnlineRefetch`, consistent with all other data-fetching pages. |
 | `[ ]` | **Split PathAheadPage.tsx** | 1,170+ lines. Extract `DayCard` to `src/components/DayCard.tsx` and particle animation helpers to `src/lib/particles.ts`. |
-| `[ ]` | **Add useOnlineRefetch to ProfilePage** | ProfilePage directly calls `api.get` in useEffect but doesn't refetch on reconnect. All other data-fetching pages use `useOnlineRefetch`. |
+| `[ ]` | **Split SkillRadar.tsx** | 953-line file mixing chart rendering, data computation, and view logic. Extract `WeeklyChart`, `StackedBarChart`, `VolumeChart`, and radar polygon into `src/components/charts/`. |
+| `[ ]` | **Remove `findUserById` (userModel)** | Exported but never called by any controller or route. Dead code. |
+| `[ ]` | **Remove `badge.tsx` (ui component)** | `frontend_app/src/components/ui/badge.tsx` — never imported anywhere. Dead shadcn artifact. |
+| `[ ]` | **Remove `CARD_SURFACE` token** | `theme.ts` exports `CARD_SURFACE` marked `@deprecated` — zero usages. Delete it. |
 
 ---
 
