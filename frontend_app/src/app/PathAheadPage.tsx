@@ -14,6 +14,7 @@ import PageContent from '../components/PageContent.tsx';
 import HeatmapPreviewWidget from '../components/HeatmapPreviewWidget.tsx';
 import { toDateString, getWeekStart, addDays, formatDuration, DAY_NAMES, INTENSITY_COLOR, SESSION_TYPE_LABELS } from '../lib/sessionUtils.ts';
 import { INTENT_PARTICLES, STATS_PARTICLES } from '../lib/particles.ts';
+import { computeStats } from '../components/TrainingHeatmap.tsx';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -154,6 +155,7 @@ export default function PathAheadPage() {
 
   const pendingSessions = usePendingSessions();
   const allSessions = useMemo(() => [...sessions, ...pendingSessions], [sessions, pendingSessions]);
+  const { streakDays } = useMemo(() => computeStats(allSessions, new Date().getFullYear()), [allSessions]);
 
   // ── Window computation ─────────────────────────────────────────────────
 
@@ -755,6 +757,8 @@ export default function PathAheadPage() {
             const intensityColor = primarySession ? (INTENSITY_COLOR[primarySession.intensity] ?? '#CDDFA0') : null;
             const { dayHasIntention } = getIntentionInfo(dayStr);
 
+            const isInStreak = sessionCount > 0 && streakDays.has(dayStr);
+
             return (
               <button
                 key={dayStr}
@@ -769,7 +773,7 @@ export default function PathAheadPage() {
                     setLogOpen(true);
                   }
                 }}
-                className="flex flex-col items-center justify-center gap-1 rounded-xl touch-manipulation"
+                className={`flex flex-col items-center justify-center gap-1 rounded-xl touch-manipulation${isInStreak ? ' j2-streak-cell' : ''}`}
                 style={{
                   flexShrink: 0,
                   width: MINI_CARD_W,
