@@ -70,7 +70,7 @@ Short-lived tokens for the password reset flow. Created by `POST /auth/request-p
 |---|---|---|---|
 | `id` | `uuid` | PK, default `gen_random_uuid()` | |
 | `user_id` | `uuid` | FK → `users.id`, NOT NULL | Cascade delete on user removal |
-| `token` | `text` | UNIQUE, NOT NULL | 32 random bytes, hex-encoded |
+| `token` | `text` | UNIQUE, NOT NULL | SHA-256 hash of the 32-byte random token sent in the email link |
 | `expires_at` | `timestamptz` | NOT NULL | 1 hour after creation |
 | `used` | `boolean` | NOT NULL, default `false` | Set to `true` after successful reset |
 | `created_at` | `timestamptz` | NOT NULL, default `now()` | |
@@ -81,7 +81,7 @@ Index: `idx_password_reset_tokens_token` on `token` for fast lookups.
 
 ---
 
-### `intentions`
+### `weekly_intentions`
 
 One row per weekly training intention per user. One intention per user per week is enforced at the application layer (409 on duplicate).
 
@@ -107,8 +107,8 @@ users (1) ──── (many) training_sessions
 users (1) ──── (many) password_reset_tokens
                via password_reset_tokens.user_id → users.id  [CASCADE DELETE]
 
-users (1) ──── (many) intentions
-               via intentions.user_id → users.id  [CASCADE DELETE]
+users (1) ──── (many) weekly_intentions
+               via weekly_intentions.user_id → users.id  [CASCADE DELETE]
 ```
 
 ---
@@ -165,8 +165,8 @@ All queries go through the `query()` helper in `src/config/db.ts` which wraps `p
 | Create reset token | `createResetToken(userId, token, expiresAt)` | `INSERT INTO password_reset_tokens …` |
 | Find valid token | `findValidToken(token)` | `SELECT … WHERE token = $1 AND used = false AND expires_at > NOW()` |
 | Mark token used | `markTokenUsed(id)` | `UPDATE password_reset_tokens SET used = true WHERE id = $1` |
-| Create intention | `createIntention(…)` | `INSERT INTO intentions … RETURNING *` |
-| Get all intentions | `getIntentionsByUser(userId)` | `SELECT * FROM intentions WHERE user_id = $1 ORDER BY week_start DESC` |
-| Get current intention | `getIntentionByWeek(userId, weekStart)` | `SELECT … WHERE user_id = $1 AND week_start = $2` |
-| Save journal entry | `saveJournalEntry(id, userId, text)` | `UPDATE intentions SET journal_entry = $1 WHERE id = $2 AND user_id = $3` |
-| Delete intention | `deleteIntention(id, userId)` | `DELETE FROM intentions WHERE id = $1 AND user_id = $2` |
+| Create intention | `createIntention(…)` | `INSERT INTO weekly_intentions … RETURNING *` |
+| Get all intentions | `getIntentionsByUser(userId)` | `SELECT * FROM weekly_intentions WHERE user_id = $1 ORDER BY week_start DESC` |
+| Get current intention | `getIntentionByWeek(userId, weekStart)` | `SELECT … FROM weekly_intentions WHERE user_id = $1 AND week_start = $2` |
+| Save journal entry | `saveJournalEntry(id, userId, text)` | `UPDATE weekly_intentions SET journal_entry = $1 WHERE id = $2 AND user_id = $3` |
+| Delete intention | `deleteIntention(id, userId)` | `DELETE FROM weekly_intentions WHERE id = $1 AND user_id = $2` |

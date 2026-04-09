@@ -46,11 +46,12 @@ J2/
     ├── src/
     │   ├── app/              HomePage, ResetPasswordPage, PathAheadPage, CalendarPage,
     │   │                     AnalyticsPage, IntentionsPage, JournalEntryPage, ProfilePage
-    │   ├── components/       AppShell, BeltBar, TrainingHeatmap, SkillRadar,
-    │   │                     LogSessionForm, SessionDetailModal, SetIntentionModal,
-    │   │                     CsvImportModal, WaveBackground, ErrorBoundary
+    │   ├── components/       AppShell, BeltBar, TrainingHeatmap, CompactHeatmap,
+    │   │                     HeatmapPreviewWidget, SkillRadar, LogSessionForm,
+    │   │                     SessionDetailModal, SetIntentionModal, CsvImportModal,
+    │   │                     PageTransition, OfflineBanner, WaveBackground, ErrorBoundary
     │   ├── context/          AuthContext (JWT in localStorage), ProfileContext
-    │   ├── hooks/            useAuth, use-toast
+    │   ├── hooks/            useAuth, useOnlineRefetch, useOnlineSync, usePendingSessions, use-toast
     │   └── lib/              api.ts, constants.ts, theme.ts, utils.ts, csvParser.ts
     └── docs/
         └── components.md     Component catalog
@@ -149,7 +150,7 @@ The app runs as two separate Railway services.
 ### Password Reset Flow
 
 1. User submits email on the "Forgot password" screen → `POST /auth/request-password-reset`
-2. Backend generates a 32-byte random token, stores it in `password_reset_tokens` (1h expiry), sends email
+2. Backend generates a 32-byte random token, stores its **SHA-256 hash** in `password_reset_tokens` (1h expiry), sends email with the raw token
 3. Email contains `FRONTEND_URL/reset-password?token=<token>`
 4. User clicks link → `ResetPasswordPage` reads token from URL query param
 5. User submits new password → `POST /auth/reset-password`
@@ -168,7 +169,7 @@ See [`backend_api/docs/database.md`](backend_api/docs/database.md) for full sche
 | `users` | Identity, auth credentials, profile data, and feature flags |
 | `training_sessions` | One row per session; includes a `tags` text array for skill tracking |
 | `password_reset_tokens` | Short-lived tokens for the password reset flow |
-| `intentions` | Weekly training intentions with optional journal entries |
+| `weekly_intentions` | Weekly training intentions with optional journal entries |
 
 ---
 
@@ -178,15 +179,20 @@ All color tokens live in `frontend_app/src/lib/theme.ts`. Never hard-code colour
 
 | Token | Value | Used for |
 |---|---|---|
-| `PAGE_BG` | `#111e2b` | App background |
-| `CARD_BG` | `#1a2f40` | Card surfaces |
-| `PALE_YELLOW` | `#F0DFA0` | Titles, active labels |
-| `COPPER` | `#B87A55` | Borders, rail accents |
-| `COPPER_BORDER` | rgba variant | Card borders |
-| `GLOW_SOFT` | text-shadow | Secondary glow on active elements |
+| `PAGE_BG` / `SURFACE_0` | `#0D1A14` | App background |
+| `CARD_BG` / `SURFACE_1` | `#152E22` | Primary raised card surface |
+| `SURFACE_2` | `rgba(255,255,255,0.035)` | Sub-section within a card |
+| `SURFACE_3` | `rgba(255,255,255,0.08)` | Interactive element resting state |
+| `PALE_YELLOW` | `#F2E4A8` | Titles, active nav labels, champagne gold |
+| `COPPER` | `#C4915F` | Borders, rail accents |
+| `COPPER_BORDER` | `rgba(196,145,95,0.45)` | Standard card border |
+| `CARD_SHADOW` | 4-layer composite | Card drop shadow with chromatic depth |
 | `GLOW_TITLE` | text-shadow | Hero title glow |
+| `GLOW_SOFT` | text-shadow | Stat numbers and section headings |
+| `GLOW_NAV` | text-shadow | Nav links and buttons |
+| `HEATMAP_REST` | `#0A1610` | Rest / empty heatmap cell |
 
-Tailwind brand tokens (in `tailwind.config.ts`): `brand.orange` `#DA7422`, `brand.green` `#6FD08C`, `brand.light-green` `#CDDFA0`, `brand.dark` `#111e2b`.
+Tailwind brand tokens (in `tailwind.config.ts`): `brand.orange` `#DA7422`, `brand.green` `#6FD08C`, `brand.light-green` `#CDDFA0`, `brand.dark` `#0D1A14`.
 
 ---
 
@@ -206,23 +212,25 @@ Year-at-a-glance calendar grid. Cells coloured by max session intensity for that
 
 | Intensity | Colour |
 |---|---|
-| Rest / no session | dark (`HEATMAP_REST`) |
+| Rest / no session | dark (`HEATMAP_REST` `#0A1610`) |
 | Easy (1–2) | light green (`#CDDFA0`) |
 | Moderate (3) | green (`#6FD08C`) |
-| High (4–5) | orange (`#DA7422`) |
+| Hard (4) | amber (`#D4A040`) |
+| Max (5) | orange (`#DA7422`) |
 
 ### Analytics Instrument (`SkillRadar.tsx`)
-Four views switched via a vertical icon rail. All views share the same card dimensions; content slides in/out with a spring animation.
+Five views switched via a vertical icon rail. All views share the same card dimensions; content slides in/out with a spring animation.
 
 | View | Chart | Description |
 |---|---|---|
 | **Grappling Prism** | Pentagon radar | Hours across 5 skill pillars |
 | **Volume by Month** | Bar chart | Monthly hours + peak/avg stats |
-| **The Two Worlds** | Donut | Gi vs No-Gi split |
-| **Session Format** | Donut | Class / Drilling / Competition |
+| **The Two Worlds** | Stacked bar | Gi vs No-Gi split |
+| **Session Format** | Stacked bar | Class / Drilling / Competition |
+| **Weekly Rhythm** | Bar chart | Hours per week across 52 weeks |
 
-- **Time windows**: 30 Days · 60 Days · 90 Days · All Time
-- **Display toggle** (h / %): stationary in header; on Volume view it morphs into a thin line and slides into the rail border
+- **Time windows**: 7D · 14D · 30D · 90D · 180D · 1Y · Custom date range
+- **Display toggle** (h / %): hidden on Volume and Weekly Rhythm views (where percentages don't apply); morphs into a thin line for those views
 - **View transition**: exit fast-start 500ms, enter spring 560ms + 120ms delay — no overlap
 
 ### Weekly Intentions
