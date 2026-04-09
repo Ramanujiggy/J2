@@ -576,7 +576,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
     );
   }
 
-  const isVolumeTypeType = viewMode === 'volume' || viewMode === 'weekly';
+  const isVolumeType = viewMode === 'volume' || viewMode === 'weekly';
 
   return (
     <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
