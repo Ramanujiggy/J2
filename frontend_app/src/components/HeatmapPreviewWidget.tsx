@@ -4,7 +4,7 @@
 
 import { useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { localDateKey, buildDayMap, cellColor, EMPTY_DAY } from './TrainingHeatmap.tsx';
+import { localDateKey, buildDayMap, cellColor, EMPTY_DAY, computeStats } from './TrainingHeatmap.tsx';
 import type { DayData } from './TrainingHeatmap.tsx';
 import type { SessionSummary } from '../types/api.ts';
 import { CARD_BG, COPPER, COPPER_BORDER, CARD_SHADOW } from '../lib/theme.ts';
@@ -60,9 +60,10 @@ interface HeatmapPreviewWidgetProps {
 export default function HeatmapPreviewWidget({ sessions }: HeatmapPreviewWidgetProps) {
   const navigate  = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const dayMap    = useMemo(() => buildDayMap(sessions), [sessions]);
-  const weeks     = useMemo(() => buildSlice(dayMap), [dayMap]);
-  const today     = localDateKey(new Date());
+  const dayMap     = useMemo(() => buildDayMap(sessions), [sessions]);
+  const weeks      = useMemo(() => buildSlice(dayMap), [dayMap]);
+  const today      = localDateKey(new Date());
+  const { streakDays } = useMemo(() => computeStats(sessions, new Date().getFullYear()), [sessions]);
 
   // Auto-scroll to right edge so today's column is visible on mount
   useEffect(() => {
@@ -162,9 +163,12 @@ export default function HeatmapPreviewWidget({ sessions }: HeatmapPreviewWidgetP
               const isToday  = key === today;
               const bg = isFuture ? '#10241A' : cellColor(day);
 
+              const isStreak = !isFuture && day.count > 0 && streakDays.has(key);
+
               return (
                 <div
                   key={`${wIdx}-${dIdx}`}
+                  className={isStreak ? 'j2-streak-cell' : undefined}
                   style={{
                     borderRadius: 3,
                     backgroundColor: bg,
