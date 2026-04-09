@@ -59,8 +59,8 @@ Development areas identified from codebase assessment. Updated as work progresse
 | `[x]` | **Delete DashboardPage.tsx** | Deleted. 161 lines of dead code removed. |
 | `[x]` | **Directional swipe navigation** | Pages slide in from right (forward) or left (backward) based on TABS order. Works via swipe on `<main>` and nav tab taps. Rep Roulette protected with `data-no-page-swipe`. |
 | `[x]` | **Add useOnlineRefetch to ProfilePage** | ProfilePage now refetches on reconnect via `useOnlineRefetch`, consistent with all other data-fetching pages. |
-| `[ ]` | **Split PathAheadPage.tsx** | 1,380+ lines. Extract `DayCard` to `src/components/DayCard.tsx` and particle animation helpers to `src/lib/particles.ts`. |
-| `[ ]` | **Split SkillRadar.tsx** | 953-line file mixing chart rendering, data computation, and view logic. Extract `WeeklyChart`, `StackedBarChart`, `VolumeChart`, and radar polygon into `src/components/charts/`. |
+| `[x]` | **Split PathAheadPage.tsx** | Extracted `DayCard` to `src/components/DayCard.tsx`, particle animation helpers to `src/lib/particles.ts`, and date/session utilities to `src/lib/sessionUtils.ts`. PathAheadPage reduced from 1,385 to ~1,030 lines. |
+| `[x]` | **Split SkillRadar.tsx** | Extracted `RadarChart`, `DonutChart`, `VolumeChart`, and `WeeklyChart` into `src/components/charts/`. SkillRadar reduced from 953 to 707 lines — now a pure controller for data computation, view switching, and layout. |
 | `[ ]` | **Remove `findUserById` (userModel)** | Exported but never called by any controller or route. Dead code. |
 | `[ ]` | **Remove `badge.tsx` (ui component)** | `frontend_app/src/components/ui/badge.tsx` — never imported anywhere. Dead shadcn artifact. |
 | `[ ]` | **Remove `CARD_SURFACE` token** | `theme.ts` exports `CARD_SURFACE` marked `@deprecated` — zero usages. Delete it. |
