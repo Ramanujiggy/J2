@@ -35,7 +35,7 @@ Development areas identified from codebase assessment. Updated as work progresse
 |---|---|---|
 | `[ ]` | **Streaks & consistency stats** | Consecutive days trained, current streak, longest streak. High-motivation metric for BJJ athletes. Slot into Path Ahead page or a dedicated stats card. |
 | `[ ]` | **Goal tracking** | Set a weekly or monthly mat-hours target. Show progress toward it on the Path Ahead summary card (e.g. "4.5 of 6h goal"). |
-| `[ ]` | **Analytics custom date range** | Extend SkillRadar beyond 30/60/90/All with a date-range picker for analyzing competition prep blocks or specific periods. |
+| `[x]` | **Analytics custom date range** | `TimeRangeBar` component provides 7D/14D/30D/90D/180D/1Y presets plus a custom date-range picker (start + end date inputs). |
 | `[ ]` | **Session notes search** | Full-text search across session notes (PostgreSQL `tsvector` or simple `ILIKE`). Useful for finding technique notes from months ago. |
 
 ---

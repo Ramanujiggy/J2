@@ -35,7 +35,7 @@ J2/
 │   │   ├── config/db.ts      pg pool + query helper
 │   │   ├── controllers/      authController, sessionController, profileController, intentionController
 │   │   ├── middleware/       authMiddleware (JWT verification)
-│   │   ├── migrations/       add_password_reset_tokens.sql (auto-run on startup)
+│   │   ├── migrations/       001–005 numbered SQL files (run manually in Supabase SQL Editor)
 │   │   ├── models/           userModel, sessionModel, profileModel, intentionModel, passwordResetModel
 │   │   ├── routes/           authRoutes, sessionRoutes, profileRoutes, intentionRoutes
 │   │   └── services/         emailService (password reset emails)
@@ -47,9 +47,10 @@ J2/
     │   ├── app/              HomePage, ResetPasswordPage, PathAheadPage, CalendarPage,
     │   │                     AnalyticsPage, IntentionsPage, JournalEntryPage, ProfilePage
     │   ├── components/       AppShell, BeltBar, TrainingHeatmap, CompactHeatmap,
-    │   │                     HeatmapPreviewWidget, SkillRadar, LogSessionForm,
-    │   │                     SessionDetailModal, SetIntentionModal, CsvImportModal,
-    │   │                     PageTransition, OfflineBanner, WaveBackground, ErrorBoundary
+    │   │                     HeatmapPreviewWidget, SkillRadar, TimeRangeBar,
+    │   │                     LogSessionForm, SessionDetailModal, SetIntentionModal,
+    │   │                     CsvImportModal, PageTransition, OfflineBanner,
+    │   │                     WaveBackground, ErrorBoundary
     │   ├── context/          AuthContext (JWT in localStorage), ProfileContext
     │   ├── hooks/            useAuth, useOnlineRefetch, useOnlineSync, usePendingSessions, use-toast
     │   └── lib/              api.ts, constants.ts, theme.ts, utils.ts, csvParser.ts
