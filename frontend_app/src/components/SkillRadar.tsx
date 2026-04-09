@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Info, Triangle, Target, BarChart2, Layers, BookOpen, type LucideIcon } from 'lucide-react';
+import { Info, Triangle, Target, BarChart2, Layers, BookOpen, Activity, type LucideIcon } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { SKILL_TAGS } from '../lib/constants.ts';
 import { CARD_BG, COPPER, COPPER_BORDER, CARD_SHADOW, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3_BORDER } from '../lib/theme.ts';
@@ -42,58 +42,43 @@ function labelLines(label: string): string[] {
 }
 
 const SKILL_COLORS: Record<string, { fill: string; stroke: string; dot: string }> = {
-  standup:         { fill: 'rgba(255,190,50,0.25)',  stroke: 'rgba(255,190,50,0.75)',  dot: 'rgba(255,190,50,0.9)'  },
-  guard_retention: { fill: 'rgba(50,200,200,0.25)',  stroke: 'rgba(50,200,200,0.75)',  dot: 'rgba(50,200,200,0.9)'  },
-  submissions:     { fill: 'rgba(220,90,80,0.25)',   stroke: 'rgba(220,90,80,0.75)',   dot: 'rgba(220,90,80,0.9)'   },
-  pin_escapes:     { fill: 'rgba(160,100,220,0.25)', stroke: 'rgba(160,100,220,0.75)', dot: 'rgba(160,100,220,0.9)' },
-  guard_passing:   { fill: 'rgba(80,140,220,0.25)',  stroke: 'rgba(80,140,220,0.75)',  dot: 'rgba(80,140,220,0.9)'  },
+  standup:         { fill: 'rgba(212,160,64,0.25)',  stroke: 'rgba(212,160,64,0.85)',  dot: 'rgba(212,160,64,1.0)'  },
+  guard_retention: { fill: 'rgba(82,181,108,0.25)',  stroke: 'rgba(82,181,108,0.85)',  dot: 'rgba(82,181,108,1.0)'  },
+  submissions:     { fill: 'rgba(218,100,80,0.25)',  stroke: 'rgba(218,100,80,0.85)',  dot: 'rgba(218,100,80,1.0)'  },
+  pin_escapes:     { fill: 'rgba(196,145,95,0.25)',  stroke: 'rgba(196,145,95,0.85)',  dot: 'rgba(196,145,95,1.0)'  },
+  guard_passing:   { fill: 'rgba(90,175,210,0.25)',  stroke: 'rgba(90,175,210,0.85)',  dot: 'rgba(90,175,210,1.0)'  },
 };
-const DEFAULT_COLORS = { fill: 'rgba(111,208,140,0.22)', stroke: 'rgba(176,214,100,0.75)', dot: 'rgba(176,214,100,0.9)' };
+const DEFAULT_COLORS = { fill: 'rgba(82,181,108,0.22)', stroke: 'rgba(176,214,100,0.75)', dot: 'rgba(176,214,100,0.9)' };
 
-// ─── Donut chart (Split + Format views) ──────────────────────────────────────
+// ─── Stacked bar chart (Split + Format views) ────────────────────────────────
 
-interface DonutSegment { value: number; color: string; }
+interface StackedRow { label: string; h: number; total: number; color: string; }
 
-function DonutChart({ segments }: { segments: DonutSegment[] }) {
-  const cx = 70, cy = 70, R = 46, innerR = 28;
-  const total = segments.reduce((s, x) => s + x.value, 0);
-
+function StackedBarChart({ rows }: { rows: StackedRow[] }) {
+  const total = rows.reduce((s, r) => s + r.h, 0);
   if (total === 0) return (
-    <svg viewBox="0 0 140 140" width="100%">
-      <rect x="0" y="0" width="140" height="140" fill={CARD_BG} rx="12" />
-      <circle cx={cx} cy={cy} r={(R + innerR) / 2} fill="none"
-        stroke="rgba(255,255,255,0.06)" strokeWidth={R - innerR} />
-    </svg>
+    <div className="flex items-center justify-center h-full">
+      <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>No data</span>
+    </div>
   );
-
-  const GAP = 0.06;
-  let angle = -Math.PI / 2;
-
-  const arcs = segments.map((seg, idx) => {
-    const frac   = seg.value / total;
-    const sweep  = frac * 2 * Math.PI - GAP;
-    const start  = angle + GAP / 2;
-    angle += frac * 2 * Math.PI;
-    if (sweep <= 0) return null;
-    const end   = start + sweep;
-    const large = sweep > Math.PI ? 1 : 0;
-    const [c1x, c1y] = [Math.cos(start), Math.sin(start)];
-    const [c2x, c2y] = [Math.cos(end),   Math.sin(end)];
-    const d = [
-      `M ${(cx + R * c1x).toFixed(2)} ${(cy + R * c1y).toFixed(2)}`,
-      `A ${R} ${R} 0 ${large} 1 ${(cx + R * c2x).toFixed(2)} ${(cy + R * c2y).toFixed(2)}`,
-      `L ${(cx + innerR * c2x).toFixed(2)} ${(cy + innerR * c2y).toFixed(2)}`,
-      `A ${innerR} ${innerR} 0 ${large} 0 ${(cx + innerR * c1x).toFixed(2)} ${(cy + innerR * c1y).toFixed(2)}`,
-      'Z',
-    ].join(' ');
-    return <path key={idx} d={d} fill={seg.color} />;
-  });
-
   return (
-    <svg viewBox="0 0 140 140" width="100%">
-      <rect x="0" y="0" width="140" height="140" fill={CARD_BG} rx="12" />
-      {arcs}
-    </svg>
+    <div className="flex flex-col justify-center gap-3 w-full h-full px-2">
+      {rows.map(({ label, h, color }) => {
+        const pct = total > 0 ? (h / total) * 100 : 0;
+        return (
+          <div key={label} className="flex items-center gap-2">
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.50)', width: 56, flexShrink: 0 }}>{label}</span>
+            <div style={{ flex: 1, height: 8, borderRadius: 4, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+              <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 4,
+                            transition: 'width 450ms cubic-bezier(0.4,0,0.2,1)' }} />
+            </div>
+            <span style={{ fontSize: 11, color: 'rgba(242,228,168,0.65)', width: 46, textAlign: 'right', flexShrink: 0 }}>
+              {h.toFixed(1)}h
+            </span>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -117,7 +102,7 @@ function VolumeChart({ sessions }: { sessions: SessionSummary[] }) {
   }
   const maxH = Math.max(...monthlyHours, 0.001);
   const currentMonth = new Date().getMonth();
-  const barW = 7;
+  const barW = 10;
   const betweenGap = (140 - 8 - 12 * barW) / 11;
   const chartH = 72;
   const baseY  = 84;
@@ -129,12 +114,16 @@ function VolumeChart({ sessions }: { sessions: SessionSummary[] }) {
         const barH = Math.max((h / maxH) * chartH, h > 0 ? 2 : 0);
         const x = 4 + m * (barW + betweenGap);
         const isCurrent = m === currentMonth;
-        const fill = isCurrent ? 'rgba(218,116,34,0.75)' : 'rgba(111,208,140,0.55)';
+        const fill = isCurrent ? 'rgba(82,181,108,0.90)' : 'rgba(82,181,108,0.45)';
         return (
           <g key={m}>
             {h > 0
-              ? <rect x={x} y={baseY - barH} width={barW} height={barH} rx="1.5" fill={fill} />
-              : <rect x={x} y={baseY - 1}    width={barW} height={1}    rx="0.5" fill="rgba(255,255,255,0.07)" />
+              ? <rect x={x} y={baseY - barH} width={barW} height={barH} rx="1.5" fill={fill}>
+                  <title>{`${MONTH_SHORT[m]}: ${h.toFixed(1)}h`}</title>
+                </rect>
+              : <rect x={x} y={baseY - 1}    width={barW} height={1}    rx="0.5" fill="rgba(255,255,255,0.07)">
+                  <title>{`${MONTH_SHORT[m]}: no sessions`}</title>
+                </rect>
             }
             <text x={x + barW / 2} y={94} textAnchor="middle"
               fill={isCurrent ? PALE_YELLOW : 'rgba(242,228,168,0.25)'}
@@ -150,15 +139,15 @@ function VolumeChart({ sessions }: { sessions: SessionSummary[] }) {
 
 // ─── Segment colors ───────────────────────────────────────────────────────────
 
-const SEG_GI    = 'rgba(111,208,140,0.80)';
+const SEG_GI    = 'rgba(82,181,108,0.80)';
 const SEG_NOGI  = 'rgba(218,116,34,0.80)';
-const SEG_CLASS = 'rgba(111,208,140,0.80)';
+const SEG_CLASS = 'rgba(82,181,108,0.80)';
 const SEG_DRILL = 'rgba(242,228,168,0.65)';
 const SEG_COMP  = 'rgba(220,90,80,0.80)';
 
 // ─── Rail config ──────────────────────────────────────────────────────────────
 
-type ViewMode = 'prism' | 'volume' | 'split' | 'format';
+type ViewMode = 'prism' | 'volume' | 'split' | 'format' | 'weekly';
 export type TimeWindow = '7d' | '14d' | '30d' | '90d' | '180d' | '1y' | 'custom';
 
 const RAIL_VIEWS: { id: ViewMode; label: string; short: string; Icon: LucideIcon }[] = [
@@ -166,6 +155,7 @@ const RAIL_VIEWS: { id: ViewMode; label: string; short: string; Icon: LucideIcon
   { id: 'volume', label: 'Volume by Month',   short: 'Volume', Icon: BarChart2 },
   { id: 'split',  label: 'The Two Worlds',    short: 'Split',  Icon: Layers    },
   { id: 'format', label: 'Session Format',    short: 'Format', Icon: BookOpen  },
+  { id: 'weekly', label: 'Weekly Rhythm',     short: 'Weekly', Icon: Activity  },
 ];
 
 const VIEW_META: Record<ViewMode, { title: string; subtitle: string }> = {
@@ -185,7 +175,56 @@ const VIEW_META: Record<ViewMode, { title: string; subtitle: string }> = {
     title: 'Session Format',
     subtitle: 'A breakdown of your labor across structured classes, focused drilling, and live competition.',
   },
+  weekly: {
+    title: 'Weekly Rhythm',
+    subtitle: 'Hours per week across the past 52 weeks — see the cadence of your training at a glance.',
+  },
 };
+
+// ─── Weekly rhythm chart ──────────────────────────────────────────────────────
+
+interface WeekEntry { weekStart: Date; hours: number; count: number; isCurrent: boolean; }
+
+function WeeklyChart({ weeks }: { weeks: WeekEntry[] }) {
+  const maxH = Math.max(...weeks.map(w => w.hours), 0.001);
+  const W = 280, H = 100, chartH = 72, baseY = 84;
+  const barW = 4, gap = 1, totalW = 52 * (barW + gap) - gap;
+  const offsetX = (W - totalW) / 2;
+
+  const monthLabels: { x: number; label: string }[] = [];
+  let lastMonth = -1;
+  weeks.forEach((w, i) => {
+    const m = w.weekStart.getMonth();
+    if (m !== lastMonth) {
+      monthLabels.push({ x: offsetX + i * (barW + gap), label: MONTH_SHORT[m] });
+      lastMonth = m;
+    }
+  });
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: '100%' }}>
+      {weeks.map((w, i) => {
+        const barH = Math.max((w.hours / maxH) * chartH, w.hours > 0 ? 2 : 0);
+        const x = offsetX + i * (barW + gap);
+        const color = w.isCurrent
+          ? 'rgba(82,181,108,0.90)'
+          : w.hours > 0
+            ? 'rgba(82,181,108,0.50)'
+            : 'rgba(255,255,255,0.06)';
+        return (
+          <rect key={i} x={x} y={baseY - barH} width={barW} height={Math.max(barH, 1)} rx={1} fill={color}>
+            <title>{w.hours > 0
+              ? `${w.weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: ${w.hours.toFixed(1)}h (${w.count} session${w.count !== 1 ? 's' : ''})`
+              : 'No sessions'}</title>
+          </rect>
+        );
+      })}
+      {monthLabels.map(({ x, label }) => (
+        <text key={label + x} x={x} y={96} fontSize={7} fill="rgba(242,228,168,0.30)">{label}</text>
+      ))}
+    </svg>
+  );
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -295,6 +334,39 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
   const trainedMonths = monthlyHoursArr.filter(h => h > 0).length;
   const avgPerMonth   = trainedMonths > 0 ? totalVolHours / trainedMonths : 0;
 
+  // ── Weekly rhythm data ──
+  const weeklyData = useMemo(() => {
+    const monday = (d: Date) => {
+      const c = new Date(d);
+      const dow = c.getDay();
+      c.setDate(c.getDate() - (dow === 0 ? 6 : dow - 1));
+      c.setHours(0, 0, 0, 0);
+      return c;
+    };
+    const thisMonday = monday(new Date());
+    return Array.from({ length: 52 }, (_, i) => {
+      const weekStart = new Date(thisMonday);
+      weekStart.setDate(weekStart.getDate() - (51 - i) * 7);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      const weekSessions = filtered.filter(s => {
+        const d = new Date(s.date);
+        return d >= weekStart && d <= weekEnd;
+      });
+      return {
+        weekStart,
+        hours: weekSessions.reduce((sum, s) => sum + s.duration / 60, 0),
+        count: weekSessions.length,
+        isCurrent: i === 51,
+      };
+    });
+  }, [filtered]);
+
+  const totalWeeklyHours = weeklyData.reduce((s, w) => s + w.hours, 0);
+  const activeWeeks      = weeklyData.filter(w => w.hours > 0).length;
+  const peakWeek         = weeklyData.reduce((best, w) => w.hours > best.hours ? w : best, weeklyData[0]);
+  const avgWeeklyHours   = activeWeeks > 0 ? totalWeeklyHours / activeWeeks : 0;
+
   // ── Pre-computed row arrays ──
   const prismRows  = SKILL_TAGS.map(({ value, label }, i) => ({ label, h: hours[i], total: totalTaggedHours, color: undefined as string | undefined }));
   const splitRows  = [{ label: 'Gi', h: giHours, total: splitTotal, color: SEG_GI }, { label: 'No-Gi', h: nogiHours, total: splitTotal, color: SEG_NOGI }];
@@ -317,19 +389,9 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
   // ── Chart renderer — shared by mobile and desktop ──
   function renderChart(mode: ViewMode) {
     if (mode === 'volume') return <VolumeChart sessions={filtered} />;
-    if (mode === 'split') return (
-      <DonutChart segments={[
-        { value: giHours,   color: SEG_GI   },
-        { value: nogiHours, color: SEG_NOGI  },
-      ]} />
-    );
-    if (mode === 'format') return (
-      <DonutChart segments={[
-        { value: classHours, color: SEG_CLASS },
-        { value: drillHours, color: SEG_DRILL },
-        { value: compHours,  color: SEG_COMP  },
-      ]} />
-    );
+    if (mode === 'weekly') return <WeeklyChart weeks={weeklyData} />;
+    if (mode === 'split') return <StackedBarChart rows={splitRows as StackedRow[]} />;
+    if (mode === 'format') return <StackedBarChart rows={formatRows as StackedRow[]} />;
     // prism
     return (
       <svg viewBox="-20 -20 140 140" width="100%" aria-label="Skill radar chart">
@@ -391,7 +453,69 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
         </div>
       );
     }
-    const rows = mode === 'prism' ? prismRows : mode === 'split' ? splitRows : formatRows;
+    if (mode === 'weekly') {
+      return (
+        <div className="flex flex-col gap-3">
+          {[
+            { label: 'Total',    value: totalWeeklyHours > 0 ? `${totalWeeklyHours.toFixed(1)}h` : '—', active: totalWeeklyHours > 0 },
+            { label: 'Active',   value: activeWeeks > 0 ? `${activeWeeks} of 52 wks` : '—',             active: activeWeeks > 0 },
+            { label: 'Peak',     value: peakWeek.hours > 0 ? `${peakWeek.hours.toFixed(1)}h` : '—',    active: peakWeek.hours > 0 },
+            { label: 'Avg/week', value: avgWeeklyHours > 0 ? `${avgWeeklyHours.toFixed(1)}h` : '—',    active: avgWeeklyHours > 0 },
+          ].map(({ label, value, active }) => (
+            <div key={label} className="flex items-baseline gap-2">
+              <span className="text-xs font-bold" style={{ color: PALE_YELLOW }}>{label}</span>
+              <span className="text-xs" style={{ color: 'rgba(242,228,168,0.25)' }}>|</span>
+              <span className="text-2xl font-bold" style={{
+                color: active ? PALE_YELLOW : 'rgba(255,255,255,0.15)',
+                textShadow: active ? GLOW_SOFT : 'none',
+              }}>{value}</span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    if (mode === 'split') {
+      return (
+        <div className="flex flex-col gap-3">
+          {[
+            { label: 'Total',    value: splitTotal > 0 ? `${splitTotal.toFixed(1)}h` : '—',                   active: splitTotal > 0 },
+            { label: 'Dominant', value: splitTotal > 0 ? (giHours >= nogiHours ? 'Gi' : 'No-Gi') : '—',       active: splitTotal > 0 },
+          ].map(({ label, value, active }) => (
+            <div key={label} className="flex items-baseline gap-2">
+              <span className="text-xs font-bold" style={{ color: PALE_YELLOW }}>{label}</span>
+              <span className="text-xs" style={{ color: 'rgba(242,228,168,0.25)' }}>|</span>
+              <span className="text-2xl font-bold" style={{
+                color: active ? PALE_YELLOW : 'rgba(255,255,255,0.15)',
+                textShadow: active ? GLOW_SOFT : 'none',
+              }}>{value}</span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    if (mode === 'format') {
+      const primaryIdx = [classHours, drillHours, compHours].indexOf(Math.max(classHours, drillHours, compHours));
+      const primaryLabel = ['Class', 'Drilling', 'Competition'][primaryIdx];
+      return (
+        <div className="flex flex-col gap-3">
+          {[
+            { label: 'Total',   value: formatTotal > 0 ? `${formatTotal.toFixed(1)}h` : '—', active: formatTotal > 0 },
+            { label: 'Primary', value: formatTotal > 0 ? primaryLabel : '—',                 active: formatTotal > 0 },
+          ].map(({ label, value, active }) => (
+            <div key={label} className="flex items-baseline gap-2">
+              <span className="text-xs font-bold" style={{ color: PALE_YELLOW }}>{label}</span>
+              <span className="text-xs" style={{ color: 'rgba(242,228,168,0.25)' }}>|</span>
+              <span className="text-2xl font-bold" style={{
+                color: active ? PALE_YELLOW : 'rgba(255,255,255,0.15)',
+                textShadow: active ? GLOW_SOFT : 'none',
+              }}>{value}</span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    // prism only
+    const rows = prismRows;
     const maxRowH = Math.max(...rows.map(r => r.h), 0.001);
     return (
       <div className="space-y-3">
@@ -437,10 +561,11 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
 
   // ── Desktop drum renderer (absolute inset-0 for slide animations) ──
   function renderContent(mode: ViewMode, animClass = '', onAnimEnd?: () => void) {
+    const chartIsWide = mode === 'volume' || mode === 'weekly';
     return (
       <div className={`absolute inset-0 flex flex-col gap-2 ${animClass}`} onAnimationEnd={onAnimEnd}>
         <div className="flex-1 flex flex-row items-center gap-4 min-h-0">
-          <div className="flex-shrink-0" style={{ maxWidth: mode === 'volume' ? '42%' : 280 }}>
+          <div className="flex-shrink-0" style={{ maxWidth: chartIsWide ? '55%' : 280 }}>
             {renderChart(mode)}
           </div>
           <div className="flex-1 flex flex-col justify-center gap-3 pl-6">
@@ -451,7 +576,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
     );
   }
 
-  const isVolume = viewMode === 'volume';
+  const isVolumeTypeType = viewMode === 'volume' || viewMode === 'weekly';
 
   return (
     <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
@@ -557,8 +682,8 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
           <div
             className="flex justify-end mb-2"
             style={{
-              opacity: isVolume ? 0 : 1,
-              pointerEvents: isVolume ? 'none' : 'auto',
+              opacity: isVolumeType ? 0 : 1,
+              pointerEvents: isVolumeType ? 'none' : 'auto',
               transition: 'opacity 200ms ease',
             }}
           >
@@ -616,16 +741,16 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
           <div
             style={{
               transformOrigin: 'center center',
-              transform: isVolume ? 'scaleY(0.04)' : 'scaleY(1)',
+              transform: isVolumeType ? 'scaleY(0.04)' : 'scaleY(1)',
               transition: 'transform 300ms cubic-bezier(0.4,0,0.2,1)',
             }}
           >
             <div
               className="flex overflow-hidden text-xs"
               style={{
-                border: `1px solid ${isVolume ? 'transparent' : SURFACE_3_BORDER}`,
-                backgroundColor: isVolume ? PALE_YELLOW : 'transparent',
-                borderRadius: isVolume ? '1px' : '6px',
+                border: `1px solid ${isVolumeType ? 'transparent' : SURFACE_3_BORDER}`,
+                backgroundColor: isVolumeType ? PALE_YELLOW : 'transparent',
+                borderRadius: isVolumeType ? '1px' : '6px',
                 transition: 'border-color 250ms ease, background-color 250ms ease, border-radius 250ms ease',
               }}
             >
@@ -633,20 +758,20 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
                 onClick={() => setDisplayMode('hours')}
                 className="px-3 py-1.5"
                 style={{
-                  color: isVolume ? 'transparent' : displayMode === 'hours' ? 'white' : 'rgba(255,255,255,0.4)',
-                  backgroundColor: !isVolume && displayMode === 'hours' ? 'rgba(218,116,34,0.8)' : 'transparent',
+                  color: isVolumeType ? 'transparent' : displayMode === 'hours' ? 'white' : 'rgba(255,255,255,0.4)',
+                  backgroundColor: !isVolumeType && displayMode === 'hours' ? 'rgba(218,116,34,0.8)' : 'transparent',
                   transition: 'color 200ms ease, background-color 200ms ease',
-                  pointerEvents: isVolume ? 'none' : 'auto',
+                  pointerEvents: isVolumeType ? 'none' : 'auto',
                 }}
               >h</button>
               <button
                 onClick={() => setDisplayMode('pct')}
                 className="px-3 py-1.5"
                 style={{
-                  color: isVolume ? 'transparent' : displayMode === 'pct' ? 'white' : 'rgba(255,255,255,0.4)',
-                  backgroundColor: !isVolume && displayMode === 'pct' ? 'rgba(218,116,34,0.8)' : 'transparent',
+                  color: isVolumeType ? 'transparent' : displayMode === 'pct' ? 'white' : 'rgba(255,255,255,0.4)',
+                  backgroundColor: !isVolumeType && displayMode === 'pct' ? 'rgba(218,116,34,0.8)' : 'transparent',
                   transition: 'color 200ms ease, background-color 200ms ease',
-                  pointerEvents: isVolume ? 'none' : 'auto',
+                  pointerEvents: isVolumeType ? 'none' : 'auto',
                 }}
               >%</button>
             </div>
