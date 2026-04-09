@@ -42,11 +42,11 @@ function labelLines(label: string): string[] {
 }
 
 const SKILL_COLORS: Record<string, { fill: string; stroke: string; dot: string }> = {
-  standup:         { fill: 'rgba(212,160,64,0.25)',  stroke: 'rgba(212,160,64,0.85)',  dot: 'rgba(212,160,64,1.0)'  },
-  guard_retention: { fill: 'rgba(82,181,108,0.25)',  stroke: 'rgba(82,181,108,0.85)',  dot: 'rgba(82,181,108,1.0)'  },
-  submissions:     { fill: 'rgba(218,100,80,0.25)',  stroke: 'rgba(218,100,80,0.85)',  dot: 'rgba(218,100,80,1.0)'  },
-  pin_escapes:     { fill: 'rgba(196,145,95,0.25)',  stroke: 'rgba(196,145,95,0.85)',  dot: 'rgba(196,145,95,1.0)'  },
-  guard_passing:   { fill: 'rgba(90,175,210,0.25)',  stroke: 'rgba(90,175,210,0.85)',  dot: 'rgba(90,175,210,1.0)'  },
+  standup:     { fill: 'rgba(212,160,64,0.25)',  stroke: 'rgba(212,160,64,0.85)',  dot: 'rgba(212,160,64,1.0)'  },
+  guard:       { fill: 'rgba(82,181,108,0.25)',  stroke: 'rgba(82,181,108,0.85)',  dot: 'rgba(82,181,108,1.0)'  },
+  submissions: { fill: 'rgba(218,100,80,0.25)',  stroke: 'rgba(218,100,80,0.85)',  dot: 'rgba(218,100,80,1.0)'  },
+  pins:        { fill: 'rgba(196,145,95,0.25)',  stroke: 'rgba(196,145,95,0.85)',  dot: 'rgba(196,145,95,1.0)'  },
+  passing:     { fill: 'rgba(90,175,210,0.25)',  stroke: 'rgba(90,175,210,0.85)',  dot: 'rgba(90,175,210,1.0)'  },
 };
 const DEFAULT_COLORS = { fill: 'rgba(82,181,108,0.22)', stroke: 'rgba(176,214,100,0.75)', dot: 'rgba(176,214,100,0.9)' };
 

@@ -11,6 +11,11 @@ export interface Session {
     intensity: number;
     session_type: 'drilling' | 'class' | 'competition_training';
     tags: string[];
+    heading?: string | null;
+    polarity?: 'offense' | 'defense' | 'neutral' | null;
+    sub_skill_tag?: string | null;
+    script_source?: 'directed' | 'organic' | null;
+    resonance?: number | null;
     created_at?: Date;
 }
 
@@ -22,11 +27,21 @@ export const createSession = async (
     gi_nogi: 'gi' | 'no_gi',
     intensity: number,
     session_type: 'drilling' | 'class' | 'competition_training',
-    tags: string[]
+    tags: string[],
+    heading: string | null,
+    polarity: string | null,
+    sub_skill_tag: string | null,
+    script_source: string | null,
+    resonance: number | null,
 ): Promise<Session> => {
     const result = await query(
-        'INSERT INTO training_sessions (user_id, date, duration, notes, gi_nogi, intensity, session_type, tags) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-        [userId, date, duration, notes || null, gi_nogi, intensity, session_type, tags]
+        `INSERT INTO training_sessions
+         (user_id, date, duration, notes, gi_nogi, intensity, session_type, tags,
+          heading, polarity, sub_skill_tag, script_source, resonance)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+         RETURNING *`,
+        [userId, date, duration, notes || null, gi_nogi, intensity, session_type, tags,
+         heading, polarity, sub_skill_tag, script_source, resonance],
     );
     return result.rows[0];
 };
@@ -38,7 +53,7 @@ export const getSessionsByUser = async (userId: string, from?: string, to?: stri
     if (to)   { params.push(to);   whereExtra += ` AND date <= $${params.length}`; }
     const result = await query(
         `SELECT * FROM training_sessions WHERE user_id = $1${whereExtra} ORDER BY date DESC`,
-        params
+        params,
     );
     return result.rows;
 };
@@ -46,7 +61,7 @@ export const getSessionsByUser = async (userId: string, from?: string, to?: stri
 export const deleteSession = async (id: string, userId: string): Promise<boolean> => {
     const result = await query(
         'DELETE FROM training_sessions WHERE id = $1 AND user_id = $2',
-        [id, userId]
+        [id, userId],
     );
     return (result.rowCount ?? 0) > 0;
 };
@@ -75,7 +90,7 @@ export const bulkInsertSessions = async (userId: string, sessions: BulkSessionIn
 
         for (const s of sessions) {
             valuePlaceholders.push(
-                `($${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++})`
+                `($${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++})`,
             );
             flatParams.push(userId, s.date, s.duration, s.notes || null, s.gi_nogi, s.intensity, s.session_type, s.tags);
         }
@@ -83,7 +98,7 @@ export const bulkInsertSessions = async (userId: string, sessions: BulkSessionIn
         await client.query(
             `INSERT INTO training_sessions (user_id, date, duration, notes, gi_nogi, intensity, session_type, tags)
              VALUES ${valuePlaceholders.join(', ')}`,
-            flatParams
+            flatParams,
         );
 
         await client.query('COMMIT');
@@ -104,14 +119,21 @@ export const updateSession = async (
     intensity: number,
     session_type: 'drilling' | 'class' | 'competition_training',
     notes: string,
-    tags: string[]
+    tags: string[],
+    heading: string | null,
+    polarity: string | null,
+    sub_skill_tag: string | null,
+    script_source: string | null,
+    resonance: number | null,
 ): Promise<Session | null> => {
     const result = await query(
         `UPDATE training_sessions
-         SET duration = $3, gi_nogi = $4, intensity = $5, session_type = $6, notes = $7, tags = $8
+         SET duration = $3, gi_nogi = $4, intensity = $5, session_type = $6, notes = $7, tags = $8,
+             heading = $9, polarity = $10, sub_skill_tag = $11, script_source = $12, resonance = $13
          WHERE id = $1 AND user_id = $2
          RETURNING *`,
-        [id, userId, duration, gi_nogi, intensity, session_type, notes || null, tags]
+        [id, userId, duration, gi_nogi, intensity, session_type, notes || null, tags,
+         heading, polarity, sub_skill_tag, script_source, resonance],
     );
     return result.rows[0] ?? null;
 };

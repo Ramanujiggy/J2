@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '../lib/api.ts';
 import { toast } from '../hooks/use-toast.ts';
-import { SKILL_TAGS, type SkillTag } from '../lib/constants.ts';
-import { CARD_BG, COPPER_BORDER } from '../lib/theme.ts';
+import { SKILL_TAGS } from '../lib/constants.ts';
+import { CARD_BG, COPPER, COPPER_BORDER, SURFACE_2, SURFACE_3 } from '../lib/theme.ts';
+import type { Intention } from '../types/api.ts';
 
 interface LogSessionResponse {
   message: string;
@@ -10,6 +11,8 @@ interface LogSessionResponse {
 
 type GiNoGi = 'gi' | 'no_gi';
 type SessionType = 'drilling' | 'class' | 'competition_training';
+type Polarity = 'offense' | 'defense' | 'neutral';
+type ScriptSource = 'directed' | 'organic';
 
 interface SessionFormData {
   date: string;
@@ -56,17 +59,30 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate }: { o
          :                     `${min} m`;
   }
 
-  // Skill tags
-  const [selectedTags, setSelectedTags] = useState<SkillTag[]>([]);
+  // Dynamic Pillar Engine fields
+  const [heading,      setHeading]      = useState<string | null>(null);
+  const [polarity,     setPolarity]     = useState<Polarity | null>(null);
+  const [subSkillTag,  setSubSkillTag]  = useState('');
+  const [scriptSource, setScriptSource] = useState<ScriptSource | null>(null);
+  const [resonance,    setResonance]    = useState<number | null>(null);
 
-  const toggleTag = (tag: SkillTag) => {
-    setSelectedTags(prev =>
-      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
-    );
-  };
+  // Current intention hint
+  const [currentIntention, setCurrentIntention] = useState<Intention | null>(null);
+  useEffect(() => {
+    const weekStart = (() => {
+      const d = new Date();
+      const day = d.getDay();
+      const diff = day === 0 ? -6 : 1 - day;
+      d.setDate(d.getDate() + diff);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    })();
+    api.get<{ intention: Intention | null }>(`/api/intentions/current?week_start=${weekStart}`)
+      .then(r => setCurrentIntention(r.intention))
+      .catch(() => {});
+  }, []);
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error,   setError]   = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -75,7 +91,11 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate }: { o
   const resetForm = () => {
     setForm({ date: today, notes: '', gi_nogi: 'gi', intensity: 3, session_type: 'class' });
     setDurationMinutes(null);
-    setSelectedTags([]);
+    setHeading(null);
+    setPolarity(null);
+    setSubSkillTag('');
+    setScriptSource(null);
+    setResonance(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -87,8 +107,8 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate }: { o
       return;
     }
 
-    if (selectedTags.length === 0) {
-      setError('Please select at least one skill area.');
+    if (!heading) {
+      setError('Please select a pillar focus.');
       return;
     }
 
@@ -101,7 +121,12 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate }: { o
         gi_nogi:      form.gi_nogi,
         session_type: form.session_type,
         notes:        form.notes || undefined,
-        tags:         [...selectedTags],
+        tags:         [heading],
+        heading,
+        polarity:      polarity      ?? undefined,
+        sub_skill_tag: subSkillTag   || undefined,
+        script_source: scriptSource  ?? undefined,
+        resonance:     resonance     ?? undefined,
       };
 
       const data = await api.post<LogSessionResponse>('/api/sessions', {
@@ -112,21 +137,28 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate }: { o
         intensity:    sessionSnapshot.intensity,
         session_type: sessionSnapshot.session_type,
         tags:         sessionSnapshot.tags,
+        heading:      sessionSnapshot.heading,
+        polarity:     sessionSnapshot.polarity,
+        sub_skill_tag: sessionSnapshot.sub_skill_tag,
+        script_source: sessionSnapshot.script_source,
+        resonance:    sessionSnapshot.resonance,
       });
 
-      if (data.message !== 'Session logged.' && !(data as any)._offline) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const dataAny = data as any;
+      if (data.message !== 'Session logged.' && !dataAny._offline) {
         setError(data.message ?? 'Failed to log session.');
         return;
       }
 
-      if ((data as any)._offline) {
+      if (dataAny._offline) {
         const { addPending } = await import('../lib/pendingSessions.ts');
         addPending({ id: `pending-${Date.now()}`, ...sessionSnapshot });
       }
 
       resetForm();
       toast({
-        title: (data as any)._offline
+        title: dataAny._offline
           ? 'Session saved offline — will sync when connected.'
           : 'Session logged!',
       });
@@ -239,22 +271,119 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate }: { o
           </div>
         </div>
 
-        {/* Skill tags */}
+        {/* ── Dynamic Pillar Engine ────────────────────────────────── */}
+
+        {/* Pillar Focus (Heading) */}
         <div>
-          <label className="block text-sm text-white/70 mb-2">
-            Skills Trained <span className="text-white/30">(select all that apply)</span>
-          </label>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex items-baseline gap-2 mb-1.5">
+            <label className="text-sm text-white/70">Pillar Focus</label>
+            {currentIntention && (
+              <span className="text-[11px] text-white/35">
+                This week: <span style={{ color: COPPER }}>{currentIntention.intent_label}</span>
+              </span>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
             {SKILL_TAGS.map(({ value, label }) => (
               <button
                 key={value}
                 type="button"
-                onClick={() => toggleTag(value)}
-                className={`${btnBase} ${selectedTags.includes(value) ? btnActive : btnInactive}`}
+                onClick={() => { setHeading(value); setPolarity(null); }}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                style={{
+                  backgroundColor: heading === value ? COPPER : SURFACE_3,
+                  color: heading === value ? '#fff' : 'rgba(255,255,255,0.5)',
+                }}
               >
                 {label}
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* Polarity — only for guard and pins */}
+        {(heading === 'guard' || heading === 'pins') && (
+          <div>
+            <label className="block text-xs text-white/60 mb-1.5">Polarity</label>
+            <div className="flex gap-1.5">
+              {(['offense', 'defense', 'neutral'] as Polarity[]).map(p => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPolarity(prev => prev === p ? null : p)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors"
+                  style={{
+                    backgroundColor: polarity === p ? COPPER : SURFACE_3,
+                    color: polarity === p ? '#fff' : 'rgba(255,255,255,0.5)',
+                  }}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Script Source */}
+        <div>
+          <label className="block text-xs text-white/60 mb-1.5">Source</label>
+          <div className="flex gap-1.5">
+            {(['directed', 'organic'] as ScriptSource[]).map(s => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setScriptSource(prev => prev === s ? null : s)}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                style={{
+                  backgroundColor: scriptSource === s ? COPPER : SURFACE_3,
+                  color: scriptSource === s ? '#fff' : 'rgba(255,255,255,0.5)',
+                }}
+              >
+                {s === 'directed' ? 'Class / Directed' : 'Open Mat / Organic'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Sub-skill tag */}
+        <div>
+          <label className="block text-xs text-white/60 mb-1.5">
+            Sub-skill <span className="text-white/25">(optional — e.g. K-Guard)</span>
+          </label>
+          <input
+            type="text"
+            maxLength={50}
+            value={subSkillTag}
+            onChange={e => setSubSkillTag(e.target.value)}
+            placeholder="e.g. K-Guard, Single Leg, Guillotine"
+            className="w-full border border-white/10 rounded-lg px-4 py-2.5 text-white text-sm placeholder-white/25 outline-none focus:border-white/25"
+            style={{ backgroundColor: SURFACE_2 }}
+          />
+        </div>
+
+        {/* Resonance — 5 dots (1–10 stored as 2/4/6/8/10) */}
+        <div>
+          <label className="block text-xs text-white/60 mb-1.5">
+            Resonance <span className="text-white/25">(how aligned did it feel?)</span>
+          </label>
+          <div className="flex gap-2">
+            {[1, 2, 3, 4, 5].map(n => {
+              const val = n * 2;
+              const active = resonance !== null && resonance >= val;
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setResonance(prev => prev === val ? null : val)}
+                  style={{
+                    width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+                    backgroundColor: active ? COPPER : 'rgba(255,255,255,0.08)',
+                    border: `1px solid ${active ? COPPER : 'rgba(255,255,255,0.12)'}`,
+                    transition: 'background-color 0.15s',
+                  }}
+                />
+              );
+            })}
           </div>
         </div>
 

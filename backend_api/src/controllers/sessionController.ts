@@ -1,9 +1,11 @@
 import type { Request, Response } from 'express';
 import { createSession, getSessionsByUser, updateSession as updateSessionModel, deleteSession as deleteSessionModel, bulkInsertSessions, type BulkSessionInput } from '../models/sessionModel.js';
 
-const VALID_TAGS = new Set(['standup', 'guard_retention', 'submissions', 'pin_escapes', 'guard_passing']);
-const VALID_GI_NOGI = new Set(['gi', 'no_gi']);
+const VALID_TAGS        = new Set(['standup', 'passing', 'pins', 'submissions', 'guard']);
+const VALID_GI_NOGI     = new Set(['gi', 'no_gi']);
 const VALID_SESSION_TYPES = new Set(['class', 'drilling', 'competition_training']);
+const VALID_POLARITIES  = new Set(['offense', 'defense', 'neutral']);
+const VALID_SOURCES     = new Set(['directed', 'organic']);
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 function isValidTagArray(v: unknown): v is string[] {
@@ -18,7 +20,8 @@ export const logSession = async (req: Request, res: Response): Promise<void> => 
             return;
         }
 
-        const { date, duration, notes, gi_nogi, intensity, session_type, tags } = req.body;
+        const { date, duration, notes, gi_nogi, intensity, session_type, tags,
+                heading, polarity, sub_skill_tag, script_source, resonance } = req.body;
 
         if (!date || duration === undefined || !gi_nogi || intensity === undefined || !session_type) {
             res.status(400).json({ message: 'Date, duration, gi/no-gi, intensity, and session type are required.' });
@@ -52,12 +55,42 @@ export const logSession = async (req: Request, res: Response): Promise<void> => 
             return;
         }
 
-        if (!isValidTagArray(tags)) {
+        // heading is the new primary pillar selector; tags fall back to [heading] for backward compat
+        if (heading !== undefined && heading !== null && !VALID_TAGS.has(heading)) {
+            res.status(400).json({ message: 'Invalid heading.' });
+            return;
+        }
+        if (polarity !== undefined && polarity !== null && !VALID_POLARITIES.has(polarity)) {
+            res.status(400).json({ message: 'Invalid polarity.' });
+            return;
+        }
+        if (script_source !== undefined && script_source !== null && !VALID_SOURCES.has(script_source)) {
+            res.status(400).json({ message: 'Invalid script_source.' });
+            return;
+        }
+        if (sub_skill_tag !== undefined && sub_skill_tag !== null) {
+            if (typeof sub_skill_tag !== 'string' || sub_skill_tag.length > 50) {
+                res.status(400).json({ message: 'sub_skill_tag must be a string ≤ 50 chars.' });
+                return;
+            }
+        }
+        const resonanceNum = (resonance !== undefined && resonance !== null) ? Number(resonance) : null;
+        if (resonanceNum !== null && (!Number.isInteger(resonanceNum) || resonanceNum < 1 || resonanceNum > 10)) {
+            res.status(400).json({ message: 'resonance must be an integer 1–10.' });
+            return;
+        }
+
+        // Derive tags: explicit array wins; fall back to [heading]; then reject
+        const finalTags = isValidTagArray(tags) ? tags : (heading ? [heading] : null);
+        if (!finalTags) {
             res.status(400).json({ message: 'At least one valid skill tag is required.' });
             return;
         }
 
-        const session = await createSession(userId, date, durationNum, notes ?? '', gi_nogi, intensityNum, session_type, tags);
+        const session = await createSession(
+            userId, date, durationNum, notes ?? '', gi_nogi, intensityNum, session_type, finalTags,
+            heading ?? null, polarity ?? null, sub_skill_tag ?? null, script_source ?? null, resonanceNum,
+        );
         res.status(201).json({ message: 'Session logged.', session });
     } catch (err) {
         console.error('❌ Error logging session:', err);
@@ -201,7 +234,8 @@ export const updateSession = async (req: Request, res: Response): Promise<void> 
         }
 
         const { id } = req.params;
-        const { duration, gi_nogi, intensity, session_type, notes, tags } = req.body;
+        const { duration, gi_nogi, intensity, session_type, notes, tags,
+                heading, polarity, sub_skill_tag, script_source, resonance } = req.body;
 
         if (duration === undefined || !gi_nogi || intensity === undefined || !session_type) {
             res.status(400).json({ message: 'Duration, gi/no-gi, intensity, and session type are required.' });
@@ -230,12 +264,37 @@ export const updateSession = async (req: Request, res: Response): Promise<void> 
             return;
         }
 
-        const resolvedTags = isValidTagArray(tags) ? tags : [];
+        if (heading !== undefined && heading !== null && !VALID_TAGS.has(heading)) {
+            res.status(400).json({ message: 'Invalid heading.' });
+            return;
+        }
+        if (polarity !== undefined && polarity !== null && !VALID_POLARITIES.has(polarity)) {
+            res.status(400).json({ message: 'Invalid polarity.' });
+            return;
+        }
+        if (script_source !== undefined && script_source !== null && !VALID_SOURCES.has(script_source)) {
+            res.status(400).json({ message: 'Invalid script_source.' });
+            return;
+        }
+        if (sub_skill_tag !== undefined && sub_skill_tag !== null) {
+            if (typeof sub_skill_tag !== 'string' || sub_skill_tag.length > 50) {
+                res.status(400).json({ message: 'sub_skill_tag must be a string ≤ 50 chars.' });
+                return;
+            }
+        }
+        const resonanceNum = (resonance !== undefined && resonance !== null) ? Number(resonance) : null;
+        if (resonanceNum !== null && (!Number.isInteger(resonanceNum) || resonanceNum < 1 || resonanceNum > 10)) {
+            res.status(400).json({ message: 'resonance must be an integer 1–10.' });
+            return;
+        }
+
+        const finalTags = isValidTagArray(tags) ? tags : (heading ? [heading] : []);
 
         const session = await updateSessionModel(
             id as string, userId,
             durationNum, gi_nogi, intensityNum, session_type, notes ?? '',
-            resolvedTags
+            finalTags,
+            heading ?? null, polarity ?? null, sub_skill_tag ?? null, script_source ?? null, resonanceNum,
         );
 
         if (!session) {

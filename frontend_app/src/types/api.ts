@@ -9,6 +9,12 @@ export interface SessionSummary {
   session_type: 'class' | 'drilling' | 'competition_training';
   notes?: string;
   tags: string[];
+  // Dynamic Pillar Engine fields (nullable — older sessions won't have them)
+  heading?: string | null;
+  polarity?: 'offense' | 'defense' | 'neutral' | null;
+  sub_skill_tag?: string | null;
+  script_source?: 'directed' | 'organic' | null;
+  resonance?: number | null;
 }
 
 export interface Intention {
