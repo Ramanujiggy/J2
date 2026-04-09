@@ -121,17 +121,30 @@ users (1) ──── (many) weekly_intentions
 
 ### Manual (run once in Supabase SQL Editor)
 
+Five numbered SQL files in `backend_api/migrations/`, applied in order:
+
 ```sql
--- Migration 001: Add tags column to training_sessions
-ALTER TABLE training_sessions
-  ADD COLUMN IF NOT EXISTS tags text[] NOT NULL DEFAULT '{}';
+-- 001_add_weekly_intentions.sql
+-- Creates the weekly_intentions table and adds intent_resonance to training_sessions.
+-- NOTE: the intent_resonance column and its check constraint were later superseded by
+-- Migration 005 which renames it to 'resonance' and widens the range to 1–10.
+CREATE TABLE IF NOT EXISTS weekly_intentions ( … );
+ALTER TABLE training_sessions ADD COLUMN IF NOT EXISTS intent_resonance SMALLINT …;
 
--- Migration 002: Add intentions_enabled feature flag to users
+-- 002_add_intention_duration.sql
+ALTER TABLE weekly_intentions
+  ADD COLUMN IF NOT EXISTS duration_days INTEGER NOT NULL DEFAULT 7
+  CHECK (duration_days BETWEEN 1 AND 30);
+
+-- 003_add_journal_entry.sql
+ALTER TABLE weekly_intentions ADD COLUMN IF NOT EXISTS journal_entry TEXT;
+
+-- 004_add_intentions_enabled.sql
 ALTER TABLE users
-  ADD COLUMN IF NOT EXISTS intentions_enabled boolean NOT NULL DEFAULT true;
+  ADD COLUMN IF NOT EXISTS intentions_enabled BOOLEAN NOT NULL DEFAULT TRUE;
 
--- Migration 005: Dynamic Pillar Engine columns
--- (tag rename UPDATEs and RENAME COLUMN are one-time; IF NOT EXISTS guards the rest)
+-- 005_dynamic_pillar_engine.sql
+-- Renames old tag values, adds pillar engine columns, renames intent_resonance → resonance.
 UPDATE training_sessions SET tags = array_replace(tags, 'guard_retention', 'guard');
 UPDATE training_sessions SET tags = array_replace(tags, 'pin_escapes',     'pins');
 UPDATE training_sessions SET tags = array_replace(tags, 'guard_passing',   'passing');
@@ -141,6 +154,8 @@ ALTER TABLE training_sessions
   ADD COLUMN IF NOT EXISTS sub_skill_tag text,
   ADD COLUMN IF NOT EXISTS script_source varchar(10),
   ADD COLUMN IF NOT EXISTS resonance     integer;
+-- Also drop the old check constraint if it survived the rename:
+-- ALTER TABLE training_sessions DROP CONSTRAINT IF EXISTS training_sessions_intent_resonance_check;
 ```
 
 ---
