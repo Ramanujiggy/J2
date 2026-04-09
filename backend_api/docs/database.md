@@ -41,19 +41,24 @@ One row per training session. Linked to a user via `user_id`.
 | `session_type` | `varchar(50)` | NOT NULL | `class \| drilling \| competition_training` |
 | `notes` | `text` | nullable | Free-form session notes |
 | `tags` | `text[]` | NOT NULL, default `'{}'` | Skill focus tags (see below) |
+| `heading` | `varchar(20)` | nullable | Primary pillar selected in the Dynamic Pillar Engine |
+| `polarity` | `varchar(10)` | nullable | `offense \| defense \| neutral` — shown for guard/pins headings |
+| `sub_skill_tag` | `text` | nullable | Optional free-text sub-skill (e.g. "K-Guard") |
+| `script_source` | `varchar(10)` | nullable | `directed \| organic` — class-led vs open mat |
+| `resonance` | `integer` | nullable, 1–10 | How aligned the session felt with active intention |
 | `created_at` | `timestamptz` | default `NOW()` | |
 
-#### Valid `tags` values
+#### Valid `tags` / `heading` values
 
 Defined in `frontend_app/src/lib/constants.ts` and validated in `sessionController.ts`:
 
 | Tag value | Display label |
 |---|---|
 | `standup` | Stand-up |
-| `guard_retention` | Guard Retention |
+| `guard` | Guard |
 | `submissions` | Submissions |
-| `pin_escapes` | Pin Escapes |
-| `guard_passing` | Guard Passing |
+| `pins` | Dynamic Pins |
+| `passing` | Guard Passing |
 
 ---
 
@@ -117,13 +122,25 @@ users (1) ──── (many) intentions
 ### Manual (run once in Supabase SQL Editor)
 
 ```sql
--- Add tags column to training_sessions (required for SkillRadar analytics)
+-- Migration 001: Add tags column to training_sessions
 ALTER TABLE training_sessions
   ADD COLUMN IF NOT EXISTS tags text[] NOT NULL DEFAULT '{}';
 
--- Add intentions_enabled feature flag to users
+-- Migration 002: Add intentions_enabled feature flag to users
 ALTER TABLE users
   ADD COLUMN IF NOT EXISTS intentions_enabled boolean NOT NULL DEFAULT true;
+
+-- Migration 005: Dynamic Pillar Engine columns
+-- (tag rename UPDATEs and RENAME COLUMN are one-time; IF NOT EXISTS guards the rest)
+UPDATE training_sessions SET tags = array_replace(tags, 'guard_retention', 'guard');
+UPDATE training_sessions SET tags = array_replace(tags, 'pin_escapes',     'pins');
+UPDATE training_sessions SET tags = array_replace(tags, 'guard_passing',   'passing');
+ALTER TABLE training_sessions
+  ADD COLUMN IF NOT EXISTS heading       varchar(20),
+  ADD COLUMN IF NOT EXISTS polarity      varchar(10),
+  ADD COLUMN IF NOT EXISTS sub_skill_tag text,
+  ADD COLUMN IF NOT EXISTS script_source varchar(10),
+  ADD COLUMN IF NOT EXISTS resonance     integer;
 ```
 
 ---
