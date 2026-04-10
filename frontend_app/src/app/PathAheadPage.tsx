@@ -9,6 +9,7 @@ import SessionDetailModal from '../components/SessionDetailModal.tsx';
 import SetIntentionModal from '../components/SetIntentionModal.tsx';
 import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER, COPPER_BORDER, SURFACE_2, SURFACE_2_BORDER, WHISPER_BORDER } from '../lib/theme.ts';
 import { CalendarDays, List } from 'lucide-react';
+import { toast } from '../hooks/use-toast.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import PageContent from '../components/PageContent.tsx';
 import HeatmapPreviewWidget from '../components/HeatmapPreviewWidget.tsx';
@@ -999,7 +1000,15 @@ export default function PathAheadPage() {
             }}
           >
             <LogSessionForm
-              onSuccess={() => { fetchAll(); setLogOpen(false); setLogDate(null); }}
+              onSuccess={(count) => {
+                fetchAll();
+                setLogOpen(false);
+                setLogDate(null);
+                if (count === 500 && !localStorage.getItem('j2-milestone-500')) {
+                  localStorage.setItem('j2-milestone-500', '1');
+                  toast({ title: '500 sessions. The mat remembers every one.' });
+                }
+              }}
               onCancel={() => { setLogOpen(false); setLogDate(null); }}
               defaultDate={logDate ?? undefined}
             />

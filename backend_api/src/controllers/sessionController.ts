@@ -91,7 +91,7 @@ export const logSession = async (req: Request, res: Response): Promise<void> => 
             userId, date, durationNum, notes ?? '', gi_nogi, intensityNum, session_type, finalTags,
             heading ?? null, polarity ?? null, sub_skill_tag ?? null, script_source ?? null, resonanceNum,
         );
-        res.status(201).json({ message: 'Session logged.', session });
+        res.status(201).json({ message: 'Session logged.', session, session_count: session.session_count });
     } catch (err) {
         console.error('❌ Error logging session:', err);
         res.status(500).json({ message: 'Server error.' });

@@ -33,13 +33,17 @@ export const createSession = async (
     sub_skill_tag: string | null,
     script_source: string | null,
     resonance: number | null,
-): Promise<Session> => {
+): Promise<Session & { session_count: number }> => {
     const result = await query(
-        `INSERT INTO training_sessions
-         (user_id, date, duration, notes, gi_nogi, intensity, session_type, tags,
-          heading, polarity, sub_skill_tag, script_source, resonance)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-         RETURNING *`,
+        `WITH new_session AS (
+           INSERT INTO training_sessions
+           (user_id, date, duration, notes, gi_nogi, intensity, session_type, tags,
+            heading, polarity, sub_skill_tag, script_source, resonance)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+           RETURNING *
+         )
+         SELECT ns.*, (SELECT COUNT(*)::int FROM training_sessions WHERE user_id = $1) AS session_count
+         FROM new_session ns`,
         [userId, date, duration, notes || null, gi_nogi, intensity, session_type, tags,
          heading, polarity, sub_skill_tag, script_source, resonance],
     );
