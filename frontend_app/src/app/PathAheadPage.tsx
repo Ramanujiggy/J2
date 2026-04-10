@@ -774,7 +774,7 @@ export default function PathAheadPage() {
                     setLogOpen(true);
                   }
                 }}
-                className={`flex flex-col items-center justify-center gap-1 rounded-xl touch-manipulation${isInStreak ? ' j2-streak-cell' : ''}`}
+                className="flex flex-col items-center justify-center gap-1 rounded-xl touch-manipulation"
                 style={{
                   flexShrink: 0,
                   width: MINI_CARD_W,
