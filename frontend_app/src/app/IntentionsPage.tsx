@@ -213,7 +213,6 @@ export default function IntentionsPage() {
       {/* Edit modal */}
       {editTarget && (
         <SetIntentionModal
-          weekStart={new Date(editTarget.week_start + 'T00:00:00')}
           editIntention={editTarget}
           onSaved={fetchAll}
           onClose={() => setEditTarget(null)}

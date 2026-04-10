@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { api, ApiError } from '../lib/api.ts';
 import { toast } from '../hooks/use-toast.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
-import { CARD_BG, COPPER, COPPER_BORDER, SURFACE_2, SURFACE_3 } from '../lib/theme.ts';
+import { CARD_BG, COPPER, COPPER_BORDER, SURFACE_2, SURFACE_3, DATE_INPUT_STYLE } from '../lib/theme.ts';
 import type { Intention } from '../types/api.ts';
 
 interface LogSessionResponse {
@@ -187,7 +187,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate }: { o
       <form onSubmit={handleSubmit} className="space-y-5">
 
         {/* Date */}
-        <div className="overflow-hidden">
+        <div>
           <label className="block text-sm text-white/70 mb-1">Date</label>
           <input
             type="date"
@@ -195,7 +195,8 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate }: { o
             required
             value={form.date}
             onChange={handleChange}
-            className="block w-full min-w-0 max-w-full bg-white/10 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-brand-orange"
+            className="w-full rounded-lg px-3 py-2.5 text-sm text-white/90 outline-none focus:ring-1"
+            style={DATE_INPUT_STYLE}
           />
         </div>
 

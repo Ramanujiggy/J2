@@ -184,12 +184,17 @@ export default function PathAheadPage() {
   // Days-from-Monday offset for today (used to map weekDays index → windowDays index)
   const todayDowOffset = today.getDay() === 0 ? 6 : today.getDay() - 1;
 
-  // Intention is always for the current calendar week
-  const activeIntention = intentions.find(i => i.week_start.slice(0, 10) === getWeekStart(today)) ?? null;
+  // Active intention: any intention whose window contains today
+  const todayStr = toDateString(today);
+  const activeIntention = intentions.find(i => {
+    const start = i.week_start.slice(0, 10);
+    const end   = addDays(start, (i.duration_days ?? 7) - 1);
+    return todayStr >= start && todayStr <= end;
+  }) ?? null;
 
-  const intentionStartStr = activeIntention ? toDateString(today) : null;
+  const intentionStartStr = activeIntention ? activeIntention.week_start.slice(0, 10) : null;
   const intentionEndStr = intentionStartStr && activeIntention
-    ? addDays(intentionStartStr, activeIntention.duration_days ?? 7)
+    ? addDays(intentionStartStr, (activeIntention.duration_days ?? 7) - 1)
     : null;
 
   // Shared intention-brightness helper — used by both mobile and desktop carousels
@@ -1033,7 +1038,6 @@ export default function PathAheadPage() {
 
       {setIntentOpen && (
         <SetIntentionModal
-          weekStart={today}
           onSaved={fetchAll}
           onClose={() => setSetIntentOpen(false)}
         />
