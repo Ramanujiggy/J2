@@ -81,3 +81,16 @@ export const HEATMAP_OUTSIDE_YEAR = '#0D1812' as const;
 
 /** Sticky calendar column-header row background — marginally lighter than page bg. */
 export const HEATMAP_HEADER_BG = '#111D16' as const;
+
+// ─── Form inputs ──────────────────────────────────────────────────────────────
+
+/**
+ * Shared inline style for all <input type="date"> elements.
+ * Use alongside DATE_INPUT_CLASS for consistent resting-state appearance.
+ * colorScheme: 'dark' makes the native iOS/browser picker respect dark mode.
+ */
+export const DATE_INPUT_STYLE = {
+  backgroundColor: SURFACE_3,
+  border: `1px solid ${COPPER_BORDER}`,
+  colorScheme: 'dark' as const,
+};

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.ts';
-import { PALE_YELLOW, SURFACE_2, SURFACE_3, COPPER } from '../lib/theme.ts';
+import { PALE_YELLOW, SURFACE_2, SURFACE_3, COPPER, DATE_INPUT_STYLE } from '../lib/theme.ts';
 import type { Intention } from '../types/api.ts';
 
 const CATEGORIES = [
@@ -16,16 +16,12 @@ type Category = typeof CATEGORIES[number]['value'];
 
 const DURATION_OPTIONS = [3, 5, 7, 14] as const;
 
-function getWeekStart(date: Date): string {
-  const d = new Date(date);
-  const day = d.getDay(); // 0=Sun
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
+function todayStr(): string {
+  const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 interface Props {
-  weekStart: Date;
   onSaved: () => void;
   onClose: () => void;
   editIntention?: Intention;
@@ -36,7 +32,7 @@ interface IntentionResponse {
   intention: { id: string; intent_label: string; intent_category: string | null };
 }
 
-export default function SetIntentionModal({ weekStart, onSaved, onClose, editIntention }: Props) {
+export default function SetIntentionModal({ onSaved, onClose, editIntention }: Props) {
   const navigate = useNavigate();
   const isEdit = !!editIntention;
 
@@ -45,6 +41,7 @@ export default function SetIntentionModal({ weekStart, onSaved, onClose, editInt
     (editIntention?.intent_category as Category | null) ?? '',
   );
   const [durationDays, setDurationDays] = useState<number>(editIntention?.duration_days ?? 7);
+  const [startDate,    setStartDate]    = useState<string>(todayStr());
   const [writeJournal, setWriteJournal] = useState(false);
   const [saving,       setSaving]       = useState(false);
   const [error,        setError]        = useState('');
@@ -69,7 +66,7 @@ export default function SetIntentionModal({ weekStart, onSaved, onClose, editInt
         const res = await api.post<IntentionResponse>('/api/intentions', {
           intent_label:    label.trim(),
           intent_category: category || null,
-          week_start:      getWeekStart(weekStart),
+          week_start:      startDate,
           duration_days:   durationDays,
         });
         onSaved();
@@ -135,6 +132,20 @@ export default function SetIntentionModal({ weekStart, onSaved, onClose, editInt
               autoFocus
             />
           </div>
+
+          {/* Start date — create mode only */}
+          {!isEdit && (
+            <div>
+              <label className="text-xs text-white/60 block mb-1.5">Start date</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={e => setStartDate(e.target.value)}
+                className="w-full rounded-lg px-3 py-2.5 text-sm text-white/90 outline-none focus:ring-1"
+                style={DATE_INPUT_STYLE}
+              />
+            </div>
+          )}
 
           {/* Category */}
           <div>

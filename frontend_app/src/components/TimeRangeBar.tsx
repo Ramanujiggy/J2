@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronRight, ChevronLeft, CalendarDays, X } from 'lucide-react';
 import type { TimeWindow } from './SkillRadar.tsx';
-import { CARD_BG, COPPER_BORDER, PALE_YELLOW, COPPER, SURFACE_3 } from '../lib/theme.ts';
+import { CARD_BG, COPPER_BORDER, PALE_YELLOW, COPPER, SURFACE_3, DATE_INPUT_STYLE } from '../lib/theme.ts';
 import { MONTH_NAMES } from '../lib/constants.ts';
 
 interface TimeRangeBarProps {
@@ -181,14 +181,8 @@ export default function TimeRangeBar({ value, onChange, customRange, onCustomRan
                   value={draftStart}
                   max={draftEnd || undefined}
                   onChange={e => setDraftStart(e.target.value)}
-                  className="w-full rounded-lg px-3 py-2 text-sm text-white/90 outline-none focus:ring-1"
-                  style={{
-                    backgroundColor: SURFACE_3,
-                    border: `1px solid ${COPPER_BORDER}`,
-                    colorScheme: 'dark',
-                    // @ts-ignore
-                    '--webkit-calendar-picker-indicator-filter': 'invert(1)',
-                  }}
+                  className="w-full rounded-lg px-3 py-2.5 text-sm text-white/90 outline-none focus:ring-1"
+                  style={DATE_INPUT_STYLE}
                 />
               </label>
 
@@ -200,12 +194,8 @@ export default function TimeRangeBar({ value, onChange, customRange, onCustomRan
                   min={draftStart || undefined}
                   max={new Date().toISOString().slice(0, 10)}
                   onChange={e => setDraftEnd(e.target.value)}
-                  className="w-full rounded-lg px-3 py-2 text-sm text-white/90 outline-none focus:ring-1"
-                  style={{
-                    backgroundColor: SURFACE_3,
-                    border: `1px solid ${COPPER_BORDER}`,
-                    colorScheme: 'dark',
-                  }}
+                  className="w-full rounded-lg px-3 py-2.5 text-sm text-white/90 outline-none focus:ring-1"
+                  style={DATE_INPUT_STYLE}
                 />
               </label>
             </div>
