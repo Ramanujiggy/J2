@@ -3,6 +3,7 @@ import { api, ApiError } from '../lib/api.ts';
 import { toast } from '../hooks/use-toast.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
 import { CARD_BG, COPPER, COPPER_BORDER, SURFACE_2, SURFACE_3, DATE_INPUT_STYLE, PALE_YELLOW } from '../lib/theme.ts';
+import BeltDateBanner from './BeltDateBanner.tsx';
 import type { Intention } from '../types/api.ts';
 
 interface LogSessionResponse {
@@ -182,23 +183,17 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate }: { o
   };
 
   return (
-    <div className="rounded-2xl p-6 overflow-hidden" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}` }}>
-      <h2 className="text-lg font-semibold mb-5" style={{ color: PALE_YELLOW }}>Log a Training Session</h2>
-      <form onSubmit={handleSubmit} className="space-y-5">
+    <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}` }}>
+      <form onSubmit={handleSubmit}>
+        {/* Belt date banner — full-bleed, animates in from the right on mount */}
+        <BeltDateBanner
+          value={form.date}
+          required
+          onChange={date => setForm(prev => ({ ...prev, date }))}
+        />
 
-        {/* Date */}
-        <div>
-          <label className="block text-sm text-white/70 mb-1">Date</label>
-          <input
-            type="date"
-            name="date"
-            required
-            value={form.date}
-            onChange={handleChange}
-            className="w-full rounded-lg px-3 py-2.5 text-sm text-white/90 outline-none focus:ring-1"
-            style={DATE_INPUT_STYLE}
-          />
-        </div>
+        <div className="px-6 pb-6 pt-4 space-y-5">
+        <h2 className="text-lg font-semibold" style={{ color: PALE_YELLOW }}>Log a Training Session</h2>
 
         {/* Style */}
         <div>
@@ -437,6 +432,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate }: { o
           </button>
         </div>
 
+        </div>{/* end px-6 pb-6 pt-4 wrapper */}
       </form>
     </div>
   );
