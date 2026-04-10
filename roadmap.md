@@ -100,3 +100,22 @@ A subtle thematic tribute to a character whose ethos aligns with BJJ culture: pu
 | `[ ]` | **"Dedication" intention category** | Add `dedication` as a sixth category in `SetIntentionModal`. Color: `#52B56C` (training green). For weeks where the goal is simply to show up. |
 | `[ ]` | **Full Commitment hours stat** | Extend `computeStats()` with `fullEffortMinutes` (intensity 4–5 only). Display as a secondary stat alongside total hours. |
 | `[ ]` | **The Drop — PR particle effect** | On logging a personal record (longest session, first intensity-5, or Nth milestone), small circle "weights" animate briefly downward. Uses existing particle system in `particles.ts`. |
+
+---
+
+## Design Decision: No Badge/Achievement Gallery
+
+**Verdict: build milestone moments, not a badge collection.**
+
+A traditional badge system (profile tab, earned/unearned icon grid, "collect them all" UI) would work against the app's ethos — it optimizes for logging volume and creates a side quest that distracts from actual training. It also conflicts with the "hard work for its own sake" philosophy that the Easter Eggs section embodies.
+
+The right pattern is **milestone moments**: contextual, one-time events that fire once, say something true, and disappear. The session-500 toast and the planned Eight Gates streak system are both this shape — they upgrade existing displays or fire a single toast, with no persistent badge inventory UI needed.
+
+**Milestones worth building (when the time comes):**
+- First 100 hours on the mat
+- First 90-day streak
+- First intensity-5 session logged
+- 12 consecutive weeks with 3+ sessions (consistency, not raw streak)
+- Drilling-to-sparring ratio crosses a meaningful threshold
+
+None of these need a badge UI. They need a localStorage flag, a one-time toast, and possibly a subtle visual tweak to an existing stat. Extend the Eight Gates pattern, don't add a new UI paradigm.
