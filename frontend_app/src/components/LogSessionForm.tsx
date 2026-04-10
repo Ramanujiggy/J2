@@ -200,38 +200,41 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate }: { o
           />
         </div>
 
-        {/* Gi / No-Gi + Session Type */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div>
-            <label className="block text-sm text-white/70 mb-2">Style</label>
-            <div className="flex gap-2">
-              {(['gi', 'no_gi'] as GiNoGi[]).map(val => (
-                <button
-                  key={val}
-                  type="button"
-                  onClick={() => setForm(prev => ({ ...prev, gi_nogi: val }))}
-                  className={`${btnBase} ${form.gi_nogi === val ? btnActive : btnInactive}`}
-                >
-                  {val === 'gi' ? 'Gi' : 'No-Gi'}
-                </button>
-              ))}
-            </div>
+        {/* Style */}
+        <div>
+          <label className="block text-sm text-white/70 mb-2">Style</label>
+          <div className="flex gap-2">
+            {(['gi', 'no_gi'] as GiNoGi[]).map(val => (
+              <button
+                key={val}
+                type="button"
+                onClick={() => setForm(prev => ({ ...prev, gi_nogi: val }))}
+                className={`${btnBase} ${form.gi_nogi === val ? btnActive : btnInactive}`}
+              >
+                {val === 'gi' ? 'Gi' : 'No-Gi'}
+              </button>
+            ))}
           </div>
+        </div>
 
-          <div>
-            <label className="block text-sm text-white/70 mb-2">Type</label>
-            <div className="flex gap-2">
-              {SESSION_TYPES.map(({ value, label }) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setForm(prev => ({ ...prev, session_type: value }))}
-                  className={`flex-1 ${btnBase} ${form.session_type === value ? btnActive : btnInactive}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+        {/* Type */}
+        <div>
+          <label className="block text-sm text-white/70 mb-2">Type</label>
+          <div className="flex gap-1.5">
+            {SESSION_TYPES.map(({ value, label }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setForm(prev => ({ ...prev, session_type: value }))}
+                className="flex-1 min-w-0 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                style={{
+                  backgroundColor: form.session_type === value ? COPPER : SURFACE_3,
+                  color: form.session_type === value ? '#fff' : 'rgba(255,255,255,0.5)',
+                }}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -339,19 +342,19 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate }: { o
         {/* Script Source */}
         <div>
           <label className="block text-xs text-white/60 mb-1.5">Source</label>
-          <div className="flex gap-1.5">
+          <div className="flex gap-1.5 w-full">
             {(['directed', 'organic'] as ScriptSource[]).map(s => (
               <button
                 key={s}
                 type="button"
                 onClick={() => setScriptSource(prev => prev === s ? null : s)}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                className="flex-1 min-w-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer"
                 style={{
                   backgroundColor: scriptSource === s ? COPPER : SURFACE_3,
                   color: scriptSource === s ? '#fff' : 'rgba(255,255,255,0.5)',
                 }}
               >
-                {s === 'directed' ? 'Class / Directed' : 'Open Mat / Organic'}
+                {s === 'directed' ? 'Directed' : 'Open Mat'}
               </button>
             ))}
           </div>
