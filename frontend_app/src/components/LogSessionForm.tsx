@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { api, ApiError } from '../lib/api.ts';
 import { toast } from '../hooks/use-toast.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
-import { CARD_BG, COPPER, COPPER_BORDER, SURFACE_2, SURFACE_3, DATE_INPUT_STYLE } from '../lib/theme.ts';
+import { CARD_BG, COPPER, COPPER_BORDER, SURFACE_2, SURFACE_3, DATE_INPUT_STYLE, PALE_YELLOW } from '../lib/theme.ts';
 import type { Intention } from '../types/api.ts';
 
 interface LogSessionResponse {
@@ -183,7 +183,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate }: { o
 
   return (
     <div className="rounded-2xl p-6 overflow-hidden" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}` }}>
-      <h2 className="text-lg font-semibold text-white mb-5">Log a Training Session</h2>
+      <h2 className="text-lg font-semibold mb-5" style={{ color: PALE_YELLOW }}>Log a Training Session</h2>
       <form onSubmit={handleSubmit} className="space-y-5">
 
         {/* Date */}
@@ -249,7 +249,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate }: { o
             </button>
             <span
               className="text-lg font-semibold w-24 text-center"
-              style={{ color: durationMinutes ? 'rgba(242,228,168,0.9)' : 'rgba(255,255,255,0.2)' }}
+              style={{ color: durationMinutes ? 'rgba(242,228,168,0.9)' : 'rgba(255,255,255,0.35)' }}
             >
               {durationMinutes ? fmtDuration(durationMinutes) : '— —'}
             </span>
@@ -408,7 +408,8 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate }: { o
             value={form.notes}
             onChange={handleChange}
             placeholder="What did you work on today?"
-            className="w-full bg-white/10 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-orange resize-none"
+            className="w-full rounded-lg px-3 py-2.5 text-sm text-white/90 placeholder-white/30 outline-none focus:ring-1 resize-none"
+            style={DATE_INPUT_STYLE}
           />
         </div>
 

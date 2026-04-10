@@ -93,4 +93,5 @@ export const DATE_INPUT_STYLE = {
   backgroundColor: SURFACE_3,
   border: `1px solid ${COPPER_BORDER}`,
   colorScheme: 'dark' as const,
+  paddingRight: '2.5rem',  // room for native calendar icon on iOS/desktop
 };
