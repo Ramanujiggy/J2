@@ -86,4 +86,17 @@ Development areas identified from codebase assessment. Updated as work progresse
 | `[ ]` | **Single active intention per week** | `activeIntention` is a `find()` against current-week start — only one intention surfaces on the home page even if multiple exist for the same week in the DB. |
 | `[ ]` | **Journal autosave not offline-safe** | `JournalEntryPage` calls `api.patch` directly, bypassing the offline write queue. Entries typed while offline are silently lost. Route through the existing offline queue or at minimum warn the user when offline. |
 
+---
 
+## Easter Eggs & Character
+
+A subtle thematic tribute to a character whose ethos aligns with BJJ culture: pure hard work, zero shortcuts, mastery through repetition. All features reference universal concepts (numbers, colors, philosophy) — no character names or images.
+
+| Status | Area | Description |
+|---|---|---|
+| `[x]` | **Session 500 milestone toast** | When a user logs their 500th total session, a one-time toast fires: "500 sessions. The mat remembers every one." Backend returns `session_count` with the create-session response. Fires once via `localStorage` flag `j2-milestone-500`. |
+| `[ ]` | **Eight Gates — streak milestone system** | At streak thresholds 7, 14, 21, 30, 60, 90, 180, 365 days, the streak number's color and glow scale progressively (copper → green → gold). A one-time toast fires per tier, stored in localStorage. At 365 days: particle burst. |
+| `[ ]` | **Foundation Reps — Rep Roulette filter** | Add a `tier: 'foundation' \| 'chain'` field to `ROULETTE_DRILLS` in `constants.ts`. A "Foundation ✿" filter tab in Rep Roulette surfaces only the 6 pure-movement drills (hip escape, tech stand-up, etc.). |
+| `[ ]` | **"Dedication" intention category** | Add `dedication` as a sixth category in `SetIntentionModal`. Color: `#52B56C` (training green). For weeks where the goal is simply to show up. |
+| `[ ]` | **Full Commitment hours stat** | Extend `computeStats()` with `fullEffortMinutes` (intensity 4–5 only). Display as a secondary stat alongside total hours. |
+| `[ ]` | **The Drop — PR particle effect** | On logging a personal record (longest session, first intensity-5, or Nth milestone), small circle "weights" animate briefly downward. Uses existing particle system in `particles.ts`. |

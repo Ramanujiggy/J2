@@ -7,6 +7,7 @@ import type { Intention } from '../types/api.ts';
 
 interface LogSessionResponse {
   message: string;
+  session_count?: number;
 }
 
 type GiNoGi = 'gi' | 'no_gi';
@@ -36,7 +37,7 @@ const btnBase = 'px-4 py-2 rounded-full text-sm font-medium transition-colors cu
 const btnActive = 'bg-brand-orange text-white';
 const btnInactive = 'bg-white/10 text-white/60 hover:bg-white/20';
 
-export default function LogSessionForm({ onSuccess, onCancel, defaultDate }: { onSuccess?: () => void; onCancel?: () => void; defaultDate?: string }) {
+export default function LogSessionForm({ onSuccess, onCancel, defaultDate }: { onSuccess?: (sessionCount?: number) => void; onCancel?: () => void; defaultDate?: string }) {
   const [form, setForm] = useState<SessionFormData>({
     date:         defaultDate ?? today,
     notes:        '',
@@ -162,7 +163,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate }: { o
           ? 'Session saved offline — will sync when connected.'
           : 'Session logged!',
       });
-      onSuccess?.();
+      onSuccess?.(dataAny._offline ? undefined : data.session_count);
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.status === 0) {
