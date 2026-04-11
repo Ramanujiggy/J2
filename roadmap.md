@@ -50,6 +50,20 @@ Development areas identified from codebase assessment. Updated as work progresse
 
 ---
 
+## Animation & Motion
+
+Full diagnostic rationale and implementation detail for each item lives in `implementation-plans.md → Animation Quality — Compositor-Safe Refactor`.
+
+| Status | Area | Description |
+|---|---|---|
+| `[ ]` | **BeltDateBanner — single-element reveal** | Replace 9-slat Venetian Blind (9 independent 3D compositing layers, visible seams) with a single `scaleX(0→1)` reveal from `transform-origin: left center`. Same emotional beat, zero seams. |
+| `[ ]` | **BeltBar tails — scaleY instead of height** | `j2TailL` / `j2TailR` animate `height` (triggers layout recalc every frame). Replace with `scaleY(0→1)` from `transform-origin: top center` — compositor-only, same visual. |
+| `[ ]` | **Shimmer — translateX instead of backgroundPosition** | `j2-shimmer` animates `backgroundPosition` (paint op). Replace with a `translateX(-200%→200%)` on a `::before` pseudo-element — fully compositor-safe. |
+| `[ ]` | **Today-pulse — drop borderColor animation** | `j2-today-pulse` pulses `borderColor` + `boxShadow` every frame. Drop the border animation; pulse `boxShadow` only — no repaint. |
+| `[ ]` | **Centralize particle keyframes** | `j2IntentParticleRise`, `j2IntentYellowPulse`, `j2IntentPurplePulse` are copy-pasted into 4 separate component `<style>` tags. Move all to `tailwind.config.ts` keyframes and reference via class. |
+
+---
+
 ## Code Health & Cleanup
 
 | Status | Area | Description |
