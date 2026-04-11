@@ -496,6 +496,29 @@ All keyframes are defined in `tailwind.config.ts`. Use via Tailwind classes:
 | `animate-j2-today-pulse` | 4s loop | `ease-in-out` | Today heatmap cell |
 | `animate-j2-shimmer` | 1.2s | `ease-out` | Skeleton loading |
 
+#### GSAP Animations
+
+GSAP (v3.14.2) is used when an animation requires spring physics, per-element stagger, or runtime-controlled timing that CSS keyframes cannot express.
+
+| Component | Technique | Easing | Total duration |
+|---|---|---|---|
+| `BeltDateBanner` | Venetian-blind `rotateX` unfurl, left → right | `elastic.out(1, 0.65)` / `elastic.out(1.1, 0.5)` / `power2.out` | ~1.0 s |
+
+**Timing constants** (`BeltDateBanner.tsx`):
+
+| Constant | Value | Role |
+|---|---|---|
+| `STAGGER_S` | `0.04` s | Delay between each belt slice start |
+| `SLAT_DURATION_S` | `0.38` s | Individual slat flip duration |
+| `PATCH_DURATION_S` | `0.32` s | Patch "slap" duration |
+| `TEXT_DURATION_S` | `0.25` s | Date text fade-in |
+
+**Pattern**: `gsap.set()` for initial hidden state → `gsap.timeline()` with sequential `.to()` calls → `return () => { tl.kill(); }` in `useEffect` teardown.
+
+**When to use GSAP vs Tailwind classes**:
+- Use **Tailwind** (`tailwind.config.ts` keyframes) for stateless, repeating, or hover/transition animations — page transitions, modal opens, skeleton shimmer, pulse.
+- Use **GSAP** when you need spring/elastic easing, staggered multi-element sequencing, or timeline-based choreography with overlapping tweens.
+
 ### Iteration Guide
 
 1. Start on `#0D1A14` — every new page and component
