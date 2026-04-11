@@ -1,8 +1,8 @@
 // BeltDateBanner — belt-colored date input with a left-to-right reveal.
-// One belt-body div sweeps out from the left via scaleX (compositor-only,
-// zero seams), a patch pops in at the right end with a back.out snap, and
-// the date text fades in. Replaces the previous 9-slat Venetian Blind which
-// created visible seams where adjacent slats were at different rotateX angles.
+// The belt body and patch share the same scaleX sweep from their respective
+// left edges, so the whole banner reads as one continuous piece of fabric
+// being laid down. Replaces the previous 9-slat Venetian Blind (visible seams)
+// and the back.out patch pop-in (visually separate from the belt).
 // Tapping opens the native date picker via a transparent overlay input.
 
 import { useRef, useEffect } from 'react';
@@ -25,7 +25,7 @@ const STRIPE_GAP = 5;    // px — gap between stripe bars
 
 // ─── Animation timing ─────────────────────────────────────────────────────────
 const BELT_DURATION_S  = 0.52;   // belt body sweep
-const PATCH_DURATION_S = 0.28;   // patch pop-in
+const PATCH_DURATION_S = 0.20;   // patch sweep (continues belt's motion)
 const TEXT_DURATION_S  = 0.22;   // date text fade-in
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -63,29 +63,31 @@ export default function BeltDateBanner({ value, onChange, required }: Props) {
     const text  = textRef.current;
     if (!belt || !patch || !text) return;
 
-    // Set initial hidden state — prevents any flash before the timeline fires
+    // Both elements start at scaleX=0 — hidden without needing opacity tricks.
+    // transformOrigin 'left center' on both means each scales from its own left
+    // edge: belt body from the banner's left wall, patch from the belt/patch
+    // junction. The two sweeps travel in the same direction and hand off
+    // seamlessly — the whole banner reads as one piece being laid down.
     gsap.set(belt,  { scaleX: 0, transformOrigin: 'left center' });
-    gsap.set(patch, { scale: 0.68, opacity: 0 });
+    gsap.set(patch, { scaleX: 0, transformOrigin: 'left center' });
     gsap.set(text,  { opacity: 0 });
 
     const tl = gsap.timeline({ delay: 0.04 });
 
     // 1. Belt body sweeps left → right.
-    //    scaleX from a left origin is compositor-only — no layout, no paint,
-    //    no element boundaries to create seams.
     tl.to(belt, {
       scaleX:   1,
       duration: BELT_DURATION_S,
-      ease:     'expo.out',   // fast start, smooth deceleration — no elastic bounce
+      ease:     'expo.out',
     });
 
-    // 2. Patch snaps in with a back.out overshoot just before the sweep lands.
+    // 2. Patch continues the sweep from the junction — same ease, short duration,
+    //    starts just before the belt body finishes so the handoff is seamless.
     tl.to(patch, {
-      scale:    1,
-      opacity:  1,
+      scaleX:   1,
       duration: PATCH_DURATION_S,
-      ease:     'back.out(2.2)',
-    }, `-=${PATCH_DURATION_S * 0.45}`);
+      ease:     'expo.out',
+    }, `-=${PATCH_DURATION_S * 0.55}`);
 
     // 3. Date text fades in
     tl.to(text, {
@@ -129,7 +131,6 @@ export default function BeltDateBanner({ value, onChange, required }: Props) {
           alignItems:      'center',
           justifyContent:  'center',
           gap:             STRIPE_GAP,
-          opacity:         0,
         }}
       >
         {Array.from({ length: n }, (_, i) => (
