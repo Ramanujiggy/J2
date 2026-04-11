@@ -123,22 +123,25 @@ function BeltBarInner({
 
   // Returns the style fragment that drives interactive behaviour.
   // Merged into the tail's style object via spread.
+  // height and transformOrigin live in the element's static styles.
   const interactStyle = (
     rot:      number,
     hov:      boolean,
     whipping: boolean,
     anim:     string,
   ): React.CSSProperties => ({
-    height:     TAIL_H,
     animation:  whipping ? `${anim} ${WHIP_MS}ms ease-out forwards` : 'none',
     transform:  whipping ? undefined : `rotate(${rot}deg)`,
     transition: whipping ? undefined : `transform ${hov ? '0.07s linear' : '0.42s cubic-bezier(0.34,1.4,0.64,1)'}`,
     cursor:     whipping ? 'default' : 'grab',
   });
 
-  // Style for a tail while the drop animation is still playing
+  // Style for a tail while the drop animation is still playing.
+  // height and transformOrigin live in the element's static styles.
+  // Before tailsIn: scaleY(0) hides the tail without touching layout.
+  // Once tailsIn fires the keyframe takes over from its own 0% scaleY(0).
   const dropStyle = (anim: string, delay = 0): React.CSSProperties => ({
-    height:    0,
+    transform: tailsIn ? undefined : 'scaleY(0)',
     animation: tailsIn ? `${anim} ${TAIL_MS}ms ease-out forwards ${delay}ms` : 'none',
   });
 
@@ -154,18 +157,20 @@ function BeltBarInner({
         /*
           Drop: pendulum overshoot (outward), swing past vertical, settle straight down.
           Final angle is 0° — tails hang plumb.
+          scaleY instead of height: compositor-only, no layout recalc per frame.
+          transformOrigin: top center (set on the element) so scale grows downward.
         */
         @keyframes j2TailL {
-          0%   { height: 0;                   transform: rotate(0deg); }
-          50%  { height: ${TAIL_H * 1.09}px;  transform: rotate(-22deg); }
-          76%  { height: ${TAIL_H * 0.97}px;  transform: rotate(6deg); }
-          100% { height: ${TAIL_H}px;         transform: rotate(0deg); }
+          0%   { transform: scaleY(0)    rotate(0deg);   }
+          50%  { transform: scaleY(1.09) rotate(-22deg); }
+          76%  { transform: scaleY(0.97) rotate(6deg);   }
+          100% { transform: scaleY(1)    rotate(0deg);   }
         }
         @keyframes j2TailR {
-          0%   { height: 0;                   transform: rotate(0deg); }
-          50%  { height: ${TAIL_H * 1.09}px;  transform: rotate(22deg); }
-          76%  { height: ${TAIL_H * 0.97}px;  transform: rotate(-6deg); }
-          100% { height: ${TAIL_H}px;         transform: rotate(0deg); }
+          0%   { transform: scaleY(0)    rotate(0deg);   }
+          50%  { transform: scaleY(1.09) rotate(22deg);  }
+          76%  { transform: scaleY(0.97) rotate(-6deg);  }
+          100% { transform: scaleY(1)    rotate(0deg);   }
         }
 
         /*
@@ -259,15 +264,16 @@ function BeltBarInner({
         {/* ── Left tail (patch end) ── */}
         <div
           style={{
-            position: 'absolute',
-            left: `calc(50% - ${TAIL_W + 1}px)`,
-            top: BELT_H,
-            width: TAIL_W,
-            background: leftTailBg,
-            borderRadius: '0 0 2px 2px',
-            transformOrigin: 'top center',
-            overflow: 'hidden',
-            zIndex: 2,
+            position:        'absolute',
+            left:            `calc(50% - ${TAIL_W + 1}px)`,
+            top:             BELT_H,
+            width:           TAIL_W,
+            height:          TAIL_H,          // static — animation uses scaleY, not height
+            transformOrigin: 'top center',    // static — scaleY grows downward from knot base
+            background:      leftTailBg,
+            borderRadius:    '0 0 2px 2px',
+            overflow:        'hidden',
+            zIndex:          2,
             ...(tailsDone
               ? interactStyle(leftRot, leftHov, whipL, 'j2WhipL')
               : dropStyle('j2TailL')),
@@ -292,15 +298,16 @@ function BeltBarInner({
         {/* ── Right tail ── */}
         <div
           style={{
-            position: 'absolute',
-            left: `calc(50% + 1px)`,
-            top: BELT_H,
-            width: TAIL_W,
-            background: ribbed(beltColor),
-            borderRadius: '0 0 2px 2px',
-            transformOrigin: 'top center',
-            overflow: 'hidden',
-            zIndex: 2,
+            position:        'absolute',
+            left:            `calc(50% + 1px)`,
+            top:             BELT_H,
+            width:           TAIL_W,
+            height:          TAIL_H,          // static — animation uses scaleY, not height
+            transformOrigin: 'top center',    // static — scaleY grows downward from knot base
+            background:      ribbed(beltColor),
+            borderRadius:    '0 0 2px 2px',
+            overflow:        'hidden',
+            zIndex:          2,
             ...(tailsDone
               ? interactStyle(rightRot, rightHov, whipR, 'j2WhipR')
               : dropStyle('j2TailR', TAIL_R_LAG)),
