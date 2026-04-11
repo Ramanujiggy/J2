@@ -254,6 +254,49 @@ Stripes rendered as white diagonal rectangles near the right tail.
 
 ---
 
+### `BeltDateBanner.tsx`
+
+Belt-colored date input that replaces a plain `<input type="date">`. Renders
+the user's current belt rank (color + stripes) as a banner, then opens the
+native date picker when tapped. Plays a **Venetian-blind unfurl** on mount
+via GSAP — the belt appears to be laid down section by section from left to
+right.
+
+**Props**
+| Prop | Type | Notes |
+|---|---|---|
+| `value` | `string` | YYYY-MM-DD |
+| `onChange` | `(date: string) => void` | Called on every native picker change |
+| `required` | `boolean?` | Forwarded to the hidden `<input>` |
+
+**Anatomy**
+- **9 belt-body slices** — absolute-positioned divs covering the left portion of the banner (everything except the patch zone). Each gets a ribbed background via `ribbed()` from `lib/belt.ts`.
+- **1 patch slice** — rightmost 52 px, `PATCH_COLORS[rank]` background, contains 0–4 white stripe bars.
+- **Date text overlay** — absolutely-positioned `<span>` centred over the belt body; fades in after the belt has landed.
+- **Transparent `<input type="date">`** — sits at `z-index: 10` over the entire banner, `opacity: 0`. Captures taps and opens the native picker without hiding the belt art.
+
+**3D setup**
+
+`perspective: 500px` is set on the parent wrapper. All slices share this vanishing point. `overflow: hidden` clips sub-pixel overshoot from the elastic spring so nothing bleeds outside the 48 px height.
+
+**GSAP animation sequence** (fires once on mount)
+
+| Step | Target | Property | Value | Timing |
+|---|---|---|---|---|
+| `gsap.set` | slices + patch | `rotateX`, `opacity`, `transformOrigin` | `-90`, `0`, `'top center'` | Instant (pre-animation) |
+| `gsap.set` | date text | `opacity` | `0` | Instant |
+| Timeline step 1 | 9 belt slices | `rotateX → 0`, `opacity → 1` | `elastic.out(1, 0.65)`, 0.38 s, 40 ms stagger | Starts at t=0.04 s |
+| Timeline step 2 | patch | `rotateX → 0`, `opacity → 1` | `elastic.out(1.1, 0.5)`, 0.32 s | Starts 35% before step 1 end |
+| Timeline step 3 | date text | `opacity → 1` | `power2.out`, 0.25 s | 80 ms after step 2 starts |
+
+Each slat carries `inset box-shadow: 0 2px rgba(255,255,255,0.28), 0 -2px rgba(0,0,0,0.20)` to simulate the top-edge catch-light and inner bottom-shadow of real fabric — giving perceived thickness without SVG or canvas.
+
+**Reads from**: `ProfileContext` (`beltRank`, `stripes`); `lib/belt.ts` (`BELT_COLORS`, `PATCH_COLORS`, `ribbed`).
+
+**Cleanup**: the GSAP timeline is killed in the `useEffect` teardown to prevent animation callbacks on unmounted components.
+
+---
+
 ### `CsvImportModal.tsx`
 
 Bulk import historical training data from a CSV file.
@@ -346,6 +389,7 @@ Protected routes are wrapped in `ProtectedShell`, which checks `isAuthenticated`
 | `lib/theme.ts` | `PAGE_BG`, `CARD_BG`, `PALE_YELLOW`, `COPPER`, `COPPER_BORDER`, `CARD_SHADOW`, `GLOW_TITLE`, `GLOW_SOFT`, `GLOW_NAV`, heatmap tokens | All color/shadow tokens — never hard-code colours in components |
 | `lib/utils.ts` | `cn()` | `clsx` + `twMerge` for dynamic Tailwind classes |
 | `lib/csvParser.ts` | CSV parsing utilities | Column detection, date normalisation, row transformation for `CsvImportModal` |
+| `lib/belt.ts` | `BELT_COLORS`, `PATCH_COLORS`, `BeltRank`, `ribbed()` | Belt rank color maps and CSS ribbed-background generator used by `BeltBar` and `BeltDateBanner` |
 
 ---
 
@@ -372,3 +416,5 @@ Thin wrappers around Radix UI + shadcn/ui primitives, styled with Tailwind.
 | `animate-view-enter-down` | 560ms + 120ms delay | `cubic-bezier(0.2,1.1,0.4,1)` | Panel entering from above |
 | `animate-toggle-exit` | 420ms | `cubic-bezier(0.4,0,0.8,0.2)` | Defined but unused (toggle uses CSS `transition`) |
 | `animate-toggle-enter` | 480ms | `cubic-bezier(0.2,1.1,0.4,1)` | Defined but unused (toggle uses CSS `transition`) |
+
+> **GSAP (v3.14.2)** is used for imperative mount animations that need spring physics or per-element staggering — things CSS `@keyframes` cannot express cleanly. Currently only `BeltDateBanner` uses GSAP. Import it with `import gsap from 'gsap'`. Always kill timelines in the `useEffect` teardown: `return () => { tl.kill(); }`. See `BeltDateBanner.tsx` for the canonical pattern.
