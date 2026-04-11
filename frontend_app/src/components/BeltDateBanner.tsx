@@ -40,10 +40,12 @@ export default function BeltDateBanner({ value, onChange, required }: Props) {
     <>
       <style>{`
         @keyframes j2BeltDateUnroll {
-          0%   { transform: translateX(110%); }
-          72%  { transform: translateX(-1.2%); }
-          88%  { transform: translateX(0.4%); }
-          100% { transform: translateX(0); }
+          0%   { clip-path: inset(0 0 0 100%); transform: perspective(400px) rotateX(20deg); }
+          25%  { transform: perspective(400px) rotateX(10deg); }
+          65%  { clip-path: inset(0 0 0 0%);   transform: perspective(400px) rotateX(0deg); }
+          78%  { clip-path: inset(0 0 0 2%); }
+          90%  { clip-path: inset(0 0 0 0.5%); }
+          100% { clip-path: inset(0 0 0 0); }
         }
         @keyframes j2BeltDateSmack {
           0%   { box-shadow: none; }
@@ -52,8 +54,8 @@ export default function BeltDateBanner({ value, onChange, required }: Props) {
         }
       `}</style>
 
-      {/* Wrapper: clips the animation to card width; sits full-bleed via caller's layout */}
-      <div style={{ position: 'relative', height: 48, overflow: 'hidden' }}>
+      {/* Wrapper: clip-path on the belt strip handles visibility; no overflow:hidden needed */}
+      <div style={{ position: 'relative', height: 48 }}>
 
         {/* Belt strip */}
         <div style={{
@@ -62,7 +64,7 @@ export default function BeltDateBanner({ value, onChange, required }: Props) {
           background:      ribbed(beltColor),
           display:         'flex',
           alignItems:      'center',
-          animation:       'j2BeltDateUnroll 0.58s cubic-bezier(0.22,1,0.36,1) both, j2BeltDateSmack 0.58s ease-out both',
+          animation:       'j2BeltDateUnroll 0.65s cubic-bezier(0.22,1,0.36,1) both, j2BeltDateSmack 0.65s ease-out both',
         }}>
           {/* Date text */}
           <span style={{
