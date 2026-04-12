@@ -346,14 +346,12 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
     }
 
     if (mode === 'split') {
-      const giPct   = splitTotal > 0 ? Math.round((giHours   / splitTotal) * 100) : 0;
-      const nogiPct = splitTotal > 0 ? Math.round((nogiHours / splitTotal) * 100) : 0;
       return (
         <div className="flex flex-col gap-3">
           {[
             { label: 'Total',  value: splitTotal > 0 ? `${splitTotal.toFixed(1)}h` : '—',                 active: splitTotal > 0,  d: delta(splitTotal,  priorSplitTotal) },
-            { label: 'Gi',     value: giHours   > 0 ? `${giHours.toFixed(1)}h (${giPct}%)`   : '—',     active: giHours   > 0 },
-            { label: 'No-Gi',  value: nogiHours > 0 ? `${nogiHours.toFixed(1)}h (${nogiPct}%)` : '—',  active: nogiHours > 0 },
+            { label: 'Gi',     value: giHours   > 0 ? fmtVal(giHours,   splitTotal) : '—', active: giHours   > 0 },
+            { label: 'No-Gi',  value: nogiHours > 0 ? fmtVal(nogiHours, splitTotal) : '—', active: nogiHours > 0 },
           ].map(({ label, value, active, d }) => (
             <div key={label} className="flex items-baseline gap-2 flex-wrap">
               <span className="text-xs font-bold" style={{ color: PALE_YELLOW }}>{label}</span>
@@ -369,16 +367,13 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
       );
     }
     if (mode === 'format') {
-      const clsPct   = formatTotal > 0 ? Math.round((classHours / formatTotal) * 100) : 0;
-      const drlPct   = formatTotal > 0 ? Math.round((drillHours / formatTotal) * 100) : 0;
-      const cmpPct   = formatTotal > 0 ? Math.round((compHours  / formatTotal) * 100) : 0;
       return (
         <div className="flex flex-col gap-3">
           {[
             { label: 'Total',  value: formatTotal > 0 ? `${formatTotal.toFixed(1)}h` : '—',              active: formatTotal > 0, d: delta(formatTotal, priorFormatTotal) },
-            { label: 'Class',  value: classHours > 0 ? `${classHours.toFixed(1)}h (${clsPct}%)` : '—', active: classHours > 0 },
-            { label: 'Drill',  value: drillHours > 0 ? `${drillHours.toFixed(1)}h (${drlPct}%)` : '—', active: drillHours > 0 },
-            { label: 'Comp',   value: compHours  > 0 ? `${compHours.toFixed(1)}h (${cmpPct}%)`  : '—', active: compHours  > 0 },
+            { label: 'Class',  value: classHours > 0 ? fmtVal(classHours, formatTotal) : '—', active: classHours > 0 },
+            { label: 'Drill',  value: drillHours > 0 ? fmtVal(drillHours, formatTotal) : '—', active: drillHours > 0 },
+            { label: 'Comp',   value: compHours  > 0 ? fmtVal(compHours,  formatTotal) : '—', active: compHours  > 0 },
           ].map(({ label, value, active, d }) => (
             <div key={label} className="flex items-baseline gap-2 flex-wrap">
               <span className="text-xs font-bold" style={{ color: PALE_YELLOW }}>{label}</span>
