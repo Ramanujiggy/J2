@@ -84,10 +84,11 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto backdrop-blur-sm px-4"
+      data-no-page-swipe=""
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto px-4"
       style={{
-        backgroundColor: 'rgba(13, 26, 20, 0.85)',
-        backdropFilter: 'blur(12px) saturate(1.2)',
+        backgroundColor: 'rgba(13, 26, 20, 0.97)',
+        backdropFilter: 'blur(16px)',
         paddingTop: 'max(1rem, env(safe-area-inset-top))',
         paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
       }}
