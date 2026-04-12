@@ -183,7 +183,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate }: { o
   };
 
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}` }}>
+    <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, isolation: 'isolate' }}>
       <form onSubmit={handleSubmit}>
         {/* Belt date banner — full-bleed, animates in from the right on mount */}
         <BeltDateBanner

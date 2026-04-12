@@ -9,6 +9,7 @@ import { useRef, useEffect } from 'react';
 import gsap from 'gsap';
 import { useProfile } from '../context/ProfileContext.tsx';
 import { BELT_COLORS, PATCH_COLORS, ribbed } from '../lib/belt.ts';
+import { CARD_BG } from '../lib/theme.ts';
 import type { BeltRank } from '../lib/belt.ts';
 
 interface Props {
@@ -100,8 +101,10 @@ export default function BeltDateBanner({ value, onChange, required }: Props) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    // overflow:hidden clips the patch back.out scale overshoot at the right edge
-    <div style={{ position: 'relative', height: 48, overflow: 'hidden' }}>
+    // overflow:hidden clips the patch scaleX overshoot at the right edge.
+    // backgroundColor ensures the top 48px is never transparent — prevents the
+    // modal backdrop-filter from bleeding through before the belt animates in.
+    <div style={{ position: 'relative', height: 48, overflow: 'hidden', backgroundColor: CARD_BG }}>
 
       {/* ── Belt body — single element, sweeps from left ─────────────────────── */}
       <div
