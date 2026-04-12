@@ -991,10 +991,11 @@ export default function PathAheadPage() {
 
       {logOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto backdrop-blur-sm px-5"
+          data-no-page-swipe=""
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto px-5"
           style={{
-            backgroundColor: 'rgba(13, 26, 20, 0.85)',
-            backdropFilter: 'blur(12px) saturate(1.2)',
+            backgroundColor: 'rgba(13, 26, 20, 0.97)',
+            backdropFilter: 'blur(16px)',
             paddingTop: 'max(1rem, env(safe-area-inset-top))',
             paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
           }}
@@ -1003,10 +1004,6 @@ export default function PathAheadPage() {
           <div
             onClick={e => e.stopPropagation()}
             className="w-full sm:max-w-lg animate-j2-modal-in"
-            style={{
-              maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem)',
-              overflowY: 'auto',
-            }}
           >
             <LogSessionForm
               onSuccess={(count) => {
