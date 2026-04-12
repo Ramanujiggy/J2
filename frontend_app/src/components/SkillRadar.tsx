@@ -8,7 +8,7 @@ import TimeRangeBar from './TimeRangeBar.tsx';
 import RadarChart, { SKILL_COLORS, DEFAULT_COLORS } from './charts/RadarChart.tsx';
 import DonutChart from './charts/DonutChart.tsx';
 import VolumeChart, { sessionMonth } from './charts/VolumeChart.tsx';
-import WeeklyChart from './charts/WeeklyChart.tsx';
+import WeeklyChart, { BAR_W, BAR_GAP } from './charts/WeeklyChart.tsx';
 
 // ─── Segment colors ───────────────────────────────────────────────────────────
 
@@ -78,8 +78,8 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
     if (viewMode !== 'weekly') return;
     const el = weeklyScrollRef.current;
     if (!el) return;
-    // Current week is always at index 51; barW=8, gap=3, offsetX=12
-    const x = 12 + 51 * (8 + 3);
+    // Current week is always at index 51; offsetX=12
+    const x = 12 + 51 * (BAR_W + BAR_GAP);
     el.scrollTo({ left: Math.max(0, x - el.clientWidth / 2), behavior: 'smooth' });
   }, [viewMode]);
 
@@ -256,16 +256,15 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
   function renderChart(mode: ViewMode) {
     if (mode === 'volume') return <VolumeChart sessions={filtered} />;
     if (mode === 'weekly') return (
-      <>
+      <div
+        ref={weeklyScrollRef}
+        data-no-page-swipe=""
+        className="j2-weekly-scroll"
+        style={{ overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+      >
         <style>{`.j2-weekly-scroll::-webkit-scrollbar { display: none; }`}</style>
-        <div
-          ref={weeklyScrollRef}
-          className="j2-weekly-scroll"
-          style={{ overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
-        >
-          <WeeklyChart weeks={weeklyData} />
-        </div>
-      </>
+        <WeeklyChart weeks={weeklyData} />
+      </div>
     );
     if (mode === 'split') return (
       <div className="flex justify-center">

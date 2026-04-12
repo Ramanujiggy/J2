@@ -2,12 +2,15 @@ import { MONTH_NAMES } from '../../lib/constants.ts';
 
 export interface WeekEntry { weekStart: Date; hours: number; count: number; isCurrent: boolean; }
 
+export const BAR_W  = 12;
+export const BAR_GAP = 4;
+
 export default function WeeklyChart({ weeks }: { weeks: WeekEntry[] }) {
   const maxH = Math.max(...weeks.map(w => w.hours), 0.001);
-  const barW = 8, gap = 3;
+  const barW = BAR_W, gap = BAR_GAP;
   const chartH = 78, baseY = 90;
-  const contentW = 52 * (barW + gap) - gap; // 569
-  const W = contentW + 24;                   // 593, 12px margin each side
+  const contentW = 52 * (barW + gap) - gap; // 52 * 16 - 4 = 828
+  const W = contentW + 24;                   // 852, 12px margin each side
   const H = 110;
   const offsetX = 12;
 
