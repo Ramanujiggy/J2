@@ -47,12 +47,8 @@ export default function StatStrip({ streak, longestStreak, weekSessionCount, wee
     : longestStreak > 0 ? `best: ${longestStreak}d` : undefined;
 
   // Weekly consistency cell content
-  const weeklyValue  = consistentWeeks > 0 ? `${consistentWeeks}wk` : '—';
+  const weeklyValue  = consistentWeeks > 0 ? `${consistentWeeks}` : '—';
   const weeklyAccent = gate ? gate.color : undefined;
-  const weeklyGate   = gate ? `gate ${EIGHT_GATES.findIndex(g => g.weeks === gate.weeks) + 1}` : undefined;
-  const weeklySub    = consistentWeeks > 0
-    ? (weeklyGate ?? 'consistent weeks')
-    : 'consistent weeks';
 
   const streakCellGlow = view === 'weekly' && gate
     ? `0 0 10px 2px ${gate.glow}`
@@ -112,18 +108,14 @@ export default function StatStrip({ streak, longestStreak, weekSessionCount, wee
             {view === 'daily' ? dailyValue : weeklyValue}
           </span>
           <span className="text-[11px] block text-center" style={{ color: 'rgba(255,255,255,0.38)' }}>
-            {view === 'daily' ? 'streak' : 'consistent'}
+            {view === 'daily' ? 'streak' : 'week streak'}
           </span>
-          {(view === 'daily' ? dailySub : weeklySub) && (
+          {view === 'daily' && dailySub && (
             <span
               className="text-[10px] block text-center"
-              style={{
-                color: view === 'daily'
-                  ? (isPersonalBest ? COPPER : 'rgba(255,255,255,0.22)')
-                  : (gate ? gate.color : 'rgba(255,255,255,0.22)'),
-              }}
+              style={{ color: isPersonalBest ? COPPER : 'rgba(255,255,255,0.22)' }}
             >
-              {view === 'daily' ? dailySub : weeklySub}
+              {dailySub}
             </span>
           )}
         </div>
