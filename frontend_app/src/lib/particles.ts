@@ -46,3 +46,15 @@ export function generateDayParticles(dayStr: string) {
     delay:    seededRandom(dayStr, i * 6 + 4) * 2.8,
   }));
 }
+
+// Gate 8 burst — 14 particles, one-shot, radiate across the strip
+export function generateBurstParticles() {
+  return Array.from({ length: 14 }, (_, i) => ({
+    left:     `${6 + (i / 13) * 88}%`,
+    bottom:   2 + (i % 3) * 2,
+    size:     2 + (i % 2),
+    drift:    `${(i % 2 === 0 ? 1 : -1) * (4 + (i % 4) * 3)}px`,
+    duration: 0.6 + (i % 7) * 0.09,
+    delay:    (i % 5) * 0.08,
+  }));
+}
