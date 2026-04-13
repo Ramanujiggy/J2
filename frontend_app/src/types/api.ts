@@ -42,5 +42,5 @@ export interface IntentionsResponse {
 }
 
 export interface ProfileResponse {
-  profile: { belt_rank: string | null; stripes: number; intentions_enabled: boolean } | null;
+  profile: { name: string | null; belt_rank: string | null; stripes: number; intentions_enabled: boolean } | null;
 }
