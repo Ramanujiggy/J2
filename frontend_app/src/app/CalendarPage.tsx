@@ -4,6 +4,7 @@ import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import TrainingHeatmap from '../components/TrainingHeatmap.tsx';
 import CompactHeatmap from '../components/CompactHeatmap.tsx';
+import LogSessionForm from '../components/LogSessionForm.tsx';
 import ErrorBoundary from '../components/ErrorBoundary.tsx';
 import { LayoutGrid, CalendarDays } from 'lucide-react';
 import { PALE_YELLOW, GLOW_SOFT, COPPER, SURFACE_2 } from '../lib/theme.ts';
@@ -16,6 +17,7 @@ export default function CalendarPage() {
   const [fetchError,  setFetchError]  = useState<string | null>(null);
   const [displayYear, setDisplayYear] = useState(new Date().getFullYear());
   const [flipDir,     setFlipDir]     = useState<'forward' | 'back' | null>(null);
+  const [logDate,     setLogDate]     = useState<string | null>(null); // YYYY-MM-DD for log-from-calendar
 
   // View toggle — compact hero vs full detailed heatmap
   type CalendarViewMode = 'compact' | 'detailed';
@@ -60,6 +62,36 @@ export default function CalendarPage() {
   const currentYear = new Date().getFullYear();
 
   return (
+    <>
+    {/* Log session modal — triggered from empty calendar cells */}
+    {logDate && (
+      <div
+        data-no-page-swipe=""
+        role="dialog"
+        aria-modal="true"
+        aria-label="Log session"
+        className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto px-5"
+        style={{
+          backgroundColor: 'rgba(13, 26, 20, 0.97)',
+          backdropFilter: 'blur(16px)',
+          paddingTop: 'max(1rem, env(safe-area-inset-top))',
+          paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
+        }}
+        onClick={() => setLogDate(null)}
+      >
+        <div
+          onClick={e => e.stopPropagation()}
+          className="w-full sm:max-w-lg animate-j2-modal-in"
+        >
+          <LogSessionForm
+            onSuccess={() => { fetchAll(); setLogDate(null); }}
+            onCancel={() => setLogDate(null)}
+            defaultDate={logDate}
+          />
+        </div>
+      </div>
+    )}
+
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-5">
 
       {/* Header row */}
@@ -153,11 +185,13 @@ export default function CalendarPage() {
               loading={loading}
               onSessionUpdated={fetchAll}
               onGoToToday={() => setDisplayYear(currentYear)}
+              onLogSession={(dateKey) => setLogDate(dateKey)}
               year={displayYear}
             />
           )}
         </div>
       </ErrorBoundary>
     </div>
+    </>
   );
 }

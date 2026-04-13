@@ -132,6 +132,19 @@
   z-index: 1;
 }
 
+/* ─── Reduced motion ─────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  /* Disable streak sheen sweep */
+  .j2-streak-cell::after {
+    animation: none !important;
+  }
+  /* Disable heatmap hover transitions */
+  .j2-heatmap-cell {
+    transition: none !important;
+  }
+}
+
 /* ─── Glassmorphism modal backdrop ────────────────────────────────────────── */
 
 .j2-glass {
