@@ -313,8 +313,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
       .j2-heatmap-month { font-size: 14px; }
       @media (min-width: 640px) { .j2-heatmap-month { font-size: 20px; } }
 
-      .j2-heatmap-scroll { max-height: min(480px, 60dvh); }
-      @media (min-width: 640px) { .j2-heatmap-scroll { max-height: 480px; } }
+      /* Grid fills remaining card height via flex */
 
       @keyframes j2CalIntentRise {
         0%   { transform: translateY(0) translateX(0); opacity: 0; }
@@ -349,10 +348,10 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
       }
     `}</style>
     {/* Stacked journal pages peeking out below-right */}
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', flex: '1 1 0%', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
       <div style={{ position: 'absolute', inset: 0, transform: 'translate(6px, 4px)', borderRadius: '1rem', backgroundColor: CARD_BG, border: '1px solid rgba(196,145,95,0.12)', borderRight: '2px solid rgba(196,145,95,0.18)', pointerEvents: 'none' }} />
       <div style={{ position: 'absolute', inset: 0, transform: 'translate(3px, 2px)', borderRadius: '1rem', backgroundColor: CARD_BG, border: '1px solid rgba(196,145,95,0.22)', borderRight: '2px solid rgba(196,145,95,0.30)', pointerEvents: 'none' }} />
-    <div className="rounded-2xl p-6" style={{ position: 'relative', zIndex: 1, backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
+    <div className="rounded-2xl p-6 flex flex-col min-h-0" style={{ position: 'relative', zIndex: 1, flex: '1 1 0%', backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
 
       {/* Stats — 3 primary metrics on a consistent grid */}
       <div className="grid grid-cols-3 gap-4 mb-4 pb-4 border-b border-white/10">
@@ -446,8 +445,8 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
         </div>
       )}
 
-      {/* Scrollable calendar — hidden when empty */}
-      {sessions.length > 0 && <div ref={scrollContainerRef} role="grid" aria-label={`Training calendar for ${year}`} className="overflow-y-auto relative j2-heatmap-scroll">
+      {/* Calendar grid — fills remaining card height, scrolls internally */}
+      {sessions.length > 0 && <div ref={scrollContainerRef} role="grid" aria-label={`Training calendar for ${year}`} className="overflow-y-auto relative flex-1 min-h-0">
 
         {/* Sticky column headers */}
         <div
