@@ -59,7 +59,6 @@ export default function DayCard({ day, today, sessions, intention, intentionBrig
   const todayStr   = toDateString(today);
   const dayStr     = toDateString(day);
   const isToday    = dayStr === todayStr;
-  const isFuture   = dayStr > todayStr;
   const isPast     = dayStr < todayStr;
 
   const primarySession = sessions.length > 0
