@@ -21,7 +21,7 @@ function getActiveGate(consistentWeeks: number) {
 const BURST_PARTICLES = generateBurstParticles();
 
 export default function StatStrip({ streak, longestStreak, weekSessionCount, weekTotalMinutes, consistentWeeks, onTap }: Props) {
-  const [view, setView] = useState<'daily' | 'weekly'>('daily');
+  const [view, setView] = useState<'daily' | 'weekly' | 'sessions'>('daily');
   const [fading, setFading] = useState(false);
   const flipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -34,26 +34,33 @@ export default function StatStrip({ streak, longestStreak, weekSessionCount, wee
     setFading(true);
     if (flipTimerRef.current) clearTimeout(flipTimerRef.current);
     flipTimerRef.current = setTimeout(() => {
-      setView(v => v === 'daily' ? 'weekly' : 'daily');
+      setView(v => v === 'daily' ? 'weekly' : v === 'weekly' ? 'sessions' : 'daily');
       setFading(false);
     }, 120);
   }, [fading]);
 
-  // Daily streak cell content
-  const dailyValue   = streak > 0 ? `${streak}d` : '—';
-  const dailyAccent  = streak > 0 ? COPPER : undefined;
-  const dailySub     = isPersonalBest && streak > 1
-    ? 'personal best'
-    : longestStreak > 0 ? `best: ${longestStreak}d` : undefined;
+  // Per-view display values
+  const valueColor =
+    view === 'weekly'  ? (gate ? gate.color : 'rgba(255,255,255,0.88)') :
+    view === 'daily'   ? (streak > 0 ? COPPER : 'rgba(255,255,255,0.88)') :
+    'rgba(255,255,255,0.88)';
 
-  // Weekly consistency cell content
-  const weeklyValue  = consistentWeeks > 0 ? `${consistentWeeks}` : '—';
-  const weeklyAccent = gate ? gate.color : undefined;
+  const cellValue =
+    view === 'daily'    ? (streak > 0 ? `${streak}d` : '—') :
+    view === 'weekly'   ? (consistentWeeks > 0 ? `${consistentWeeks}` : '—') :
+    `${weekSessionCount}`;
 
-  const streakCellGlow = view === 'weekly' && gate
-    ? `0 0 10px 2px ${gate.glow}`
-    : undefined;
+  const cellLabel =
+    view === 'daily'    ? 'streak' :
+    view === 'weekly'   ? 'weeks of consistent mat time' :
+    weekSessionCount === 1 ? 'session this week' : 'sessions this week';
 
+  const cellSub =
+    view === 'daily' && isPersonalBest && streak > 1 ? 'personal best' :
+    view === 'daily' && longestStreak > 0            ? `best: ${longestStreak}d` :
+    null;
+
+  const cellGlow = view === 'weekly' && gate ? `0 0 10px 2px ${gate.glow}` : undefined;
   const showBurst = view === 'weekly' && consistentWeeks >= 26;
 
   return (
@@ -66,17 +73,17 @@ export default function StatStrip({ streak, longestStreak, weekSessionCount, wee
         cursor: onTap ? 'pointer' : 'default',
       }}
     >
-      {/* ── Streak / Consistent Weeks cell — tappable flip ── */}
+      {/* ── Left cell: streak / weekly / sessions — tappable cycle ── */}
       <button
         onClick={handleStreakTap}
         className="flex-1 flex flex-col items-center justify-center py-3 gap-0.5 relative rounded-l-xl touch-manipulation overflow-hidden"
         style={{
           borderRight: '1px solid rgba(255,255,255,0.06)',
-          boxShadow: streakCellGlow,
+          boxShadow: cellGlow,
           transition: 'box-shadow 0.4s ease',
         }}
       >
-        {/* Burst particles — gate 8, one-shot */}
+        {/* Burst particles — 26-week milestone, one-shot */}
         {showBurst && (
           <div key={consistentWeeks} className="absolute inset-0 pointer-events-none overflow-hidden">
             {BURST_PARTICLES.map((p, i) => (
@@ -98,29 +105,26 @@ export default function StatStrip({ streak, longestStreak, weekSessionCount, wee
         )}
 
         <div style={{ transition: 'opacity 0.12s', opacity: fading ? 0 : 1 }}>
-          <span
-            className="text-lg font-bold block text-center"
-            style={{ color: view === 'weekly' ? (weeklyAccent ?? 'rgba(255,255,255,0.88)') : (dailyAccent ?? 'rgba(255,255,255,0.88)') }}
-          >
+          <span className="text-lg font-bold block text-center" style={{ color: valueColor }}>
             {view === 'daily' && streak > 0 && (
               <span style={{ marginRight: 4, fontSize: 14 }}>🔥</span>
             )}
-            {view === 'daily' ? dailyValue : weeklyValue}
+            {cellValue}
           </span>
           <span className="text-[11px] block text-center" style={{ color: 'rgba(255,255,255,0.38)' }}>
-            {view === 'daily' ? 'streak' : 'week streak'}
+            {cellLabel}
           </span>
-          {view === 'daily' && dailySub && (
+          {cellSub && (
             <span
               className="text-[10px] block text-center"
-              style={{ color: isPersonalBest ? COPPER : 'rgba(255,255,255,0.22)' }}
+              style={{ color: isPersonalBest && view === 'daily' ? COPPER : 'rgba(255,255,255,0.22)' }}
             >
-              {dailySub}
+              {cellSub}
             </span>
           )}
         </div>
 
-        {/* Flip hint */}
+        {/* Cycle hint */}
         <span
           className="absolute bottom-1 right-1.5 text-[8px] select-none"
           style={{ color: 'rgba(255,255,255,0.22)' }}
@@ -129,19 +133,7 @@ export default function StatStrip({ streak, longestStreak, weekSessionCount, wee
         </span>
       </button>
 
-      {/* ── Sessions this week ── */}
-      <div className="flex-1 flex flex-col items-center justify-center py-3 gap-0.5"
-        style={{ borderRight: '1px solid rgba(255,255,255,0.06)' }}
-      >
-        <span className="text-lg font-bold" style={{ color: 'rgba(255,255,255,0.88)' }}>
-          {weekSessionCount}
-        </span>
-        <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.38)' }}>
-          {weekSessionCount === 1 ? 'session' : 'sessions'}
-        </span>
-      </div>
-
-      {/* ── Time this week ── */}
+      {/* ── Right cell: time this week — always visible ── */}
       <div className="flex-1 flex flex-col items-center justify-center py-3 gap-0.5">
         <span className="text-lg font-bold" style={{ color: 'rgba(255,255,255,0.88)' }}>
           {weekTotalMinutes > 0 ? formatDuration(weekTotalMinutes) : '0h'}
