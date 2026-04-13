@@ -92,7 +92,7 @@ export default function CalendarPage() {
       </div>
     )}
 
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 flex flex-col gap-5 h-full min-h-0">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-5">
 
       {/* Header row */}
       <div className="flex items-center justify-between">
@@ -167,7 +167,6 @@ export default function CalendarPage() {
       <ErrorBoundary>
         <div
           key={displayYear}
-          className="flex-1 min-h-0 flex flex-col"
           onAnimationEnd={() => setFlipDir(null)}
           style={flipDir ? {
             animation: `j2PageFlip${flipDir === 'forward' ? 'Forward' : 'Back'} 380ms ease-out both`,
