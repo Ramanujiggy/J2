@@ -53,12 +53,6 @@ export const CARD_SHADOW =
 /** Standalone whisper border — subtle inset rim-light for layered depth. */
 export const WHISPER_BORDER = 'inset 0 0 0 1px rgba(255,255,255,0.045)' as const;
 
-/**
- * @deprecated Use SURFACE_1 for card backgrounds, or compose a gradient manually.
- * This token is unused in the codebase and will be removed in a future cleanup.
- */
-export const CARD_SURFACE = `linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 20%), ${CARD_BG}` as const;
-
 /** Title glow — used on the large "Journada" wordmark. */
 export const GLOW_TITLE = '0 0 14px rgba(242,228,168,0.45), 0 0 32px rgba(242,228,168,0.2)' as const;
 

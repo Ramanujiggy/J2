@@ -118,12 +118,44 @@ export default {
           to:   { opacity: '1' },
         },
         'j2-today-pulse': {
-          '0%, 100%': { borderColor: 'rgba(196,145,95,0.7)', boxShadow: '0 0 16px rgba(196,145,95,0.2)' },
-          '50%':      { borderColor: 'rgba(196,145,95,0.9)', boxShadow: '0 0 22px rgba(196,145,95,0.3)' },
+          '0%, 100%': { boxShadow: '0 0 16px rgba(196,145,95,0.2)' },
+          '50%':      { boxShadow: '0 0 22px rgba(196,145,95,0.3)' },
         },
+        // Shimmer: apply to a full-width child element that slides across a clipped parent.
+        // Parent needs: position:relative; overflow:hidden.
+        // Element needs: position:absolute; inset:0; background: shimmer-gradient.
         'j2-shimmer': {
-          '0%':   { backgroundPosition: '-200% 0' },
-          '100%': { backgroundPosition: '200% 0' },
+          '0%':   { transform: 'translateX(-200%)' },
+          '100%': { transform: 'translateX(200%)' },
+        },
+        // ── Intention ambient FX — centralised from inline <style> tags ──────────
+        'j2IntentParticleRise': {
+          '0%':   { transform: 'translateY(0) translateX(0)', opacity: '0' },
+          '8%':   { opacity: '1' },
+          '85%':  { opacity: '0.7' },
+          '100%': { transform: 'translateY(-52px) translateX(var(--drift))', opacity: '0' },
+        },
+        'j2IntentYellowPulse': {
+          '0%, 100%': { opacity: '0.4', transform: 'scaleX(1)' },
+          '50%':      { opacity: '0.7', transform: 'scaleX(1.03)' },
+        },
+        'j2IntentPurplePulse': {
+          '0%, 100%': { opacity: '0.35', transform: 'scale(1)' },
+          '50%':      { opacity: '0.65', transform: 'scale(1.08)' },
+        },
+        'j2IntentCopperPulse': {
+          '0%, 100%': { opacity: '0.35', transform: 'scale(1)' },
+          '50%':      { opacity: '0.60', transform: 'scale(1.08)' },
+        },
+        'j2IntentFadeIn': {
+          from: { opacity: '0' },
+          to:   { opacity: '1' },
+        },
+        'j2RouletteEdgeBounce': {
+          '0%':       { transform: 'translateX(0)' },
+          '15%':      { transform: 'translateX(-12px)' },
+          '30%':      { transform: 'translateX(3px)' },
+          '40%, 100%': { transform: 'translateX(0)' },
         },
       },
       animation: {
@@ -141,7 +173,13 @@ export default {
         'j2-modal-in':    'j2-modal-in 400ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both',
         'j2-backdrop-in': 'j2-backdrop-in 250ms ease both',
         'j2-today-pulse': 'j2-today-pulse 4s ease-in-out infinite',
-        'j2-shimmer':   'j2-shimmer 1.2s ease-out both',
+        'j2-shimmer':    'j2-shimmer 1.2s ease-out both',
+        'j2-intent-particle-rise': 'j2IntentParticleRise 3s ease-in-out infinite',
+        'j2-intent-yellow-pulse':  'j2IntentYellowPulse 3.1s ease-in-out infinite',
+        'j2-intent-purple-pulse':  'j2IntentPurplePulse 4.2s ease-in-out infinite',
+        'j2-intent-copper-pulse':  'j2IntentCopperPulse 4.5s ease-in-out infinite',
+        'j2-intent-fade-in':       'j2IntentFadeIn 250ms ease both',
+        'j2-roulette-bounce':      'j2RouletteEdgeBounce 0.8s ease both',
       },
     },
   },

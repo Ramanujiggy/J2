@@ -157,25 +157,6 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
 
   return createPortal(
     <>
-      <style>{`
-        @keyframes j2IntentParticleRise {
-          0%   { transform: translateY(0) translateX(0);               opacity: 0;   }
-          8%   { opacity: 1; }
-          85%  { opacity: 0.7; }
-          100% { transform: translateY(-52px) translateX(var(--drift)); opacity: 0;  }
-        }
-        @keyframes j2IntentYellowPulse {
-          0%   { opacity: 0.4; transform: scaleX(1);    }
-          50%  { opacity: 0.7; transform: scaleX(1.03); }
-          100% { opacity: 0.4; transform: scaleX(1);    }
-        }
-        @keyframes j2IntentPurplePulse {
-          0%   { opacity: 0.35; transform: scale(1);    }
-          50%  { opacity: 0.65; transform: scale(1.08); }
-          100% { opacity: 0.35; transform: scale(1);    }
-        }
-      `}</style>
-
       {/* Backdrop */}
       <div
         data-no-page-swipe=""

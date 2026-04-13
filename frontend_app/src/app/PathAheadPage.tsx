@@ -319,24 +319,8 @@ export default function PathAheadPage() {
 
   const styleBlock = (
     <style>{`
-      @keyframes j2IntentCopperPulse {
-        0%   { opacity: 0.35; transform: scale(1);    }
-        50%  { opacity: 0.60; transform: scale(1.08); }
-        100% { opacity: 0.35; transform: scale(1);    }
-      }
-      @keyframes j2IntentFadeIn {
-        from { opacity: 0; }
-        to   { opacity: 1; }
-      }
-      @keyframes j2RouletteEdgeBounce {
-        0%        { transform: translateX(0); }
-        15%       { transform: translateX(-12px); }
-        30%       { transform: translateX(3px); }
-        40%, 100% { transform: translateX(0); }
-      }
       .j2-day-scroll { scrollbar-width: none; -webkit-overflow-scrolling: touch; }
       .j2-day-scroll::-webkit-scrollbar { display: none; }
-      @keyframes j2-today-pulse { 0%,100% { box-shadow: 0 0 12px rgba(196,145,95,0.25); } 50% { box-shadow: 0 0 18px rgba(196,145,95,0.4); } }
     `}</style>
   );
 

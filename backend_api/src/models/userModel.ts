@@ -27,12 +27,6 @@ export const createUser = async (email: string, passwordHash: string): Promise<U
     return result.rows[0];
 };
 
-// find a user by their id — used after validating a password reset token
-export const findUserById = async (id: string): Promise<User | null> => {
-    const result = await query('SELECT * FROM users WHERE id = $1', [id]);
-    return result.rows[0] || null;
-};
-
 // update a user's password hash — used during password reset
 export const updatePasswordHash = async (id: string, passwordHash: string): Promise<void> => {
     await query('UPDATE users SET password_hash = $1 WHERE id = $2', [passwordHash, id]);

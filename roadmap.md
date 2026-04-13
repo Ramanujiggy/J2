@@ -56,11 +56,11 @@ Full diagnostic rationale and implementation detail for each item lives in `impl
 
 | Status | Area | Description |
 |---|---|---|
-| `[ ]` | **BeltDateBanner — single-element reveal** | Replace 9-slat Venetian Blind (9 independent 3D compositing layers, visible seams) with a single `scaleX(0→1)` reveal from `transform-origin: left center`. Same emotional beat, zero seams. |
-| `[ ]` | **BeltBar tails — scaleY instead of height** | `j2TailL` / `j2TailR` animate `height` (triggers layout recalc every frame). Replace with `scaleY(0→1)` from `transform-origin: top center` — compositor-only, same visual. |
-| `[ ]` | **Shimmer — translateX instead of backgroundPosition** | `j2-shimmer` animates `backgroundPosition` (paint op). Replace with a `translateX(-200%→200%)` on a `::before` pseudo-element — fully compositor-safe. |
-| `[ ]` | **Today-pulse — drop borderColor animation** | `j2-today-pulse` pulses `borderColor` + `boxShadow` every frame. Drop the border animation; pulse `boxShadow` only — no repaint. |
-| `[ ]` | **Centralize particle keyframes** | `j2IntentParticleRise`, `j2IntentYellowPulse`, `j2IntentPurplePulse` are copy-pasted into 4 separate component `<style>` tags. Move all to `tailwind.config.ts` keyframes and reference via class. |
+| `[x]` | **BeltDateBanner — single-element reveal** | Replace 9-slat Venetian Blind (9 independent 3D compositing layers, visible seams) with a single `scaleX(0→1)` reveal from `transform-origin: left center`. Same emotional beat, zero seams. |
+| `[x]` | **BeltBar tails — scaleY instead of height** | `j2TailL` / `j2TailR` animate `height` (triggers layout recalc every frame). Replace with `scaleY(0→1)` from `transform-origin: top center` — compositor-only, same visual. |
+| `[x]` | **Shimmer — translateX instead of backgroundPosition** | `j2-shimmer` keyframe updated to `translateX(-200%→200%)` — compositor-safe. Apply to a positioned child element inside an `overflow:hidden` parent. |
+| `[x]` | **Today-pulse — drop borderColor animation** | `j2-today-pulse` now pulses `boxShadow` only. Border color is static (`rgba(196,145,95,0.7)`) — no repaint per frame. |
+| `[x]` | **Centralize particle keyframes** | `j2IntentParticleRise`, `j2IntentYellowPulse`, `j2IntentPurplePulse`, `j2IntentCopperPulse`, `j2IntentFadeIn`, `j2RouletteEdgeBounce` moved to `tailwind.config.ts`. `<style>` blocks removed from `PathAheadPage` and `SessionDetailModal`. |
 
 ---
 
@@ -75,9 +75,9 @@ Full diagnostic rationale and implementation detail for each item lives in `impl
 | `[x]` | **Add useOnlineRefetch to ProfilePage** | ProfilePage now refetches on reconnect via `useOnlineRefetch`, consistent with all other data-fetching pages. |
 | `[x]` | **Split PathAheadPage.tsx** | Extracted `DayCard` to `src/components/DayCard.tsx`, particle animation helpers to `src/lib/particles.ts`, and date/session utilities to `src/lib/sessionUtils.ts`. PathAheadPage reduced from 1,385 to ~1,030 lines. |
 | `[x]` | **Split SkillRadar.tsx** | Extracted `RadarChart`, `DonutChart`, `VolumeChart`, and `WeeklyChart` into `src/components/charts/`. SkillRadar reduced from 953 to 707 lines — now a pure controller for data computation, view switching, and layout. |
-| `[ ]` | **Remove `findUserById` (userModel)** | Exported but never called by any controller or route. Dead code. |
-| `[ ]` | **Remove `badge.tsx` (ui component)** | `frontend_app/src/components/ui/badge.tsx` — never imported anywhere. Dead shadcn artifact. |
-| `[ ]` | **Remove `CARD_SURFACE` token** | `theme.ts` exports `CARD_SURFACE` marked `@deprecated` — zero usages. Delete it. |
+| `[x]` | **Remove `findUserById` (userModel)** | Exported but never called by any controller or route. Dead code. |
+| `[x]` | **Remove `badge.tsx` (ui component)** | `frontend_app/src/components/ui/badge.tsx` — never imported anywhere. Dead shadcn artifact. |
+| `[x]` | **Remove `CARD_SURFACE` token** | `theme.ts` exports `CARD_SURFACE` marked `@deprecated` — zero usages. Delete it. |
 
 ---
 
