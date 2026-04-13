@@ -299,37 +299,6 @@ export default function PathAheadPage() {
     <PageContent ready={!loading}>
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 space-y-4">
       <style>{`
-        @keyframes j2IntentParticleRise {
-          0%   { transform: translateY(0) translateX(0);               opacity: 0;   }
-          8%   { opacity: 1; }
-          85%  { opacity: 0.7; }
-          100% { transform: translateY(-52px) translateX(var(--drift)); opacity: 0;  }
-        }
-        @keyframes j2IntentYellowPulse {
-          0%   { opacity: 0.4; transform: scaleX(1);    }
-          50%  { opacity: 0.7; transform: scaleX(1.03); }
-          100% { opacity: 0.4; transform: scaleX(1);    }
-        }
-        @keyframes j2IntentPurplePulse {
-          0%   { opacity: 0.35; transform: scale(1);    }
-          50%  { opacity: 0.65; transform: scale(1.08); }
-          100% { opacity: 0.35; transform: scale(1);    }
-        }
-        @keyframes j2IntentCopperPulse {
-          0%   { opacity: 0.35; transform: scale(1);    }
-          50%  { opacity: 0.60; transform: scale(1.08); }
-          100% { opacity: 0.35; transform: scale(1);    }
-        }
-        @keyframes j2IntentFadeIn {
-          from { opacity: 0; }
-          to   { opacity: 1; }
-        }
-        @keyframes j2RouletteEdgeBounce {
-          0%        { transform: translateX(0); }
-          15%       { transform: translateX(-12px); }
-          30%       { transform: translateX(3px); }
-          40%, 100% { transform: translateX(0); }
-        }
         .j2-day-scroll { scrollbar-width: none; -webkit-overflow-scrolling: touch; }
         .j2-day-scroll::-webkit-scrollbar { display: none; }
       `}</style>
