@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { COPPER } from '../lib/theme.ts';
+import { vibrate } from '../lib/haptics.ts';
 
 // ── Pentagon geometry ─────────────────────────────────────────────────────
 // viewBox 240×230, center (120,115), radius 88
@@ -30,7 +31,15 @@ const VERTICES = PRISM_VERTICES.map((v, i) => {
   };
 });
 
-const PENTAGON_POINTS = VERTICES.map(v => `${v.cx.toFixed(1)},${v.cy.toFixed(1)}`).join(' ');
+const POLYGON_POINTS = VERTICES.map(v => `${v.cx.toFixed(1)},${v.cy.toFixed(1)}`).join(' ');
+
+// Concentric guide rings — resonance distance rulers (vertex-count-agnostic)
+const GUIDE_SCALES = [0.33, 0.55, 0.78];
+const GUIDE_RINGS = GUIDE_SCALES.map(s =>
+  VERTICES.map(v =>
+    `${(CX + (v.cx - CX) * s).toFixed(1)},${(CY + (v.cy - CY) * s).toFixed(1)}`
+  ).join(' ')
+);
 
 // Map resonance score → visual opacity on the dashed line
 function resonanceToOpacity(r: number): number {
@@ -55,6 +64,9 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
   });
 
   const activeVertex = VERTICES.find(v => v.value === heading) ?? null;
+  const prevNearestRef = useRef<string | null>(heading);
+  const prevResRef = useRef<number | null>(resonance);
+  const [pressing, setPressing] = useState(false);
 
   function svgCoords(e: React.PointerEvent<SVGSVGElement>): { x: number; y: number } {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -85,6 +97,16 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
     const dNorm = Math.min(1, minDist / R);
     const res = Math.max(2, 10 - Math.round(dNorm * 8));
 
+    // Haptic feedback + press state
+    if (e.type === 'pointerdown') { vibrate(8); setPressing(true); }
+    if (nearest.value !== prevNearestRef.current) {
+      vibrate(12); // vertex snap
+      prevNearestRef.current = nearest.value;
+    } else if (res !== prevResRef.current) {
+      vibrate(6);  // resonance tick
+    }
+    prevResRef.current = res;
+
     setDotPos({ x: clampedX, y: clampedY });
     onSelect(nearest.value, res);
   }
@@ -102,6 +124,8 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
         }}
         onPointerDown={handlePointer}
         onPointerMove={handlePointer}
+        onPointerUp={() => setPressing(false)}
+        onPointerLeave={() => setPressing(false)}
       >
         {/* Spoke lines — center to each vertex */}
         {VERTICES.map(v => (
@@ -114,10 +138,41 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
           />
         ))}
 
-        {/* Pentagon */}
+        {/* Concentric guide rings — resonance distance rulers */}
+        {GUIDE_RINGS.map((pts, i) => (
+          <polygon
+            key={`guide-${i}`}
+            points={pts}
+            fill="none"
+            stroke={`rgba(196,145,95,${0.04 + i * 0.02})`}
+            strokeWidth={0.5}
+          />
+        ))}
+
+        {/* Radial gradient def — emanates from active vertex */}
+        {activeVertex && (
+          <defs>
+            <radialGradient
+              id="prism-glow"
+              gradientUnits="userSpaceOnUse"
+              cx={activeVertex.cx}
+              cy={activeVertex.cy}
+              r={R * 1.2}
+            >
+              <stop offset="0%" stopColor="rgba(196,145,95,0.12)" />
+              <stop offset="100%" stopColor="rgba(196,145,95,0)" />
+            </radialGradient>
+          </defs>
+        )}
+
+        {/* Pentagon — base fill + gradient overlay */}
         <polygon
-          points={PENTAGON_POINTS}
+          points={POLYGON_POINTS}
           fill="rgba(21,46,34,0.85)"
+        />
+        <polygon
+          points={POLYGON_POINTS}
+          fill={activeVertex ? 'url(#prism-glow)' : 'none'}
           stroke="rgba(196,145,95,0.22)"
           strokeWidth={1.5}
         />
@@ -150,14 +205,21 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
           />
         )}
 
-        {/* Placed dot */}
+        {/* Placed dot — scales on press */}
         {dotPos && (
           <circle
             cx={dotPos.x}
             cy={dotPos.y}
             r={7}
             fill={COPPER}
-            style={{ filter: 'drop-shadow(0 0 5px rgba(196,145,95,0.65))' }}
+            style={{
+              filter: 'drop-shadow(0 0 5px rgba(196,145,95,0.65))',
+              transform: pressing ? 'scale(0.92)' : 'scale(1)',
+              transformOrigin: `${dotPos.x}px ${dotPos.y}px`,
+              transition: pressing
+                ? 'transform 0.08s ease-in'
+                : 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1)',
+            }}
           />
         )}
 
