@@ -477,55 +477,6 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
         </div>
       )}
 
-      {/* Year pulse strip — weekly volume sparkline */}
-      {sessions.length > 0 && (() => {
-        const weekAgg = rows.map(row => ({
-          minutes: row.days.reduce((s, d) => s + d.day.totalMinutes, 0),
-          maxIntensity: row.days.reduce((m, d) => Math.max(m, d.day.maxIntensity), 0),
-        }));
-        const maxMins = Math.max(...weekAgg.map(w => w.minutes), 1);
-        const thisWeekIdx = rows.findIndex(row => row.days.some(d => localDateKey(d.date) === todayStr));
-        return (
-          <div className="mb-4 flex gap-px items-end rounded-md overflow-hidden" style={{ height: 20, backgroundColor: SURFACE_2 }}>
-            {weekAgg.map((w, i) => {
-              const h = w.minutes > 0 ? Math.max(3, (w.minutes / maxMins) * 20) : 0;
-              const isCurrent = i === thisWeekIdx;
-              return (
-                <div
-                  key={i}
-                  className="flex-1 flex items-end justify-center cursor-pointer"
-                  style={{ height: '100%' }}
-                  onClick={() => {
-                    const target = scrollContainerRef.current?.querySelector(`[data-month="${rows[i]?.monthIndex}"]`);
-                    if (!target) {
-                      // Find nearest data-month by walking back
-                      for (let j = i; j >= 0; j--) {
-                        const el = scrollContainerRef.current?.querySelector(`[data-month="${rows[j]?.monthIndex}"]`);
-                        if (el) { el.scrollIntoView({ block: 'start', behavior: 'smooth' }); break; }
-                      }
-                    } else {
-                      target.scrollIntoView({ block: 'start', behavior: 'smooth' });
-                    }
-                  }}
-                >
-                  <div
-                    style={{
-                      width: '100%',
-                      maxWidth: 8,
-                      height: h,
-                      borderRadius: '2px 2px 0 0',
-                      backgroundColor: w.minutes > 0 ? cellColor({ count: 1, totalMinutes: w.minutes, maxIntensity: w.maxIntensity, notes: [] }) : 'transparent',
-                      boxShadow: isCurrent ? `0 -1px 4px rgba(242,228,168,0.4)` : 'none',
-                      borderTop: isCurrent ? '2px solid rgba(242,228,168,0.7)' : 'none',
-                    }}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        );
-      })()}
-
       {/* Empty state */}
       {sessions.length === 0 && (
         <div className="py-12 text-center">

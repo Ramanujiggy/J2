@@ -9,8 +9,8 @@ export default function WeeklyChart({ weeks }: { weeks: WeekEntry[] }) {
   const maxH = Math.max(...weeks.map(w => w.hours), 0.001);
   const barW = BAR_W, gap = BAR_GAP;
   const chartH = 78, baseY = 90;
-  const contentW = 52 * (barW + gap) - gap; // 52 * 16 - 4 = 828
-  const W = contentW + 24;                   // 852, 12px margin each side
+  const contentW = weeks.length * (barW + gap) - gap;
+  const W = contentW + 24;                   // 12px margin each side
   const H = 110;
   const offsetX = 12;
 
