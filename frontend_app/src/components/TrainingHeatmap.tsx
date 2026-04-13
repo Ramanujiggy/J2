@@ -176,7 +176,36 @@ export function computeStats(sessions: SessionSummary[], year: number) {
     if (curRun > longestStreak) longestStreak = curRun;
   }
 
-  return { totalSessions, totalMinutes, giMinutes, nogiMinutes, streak, streakDays, longestStreak };
+  // Consistent weeks — consecutive ISO weeks (Mon–Sun) with 2+ sessions
+  function isoWeekKey(date: Date): string {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    const dow = d.getDay();
+    d.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1)); // Monday of week
+    return localDateKey(d);
+  }
+  const weekMap = new Map<string, number>();
+  for (const s of sessions) {
+    const key = isoWeekKey(new Date(toDateKey(s.date) + 'T00:00:00'));
+    weekMap.set(key, (weekMap.get(key) ?? 0) + 1);
+  }
+  const todayForWeek = new Date();
+  const todayDow = todayForWeek.getDay();
+  const thisMonday = new Date(todayForWeek);
+  thisMonday.setDate(todayForWeek.getDate() - (todayDow === 0 ? 6 : todayDow - 1));
+  thisMonday.setHours(0, 0, 0, 0);
+  const startMonday = new Date(thisMonday);
+  if ((weekMap.get(localDateKey(thisMonday)) ?? 0) < 2) {
+    startMonday.setDate(startMonday.getDate() - 7);
+  }
+  let consistentWeeks = 0;
+  const weekCursor = new Date(startMonday);
+  while ((weekMap.get(localDateKey(weekCursor)) ?? 0) >= 2) {
+    consistentWeeks++;
+    weekCursor.setDate(weekCursor.getDate() - 7);
+  }
+
+  return { totalSessions, totalMinutes, giMinutes, nogiMinutes, streak, streakDays, longestStreak, consistentWeeks };
 }
 
 interface TrainingHeatmapProps {

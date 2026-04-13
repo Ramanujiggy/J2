@@ -3,7 +3,7 @@ import { api, ApiError } from '../lib/api.ts';
 import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock.ts';
-import { SKILL_TAGS, ROULETTE_DRILLS, MONTH_NAMES } from '../lib/constants.ts';
+import { SKILL_TAGS, ROULETTE_DRILLS, MONTH_NAMES, EIGHT_GATES } from '../lib/constants.ts';
 import type { SessionSummary, Intention, IntentionsResponse, SessionsResponse } from '../types/api.ts';
 import LogSessionForm from '../components/LogSessionForm.tsx';
 import SessionDetailModal from '../components/SessionDetailModal.tsx';
@@ -179,7 +179,20 @@ export default function PathAheadPage() {
 
   const pendingSessions = usePendingSessions();
   const allSessions = useMemo(() => [...sessions, ...pendingSessions], [sessions, pendingSessions]);
-  const { streak, longestStreak } = useMemo(() => computeStats(allSessions, new Date().getFullYear()), [allSessions]);
+  const { streak, longestStreak, consistentWeeks } = useMemo(() => computeStats(allSessions, new Date().getFullYear()), [allSessions]);
+
+  useEffect(() => {
+    for (const gate of [...EIGHT_GATES].reverse()) {
+      if (consistentWeeks >= gate.weeks) {
+        const key = `j2-gate-${gate.weeks}`;
+        if (!localStorage.getItem(key)) {
+          localStorage.setItem(key, '1');
+          toast({ title: gate.toast });
+        }
+        break;
+      }
+    }
+  }, [consistentWeeks]);
 
   // ── Window computation ─────────────────────────────────────────────────
 
@@ -866,6 +879,7 @@ export default function PathAheadPage() {
                 longestStreak={longestStreak}
                 weekSessionCount={weekStats.count}
                 weekTotalMinutes={weekStats.totalMinutes}
+                consistentWeeks={consistentWeeks}
               />
 
               {/* Intention */}
@@ -906,8 +920,10 @@ export default function PathAheadPage() {
       {/* ── B. Stat Strip ────────────────────────────────────────── */}
       <StatStrip
         streak={streak}
+        longestStreak={longestStreak}
         weekSessionCount={weekStats.count}
         weekTotalMinutes={weekStats.totalMinutes}
+        consistentWeeks={consistentWeeks}
         onTap={() => { setTelemetryOpen(prev => !prev); if (!telemetryOpen) setRouletteOpen(false); }}
       />
 
