@@ -10,7 +10,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import SessionDetailModal from './SessionDetailModal.tsx';
-import { CARD_BG, COPPER_BORDER, CARD_SHADOW, HEATMAP_REST, HEATMAP_FUTURE, HEATMAP_OUTSIDE_YEAR, HEATMAP_HEADER_BG, PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
+import { CARD_BG, COPPER_BORDER, CARD_SHADOW, HEATMAP_REST, HEATMAP_FUTURE, HEATMAP_HEADER_BG, PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
 import type { SessionSummary, CalendarIntention } from '../types/api.ts';
 export type { SessionSummary };
 
@@ -315,10 +315,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
   // Index into DOW array (Mon=0 … Sun=6) for the current day — used to highlight today's column header.
   // Only applies when viewing the current year; -1 disables the highlight for past/future years.
   const todayDowIndex = year === now.getFullYear() ? (now.getDay() + 6) % 7 : -1;
-  const { totalSessions, totalMinutes, giMinutes, nogiMinutes, streak, streakDays } = computeStats(sessions, year);
-  const hoursNum  = totalMinutes > 0 ? totalMinutes / 60 : 0;
-  const giHoursNum = giMinutes > 0 ? giMinutes / 60 : 0;
-  const nogiHoursNum = nogiMinutes > 0 ? nogiMinutes / 60 : 0;
+  const { streakDays } = computeStats(sessions, year);
 
   const hours     = animHours > 0 ? animHours.toFixed(1) : '0';
   const giHours   = animGi > 0 ? animGi.toFixed(1) : '0';

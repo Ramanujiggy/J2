@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { api, ApiError } from '../lib/api.ts';
 import { toast } from '../hooks/use-toast.ts';
-import { SKILL_TAGS } from '../lib/constants.ts';
 import { CARD_BG, COPPER, COPPER_BORDER, SURFACE_2, SURFACE_3, DATE_INPUT_STYLE, PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
 import BeltDateBanner from './BeltDateBanner.tsx';
+import PillarPrism from './PillarPrism.tsx';
 import type { Intention } from '../types/api.ts';
 
 interface LogSessionResponse {
@@ -65,8 +65,9 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
   const [heading,      setHeading]      = useState<string | null>(defaultHeading ?? null);
   const [polarity,     setPolarity]     = useState<Polarity | null>(null);
   const [subSkillTag,  setSubSkillTag]  = useState(defaultSubSkillTag ?? '');
+  // resonance initialized to max when pre-filled from roulette (dot sits at the vertex)
   const [scriptSource, setScriptSource] = useState<ScriptSource | null>(null);
-  const [resonance,    setResonance]    = useState<number | null>(null);
+  const [resonance,    setResonance]    = useState<number | null>(defaultHeading ? 10 : null);
 
   // Current intention hint
   const [currentIntention, setCurrentIntention] = useState<Intention | null>(null);
@@ -200,7 +201,6 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
           {/* Style + Type — side by side on desktop */}
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1">
-              <label className="block text-sm text-white/70 mb-1.5">Style</label>
               <div className="flex gap-2">
                 {(['gi', 'no_gi'] as GiNoGi[]).map(val => (
                   <button
@@ -215,7 +215,6 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
               </div>
             </div>
             <div className="flex-1">
-              <label className="block text-sm text-white/70 mb-1.5">Type</label>
               <div className="flex gap-1.5">
                 {SESSION_TYPES.map(({ value, label }) => (
                   <button
@@ -289,62 +288,50 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
           className="mt-5 pt-5 space-y-4"
           style={{ borderTop: '1px solid rgba(196,145,95,0.15)' }}
         >
-          <div>
-            <h3 className="text-base font-semibold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
-              What did you work on?
-            </h3>
-            {currentIntention && (
-              <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                This week's focus: <span style={{ color: COPPER }}>{currentIntention.intent_label}</span>
-              </p>
-            )}
-          </div>
+          <h3 className="text-base font-semibold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
+            What did you work on?
+          </h3>
 
-          {/* Pillar Focus (Heading) — larger chips */}
-          <div>
-            <label className="block text-sm text-white/70 mb-2">Pillar Focus</label>
-            <div className="flex flex-wrap gap-2">
-              {SKILL_TAGS.map(({ value, label }) => (
+          {currentIntention && (
+            <p className="text-xs -mt-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              This week's focus: <span style={{ color: COPPER }}>{currentIntention.intent_label}</span>
+            </p>
+          )}
+
+          {/* Pillar Prism — tap/drag to mark focus and alignment */}
+          <PillarPrism
+            heading={heading}
+            resonance={resonance}
+            defaultHeading={defaultHeading}
+            onSelect={(h, r) => { setHeading(h); setResonance(r); setPolarity(null); }}
+          />
+
+          {/* Polarity — directional capsule, only for guard and pins */}
+          {(heading === 'guard' || heading === 'pins') && (
+            <div style={{ display: 'flex', borderRadius: 10, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
+              {([
+                { value: 'defense' as Polarity, label: '↙ Defense' },
+                { value: 'neutral' as Polarity, label: '· Neutral ·' },
+                { value: 'offense' as Polarity, label: 'Offense ↗' },
+              ]).map((p, i) => (
                 <button
-                  key={value}
+                  key={p.value}
                   type="button"
-                  onClick={() => { setHeading(value); setPolarity(null); }}
-                  className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                  onClick={() => setPolarity(prev => prev === p.value ? null : p.value)}
+                  className="flex-1 py-2 text-xs font-medium transition-colors touch-manipulation"
                   style={{
-                    backgroundColor: heading === value ? COPPER : SURFACE_3,
-                    color: heading === value ? '#fff' : 'rgba(255,255,255,0.5)',
+                    backgroundColor: polarity === p.value ? COPPER : SURFACE_3,
+                    color: polarity === p.value ? '#fff' : 'rgba(255,255,255,0.45)',
+                    borderLeft: i > 0 ? '1px solid rgba(255,255,255,0.08)' : 'none',
                   }}
                 >
-                  {label}
+                  {p.label}
                 </button>
               ))}
             </div>
-          </div>
-
-          {/* Polarity — only for guard and pins */}
-          {(heading === 'guard' || heading === 'pins') && (
-            <div>
-              <label className="block text-xs text-white/60 mb-1.5">Polarity</label>
-              <div className="flex gap-1.5">
-                {(['offense', 'defense', 'neutral'] as Polarity[]).map(p => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setPolarity(prev => prev === p ? null : p)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors"
-                    style={{
-                      backgroundColor: polarity === p ? COPPER : SURFACE_3,
-                      color: polarity === p ? '#fff' : 'rgba(255,255,255,0.5)',
-                    }}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-            </div>
           )}
 
-          {/* Script Source */}
+          {/* Source */}
           <div>
             <label className="block text-xs text-white/60 mb-1.5">Source</label>
             <div className="flex gap-1.5 w-full">
@@ -389,32 +376,6 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
               className="w-full border border-white/10 rounded-lg px-4 py-2.5 text-white text-sm placeholder-white/25 outline-none focus:border-white/25"
               style={{ backgroundColor: SURFACE_2 }}
             />
-          </div>
-
-          {/* Resonance — 5 dots */}
-          <div>
-            <label className="block text-xs text-white/50 mb-1.5">
-              Resonance <span className="text-white/25">(how aligned did it feel?)</span>
-            </label>
-            <div className="flex gap-2">
-              {[1, 2, 3, 4, 5].map(n => {
-                const val = n * 2;
-                const active = resonance !== null && resonance >= val;
-                return (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => setResonance(prev => prev === val ? null : val)}
-                    style={{
-                      width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-                      backgroundColor: active ? COPPER : 'rgba(255,255,255,0.08)',
-                      border: `1px solid ${active ? COPPER : 'rgba(255,255,255,0.12)'}`,
-                      transition: 'background-color 0.15s',
-                    }}
-                  />
-                );
-              })}
-            </div>
           </div>
 
           {/* Notes */}
