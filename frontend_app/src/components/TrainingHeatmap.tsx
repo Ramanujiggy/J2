@@ -10,7 +10,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import SessionDetailModal from './SessionDetailModal.tsx';
-import { CARD_BG, COPPER_BORDER, CARD_SHADOW, HEATMAP_REST, HEATMAP_FUTURE, HEATMAP_OUTSIDE_YEAR, HEATMAP_HEADER_BG, PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
+import { CARD_BG, COPPER_BORDER, CARD_SHADOW, HEATMAP_REST, HEATMAP_FUTURE, HEATMAP_HEADER_BG, PALE_YELLOW, GLOW_SOFT, SURFACE_2 } from '../lib/theme.ts';
 import type { SessionSummary, CalendarIntention } from '../types/api.ts';
 export type { SessionSummary };
 
@@ -38,11 +38,8 @@ const LEGEND = [
 
 // Particles for the intention column on the active week
 const INTENTION_COL_PARTICLES = [
-  { left: '8%',  bottom: 3, drift: '-3px', duration: 3.8, delay: 0.0 },
-  { left: '22%', bottom: 2, drift: '4px',  duration: 4.5, delay: 1.1 },
-  { left: '45%', bottom: 3, drift: '-4px', duration: 3.4, delay: 0.4 },
-  { left: '65%', bottom: 2, drift: '3px',  duration: 4.1, delay: 1.7 },
-  { left: '82%', bottom: 2, drift: '-3px', duration: 3.6, delay: 0.8 },
+  { left: '25%', bottom: 3, drift: '-3px', duration: 6.0, delay: 0.0 },
+  { left: '65%', bottom: 2, drift: '4px',  duration: 6.4, delay: 2.0 },
 ] as const;
 
 // Local-time date key — avoids UTC shift from toISOString()
@@ -214,6 +211,7 @@ interface TrainingHeatmapProps {
   loading?: boolean;
   onSessionUpdated?: () => void;
   onGoToToday?: () => void;
+  onLogSession?: (dateKey: string) => void;
   year?: number;
 }
 
@@ -245,8 +243,9 @@ function HeatmapSkeleton() {
   );
 }
 
-export default function TrainingHeatmap({ sessions = [], intentions = [], loading = false, onSessionUpdated, onGoToToday, year: yearProp }: TrainingHeatmapProps) {
+export default function TrainingHeatmap({ sessions = [], intentions = [], loading = false, onSessionUpdated, onGoToToday, onLogSession, year: yearProp }: TrainingHeatmapProps) {
   const [selectedSession, setSelectedSession] = useState<{ session: SessionSummary; date: Date } | null>(null);
+  const [showGiSplit, setShowGiSplit] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const pendingScroll = useRef(false);
 
@@ -315,10 +314,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
   // Index into DOW array (Mon=0 … Sun=6) for the current day — used to highlight today's column header.
   // Only applies when viewing the current year; -1 disables the highlight for past/future years.
   const todayDowIndex = year === now.getFullYear() ? (now.getDay() + 6) % 7 : -1;
-  const { totalSessions, totalMinutes, giMinutes, nogiMinutes, streak, streakDays } = computeStats(sessions, year);
-  const hoursNum  = totalMinutes > 0 ? totalMinutes / 60 : 0;
-  const giHoursNum = giMinutes > 0 ? giMinutes / 60 : 0;
-  const nogiHoursNum = nogiMinutes > 0 ? nogiMinutes / 60 : 0;
+  const { streakDays } = computeStats(sessions, year);
 
   const hours     = animHours > 0 ? animHours.toFixed(1) : '0';
   const giHours   = animGi > 0 ? animGi.toFixed(1) : '0';
@@ -365,6 +361,11 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
         to   { opacity: 1; }
       }
 
+      @media (prefers-reduced-motion: reduce) {
+        .j2-cal-particle { animation: none !important; opacity: 0 !important; }
+        .j2-cal-glow { animation: none !important; }
+      }
+
       /* Year navigation — forward (next year): slides in from right */
       @keyframes j2PageFlipForward {
         from { opacity: 0.15; transform: translateX(20px); }
@@ -378,48 +379,93 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
     `}</style>
     {/* Stacked journal pages peeking out below-right */}
     <div style={{ position: 'relative' }}>
-      <div style={{ position: 'absolute', inset: 0, transform: 'translate(8px, 2px)', borderRadius: '1rem', backgroundColor: CARD_BG, border: '1px solid rgba(196,145,95,0.15)', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', inset: 0, transform: 'translate(4px, 1px)', borderRadius: '1rem', backgroundColor: CARD_BG, border: '1px solid rgba(196,145,95,0.25)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', inset: 0, transform: 'translate(6px, 4px)', borderRadius: '1rem', backgroundColor: CARD_BG, border: '1px solid rgba(196,145,95,0.12)', borderRight: '2px solid rgba(196,145,95,0.18)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', inset: 0, transform: 'translate(3px, 2px)', borderRadius: '1rem', backgroundColor: CARD_BG, border: '1px solid rgba(196,145,95,0.22)', borderRight: '2px solid rgba(196,145,95,0.30)', pointerEvents: 'none' }} />
     <div className="rounded-2xl p-6" style={{ position: 'relative', zIndex: 1, backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
 
-      {/* Stats */}
-      <div className="flex gap-6 mb-6 pb-5 border-b border-white/10 flex-wrap">
+      {/* Stats — 3 primary metrics on a consistent grid */}
+      <div className="grid grid-cols-3 gap-4 mb-4 pb-4 border-b border-white/10">
         <div>
           <p className="text-2xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>{Math.round(animSessions)}</p>
-          <p className="text-xs mt-0.5" style={{ color: 'rgba(242,228,168,0.5)' }}>Sessions in {year}</p>
+          <p className="text-xs mt-0.5" style={{ color: 'rgba(242,228,168,0.5)' }}>Sessions</p>
         </div>
         <div>
-          <p className="text-2xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>{hours}h</p>
-          <p className="text-xs mt-0.5" style={{ color: 'rgba(242,228,168,0.5)' }}>Hours trained</p>
+          <button
+            onClick={() => setShowGiSplit(s => !s)}
+            className="text-left w-full group"
+          >
+            <p className="text-2xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>{hours}h</p>
+            <p className="text-xs mt-0.5 flex items-center gap-1" style={{ color: 'rgba(242,228,168,0.5)' }}>
+              Hours
+              <svg
+                width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"
+                className="transition-transform"
+                style={{ transform: showGiSplit ? 'rotate(180deg)' : 'rotate(0)' }}
+              >
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </p>
+          </button>
         </div>
-        <div>
-          <p className="text-2xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>{giHours}h</p>
-          <p className="text-xs mt-0.5" style={{ color: 'rgba(242,228,168,0.5)' }}>Gi hours</p>
-        </div>
-        <div>
-          <p className="text-2xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>{nogiHours}h</p>
-          <p className="text-xs mt-0.5" style={{ color: 'rgba(242,228,168,0.5)' }}>No-Gi hours</p>
-        </div>
-        {/* Thin separator — streak is a consistency metric, distinct from volume */}
-        <div className="self-center flex-shrink-0" style={{ width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.08)' }} />
         <div>
           <p className="text-2xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>{Math.round(animStreak)}</p>
           <p className="text-xs mt-0.5" style={{ color: 'rgba(196,145,95,0.65)' }}>Day streak</p>
         </div>
-        <div className="ml-auto flex items-center">
-          <button
-            onClick={handleTodayClick}
-            className="px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors"
-            style={{
-              backgroundColor: 'rgba(242,228,168,0.08)',
-              border: '1px solid rgba(242,228,168,0.22)',
-              color: 'rgba(242,228,168,0.75)',
-            }}
-          >
-            Today
-          </button>
-        </div>
       </div>
+
+      {/* Gi / No-Gi breakdown — expandable under Hours */}
+      {showGiSplit && (
+        <div className="flex gap-6 mb-4 pb-4 border-b border-white/10" style={{ animation: 'j2CalIntentFadeIn 0.3s ease forwards' }}>
+          <div>
+            <p className="text-lg font-bold" style={{ color: PALE_YELLOW }}>{giHours}h</p>
+            <p className="text-[10px] mt-0.5" style={{ color: 'rgba(242,228,168,0.4)' }}>Gi</p>
+          </div>
+          <div>
+            <p className="text-lg font-bold" style={{ color: PALE_YELLOW }}>{nogiHours}h</p>
+            <p className="text-[10px] mt-0.5" style={{ color: 'rgba(242,228,168,0.4)' }}>No-Gi</p>
+          </div>
+        </div>
+      )}
+
+      {/* Intensity legend — visible before scrolling into the grid */}
+      {sessions.length > 0 && (
+        <div className="flex items-center gap-4 mb-5 pb-4 border-b border-white/10">
+          <span className="text-xs font-medium flex-shrink-0 self-center" style={{ color: 'rgba(196,145,95,0.7)' }}>Intensity</span>
+          {LEGEND.map(({ color, label, range }) => (
+            <div key={label} className="flex flex-col items-center gap-0.5">
+              <div style={{ width: 28, height: 10, borderRadius: 3, backgroundColor: color }} />
+              <span className="text-[10px] leading-none" style={{ color: 'rgba(242,228,168,0.65)' }}>{label}</span>
+              <span className="text-[9px] leading-none" style={{ color: range ? 'rgba(255,255,255,0.32)' : 'transparent' }}>{range || '—'}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Month-jump navigation pills */}
+      {sessions.length > 0 && (
+        <div className="flex gap-1 mb-4 overflow-x-auto pb-1 scrollbar-none" style={{ WebkitOverflowScrolling: 'touch' }}>
+          {MONTH_ABBR.map((m, i) => {
+            const isCurrent = i === now.getMonth() && year === now.getFullYear();
+            return (
+              <button
+                key={m}
+                onClick={() => {
+                  const target = scrollContainerRef.current?.querySelector(`[data-month="${i}"]`);
+                  target?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+                }}
+                className="px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors flex-shrink-0 touch-manipulation"
+                style={{
+                  backgroundColor: isCurrent ? 'rgba(196,145,95,0.2)' : SURFACE_2,
+                  color: isCurrent ? 'rgba(242,228,168,0.9)' : 'rgba(242,228,168,0.45)',
+                  border: isCurrent ? '1px solid rgba(196,145,95,0.4)' : '1px solid transparent',
+                }}
+              >
+                {m}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Empty state */}
       {sessions.length === 0 && (
@@ -430,19 +476,21 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
       )}
 
       {/* Scrollable calendar — hidden when empty */}
-      {sessions.length > 0 && <div ref={scrollContainerRef} className="overflow-y-auto relative j2-heatmap-scroll">
+      {sessions.length > 0 && <div ref={scrollContainerRef} role="grid" aria-label={`Training calendar for ${year}`} className="overflow-y-auto relative j2-heatmap-scroll">
 
         {/* Sticky column headers */}
         <div
+          role="row"
           className="j2-heatmap-grid grid sticky top-0 z-20 border-b border-white/10 mb-0.5"
           style={{ backgroundColor: HEATMAP_HEADER_BG, boxShadow: '0 3px 10px rgba(0,0,0,0.6)' }}
         >
-          <div className="py-2" />
+          <div role="columnheader" className="py-2" />
           {DOW.map((d, i) => {
             const isToday = i === todayDowIndex;
             return (
               <div
                 key={d}
+                role="columnheader"
                 className="py-2 text-center text-xs font-semibold"
                 style={{
                   color: isToday ? 'rgba(242,228,168,0.92)' : 'rgba(242,228,168,0.55)',
@@ -453,8 +501,8 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
               </div>
             );
           })}
-          <div className="py-2 pl-4 text-xs font-semibold hidden sm:block" style={{ color: 'rgba(242,228,168,0.55)' }}>Intention</div>
-          <div className="py-2 pl-3 text-xs font-semibold hidden sm:block" style={{ color: 'rgba(242,228,168,0.55)' }}>Journal</div>
+          <div role="columnheader" className="py-2 pl-4 text-xs font-semibold hidden sm:block" style={{ color: 'rgba(242,228,168,0.55)' }}>Intention</div>
+          <div role="columnheader" className="py-2 pl-3 text-xs font-semibold hidden sm:block" style={{ color: 'rgba(242,228,168,0.55)' }}>Journal</div>
         </div>
 
         {/* Week rows */}
@@ -475,9 +523,11 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
           return (
             <div
               key={ri}
+              role="row"
               {...(isThisWeek ? { 'data-today-row': '' } : {})}
+              {...(row.isMonthStart ? { 'data-month': String(row.monthIndex) } : {})}
               className={`j2-heatmap-grid grid items-center${row.isMonthStart && ri > 0 ? ' mt-1 border-t border-white/10 pt-1' : ''}`}
-              style={{ minHeight: 48, position: 'relative' }}
+              style={{ position: 'relative' }}
             >
               {/* Active week backdrop */}
               {isActiveWeek && (
@@ -512,6 +562,15 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                     }}
                   >
                     {row.monthLabel}
+                    {/* Mobile intention indicator — visible only on small screens */}
+                    {weekIntention && (
+                      <span className="sm:hidden" style={{
+                        fontSize: 8,
+                        color: isActiveWeek ? 'rgba(196,145,95,0.9)' : 'rgba(196,145,95,0.4)',
+                        lineHeight: 1,
+                        marginTop: 2,
+                      }}>◈</span>
+                    )}
                   </div>
                 );
               })()}
@@ -522,9 +581,10 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                 const isFuture = date > now;
                 const isCurrentYear = date.getFullYear() === year;
                 const isClickable = isCurrentYear && day.count > 0;
+                const isLoggable = isCurrentYear && !isFuture && day.count === 0 && !!onLogSession;
                 const dateStr = date.toDateString();
                 const tooltip = day.count === 0
-                  ? dateStr
+                  ? (isLoggable ? `${dateStr} — tap to log session` : dateStr)
                   : `${dateStr}: ${day.count} session${day.count !== 1 ? 's' : ''} · ${day.totalMinutes} min · intensity ${day.maxIntensity}/5`;
 
                 // Copper resonance: session logged on a day that falls within the intention period
@@ -537,20 +597,28 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                 const isToday = key === todayStr;
 
                 const handleClick = () => {
-                  if (!isClickable) return;
-                  const daySessions = sessions
-                    .filter(s => toDateKey(s.date) === key)
-                    .sort((a, b) => b.intensity - a.intensity);
-                  if (daySessions[0]) setSelectedSession({ session: daySessions[0], date });
+                  if (isClickable) {
+                    const daySessions = sessions
+                      .filter(s => toDateKey(s.date) === key)
+                      .sort((a, b) => b.intensity - a.intensity);
+                    if (daySessions[0]) setSelectedSession({ session: daySessions[0], date });
+                  } else if (isLoggable) {
+                    onLogSession!(key);
+                  }
                 };
 
+                // Build accessible label for this cell
+                const cellAriaLabel = day.count === 0
+                  ? `${date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}: rest day${isLoggable ? ' — tap to log session' : ''}`
+                  : `${date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}: ${day.count} session${day.count !== 1 ? 's' : ''}, ${day.totalMinutes} minutes, intensity ${day.maxIntensity} of 5`;
+
                 const cellEl = (
-                  <div className="px-0.5 py-1" style={{ position: 'relative', zIndex: 1 }}>
+                  <div role="gridcell" aria-label={cellAriaLabel} className="px-0.5 py-1" style={{ position: 'relative', zIndex: 1 }}>
                     <div
                       className={`rounded flex items-end px-1 j2-heatmap-cell${isInStreak ? ' j2-streak-cell' : ''}`}
                       style={{
                         position: 'relative',
-                        height: '40px',
+                        height: '44px',
                         backgroundColor: (() => {
                           if (!isCurrentYear) return '#0D1812'; // flat muted — clearly inactive, no opacity trick
                           const isAltMonth = date.getMonth() % 2 === 1;
@@ -558,7 +626,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                           if (day.count === 0) return isAltMonth ? HEATMAP_REST_ALT : HEATMAP_REST_PRIMARY;
                           return cellColor(day);
                         })(),
-                        cursor: isClickable ? 'pointer' : 'default',
+                        cursor: (isClickable || isLoggable) ? 'pointer' : 'default',
                         paddingBottom: '3px',
                         border: hasResonance
                           ? '1px solid rgba(196,145,95,0.7)'
@@ -581,9 +649,22 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                           }}
                         />
                       )}
+                      {/* Journal note indicator dot */}
+                      {day.notes.length > 0 && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: 3, right: 3,
+                            width: 4, height: 4,
+                            borderRadius: '50%',
+                            backgroundColor: 'rgba(196,145,95,0.7)',
+                            pointerEvents: 'none',
+                          }}
+                        />
+                      )}
                       <span
                         className="leading-none select-none pointer-events-none whitespace-nowrap"
-                        style={{ fontSize: '10px', fontWeight: 500, color: 'rgba(255,255,255,0.65)' }}
+                        style={{ fontSize: '12px', fontWeight: 500, color: 'rgba(255,255,255,0.80)' }}
                       >
                         {date.getDate()}
                         {!isMobile && day.count > 0 && ` | ${(day.totalMinutes / 60).toFixed(1)}h`}
@@ -617,13 +698,13 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                     WebkitMaskImage: 'linear-gradient(to top, black 0%, rgba(0,0,0,0.85) 45%, transparent 100%)',
                     maskImage: 'linear-gradient(to top, black 0%, rgba(0,0,0,0.85) 45%, transparent 100%)',
                   }}>
-                    <div style={{
+                    <div className="j2-cal-glow" style={{
                       position: 'absolute', inset: 0,
                       background: 'linear-gradient(to top, rgba(242,228,168,0.22) 0%, transparent 100%)',
                       animation: 'j2CalIntentGlow 4s ease-in-out infinite',
                     }} />
                     {INTENTION_COL_PARTICLES.map((p, i) => (
-                      <span key={i} style={{
+                      <span key={i} className="j2-cal-particle" style={{
                         position: 'absolute',
                         left: p.left,
                         bottom: p.bottom,
@@ -664,30 +745,43 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
 
       </div>}
 
-      {/* Legend — hidden when empty */}
+      {/* Floating "Today" pill — accessible at all scroll positions */}
       {sessions.length > 0 && (
-        <div className="flex items-center gap-4 mt-5 pt-4 border-t border-white/10">
-          <span className="text-xs font-medium flex-shrink-0 self-center" style={{ color: 'rgba(196,145,95,0.7)' }}>Intensity</span>
-          {LEGEND.map(({ color, label, range }) => (
-            <div key={label} className="flex flex-col items-center gap-0.5">
-              <div style={{ width: 28, height: 10, borderRadius: 3, backgroundColor: color }} />
-              <span className="text-[10px] leading-none" style={{ color: 'rgba(242,228,168,0.65)' }}>{label}</span>
-              <span className="text-[9px] leading-none" style={{ color: range ? 'rgba(255,255,255,0.32)' : 'transparent' }}>{range || '—'}</span>
-            </div>
-          ))}
-        </div>
+        <button
+          onClick={handleTodayClick}
+          className="absolute bottom-5 right-5 z-30 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all shadow-lg"
+          style={{
+            backgroundColor: 'rgba(21,46,34,0.92)',
+            border: '1px solid rgba(242,228,168,0.28)',
+            color: 'rgba(242,228,168,0.85)',
+            backdropFilter: 'blur(8px)',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
+          }}
+        >
+          Today
+        </button>
       )}
 
       {/* Session detail / edit modal */}
-      {selectedSession && (
-        <SessionDetailModal
-          session={selectedSession.session}
-          date={selectedSession.date}
-          onClose={() => setSelectedSession(null)}
-          onSaved={() => { onSessionUpdated?.(); setSelectedSession(null); }}
-          onDeleted={() => { onSessionUpdated?.(); setSelectedSession(null); }}
-        />
-      )}
+      {selectedSession && (() => {
+        // Find the intention covering the selected session's date
+        const sessionDateKey = localDateKey(selectedSession.date);
+        const sessionIntention = intentions.find(intent => {
+          const start = intent.week_start.slice(0, 10);
+          const end = addDaysToStr(start, intent.duration_days - 1);
+          return sessionDateKey >= start && sessionDateKey <= end;
+        }) ?? null;
+        return (
+          <SessionDetailModal
+            session={selectedSession.session}
+            date={selectedSession.date}
+            intention={sessionIntention ? { intent_label: sessionIntention.intent_label, intent_category: sessionIntention.intent_category ?? null } : null}
+            onClose={() => setSelectedSession(null)}
+            onSaved={() => { onSessionUpdated?.(); setSelectedSession(null); }}
+            onDeleted={() => { onSessionUpdated?.(); setSelectedSession(null); }}
+          />
+        );
+      })()}
 
     </div>
     </div>{/* end stacked-pages wrapper */}
