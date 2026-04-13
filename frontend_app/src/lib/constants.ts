@@ -47,6 +47,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
   mental:      '#a78bfa',
   positional:  '#34d399',
   competitive: '#fbbf24',
+  presence:    '#52B56C',
 };
 
 export const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;

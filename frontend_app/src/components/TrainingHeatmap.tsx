@@ -149,6 +149,8 @@ export function computeStats(sessions: SessionSummary[], year: number) {
   const nogiMinutes  = thisYear.filter(s => s.gi_nogi === 'no_gi').reduce((sum, s) => sum + Number(s.duration), 0);
 
   const daySet = new Set(sessions.map(s => toDateKey(s.date)));
+
+  // Current streak — walk backwards from today (or yesterday if no session today)
   const cursor = new Date();
   if (!daySet.has(localDateKey(cursor))) cursor.setDate(cursor.getDate() - 1);
   let streak = 0;
@@ -159,7 +161,22 @@ export function computeStats(sessions: SessionSummary[], year: number) {
     cursor.setDate(cursor.getDate() - 1);
   }
 
-  return { totalSessions, totalMinutes, giMinutes, nogiMinutes, streak, streakDays };
+  // Longest streak — walk the sorted unique-date list counting consecutive days
+  const sortedDates = [...daySet].sort();
+  let longestStreak = 0;
+  let curRun = 0;
+  for (let i = 0; i < sortedDates.length; i++) {
+    if (i === 0) {
+      curRun = 1;
+    } else {
+      const prev = new Date(sortedDates[i - 1]! + 'T00:00:00');
+      prev.setDate(prev.getDate() + 1);
+      curRun = localDateKey(prev) === sortedDates[i] ? curRun + 1 : 1;
+    }
+    if (curRun > longestStreak) longestStreak = curRun;
+  }
+
+  return { totalSessions, totalMinutes, giMinutes, nogiMinutes, streak, streakDays, longestStreak };
 }
 
 interface TrainingHeatmapProps {

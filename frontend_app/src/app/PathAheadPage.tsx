@@ -179,7 +179,7 @@ export default function PathAheadPage() {
 
   const pendingSessions = usePendingSessions();
   const allSessions = useMemo(() => [...sessions, ...pendingSessions], [sessions, pendingSessions]);
-  const { streak } = useMemo(() => computeStats(allSessions, new Date().getFullYear()), [allSessions]);
+  const { streak, longestStreak } = useMemo(() => computeStats(allSessions, new Date().getFullYear()), [allSessions]);
 
   // ── Window computation ─────────────────────────────────────────────────
 
@@ -863,6 +863,7 @@ export default function PathAheadPage() {
               {/* Stats */}
               <StatStrip
                 streak={streak}
+                longestStreak={longestStreak}
                 weekSessionCount={weekStats.count}
                 weekTotalMinutes={weekStats.totalMinutes}
               />

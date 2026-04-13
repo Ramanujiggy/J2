@@ -10,6 +10,7 @@ const CATEGORIES = [
   { value: 'mental',      label: 'Mental'       },
   { value: 'positional',  label: 'Positional'   },
   { value: 'competitive', label: 'Competitive'  },
+  { value: 'presence',    label: 'Presence'     },
 ] as const;
 
 type Category = typeof CATEGORIES[number]['value'];
