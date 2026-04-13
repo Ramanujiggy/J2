@@ -38,24 +38,28 @@ const TIP_PCT   =   9;
 interface BeltLoaderProps {
   rank?: BeltRank | null;
   stripes?: number;
+  /** Called at the end of each tying cycle (after hold, before fade). */
+  onCycleSettle?: () => void;
 }
 
-export default function BeltLoader({ rank, stripes = 0 }: BeltLoaderProps) {
+export default function BeltLoader({ rank, stripes = 0, onCycleSettle }: BeltLoaderProps) {
   const beltColor  = rank ? (BELT_COLORS[rank] ?? DEFAULT_BELT) : DEFAULT_BELT;
   const patchColor = rank ? (PATCH_COLORS[rank] ?? DEFAULT_PATCH) : DEFAULT_PATCH;
   const clampedStripes = rank ? Math.min(Math.max(Math.round(stripes), 0), 4) : 0;
 
-  return <BeltLoaderInner beltColor={beltColor} patchColor={patchColor} stripes={clampedStripes} />;
+  return <BeltLoaderInner beltColor={beltColor} patchColor={patchColor} stripes={clampedStripes} onCycleSettle={onCycleSettle} />;
 }
 
 function BeltLoaderInner({
   beltColor,
   patchColor,
   stripes,
+  onCycleSettle,
 }: {
   beltColor: string;
   patchColor: string;
   stripes: number;
+  onCycleSettle?: () => void;
 }) {
   const [slideIn,  setSlideIn]  = useState(false);
   const [knotIn,   setKnotIn]   = useState(false);
@@ -76,8 +80,9 @@ function BeltLoaderInner({
     at(() => setSparksIn(true),  d + SLIDE_MS + SPARK_D);
     at(() => setSparksIn(false), d + SLIDE_MS + SPARK_D + SPARK_MS);
 
-    // Hold, then fade out
+    // Hold, then notify settle, then fade out
     const tieEnd = d + SLIDE_MS + TAIL_D + TAIL_MS + TAIL_R_LAG + 80;
+    at(() => { if (onCycleSettle) onCycleSettle(); }, tieEnd + HOLD_MS);
     at(() => setFading(true), tieEnd + HOLD_MS);
 
     // After fade completes, reset and loop
@@ -133,6 +138,10 @@ function BeltLoaderInner({
           80%  { opacity:0.85; }
           100% { opacity:0; transform:translate(8px,-320%); }
         }
+        @keyframes j2LdrGlow {
+          0%, 100% { filter: drop-shadow(0 0 6px rgba(196,145,95,0.30)); }
+          50%      { filter: drop-shadow(0 0 14px rgba(196,145,95,0.55)); }
+        }
       `}</style>
 
       {/* Fade wrapper for loop transitions */}
@@ -146,7 +155,7 @@ function BeltLoaderInner({
           position: 'relative',
           width: BELT_W,
           height: BELT_H + TAIL_H,
-          filter: 'drop-shadow(0 0 6px rgba(196,145,95,0.40))',
+          animation: 'j2LdrGlow 2s ease-in-out infinite',
         }}>
 
           {/* ── Belt bar ── */}
