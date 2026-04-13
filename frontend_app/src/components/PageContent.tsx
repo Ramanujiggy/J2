@@ -13,7 +13,7 @@ interface Props {
   loadingMessages?: string[];
 }
 
-export default function PageContent({ ready, children }: Props) {
+export default function PageContent({ ready, children, loadingMessages }: Props) {
   const [phase, setPhase] = useState<Phase>(ready ? 'ready' : 'loading');
 
   useEffect(() => {
@@ -54,7 +54,7 @@ export default function PageContent({ ready, children }: Props) {
         pointerEvents: fading ? 'none' : 'auto',
         backgroundColor: '#0D1A14',
       }}>
-        <LoadingScreen />
+        <LoadingScreen messages={loadingMessages} />
       </div>
     </div>
   );

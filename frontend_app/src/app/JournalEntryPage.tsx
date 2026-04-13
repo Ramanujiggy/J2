@@ -82,7 +82,7 @@ export default function JournalEntryPage() {
     : null;
 
   return (
-    <PageContent ready={!loading}>
+    <PageContent ready={!loading} loadingMessages={['Loading your intentions...']}>
     {!intention ? (
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6">
         <p className="text-sm text-red-400">Intention not found.</p>

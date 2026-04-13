@@ -813,7 +813,7 @@ export default function PathAheadPage() {
        DESKTOP LAYOUT — two-column dashboard
        ═══════════════════════════════════════════════════════════════════ */
     return (
-      <PageContent ready={!loading}>
+      <PageContent ready={!loading} loadingMessages={['Shrimping down the mat...', 'Doing mat swims...', 'Pulling up gi pants...']}>
       <div className="max-w-6xl mx-auto px-8 py-5">
         {styleBlock}
 
@@ -911,7 +911,7 @@ export default function PathAheadPage() {
      MOBILE LAYOUT — single-column stacked (the modernized phone UI)
      ═══════════════════════════════════════════════════════════════════════ */
   return (
-    <PageContent ready={!loading}>
+    <PageContent ready={!loading} loadingMessages={['Shrimping down the mat...', 'Doing mat swims...', 'Pulling up gi pants...']}>
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 space-y-4">
       {styleBlock}
 
