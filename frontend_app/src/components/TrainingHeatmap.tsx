@@ -247,8 +247,31 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
   const [selectedSession, setSelectedSession] = useState<{ session: SessionSummary; date: Date } | null>(null);
   const [showGiSplit, setShowGiSplit] = useState(false);
   const [gridMaxH, setGridMaxH] = useState<number | undefined>(undefined);
+  const [floatingMonth, setFloatingMonth] = useState<string | null>(null);
+  const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const pendingScroll = useRef(false);
+  const floatingTimeout = useRef<ReturnType<typeof setTimeout>>();
+
+  // Floating month indicator — detect visible month on scroll
+  const handleGridScroll = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    // Find the first [data-month] element visible near the top
+    const monthEls = container.querySelectorAll<HTMLElement>('[data-month]');
+    let visibleMonth = '';
+    for (const el of monthEls) {
+      const rect = el.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      if (rect.top <= containerRect.top + 60) {
+        visibleMonth = MONTH_ABBR[Number(el.dataset.month)] ?? '';
+      }
+    }
+    if (visibleMonth) setFloatingMonth(visibleMonth);
+    // Clear previous timeout & set new fade-out
+    clearTimeout(floatingTimeout.current);
+    floatingTimeout.current = setTimeout(() => setFloatingMonth(null), 1500);
+  }, []);
 
   // Measure available height for the grid: viewport minus the grid's top offset minus bottom nav
   useEffect(() => {
@@ -483,6 +506,55 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
         </div>
       )}
 
+      {/* Year pulse strip — weekly volume sparkline */}
+      {sessions.length > 0 && (() => {
+        const weekAgg = rows.map(row => ({
+          minutes: row.days.reduce((s, d) => s + d.day.totalMinutes, 0),
+          maxIntensity: row.days.reduce((m, d) => Math.max(m, d.day.maxIntensity), 0),
+        }));
+        const maxMins = Math.max(...weekAgg.map(w => w.minutes), 1);
+        const thisWeekIdx = rows.findIndex(row => row.days.some(d => localDateKey(d.date) === todayStr));
+        return (
+          <div className="mb-4 flex gap-px items-end rounded-md overflow-hidden" style={{ height: 20, backgroundColor: SURFACE_2 }}>
+            {weekAgg.map((w, i) => {
+              const h = w.minutes > 0 ? Math.max(3, (w.minutes / maxMins) * 20) : 0;
+              const isCurrent = i === thisWeekIdx;
+              return (
+                <div
+                  key={i}
+                  className="flex-1 flex items-end justify-center cursor-pointer"
+                  style={{ height: '100%' }}
+                  onClick={() => {
+                    const target = scrollContainerRef.current?.querySelector(`[data-month="${rows[i]?.monthIndex}"]`);
+                    if (!target) {
+                      // Find nearest data-month by walking back
+                      for (let j = i; j >= 0; j--) {
+                        const el = scrollContainerRef.current?.querySelector(`[data-month="${rows[j]?.monthIndex}"]`);
+                        if (el) { el.scrollIntoView({ block: 'start', behavior: 'smooth' }); break; }
+                      }
+                    } else {
+                      target.scrollIntoView({ block: 'start', behavior: 'smooth' });
+                    }
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '100%',
+                      maxWidth: 8,
+                      height: h,
+                      borderRadius: '2px 2px 0 0',
+                      backgroundColor: w.minutes > 0 ? cellColor({ count: 1, totalMinutes: w.minutes, maxIntensity: w.maxIntensity, notes: [] }) : 'transparent',
+                      boxShadow: isCurrent ? `0 -1px 4px rgba(242,228,168,0.4)` : 'none',
+                      borderTop: isCurrent ? '2px solid rgba(242,228,168,0.7)' : 'none',
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
+
       {/* Empty state */}
       {sessions.length === 0 && (
         <div className="py-12 text-center">
@@ -492,7 +564,38 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
       )}
 
       {/* Calendar grid — fills remaining viewport, scrolls internally */}
-      {sessions.length > 0 && <div ref={scrollContainerRef} role="grid" aria-label={`Training calendar for ${year}`} className="overflow-y-auto relative" style={gridMaxH ? { maxHeight: gridMaxH } : undefined}>
+      {sessions.length > 0 && <div ref={scrollContainerRef} role="grid" aria-label={`Training calendar for ${year}`} className="overflow-y-auto relative" style={gridMaxH ? { maxHeight: gridMaxH } : undefined} onScroll={handleGridScroll}>
+
+        {/* Floating month indicator */}
+        <div
+          style={{
+            position: 'sticky',
+            top: 36,
+            zIndex: 30,
+            display: 'flex',
+            justifyContent: 'center',
+            pointerEvents: 'none',
+            height: 0,
+          }}
+        >
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              color: PALE_YELLOW,
+              backgroundColor: 'rgba(21,46,34,0.88)',
+              backdropFilter: 'blur(8px)',
+              padding: '3px 12px',
+              borderRadius: 999,
+              border: '1px solid rgba(196,145,95,0.3)',
+              opacity: floatingMonth ? 1 : 0,
+              transform: floatingMonth ? 'translateY(0)' : 'translateY(-4px)',
+              transition: 'opacity 0.25s ease, transform 0.25s ease',
+            }}
+          >
+            {floatingMonth}
+          </span>
+        </div>
 
         {/* Sticky column headers */}
         <div
@@ -536,14 +639,29 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
           const isPastWeek     = !!weekIntention && !isActiveWeek;
 
           const isThisWeek = row.days.some(d => localDateKey(d.date) === todayStr);
+          const isExpanded = expandedWeek === ri;
+          const weekSessions = row.days.reduce((sum, d) => sum + d.day.count, 0);
+          const weekMinutes = row.days.reduce((sum, d) => sum + d.day.totalMinutes, 0);
+          const weekMaxIntensity = row.days.reduce((max, d) => Math.max(max, d.day.maxIntensity), 0);
+          const weekFirstNote = weekNotes[0] ?? '';
+
           return (
+            <div key={ri}>
             <div
-              key={ri}
               role="row"
               {...(isThisWeek ? { 'data-today-row': '' } : {})}
               {...(row.isMonthStart ? { 'data-month': String(row.monthIndex) } : {})}
               className={`j2-heatmap-grid grid items-center${row.isMonthStart && ri > 0 ? ' mt-1 border-t border-white/10 pt-1' : ''}`}
-              style={{ position: 'relative' }}
+              style={{
+                position: 'relative',
+                cursor: isMobile && weekSessions > 0 ? 'pointer' : undefined,
+              }}
+              onClick={isMobile && weekSessions > 0 ? (e) => {
+                // Only expand if the tap wasn't on a specific cell with sessions
+                const target = e.target as HTMLElement;
+                if (target.closest('.j2-heatmap-cell')) return;
+                setExpandedWeek(isExpanded ? null : ri);
+              } : undefined}
             >
               {/* Active week backdrop */}
               {isActiveWeek && (
@@ -755,6 +873,32 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
 
               {/* Journal — placeholder, hidden on mobile */}
               <div className="hidden sm:block pl-3 text-xs text-white/15 italic select-none" style={{ position: 'relative', zIndex: 1 }}>—</div>
+            </div>
+
+            {/* Expandable week summary — mobile only */}
+            {isMobile && isExpanded && weekSessions > 0 && (
+              <div
+                className="mx-1 mb-1 rounded-lg px-3 py-2"
+                style={{
+                  backgroundColor: SURFACE_2,
+                  borderLeft: `2px solid rgba(196,145,95,0.5)`,
+                  animation: 'j2CalIntentFadeIn 0.25s ease forwards',
+                }}
+              >
+                <p style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.7)' }}>
+                  {weekSessions} session{weekSessions !== 1 ? 's' : ''} · {(weekMinutes / 60).toFixed(1)}h
+                  {weekMaxIntensity > 0 && ` · ${['', 'Easy', 'Light', 'Moderate', 'Hard', 'Max'][weekMaxIntensity]} avg`}
+                  {weekIntention && (
+                    <span style={{ color: 'rgba(196,145,95,0.8)' }}> · ◈ {weekIntention.intent_label}</span>
+                  )}
+                </p>
+                {weekFirstNote && (
+                  <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    "{weekFirstNote}"
+                  </p>
+                )}
+              </div>
+            )}
             </div>
           );
         })}
