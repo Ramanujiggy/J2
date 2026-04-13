@@ -38,13 +38,13 @@ const btnBase = 'px-4 py-2 rounded-full text-sm font-medium transition-colors cu
 const btnActive = 'bg-brand-orange text-white';
 const btnInactive = 'bg-white/10 text-white/60 hover:bg-white/20';
 
-export default function LogSessionForm({ onSuccess, onCancel, defaultDate }: { onSuccess?: (sessionCount?: number) => void; onCancel?: () => void; defaultDate?: string }) {
+export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defaultHeading, defaultSessionType, defaultSubSkillTag }: { onSuccess?: (sessionCount?: number) => void; onCancel?: () => void; defaultDate?: string; defaultHeading?: string; defaultSessionType?: SessionType; defaultSubSkillTag?: string }) {
   const [form, setForm] = useState<SessionFormData>({
     date:         defaultDate ?? today,
     notes:        '',
     gi_nogi:      'gi',
     intensity:    3,
-    session_type: 'class',
+    session_type: defaultSessionType ?? 'class',
   });
 
   // Duration stepper — 30-min increments, null = not yet selected
@@ -62,9 +62,9 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate }: { o
   }
 
   // Dynamic Pillar Engine fields
-  const [heading,      setHeading]      = useState<string | null>(null);
+  const [heading,      setHeading]      = useState<string | null>(defaultHeading ?? null);
   const [polarity,     setPolarity]     = useState<Polarity | null>(null);
-  const [subSkillTag,  setSubSkillTag]  = useState('');
+  const [subSkillTag,  setSubSkillTag]  = useState(defaultSubSkillTag ?? '');
   const [scriptSource, setScriptSource] = useState<ScriptSource | null>(null);
   const [resonance,    setResonance]    = useState<number | null>(null);
 
