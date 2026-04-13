@@ -310,11 +310,8 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
       .j2-heatmap-grid { grid-template-columns: ${GRID_COLS_MOBILE}; }
       @media (min-width: 640px) { .j2-heatmap-grid { grid-template-columns: ${GRID_COLS_DESKTOP}; } }
 
-      .j2-heatmap-month { font-size: 14px; }
-      @media (min-width: 640px) { .j2-heatmap-month { font-size: 20px; } }
-
-      .j2-heatmap-scroll { max-height: min(480px, 60dvh); }
-      @media (min-width: 640px) { .j2-heatmap-scroll { max-height: 480px; } }
+      .j2-heatmap-month { font-size: 11px; }
+      @media (min-width: 640px) { .j2-heatmap-month { font-size: 14px; } }
 
       @keyframes j2CalIntentRise {
         0%   { transform: translateY(0) translateX(0); opacity: 0; }
@@ -352,7 +349,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
     <div style={{ position: 'relative' }}>
       <div style={{ position: 'absolute', inset: 0, transform: 'translate(6px, 4px)', borderRadius: '1rem', backgroundColor: CARD_BG, border: '1px solid rgba(196,145,95,0.12)', borderRight: '2px solid rgba(196,145,95,0.18)', pointerEvents: 'none' }} />
       <div style={{ position: 'absolute', inset: 0, transform: 'translate(3px, 2px)', borderRadius: '1rem', backgroundColor: CARD_BG, border: '1px solid rgba(196,145,95,0.22)', borderRight: '2px solid rgba(196,145,95,0.30)', pointerEvents: 'none' }} />
-    <div className="rounded-2xl p-6" style={{ position: 'relative', zIndex: 1, backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
+    <div className="rounded-2xl p-4 sm:p-5" style={{ position: 'relative', zIndex: 1, backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
 
       {/* Stats — 3 primary metrics on a consistent grid */}
       <div className="grid grid-cols-3 gap-4 mb-4 pb-4 border-b border-white/10">
@@ -446,23 +443,23 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
         </div>
       )}
 
-      {/* Scrollable calendar — hidden when empty */}
-      {sessions.length > 0 && <div ref={scrollContainerRef} role="grid" aria-label={`Training calendar for ${year}`} className="overflow-y-auto relative j2-heatmap-scroll">
+      {/* Calendar grid — flows with page scroll */}
+      {sessions.length > 0 && <div ref={scrollContainerRef} role="grid" aria-label={`Training calendar for ${year}`} className="relative">
 
-        {/* Sticky column headers */}
+        {/* Column headers */}
         <div
           role="row"
-          className="j2-heatmap-grid grid sticky top-0 z-20 border-b border-white/10 mb-0.5"
-          style={{ backgroundColor: HEATMAP_HEADER_BG, boxShadow: '0 3px 10px rgba(0,0,0,0.6)' }}
+          className="j2-heatmap-grid grid border-b border-white/10 mb-0.5"
+          style={{ backgroundColor: HEATMAP_HEADER_BG }}
         >
-          <div role="columnheader" className="py-2" />
+          <div role="columnheader" className="py-1.5" />
           {DOW.map((d, i) => {
             const isToday = i === todayDowIndex;
             return (
               <div
                 key={d}
                 role="columnheader"
-                className="py-2 text-center text-xs font-semibold"
+                className="py-1.5 text-center text-[10px] font-semibold"
                 style={{
                   color: isToday ? 'rgba(242,228,168,0.92)' : 'rgba(242,228,168,0.55)',
                   textShadow: isToday ? '0 0 10px rgba(242,228,168,0.35)' : 'none',
@@ -472,8 +469,8 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
               </div>
             );
           })}
-          <div role="columnheader" className="py-2 pl-4 text-xs font-semibold hidden sm:block" style={{ color: 'rgba(242,228,168,0.55)' }}>Intention</div>
-          <div role="columnheader" className="py-2 pl-3 text-xs font-semibold hidden sm:block" style={{ color: 'rgba(242,228,168,0.55)' }}>Journal</div>
+          <div role="columnheader" className="py-1.5 pl-4 text-[10px] font-semibold hidden sm:block" style={{ color: 'rgba(242,228,168,0.55)' }}>Intention</div>
+          <div role="columnheader" className="py-1.5 pl-3 text-[10px] font-semibold hidden sm:block" style={{ color: 'rgba(242,228,168,0.55)' }}>Journal</div>
         </div>
 
         {/* Week rows */}
@@ -584,12 +581,12 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                   : `${date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}: ${day.count} session${day.count !== 1 ? 's' : ''}, ${day.totalMinutes} minutes, intensity ${day.maxIntensity} of 5`;
 
                 const cellEl = (
-                  <div role="gridcell" aria-label={cellAriaLabel} className="px-0.5 py-1" style={{ position: 'relative', zIndex: 1 }}>
+                  <div role="gridcell" aria-label={cellAriaLabel} className="px-0.5 py-0.5" style={{ position: 'relative', zIndex: 1 }}>
                     <div
-                      className={`rounded flex items-end px-1 j2-heatmap-cell${isInStreak ? ' j2-streak-cell' : ''}`}
+                      className={`rounded flex items-end px-0.5 j2-heatmap-cell${isInStreak ? ' j2-streak-cell' : ''}`}
                       style={{
                         position: 'relative',
-                        height: '44px',
+                        height: '28px',
                         backgroundColor: (() => {
                           if (!isCurrentYear) return '#0D1812'; // flat muted — clearly inactive, no opacity trick
                           const isAltMonth = date.getMonth() % 2 === 1;
@@ -598,7 +595,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                           return cellColor(day);
                         })(),
                         cursor: (isClickable || isLoggable) ? 'pointer' : 'default',
-                        paddingBottom: '3px',
+                        paddingBottom: '2px',
                         border: hasResonance
                           ? '1px solid rgba(196,145,95,0.7)'
                           : '1px solid rgba(242,228,168,0.13)',
@@ -625,8 +622,8 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                         <div
                           style={{
                             position: 'absolute',
-                            top: 3, right: 3,
-                            width: 4, height: 4,
+                            top: 2, right: 2,
+                            width: 3, height: 3,
                             borderRadius: '50%',
                             backgroundColor: 'rgba(196,145,95,0.7)',
                             pointerEvents: 'none',
@@ -635,10 +632,9 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
                       )}
                       <span
                         className="leading-none select-none pointer-events-none whitespace-nowrap"
-                        style={{ fontSize: '12px', fontWeight: 500, color: 'rgba(255,255,255,0.80)' }}
+                        style={{ fontSize: '10px', fontWeight: 500, color: 'rgba(255,255,255,0.80)' }}
                       >
                         {date.getDate()}
-                        {!isMobile && day.count > 0 && ` | ${(day.totalMinutes / 60).toFixed(1)}h`}
                       </span>
                     </div>
                   </div>
@@ -658,7 +654,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
               <div className="hidden sm:flex" style={{
                 position: 'relative', overflow: 'hidden',
                 paddingLeft: 16, alignItems: 'center',
-                minHeight: 40, zIndex: 1,
+                minHeight: 28, zIndex: 1,
               }}>
                 {/* Active week: particle aura + lowlight glow */}
                 {isActiveWeek && (
