@@ -8,7 +8,7 @@ import TimeRangeBar from './TimeRangeBar.tsx';
 import RadarChart, { SKILL_COLORS, DEFAULT_COLORS } from './charts/RadarChart.tsx';
 import DonutChart from './charts/DonutChart.tsx';
 import VolumeChart, { sessionMonth } from './charts/VolumeChart.tsx';
-import WeeklyChart, { BAR_W, BAR_GAP } from './charts/WeeklyChart.tsx';
+import WeeklyChart from './charts/WeeklyChart.tsx';
 
 // ─── Segment colors ───────────────────────────────────────────────────────────
 
@@ -73,14 +73,13 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
   const animLockTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const weeklyScrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll weekly chart to current week on mount / when switching to weekly view
+  // Auto-scroll weekly chart to show current week (rightmost bar) on mount / view switch
   useEffect(() => {
     if (viewMode !== 'weekly') return;
     const el = weeklyScrollRef.current;
     if (!el) return;
-    // Current week is always at index 51; offsetX=12
-    const x = 12 + 51 * (BAR_W + BAR_GAP);
-    el.scrollTo({ left: Math.max(0, x - el.clientWidth / 2), behavior: 'smooth' });
+    // Scroll to the right edge where the current week lives
+    el.scrollTo({ left: el.scrollWidth - el.clientWidth, behavior: 'smooth' });
   }, [viewMode]);
 
   // Safety-net: clear the animation lock after 750ms even if onAnimationEnd doesn't fire (iOS Safari)
@@ -185,6 +184,8 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
   const avgPerMonth   = trainedMonths > 0 ? totalVolHours / trainedMonths : 0;
 
   // ── Weekly rhythm data ──
+  // Build full 52-week array, then trim leading empty weeks so the chart
+  // starts where actual training data begins.
   const weeklyData = useMemo(() => {
     const monday = (d: Date) => {
       const c = new Date(d);
@@ -194,7 +195,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
       return c;
     };
     const thisMonday = monday(new Date());
-    return Array.from({ length: 52 }, (_, i) => {
+    const all = Array.from({ length: 52 }, (_, i) => {
       const weekStart = new Date(thisMonday);
       weekStart.setDate(weekStart.getDate() - (51 - i) * 7);
       const weekEnd = new Date(weekStart);
@@ -210,6 +211,10 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
         isCurrent: i === 51,
       };
     });
+    // Trim leading empty weeks (keep from first week with data through current)
+    const firstNonEmpty = all.findIndex(w => w.hours > 0);
+    if (firstNonEmpty <= 0) return all; // all empty or first week has data — return as-is
+    return all.slice(firstNonEmpty);
   }, [filtered]);
 
   const totalWeeklyHours = weeklyData.reduce((s, w) => s + w.hours, 0);
