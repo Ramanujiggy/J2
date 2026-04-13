@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { api, ApiError } from '../lib/api.ts';
 import { toast } from '../hooks/use-toast.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
-import { CARD_BG, COPPER, COPPER_BORDER, SURFACE_2, SURFACE_3, DATE_INPUT_STYLE, PALE_YELLOW } from '../lib/theme.ts';
+import { CARD_BG, COPPER, COPPER_BORDER, SURFACE_2, SURFACE_3, DATE_INPUT_STYLE, PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
 import BeltDateBanner from './BeltDateBanner.tsx';
 import type { Intention } from '../types/api.ts';
 
@@ -192,233 +192,255 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate }: { o
           onChange={date => setForm(prev => ({ ...prev, date }))}
         />
 
-        <div className="px-6 pb-6 pt-4 space-y-5">
-        <h2 className="text-lg font-semibold" style={{ color: PALE_YELLOW }}>Log a Training Session</h2>
+        <div className="px-6 pb-6 pt-4">
+        <h2 className="text-lg font-semibold mb-4" style={{ color: PALE_YELLOW }}>Log a Training Session</h2>
 
-        {/* Style */}
-        <div>
-          <label className="block text-sm text-white/70 mb-2">Style</label>
-          <div className="flex gap-2">
-            {(['gi', 'no_gi'] as GiNoGi[]).map(val => (
-              <button
-                key={val}
-                type="button"
-                onClick={() => setForm(prev => ({ ...prev, gi_nogi: val }))}
-                className={`${btnBase} ${form.gi_nogi === val ? btnActive : btnInactive}`}
-              >
-                {val === 'gi' ? 'Gi' : 'No-Gi'}
-              </button>
-            ))}
+        {/* ── SECTION 1: The Basics ───────────────────────────────── */}
+        <div className="space-y-3">
+          {/* Style + Type — side by side on desktop */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1">
+              <label className="block text-sm text-white/70 mb-1.5">Style</label>
+              <div className="flex gap-2">
+                {(['gi', 'no_gi'] as GiNoGi[]).map(val => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => setForm(prev => ({ ...prev, gi_nogi: val }))}
+                    className={`${btnBase} ${form.gi_nogi === val ? btnActive : btnInactive}`}
+                  >
+                    {val === 'gi' ? 'Gi' : 'No-Gi'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex-1">
+              <label className="block text-sm text-white/70 mb-1.5">Type</label>
+              <div className="flex gap-1.5">
+                {SESSION_TYPES.map(({ value, label }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setForm(prev => ({ ...prev, session_type: value }))}
+                    className="flex-1 min-w-0 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                    style={{
+                      backgroundColor: form.session_type === value ? COPPER : SURFACE_3,
+                      color: form.session_type === value ? '#fff' : 'rgba(255,255,255,0.5)',
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* Type */}
-        <div>
-          <label className="block text-sm text-white/70 mb-2">Type</label>
-          <div className="flex gap-1.5">
-            {SESSION_TYPES.map(({ value, label }) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setForm(prev => ({ ...prev, session_type: value }))}
-                className="flex-1 min-w-0 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer"
-                style={{
-                  backgroundColor: form.session_type === value ? COPPER : SURFACE_3,
-                  color: form.session_type === value ? '#fff' : 'rgba(255,255,255,0.5)',
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Duration — stepper */}
-        <div>
-          <label className="block text-sm text-white/70 mb-2">Duration</label>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setDurationMinutes(m => Math.max(DUR_MIN, (m ?? 60) - DUR_STEP))}
-              className="w-10 h-10 rounded-lg text-lg font-semibold transition-colors bg-white/10 text-white/60 hover:bg-white/20 disabled:opacity-30"
-              disabled={!!durationMinutes && durationMinutes <= DUR_MIN}
-            >
-              −
-            </button>
-            <span
-              className="text-lg font-semibold w-24 text-center"
-              style={{ color: durationMinutes ? 'rgba(242,228,168,0.9)' : 'rgba(255,255,255,0.35)' }}
-            >
-              {durationMinutes ? fmtDuration(durationMinutes) : '— —'}
-            </span>
-            <button
-              type="button"
-              onClick={() => setDurationMinutes(m => Math.min(DUR_MAX, (m ?? 0) + DUR_STEP))}
-              className="w-10 h-10 rounded-lg text-lg font-semibold transition-colors bg-white/10 text-white/60 hover:bg-white/20 disabled:opacity-30"
-              disabled={!!durationMinutes && durationMinutes >= DUR_MAX}
-            >
-              +
-            </button>
-          </div>
-        </div>
-
-        {/* Intensity */}
-        <div>
-          <label className="block text-sm text-white/70 mb-2">Intensity</label>
-          <div className="flex gap-2">
-            {[1, 2, 3, 4, 5].map(n => (
-              <button
-                key={n}
-                type="button"
-                onClick={() => setForm(prev => ({ ...prev, intensity: n }))}
-                className={`flex-1 h-10 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
-                  form.intensity === n ? btnActive : btnInactive
-                }`}
-              >
-                {n}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* ── Dynamic Pillar Engine ────────────────────────────────── */}
-
-        {/* Pillar Focus (Heading) */}
-        <div>
-          <div className="flex items-baseline gap-2 mb-1.5">
-            <label className="text-sm text-white/70">Pillar Focus</label>
-            {currentIntention && (
-              <span className="text-[11px] text-white/35">
-                This week: <span style={{ color: COPPER }}>{currentIntention.intent_label}</span>
-              </span>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {SKILL_TAGS.map(({ value, label }) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => { setHeading(value); setPolarity(null); }}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                style={{
-                  backgroundColor: heading === value ? COPPER : SURFACE_3,
-                  color: heading === value ? '#fff' : 'rgba(255,255,255,0.5)',
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Polarity — only for guard and pins */}
-        {(heading === 'guard' || heading === 'pins') && (
+          {/* Duration — stepper */}
           <div>
-            <label className="block text-xs text-white/60 mb-1.5">Polarity</label>
-            <div className="flex gap-1.5">
-              {(['offense', 'defense', 'neutral'] as Polarity[]).map(p => (
+            <label className="block text-sm text-white/70 mb-1.5">Duration</label>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setDurationMinutes(m => Math.max(DUR_MIN, (m ?? 60) - DUR_STEP))}
+                className="w-10 h-10 rounded-lg text-lg font-semibold transition-colors bg-white/10 text-white/60 hover:bg-white/20 disabled:opacity-30"
+                disabled={!!durationMinutes && durationMinutes <= DUR_MIN}
+              >
+                −
+              </button>
+              <span
+                className="text-lg font-semibold w-24 text-center"
+                style={{ color: durationMinutes ? 'rgba(242,228,168,0.9)' : 'rgba(255,255,255,0.35)' }}
+              >
+                {durationMinutes ? fmtDuration(durationMinutes) : '— —'}
+              </span>
+              <button
+                type="button"
+                onClick={() => setDurationMinutes(m => Math.min(DUR_MAX, (m ?? 0) + DUR_STEP))}
+                className="w-10 h-10 rounded-lg text-lg font-semibold transition-colors bg-white/10 text-white/60 hover:bg-white/20 disabled:opacity-30"
+                disabled={!!durationMinutes && durationMinutes >= DUR_MAX}
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          {/* Intensity */}
+          <div>
+            <label className="block text-sm text-white/70 mb-1.5">Intensity</label>
+            <div className="flex gap-2">
+              {[1, 2, 3, 4, 5].map(n => (
                 <button
-                  key={p}
+                  key={n}
                   type="button"
-                  onClick={() => setPolarity(prev => prev === p ? null : p)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors"
-                  style={{
-                    backgroundColor: polarity === p ? COPPER : SURFACE_3,
-                    color: polarity === p ? '#fff' : 'rgba(255,255,255,0.5)',
-                  }}
+                  onClick={() => setForm(prev => ({ ...prev, intensity: n }))}
+                  className={`flex-1 h-10 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
+                    form.intensity === n ? btnActive : btnInactive
+                  }`}
                 >
-                  {p}
+                  {n}
                 </button>
               ))}
             </div>
           </div>
-        )}
+        </div>
 
-        {/* Script Source */}
-        <div>
-          <label className="block text-xs text-white/60 mb-1.5">Source</label>
-          <div className="flex gap-1.5 w-full">
-            {(['directed', 'organic'] as ScriptSource[]).map(s => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setScriptSource(prev => prev === s ? null : s)}
-                className="flex-1 min-w-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer"
-                style={{
-                  backgroundColor: scriptSource === s ? COPPER : SURFACE_3,
-                  color: scriptSource === s ? '#fff' : 'rgba(255,255,255,0.5)',
-                }}
-              >
-                {s === 'directed' ? 'Directed' : 'Open Mat'}
-              </button>
-            ))}
+        {/* ── SECTION 2: Your Focus ───────────────────────────────── */}
+        <div
+          className="mt-5 pt-5 space-y-4"
+          style={{ borderTop: '1px solid rgba(196,145,95,0.15)' }}
+        >
+          <div>
+            <h3 className="text-base font-semibold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
+              What did you work on?
+            </h3>
+            {currentIntention && (
+              <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                This week's focus: <span style={{ color: COPPER }}>{currentIntention.intent_label}</span>
+              </p>
+            )}
           </div>
-        </div>
 
-        {/* Sub-skill tag */}
-        <div>
-          <label className="block text-xs text-white/60 mb-1.5">
-            Sub-skill <span className="text-white/25">(optional — e.g. K-Guard)</span>
-          </label>
-          <input
-            type="text"
-            maxLength={50}
-            value={subSkillTag}
-            onChange={e => setSubSkillTag(e.target.value)}
-            placeholder="e.g. K-Guard, Single Leg, Guillotine"
-            className="w-full border border-white/10 rounded-lg px-4 py-2.5 text-white text-sm placeholder-white/25 outline-none focus:border-white/25"
-            style={{ backgroundColor: SURFACE_2 }}
-          />
-        </div>
-
-        {/* Resonance — 5 dots (1–10 stored as 2/4/6/8/10) */}
-        <div>
-          <label className="block text-xs text-white/60 mb-1.5">
-            Resonance <span className="text-white/25">(how aligned did it feel?)</span>
-          </label>
-          <div className="flex gap-2">
-            {[1, 2, 3, 4, 5].map(n => {
-              const val = n * 2;
-              const active = resonance !== null && resonance >= val;
-              return (
+          {/* Pillar Focus (Heading) — larger chips */}
+          <div>
+            <label className="block text-sm text-white/70 mb-2">Pillar Focus</label>
+            <div className="flex flex-wrap gap-2">
+              {SKILL_TAGS.map(({ value, label }) => (
                 <button
-                  key={n}
+                  key={value}
                   type="button"
-                  onClick={() => setResonance(prev => prev === val ? null : val)}
+                  onClick={() => { setHeading(value); setPolarity(null); }}
+                  className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                   style={{
-                    width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-                    backgroundColor: active ? COPPER : 'rgba(255,255,255,0.08)',
-                    border: `1px solid ${active ? COPPER : 'rgba(255,255,255,0.12)'}`,
-                    transition: 'background-color 0.15s',
+                    backgroundColor: heading === value ? COPPER : SURFACE_3,
+                    color: heading === value ? '#fff' : 'rgba(255,255,255,0.5)',
                   }}
-                />
-              );
-            })}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Polarity — only for guard and pins */}
+          {(heading === 'guard' || heading === 'pins') && (
+            <div>
+              <label className="block text-xs text-white/60 mb-1.5">Polarity</label>
+              <div className="flex gap-1.5">
+                {(['offense', 'defense', 'neutral'] as Polarity[]).map(p => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setPolarity(prev => prev === p ? null : p)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors"
+                    style={{
+                      backgroundColor: polarity === p ? COPPER : SURFACE_3,
+                      color: polarity === p ? '#fff' : 'rgba(255,255,255,0.5)',
+                    }}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Script Source */}
+          <div>
+            <label className="block text-xs text-white/60 mb-1.5">Source</label>
+            <div className="flex gap-1.5 w-full">
+              {(['directed', 'organic'] as ScriptSource[]).map(s => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setScriptSource(prev => prev === s ? null : s)}
+                  className="flex-1 min-w-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                  style={{
+                    backgroundColor: scriptSource === s ? COPPER : SURFACE_3,
+                    color: scriptSource === s ? '#fff' : 'rgba(255,255,255,0.5)',
+                  }}
+                >
+                  {s === 'directed' ? 'Directed' : 'Open Mat'}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Notes */}
-        <div>
-          <label className="block text-sm text-white/70 mb-1">Notes <span className="text-white/30">(optional)</span></label>
-          <textarea
-            name="notes"
-            rows={2}
-            value={form.notes}
-            onChange={handleChange}
-            placeholder="What did you work on today?"
-            className="w-full rounded-lg px-3 py-2.5 text-sm text-white/90 placeholder-white/30 outline-none focus:ring-1 resize-none"
-            style={DATE_INPUT_STYLE}
-          />
+        {/* ── SECTION 3: Details (optional) ───────────────────────── */}
+        <div
+          className="mt-5 pt-4 space-y-3"
+          style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+        >
+          <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.25)' }}>
+            Details
+          </span>
+
+          {/* Sub-skill tag */}
+          <div>
+            <label className="block text-xs text-white/50 mb-1.5">
+              Sub-skill <span className="text-white/25">(optional)</span>
+            </label>
+            <input
+              type="text"
+              maxLength={50}
+              value={subSkillTag}
+              onChange={e => setSubSkillTag(e.target.value)}
+              placeholder="e.g. K-Guard, Single Leg, Guillotine"
+              className="w-full border border-white/10 rounded-lg px-4 py-2.5 text-white text-sm placeholder-white/25 outline-none focus:border-white/25"
+              style={{ backgroundColor: SURFACE_2 }}
+            />
+          </div>
+
+          {/* Resonance — 5 dots */}
+          <div>
+            <label className="block text-xs text-white/50 mb-1.5">
+              Resonance <span className="text-white/25">(how aligned did it feel?)</span>
+            </label>
+            <div className="flex gap-2">
+              {[1, 2, 3, 4, 5].map(n => {
+                const val = n * 2;
+                const active = resonance !== null && resonance >= val;
+                return (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setResonance(prev => prev === val ? null : val)}
+                    style={{
+                      width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+                      backgroundColor: active ? COPPER : 'rgba(255,255,255,0.08)',
+                      border: `1px solid ${active ? COPPER : 'rgba(255,255,255,0.12)'}`,
+                      transition: 'background-color 0.15s',
+                    }}
+                  />
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="block text-xs text-white/50 mb-1">Notes <span className="text-white/25">(optional)</span></label>
+            <textarea
+              name="notes"
+              rows={2}
+              value={form.notes}
+              onChange={handleChange}
+              placeholder="What did you work on today?"
+              className="w-full rounded-lg px-3 py-2.5 text-sm text-white/90 placeholder-white/30 outline-none focus:ring-1 resize-none"
+              style={DATE_INPUT_STYLE}
+            />
+          </div>
         </div>
 
-        {error && <p className="text-red-400 text-sm">{error}</p>}
+        {/* ── Error + CTA ─────────────────────────────────────────── */}
+        {error && <p className="text-red-400 text-sm mt-4">{error}</p>}
 
-        <div className="flex items-center justify-between pt-1">
+        <div className="flex items-center gap-3 mt-5">
           {onCancel && (
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 py-2.5 rounded-lg text-sm font-medium text-white/50 hover:text-white/80 transition-colors"
+              className="px-4 py-3 rounded-xl text-sm font-medium text-white/50 hover:text-white/80 transition-colors"
             >
               Cancel
             </button>
@@ -426,13 +448,13 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate }: { o
           <button
             type="submit"
             disabled={loading}
-            className="ml-auto bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold px-6 py-2.5 rounded-full transition-colors disabled:opacity-50"
+            className="flex-1 bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-50"
           >
             {loading ? 'Saving...' : 'Log Session'}
           </button>
         </div>
 
-        </div>{/* end px-6 pb-6 pt-4 wrapper */}
+        </div>{/* end px-6 pb-6 wrapper */}
       </form>
     </div>
   );

@@ -69,7 +69,7 @@ export default function IntentionsPage() {
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   return (
-    <PageContent ready={!loading}>
+    <PageContent ready={!loading} loadingMessages={['Loading your intentions...']}>
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-5">
 
       <h2

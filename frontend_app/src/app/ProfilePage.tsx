@@ -158,7 +158,7 @@ export default function ProfilePage() {
       <main className="flex-1 max-w-xl w-full mx-auto px-4 sm:px-6 py-6">
         <h2 className="text-lg font-semibold text-white mb-6">Your Profile</h2>
 
-        <PageContent ready={!loading}>
+        <PageContent ready={!loading} loadingMessages={['Taping fingers...']}>
           <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl p-6" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
 
             {/* Name */}

@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, useSyncExternalStore } from 'react';
 import { api, ApiError } from '../lib/api.ts';
 import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock.ts';
-import { SKILL_TAGS, ROULETTE_DRILLS, CATEGORY_COLORS, MONTH_NAMES } from '../lib/constants.ts';
+import { SKILL_TAGS, ROULETTE_DRILLS, MONTH_NAMES } from '../lib/constants.ts';
 import type { SessionSummary, Intention, IntentionsResponse, SessionsResponse } from '../types/api.ts';
 import LogSessionForm from '../components/LogSessionForm.tsx';
 import SessionDetailModal from '../components/SessionDetailModal.tsx';
@@ -14,9 +14,28 @@ import { toast } from '../hooks/use-toast.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import PageContent from '../components/PageContent.tsx';
 import HeatmapPreviewWidget from '../components/HeatmapPreviewWidget.tsx';
-import { toDateString, getWeekStart, addDays, formatDuration, DAY_NAMES, INTENSITY_COLOR, SESSION_TYPE_LABELS } from '../lib/sessionUtils.ts';
-import { INTENT_PARTICLES, STATS_PARTICLES } from '../lib/particles.ts';
+import HomeHeader from '../components/HomeHeader.tsx';
+import StatStrip from '../components/StatStrip.tsx';
+import IntentionHeroCard from '../components/IntentionHeroCard.tsx';
+import WeekIndicators from '../components/WeekIndicators.tsx';
+import FirstVisitCard from '../components/FirstVisitCard.tsx';
+import { toDateString, addDays, formatDuration, DAY_NAMES, INTENSITY_COLOR, SESSION_TYPE_LABELS } from '../lib/sessionUtils.ts';
+import { STATS_PARTICLES } from '../lib/particles.ts';
 import { computeStats } from '../components/TrainingHeatmap.tsx';
+
+// ── Desktop breakpoint hook ───────────────────────────────────────────────
+
+const DESKTOP_MQ = '(min-width: 1024px)';
+const mqSubscribe = (cb: () => void) => {
+  const mql = window.matchMedia(DESKTOP_MQ);
+  mql.addEventListener('change', cb);
+  return () => mql.removeEventListener('change', cb);
+};
+const mqSnapshot = () => window.matchMedia(DESKTOP_MQ).matches;
+const mqServerSnapshot = () => false;
+function useIsDesktop() {
+  return useSyncExternalStore(mqSubscribe, mqSnapshot, mqServerSnapshot);
+}
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -25,7 +44,8 @@ interface DeleteResponse      { message: string }
 // ── PathAheadPage ──────────────────────────────────────────────────────────
 
 export default function PathAheadPage() {
-  const { intentionsEnabled } = useProfile();
+  const { name, intentionsEnabled } = useProfile();
+  const isDesktop = useIsDesktop();
   const [sessions,   setSessions]   = useState<SessionSummary[]>([]);
   const [intentions, setIntentions] = useState<Intention[]>([]);
   const [loading,    setLoading]    = useState(true);
@@ -53,7 +73,6 @@ export default function PathAheadPage() {
 
   // Training Telemetry — expand/collapse + stat toggle
   const [telemetryOpen, setTelemetryOpen] = useState(false);
-  const [telemetryStat, setTelemetryStat] = useState<'sessions' | 'hours'>('sessions');
 
   // Week view toggle — carousel (minimalist) vs list (detailed)
   type WeekViewMode = 'carousel' | 'list';
@@ -160,7 +179,7 @@ export default function PathAheadPage() {
 
   const pendingSessions = usePendingSessions();
   const allSessions = useMemo(() => [...sessions, ...pendingSessions], [sessions, pendingSessions]);
-  const { streakDays } = useMemo(() => computeStats(allSessions, new Date().getFullYear()), [allSessions]);
+  const { streak } = useMemo(() => computeStats(allSessions, new Date().getFullYear()), [allSessions]);
 
   // ── Window computation ─────────────────────────────────────────────────
 
@@ -265,17 +284,20 @@ export default function PathAheadPage() {
     return { count: windowSessions.length, totalMinutes, topTagLabel, topTagCount, tag2Label };
   }, [allSessions, windowDays]);
 
+  // ── Week stats (Mon-Sun of current week) ──────────────────────────────
+  const weekStats = useMemo(() => {
+    const weekDateStrings = new Set(weekDays.map(toDateString));
+    const weekSessions = allSessions.filter(s => {
+      const key = typeof s.date === 'string' ? s.date.slice(0, 10) : toDateString(new Date(s.date));
+      return weekDateStrings.has(key);
+    });
+    const totalMinutes = weekSessions.reduce((acc, s) => acc + s.duration, 0);
+    return { count: weekSessions.length, totalMinutes };
+  }, [allSessions, weekDays]);
+
   // ── Intent delete ──────────────────────────────────────────────────────
 
-  const [deleteConfirm, setDeleteConfirm] = useState(false);
-
   const handleDeleteIntention = async () => {
-    if (!deleteConfirm) {
-      setDeleteConfirm(true);
-      setTimeout(() => setDeleteConfirm(false), 3000);
-      return;
-    }
-    setDeleteConfirm(false);
     if (!activeIntention) return;
     try {
       await api.delete<DeleteResponse>(`/api/intentions/${activeIntention.id}`);
@@ -293,330 +315,363 @@ export default function PathAheadPage() {
     el.scrollTo({ left: todayDowOffset * (MINI_CARD_W + MINI_CARD_GAP), behavior: 'instant' as ScrollBehavior });
   }, [todayDowOffset, weekView]);
 
-  // ── Render ─────────────────────────────────────────────────────────────
+  // ── Shared JSX fragments ────────────────────────────────────────────────
 
-  return (
-    <PageContent ready={!loading}>
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 space-y-4">
-      <style>{`
-        .j2-day-scroll { scrollbar-width: none; -webkit-overflow-scrolling: touch; }
-        .j2-day-scroll::-webkit-scrollbar { display: none; }
-      `}</style>
+  const styleBlock = (
+    <style>{`
+      .j2-day-scroll { scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+      .j2-day-scroll::-webkit-scrollbar { display: none; }
+    `}</style>
+  );
 
-      {/* ── Page title ────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold tracking-tight" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
-          The Path Ahead
-        </h2>
-      </div>
-
-      {/* ── Intent banner ─────────────────────────────────────────── */}
-      {intentionsEnabled ? (
-        <div
-          className="rounded-xl px-4 py-2"
-          style={{
-            position: 'relative',
-            overflow: 'hidden',
-            minHeight: 40,
-            backgroundColor: activeIntention ? 'rgba(242,228,168,0.06)' : SURFACE_2,
-            border: `1px solid ${activeIntention ? 'rgba(242,228,168,0.18)' : SURFACE_2_BORDER}`,
-            boxShadow: activeIntention ? '0 0 12px rgba(242,228,168,0.08)' : 'none',
-          }}
-        >
-          {/* Layer 1 — Purple emergent glow */}
-          <div style={{
+  const telemetryContent = (
+    <div
+      className="rounded-xl px-4 py-2.5"
+      style={{
+        position: 'relative',
+        overflow: 'hidden',
+        backgroundColor: SURFACE_2,
+        border: `1px solid ${COPPER_BORDER}`,
+      }}
+    >
+      {/* Particle / glow layer */}
+      <div style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0,
+        WebkitMaskImage: 'linear-gradient(to top, black 0%, rgba(0,0,0,0.85) 45%, transparent 100%)',
+        maskImage: 'linear-gradient(to top, black 0%, rgba(0,0,0,0.85) 45%, transparent 100%)',
+      }}>
+        <div style={{
+          position: 'absolute',
+          bottom: -10, left: '50%',
+          transform: 'translateX(-50%)',
+          width: '50%', height: 40,
+          borderRadius: '50%',
+          background: 'radial-gradient(ellipse at center bottom, rgba(196,145,95,0.15) 0%, transparent 80%)',
+          animation: 'j2IntentCopperPulse 5.5s ease-in-out infinite',
+        }} />
+        <div style={{
+          position: 'absolute',
+          bottom: 0, left: 0, right: 0, height: 18,
+          background: 'linear-gradient(to top, rgba(196,145,95,0.12) 0%, transparent 100%)',
+          animation: 'j2IntentCopperPulse 4.5s ease-in-out infinite',
+          transformOrigin: 'center bottom',
+        }} />
+        {STATS_PARTICLES.map((p, i) => (
+          <span key={i} style={{
             position: 'absolute',
-            bottom: -12,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: '60%',
-            height: 48,
+            left: p.left, bottom: p.bottom,
+            width: p.size, height: p.size,
             borderRadius: '50%',
-            background: 'radial-gradient(ellipse at center bottom, rgba(167,139,250,0.22) 0%, rgba(167,139,250,0.08) 50%, transparent 80%)',
-            animation: 'j2IntentPurplePulse 4.2s ease-in-out infinite',
-            opacity: activeIntention ? 1 : 0.2,
-            zIndex: 0,
-            pointerEvents: 'none',
+            backgroundColor: 'rgba(218,116,34,0.75)',
+            boxShadow: '0 0 5px 2px rgba(218,116,34,0.45)',
+            filter: 'brightness(1.2)',
+            ['--drift' as string]: p.drift,
+            animation: `j2IntentParticleRise ${p.duration}s ease-in-out infinite ${p.delay}s`,
+            userSelect: 'none',
+          } as React.CSSProperties} />
+        ))}
+      </div>
+      {/* Content */}
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold uppercase tracking-wide" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>Training Telemetry</span>
+          <span style={{
+            display: 'inline-block', width: 20, height: 1.5,
+            borderRadius: 1,
+            backgroundColor: 'rgba(196,145,95,0.55)',
+            boxShadow: '0 0 6px 2px rgba(196,145,95,0.3)',
+            verticalAlign: 'middle',
           }} />
+        </div>
+        <div className="flex items-center gap-3 text-sm flex-wrap">
+          <span className="text-white/50">
+            <span className="font-semibold text-white">{windowStats.count}</span> session{windowStats.count !== 1 ? 's' : ''}
+          </span>
+          <span className="text-white/20">·</span>
+          <span className="text-white/50">
+            <span className="font-semibold text-white">{formatDuration(windowStats.totalMinutes)}</span> total
+          </span>
+        </div>
+        {windowStats.topTagLabel && (() => {
+          const { topTagLabel, topTagCount, count, tag2Label } = windowStats;
+          const pct = count > 0 ? topTagCount / count : 0;
+          let before: string;
+          let highlight: string;
+          let after: string | null = null;
+          let highlight2: string | null = null;
+          if (tag2Label && pct < 0.7) {
+            before = 'Splitting time between ';
+            highlight = topTagLabel!;
+            after = ' and ';
+            highlight2 = tag2Label;
+          } else if (pct === 1 && count > 1) {
+            before = `All ${count} sessions went into `;
+            highlight = topTagLabel!;
+          } else {
+            before = 'Recent sessions have been leaning into ';
+            highlight = topTagLabel!;
+          }
+          return (
+            <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.55)', margin: 0, lineHeight: 1.45 }}>
+              {before}
+              <strong style={{ color: 'rgba(218,116,34,0.85)', fontWeight: 600 }}>{highlight}</strong>
+              {after && highlight2 ? (
+                <>{after}<strong style={{ color: 'rgba(218,116,34,0.85)', fontWeight: 600 }}>{highlight2}</strong></>
+              ) : null}
+              {'.'}
+            </p>
+          );
+        })()}
+      </div>
+    </div>
+  );
 
-          {/* Layer 2 — Yellow ambient lowlight */}
-          <div style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 28,
-            background: 'linear-gradient(to top, rgba(242,228,168,0.09) 0%, transparent 100%)',
-            animation: 'j2IntentYellowPulse 3.1s ease-in-out infinite',
-            transformOrigin: 'center bottom',
-            opacity: activeIntention ? 1 : 0.2,
-            zIndex: 0,
-            pointerEvents: 'none',
-          }} />
+  const weekSectionHeader = (
+    <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
+      <span
+        className="text-sm font-semibold uppercase tracking-wide"
+        style={{ color: 'rgba(255,255,255,0.4)', letterSpacing: '0.06em' }}
+      >
+        This Week
+      </span>
+      <div className="flex gap-0.5 p-0.5 rounded-lg" style={{ backgroundColor: SURFACE_2 }}>
+        {([
+          { id: 'carousel' as const, Icon: CalendarDays },
+          { id: 'list' as const, Icon: List },
+        ]).map(({ id, Icon }) => {
+          const isActive = weekView === id;
+          return (
+            <button
+              key={id}
+              onClick={() => handleWeekViewChange(id)}
+              className="flex items-center justify-center rounded-md transition-colors touch-manipulation"
+              style={{
+                width: 34,
+                height: 30,
+                backgroundColor: isActive ? COPPER : 'transparent',
+                color: isActive ? '#fff' : 'rgba(255,255,255,0.35)',
+                transition: 'background-color 200ms ease, color 200ms ease',
+              }}
+              aria-label={id === 'carousel' ? 'Calendar view' : 'List view'}
+            >
+              <Icon size={14} strokeWidth={isActive ? 2 : 1.5} />
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 
-          {/* Layer 3 — Rising particles */}
-          <div style={{
-            position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none', opacity: activeIntention ? 1 : 0.18,
-            WebkitMaskImage: 'linear-gradient(to top, black 0%, rgba(0,0,0,0.85) 50%, transparent 100%)',
-            maskImage: 'linear-gradient(to top, black 0%, rgba(0,0,0,0.85) 50%, transparent 100%)',
-          }}>
-            {INTENT_PARTICLES.map((p, i) => (
-              <span
-                key={i}
-                style={{
-                  position: 'absolute',
-                  left: p.left,
-                  bottom: p.bottom,
-                  width: p.size,
-                  height: p.size,
-                  borderRadius: '50%',
-                  backgroundColor: 'rgba(242,228,168,0.9)',
-                  boxShadow: activeIntention ? '0 0 6px 2px rgba(242,228,168,0.75)' : '0 0 2px 1px rgba(242,228,168,0.2)',
-                  filter: 'brightness(1.15)',
-                  ['--drift' as string]: p.drift,
-                  animation: `j2IntentParticleRise ${p.duration}s ease-in-out infinite ${p.delay}s`,
-                  userSelect: 'none',
-                } as React.CSSProperties}
-              />
-            ))}
-          </div>
-
-          {/* Layer 4 — Content */}
-          <div className="flex items-center justify-between gap-3" style={{ position: 'relative', zIndex: 2 }}>
-            {activeIntention ? (
-              <>
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-sm" style={{ color: 'rgba(242,228,168,0.5)' }}>◈</span>
-                  <span className="text-sm font-semibold truncate" style={{ color: PALE_YELLOW }}>
-                    {activeIntention.intent_label}
-                  </span>
-                  {activeIntention.intent_category && (
-                    <span
-                      className="text-[11px] px-2 py-0.5 rounded-full flex-shrink-0 font-medium capitalize"
-                      style={{
-                        backgroundColor: `${CATEGORY_COLORS[activeIntention.intent_category] ?? '#fff'}22`,
-                        color: CATEGORY_COLORS[activeIntention.intent_category] ?? 'rgba(255,255,255,0.5)',
-                      }}
-                    >
-                      {activeIntention.intent_category}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  {deleteConfirm && (
-                    <button
-                      onClick={() => setDeleteConfirm(false)}
-                      className="py-2 px-3 text-xs text-white/25 hover:text-white/50 transition-colors"
-                    >
-                      ×
-                    </button>
-                  )}
-                  <button
-                    onClick={handleDeleteIntention}
-                    className="py-2 px-3 text-xs transition-colors flex-shrink-0"
-                    style={{ color: deleteConfirm ? 'rgba(248,113,113,0.85)' : 'rgba(255,255,255,0.25)' }}
-                  >
-                    {deleteConfirm ? 'Confirm?' : 'Delete'}
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <p className="text-sm text-white/30 italic">No intention set for this week.</p>
-                <button
-                  onClick={() => setSetIntentOpen(true)}
-                  className="text-sm font-medium flex-shrink-0 transition-colors"
-                  style={{ color: PALE_YELLOW }}
-                >
-                  + Set intent
-                </button>
-              </>
-            )}
-          </div>
+  const weekViewContent = weekView === 'carousel' ? (
+    <WeekIndicators
+      weekDays={weekDays}
+      today={today}
+      sessionsByDate={sessionsByDate}
+      onDayTap={(day, sessions) => {
+        setDetailSessions(sessions);
+        setDetailSessionIndex(0);
+        setDetailDate(day);
+        const dayStr = toDateString(day);
+        const { dayHasIntention } = getIntentionInfo(dayStr);
+        setDetailIntention(dayHasIntention ? activeIntention : null);
+      }}
+      onLogTap={(day) => {
+        setLogDate(toDateString(day));
+        setLogOpen(true);
+      }}
+    />
+  ) : (
+    <div
+      data-testid="week-list"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+        animation: 'j2IntentFadeIn 250ms ease both',
+      }}
+    >
+      {weekSessionsList.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '24px 16px' }}>
+          <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 14, marginBottom: 12 }}>
+            No sessions logged this week yet.
+          </p>
+          <button
+            onClick={() => { setLogDate(toDateString(today)); setLogOpen(true); }}
+            className="text-sm font-semibold touch-manipulation"
+            style={{
+              color: COPPER,
+              padding: '8px 16px',
+              borderRadius: 10,
+              border: '1px dashed rgba(196,145,95,0.5)',
+              backgroundColor: SURFACE_2,
+              transition: 'background-color 200ms ease',
+            }}
+          >
+            + Log Mat Time
+          </button>
         </div>
       ) : (
-        /* Intentions disabled — thin glowing accent line */
-        <div style={{
-          height: 2,
-          borderRadius: 2,
-          background: `linear-gradient(to right, transparent 0%, rgba(242,228,168,0.55) 20%, rgba(242,228,168,0.55) 80%, transparent 100%)`,
-          boxShadow: '0 0 10px 2px rgba(242,228,168,0.18)',
-          animation: 'j2IntentYellowPulse 3.1s ease-in-out infinite',
-        }} />
+        <>
+          {(sessionsByDate.get(toDateString(today)) ?? []).length === 0 && (
+            <button
+              onClick={() => { setLogDate(toDateString(today)); setLogOpen(true); }}
+              className="w-full text-left touch-manipulation"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '14px 20px',
+                borderRadius: 14,
+                backgroundColor: SURFACE_2,
+                border: '1px dashed rgba(196,145,95,0.5)',
+                transition: 'transform 250ms cubic-bezier(0.16, 1, 0.3, 1)',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(4px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateX(0)'; }}
+            >
+              <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>
+                Today — {MONTH_NAMES[today.getMonth()]} {today.getDate()}
+              </span>
+              <span style={{ color: COPPER, fontSize: 14, fontWeight: 600 }}>
+                + Mat Time
+              </span>
+            </button>
+          )}
+          {weekSessionsList.map(({ session, day, dayStr }) => {
+            const daySessions = sessionsByDate.get(dayStr) ?? [];
+            const isToday = dayStr === toDateString(today);
+            const intensityColor = INTENSITY_COLOR[session.intensity] ?? '#CDDFA0';
+            const giLabel = session.gi_nogi === 'gi' ? 'Gi' : 'No-Gi';
+            const typeLabel = SESSION_TYPE_LABELS[session.session_type] ?? session.session_type;
+            const primaryTag = session.tags?.[0]
+              ? (SKILL_TAGS.find(s => s.value === session.tags[0])?.label ?? session.tags[0])
+              : null;
+            const title = primaryTag ? `${giLabel} ${typeLabel} — ${primaryTag}` : `${giLabel} ${typeLabel}`;
+            const { dayHasIntention } = getIntentionInfo(dayStr);
+
+            return (
+              <button
+                key={session.id}
+                onClick={() => {
+                  const idx = daySessions.findIndex(s => s.id === session.id);
+                  setDetailSessions(daySessions);
+                  setDetailSessionIndex(idx >= 0 ? idx : 0);
+                  setDetailDate(day);
+                  setDetailIntention(dayHasIntention ? activeIntention : null);
+                }}
+                className="w-full text-left touch-manipulation"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 14,
+                  padding: '16px 20px',
+                  borderRadius: 14,
+                  backgroundColor: CARD_BG,
+                  border: isToday
+                    ? '1px solid rgba(196,145,95,0.5)'
+                    : '1px solid rgba(255,255,255,0.06)',
+                  boxShadow: WHISPER_BORDER,
+                  transition: 'transform 250ms cubic-bezier(0.16, 1, 0.3, 1)',
+                  cursor: 'pointer',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(4px)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateX(0)'; }}
+              >
+                <span
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: '50%',
+                    backgroundColor: intensityColor,
+                    flexShrink: 0,
+                  }}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: 'rgba(255,255,255,0.88)',
+                      margin: 0,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {title}
+                  </p>
+                  <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', margin: '2px 0 0' }}>
+                    {DAY_NAMES[day.getDay()]}, {MONTH_NAMES[day.getMonth()]} {day.getDate()}
+                    {session.tags?.length > 1 && (
+                      <>
+                        <span style={{ margin: '0 5px', color: 'rgba(255,255,255,0.15)' }}>·</span>
+                        {SKILL_TAGS.find(s => s.value === session.tags[1])?.label ?? session.tags[1]}
+                      </>
+                    )}
+                  </p>
+                </div>
+                <span
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: COPPER,
+                    flexShrink: 0,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {formatDuration(session.duration)}
+                </span>
+              </button>
+            );
+          })}
+        </>
       )}
+    </div>
+  );
 
-      {/* ── Telemetry expanded panel (above tiles) ──────────────── */}
-      <div style={{
-        maxHeight: telemetryOpen ? 200 : 0,
-        opacity: telemetryOpen ? 1 : 0,
-        overflow: 'hidden',
-        transition: 'max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease',
-      }}>
-        <div
-          className="rounded-xl px-4 py-2.5 mb-2"
-          style={{
-            position: 'relative',
-            overflow: 'hidden',
-            backgroundColor: SURFACE_2,
-            border: `1px solid ${COPPER_BORDER}`,
-          }}
-        >
-          {/* Particle / glow layer */}
-          <div style={{
-            position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0,
-            WebkitMaskImage: 'linear-gradient(to top, black 0%, rgba(0,0,0,0.85) 45%, transparent 100%)',
-            maskImage: 'linear-gradient(to top, black 0%, rgba(0,0,0,0.85) 45%, transparent 100%)',
-          }}>
-            <div style={{
-              position: 'absolute',
-              bottom: -10, left: '50%',
-              transform: 'translateX(-50%)',
-              width: '50%', height: 40,
-              borderRadius: '50%',
-              background: 'radial-gradient(ellipse at center bottom, rgba(196,145,95,0.15) 0%, transparent 80%)',
-              animation: 'j2IntentCopperPulse 5.5s ease-in-out infinite',
-            }} />
-            <div style={{
-              position: 'absolute',
-              bottom: 0, left: 0, right: 0, height: 18,
-              background: 'linear-gradient(to top, rgba(196,145,95,0.12) 0%, transparent 100%)',
-              animation: 'j2IntentCopperPulse 4.5s ease-in-out infinite',
-              transformOrigin: 'center bottom',
-            }} />
-            {STATS_PARTICLES.map((p, i) => (
-              <span key={i} style={{
-                position: 'absolute',
-                left: p.left, bottom: p.bottom,
-                width: p.size, height: p.size,
-                borderRadius: '50%',
-                backgroundColor: 'rgba(218,116,34,0.75)',
-                boxShadow: '0 0 5px 2px rgba(218,116,34,0.45)',
-                filter: 'brightness(1.2)',
-                ['--drift' as string]: p.drift,
-                animation: `j2IntentParticleRise ${p.duration}s ease-in-out infinite ${p.delay}s`,
-                userSelect: 'none',
-              } as React.CSSProperties} />
-            ))}
-          </div>
-          {/* Content */}
-          <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold uppercase tracking-wide" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>Training Telemetry</span>
-              <span style={{
-                display: 'inline-block', width: 20, height: 1.5,
-                borderRadius: 1,
-                backgroundColor: 'rgba(196,145,95,0.55)',
-                boxShadow: '0 0 6px 2px rgba(196,145,95,0.3)',
-                verticalAlign: 'middle',
-              }} />
-            </div>
-            <div className="flex items-center gap-3 text-sm flex-wrap">
-              <span className="text-white/50">
-                <span className="font-semibold text-white">{windowStats.count}</span> session{windowStats.count !== 1 ? 's' : ''}
-              </span>
-              <span className="text-white/20">·</span>
-              <span className="text-white/50">
-                <span className="font-semibold text-white">{formatDuration(windowStats.totalMinutes)}</span> total
-              </span>
-            </div>
-            {windowStats.topTagLabel && (() => {
-              const { topTagLabel, topTagCount, count, tag2Label } = windowStats;
-              const pct = count > 0 ? topTagCount / count : 0;
-              let before: string;
-              let highlight: string;
-              let after: string | null = null;
-              let highlight2: string | null = null;
-              if (tag2Label && pct < 0.7) {
-                before = 'Splitting time between ';
-                highlight = topTagLabel!;
-                after = ' and ';
-                highlight2 = tag2Label;
-              } else if (pct === 1 && count > 1) {
-                before = `All ${count} sessions went into `;
-                highlight = topTagLabel!;
-              } else {
-                before = 'Recent sessions have been leaning into ';
-                highlight = topTagLabel!;
-              }
-              return (
-                <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.55)', margin: 0, lineHeight: 1.45 }}>
-                  {before}
-                  <strong style={{ color: 'rgba(218,116,34,0.85)', fontWeight: 600 }}>{highlight}</strong>
-                  {after && highlight2 ? (
-                    <>{after}<strong style={{ color: 'rgba(218,116,34,0.85)', fontWeight: 600 }}>{highlight2}</strong></>
-                  ) : null}
-                  {'.'}
-                </p>
-              );
-            })()}
-          </div>
-        </div>
-      </div>
+  const primaryCta = (sessionsByDate.get(toDateString(today)) ?? []).length === 0 ? (
+    <button
+      onClick={() => { setLogDate(toDateString(today)); setLogOpen(true); }}
+      className="w-full rounded-xl py-3 text-base font-semibold text-white touch-manipulation"
+      style={{
+        backgroundColor: '#DA7422',
+        boxShadow: '0 2px 12px rgba(218,116,34,0.3)',
+        transition: 'transform 150ms ease, box-shadow 150ms ease',
+      }}
+    >
+      + Mat Time
+    </button>
+  ) : null;
 
-      {/* ── Tiles row ───────────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: 10 }}>
-        {/* Rep Roulette tile */}
-        <button
-          onClick={() => { if (rouletteOpen) { setRouletteOpen(false); } else { setRouletteOpen(true); setTelemetryOpen(false); } }}
-          className="flex-1 rounded-xl flex flex-col items-center justify-center gap-1.5 touch-manipulation"
-          style={{
-            minHeight: 90,
-            backgroundColor: rouletteOpen ? 'rgba(242,228,168,0.06)' : CARD_BG,
-            border: `1px solid ${rouletteOpen ? 'rgba(242,228,168,0.25)' : COPPER_BORDER}`,
-            transition: 'background-color 0.3s ease, border-color 0.3s ease',
-          }}
-          data-testid="roulette-header"
-        >
+  const rouletteSection = (
+    <>
+      <button
+        onClick={() => { if (rouletteOpen) { setRouletteOpen(false); } else { setRouletteOpen(true); setTelemetryOpen(false); } }}
+        className="w-full rounded-xl px-4 py-3 flex items-center justify-between touch-manipulation"
+        style={{
+          backgroundColor: rouletteOpen ? 'rgba(242,228,168,0.06)' : CARD_BG,
+          border: `1px solid ${rouletteOpen ? 'rgba(242,228,168,0.25)' : COPPER_BORDER}`,
+          transition: 'background-color 0.3s ease, border-color 0.3s ease',
+        }}
+        data-testid="roulette-header"
+      >
+        <div className="flex items-center gap-2">
           <span className="text-sm font-semibold uppercase tracking-wide" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
             Rep Roulette
           </span>
-          <span style={{
-            color: 'rgba(196,145,95,0.7)',
-            transform: rouletteOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-            transition: 'transform 0.3s ease',
-            fontSize: 12,
-          }}>▾</span>
-        </button>
-
-        {/* Training Telemetry tile */}
-        <button
-          onClick={() => { if (telemetryOpen) { setTelemetryOpen(false); } else { setTelemetryOpen(true); setRouletteOpen(false); } }}
-          className="flex-1 rounded-xl flex flex-col items-center justify-center gap-0.5 touch-manipulation"
-          style={{
-            minHeight: 90,
-            backgroundColor: telemetryOpen ? 'rgba(196,145,95,0.06)' : CARD_BG,
-            border: `1px solid ${telemetryOpen ? 'rgba(196,145,95,0.35)' : COPPER_BORDER}`,
-            transition: 'background-color 0.3s ease, border-color 0.3s ease',
-          }}
-          data-testid="telemetry-header"
-        >
-          <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.35)' }}>
-            Telemetry
-          </span>
-          <span
-            className="text-lg font-bold"
-            style={{ color: 'rgba(255,255,255,0.85)' }}
-            onClick={(e) => { e.stopPropagation(); setTelemetryStat(s => s === 'sessions' ? 'hours' : 'sessions'); }}
-          >
-            {telemetryStat === 'sessions'
-              ? windowStats.count
-              : formatDuration(windowStats.totalMinutes)}
-          </span>
-          <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
-            {telemetryStat === 'sessions'
-              ? `session${windowStats.count !== 1 ? 's' : ''}`
-              : 'total'}
-          </span>
-          <span style={{
-            color: 'rgba(196,145,95,0.7)',
-            transform: telemetryOpen ? 'rotate(0deg)' : 'rotate(180deg)',
-            transition: 'transform 0.3s ease',
-            fontSize: 12,
-          }}>▴</span>
-        </button>
-      </div>
-
-      {/* ── Roulette expanded panel (below tiles) ──────────────── */}
+          {!rouletteOpen && (
+            <span className="text-xs truncate max-w-[140px]" style={{ color: 'rgba(255,255,255,0.30)' }}>
+              {ROULETTE_DRILLS[drillHistory[drillHistoryIndex]].name}
+            </span>
+          )}
+        </div>
+        <span style={{
+          color: 'rgba(196,145,95,0.7)',
+          transform: rouletteOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+          transition: 'transform 0.3s ease',
+          fontSize: 12,
+        }}>▾</span>
+      </button>
       <div style={{
         maxHeight: rouletteOpen ? 250 : 0,
         opacity: rouletteOpen ? 1 : 0,
@@ -624,7 +679,7 @@ export default function PathAheadPage() {
         transition: 'max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease',
       }}>
         <div
-          className="rounded-xl px-4 py-3"
+          className="rounded-xl px-4 py-3 mt-2"
           style={{
             touchAction: 'pan-y',
             backgroundColor: 'rgba(242,228,168,0.04)',
@@ -636,11 +691,7 @@ export default function PathAheadPage() {
           onTouchMove={handleRouletteTouchMove}
           onTouchEnd={handleRouletteTouchEnd}
         >
-          {/* Bounce affordance wrapper */}
-          <div style={{
-            animation: rouletteOpen ? 'j2RouletteEdgeBounce 0.8s ease 0.4s both' : 'none',
-          }}>
-            {/* Drag-follow content */}
+          <div style={{ animation: rouletteOpen ? 'j2RouletteEdgeBounce 0.8s ease 0.4s both' : 'none' }}>
             <div style={{
               transform: `translateX(${rouletteIsDragging ? rouletteDragX : 0}px)`,
               transition: rouletteIsDragging ? 'none' : 'transform 0.38s cubic-bezier(0.25, 1.3, 0.4, 1)',
@@ -657,12 +708,8 @@ export default function PathAheadPage() {
                 {ROULETTE_DRILLS[drillHistory[drillHistoryIndex]].description}
               </p>
               <p style={{
-                fontSize: 11,
-                color: 'rgba(196,145,95,0.35)',
-                marginTop: 10,
-                textAlign: 'center',
-                letterSpacing: '0.04em',
-                userSelect: 'none',
+                fontSize: 11, color: 'rgba(196,145,95,0.35)', marginTop: 10,
+                textAlign: 'center', letterSpacing: '0.04em', userSelect: 'none',
               }}>
                 ← swipe to browse →
               </p>
@@ -670,294 +717,22 @@ export default function PathAheadPage() {
           </div>
         </div>
       </div>
+    </>
+  );
 
-      {/* ── Week section header + view toggle ──────── */}
-      <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
-        <span
-          className="text-sm font-semibold uppercase tracking-wide"
-          style={{ color: 'rgba(255,255,255,0.4)', letterSpacing: '0.06em' }}
-        >
-          This Week
-        </span>
-        <div className="flex gap-0.5 p-0.5 rounded-lg" style={{ backgroundColor: SURFACE_2 }}>
-          {([
-            { id: 'carousel' as const, Icon: CalendarDays },
-            { id: 'list' as const, Icon: List },
-          ]).map(({ id, Icon }) => {
-            const isActive = weekView === id;
-            return (
-              <button
-                key={id}
-                onClick={() => handleWeekViewChange(id)}
-                className="flex items-center justify-center rounded-md transition-colors touch-manipulation"
-                style={{
-                  width: 34,
-                  height: 30,
-                  backgroundColor: isActive ? COPPER : 'transparent',
-                  color: isActive ? '#fff' : 'rgba(255,255,255,0.35)',
-                  transition: 'background-color 200ms ease, color 200ms ease',
-                }}
-                aria-label={id === 'carousel' ? 'Calendar view' : 'List view'}
-              >
-                <Icon size={14} strokeWidth={isActive ? 2 : 1.5} />
-              </button>
-            );
-          })}
-        </div>
-      </div>
+  const heatmapSection = allSessions.length >= 5 ? (
+    <HeatmapPreviewWidget sessions={sessions} />
+  ) : (
+    <div className="rounded-xl px-4 py-5 text-center"
+         style={{ backgroundColor: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}` }}>
+      <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13 }}>
+        Log a few more sessions and your training rhythm will appear here.
+      </p>
+    </div>
+  );
 
-      {/* ── Week view: carousel (minimalist) ──────── */}
-      {weekView === 'carousel' ? (
-        <div
-          ref={weekScrollRef}
-          data-testid="week-scroll"
-          data-no-page-swipe=""
-          className="j2-day-scroll"
-          style={{
-            display: 'flex',
-            gap: MINI_CARD_GAP,
-            overflowX: 'auto',
-            scrollSnapType: 'x mandatory',
-            scrollBehavior: 'smooth',
-            paddingBottom: 6,
-            animation: 'j2IntentFadeIn 250ms ease both',
-          }}
-        >
-          {weekDays.map((day) => {
-            const dayStr = toDateString(day);
-            const daySessions = sessionsByDate.get(dayStr) ?? [];
-            const isToday = dayStr === toDateString(today);
-            const isPast  = dayStr < toDateString(today);
-            const sessionCount = daySessions.length;
-            const totalMinutes = daySessions.reduce((sum, s) => sum + Number(s.duration), 0);
-            const primarySession = sessionCount > 0
-              ? [...daySessions].sort((a, b) => Number(b.intensity) - Number(a.intensity))[0]
-              : null;
-            const intensityColor = primarySession ? (INTENSITY_COLOR[primarySession.intensity] ?? '#CDDFA0') : null;
-            const { dayHasIntention } = getIntentionInfo(dayStr);
-
-            const isInStreak = sessionCount > 0 && streakDays.has(dayStr);
-
-            return (
-              <button
-                key={dayStr}
-                onClick={() => {
-                  if (sessionCount > 0) {
-                    setDetailSessions(daySessions);
-                    setDetailSessionIndex(0);
-                    setDetailDate(day);
-                    setDetailIntention(dayHasIntention ? activeIntention : null);
-                  } else {
-                    setLogDate(toDateString(day));
-                    setLogOpen(true);
-                  }
-                }}
-                className="flex flex-col items-center justify-center gap-1 rounded-xl touch-manipulation"
-                style={{
-                  flexShrink: 0,
-                  width: MINI_CARD_W,
-                  minHeight: 100,
-                  scrollSnapAlign: 'start',
-                  backgroundColor: CARD_BG,
-                  border: isToday ? '1px solid rgba(196,145,95,0.7)' : '1px solid rgba(255,255,255,0.07)',
-                  boxShadow: isToday
-                    ? '0 0 12px rgba(196,145,95,0.2), 0 2px 8px rgba(0,0,0,0.3)'
-                    : '0 2px 4px rgba(0,0,0,0.15)',
-                  animation: isToday ? 'j2-today-pulse 4s ease-in-out infinite' : undefined,
-                  padding: '10px 6px',
-                  borderBottom: dayHasIntention
-                    ? '2px solid rgba(242,228,168,0.35)'
-                    : undefined,
-                  transition: 'box-shadow 0.3s ease',
-                }}
-              >
-                {/* Day name */}
-                <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: isToday ? '#C4915F' : 'rgba(255,255,255,0.35)' }}>
-                  {DAY_NAMES[day.getDay()]}
-                </span>
-                {/* Date */}
-                <span className="text-sm font-bold" style={{ color: isToday ? '#C4915F' : 'rgba(255,255,255,0.85)' }}>
-                  {MONTH_NAMES[day.getMonth()]} {day.getDate()}
-                </span>
-                {/* Session indicator */}
-                {sessionCount > 0 ? (
-                  <>
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: intensityColor! }} />
-                    <span className="text-[11px] font-semibold text-white">{formatDuration(totalMinutes)}</span>
-                  </>
-                ) : isToday ? (
-                  <span className="text-[11px] font-semibold" style={{ color: 'rgba(196,145,95,0.85)' }}>+ Mat Time</span>
-                ) : isPast ? (
-                  <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.15)' }}>Rest</span>
-                ) : (
-                  <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.12)' }}>—</span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      ) : (
-        /* ── Week view: detail list ──────── */
-        <div
-          data-testid="week-list"
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 8,
-            animation: 'j2IntentFadeIn 250ms ease both',
-          }}
-        >
-          {weekSessionsList.length === 0 ? (
-            /* Empty state — no sessions this week */
-            <div style={{ textAlign: 'center', padding: '24px 16px' }}>
-              <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 14, marginBottom: 12 }}>
-                No sessions logged this week yet.
-              </p>
-              <button
-                onClick={() => { setLogDate(toDateString(today)); setLogOpen(true); }}
-                className="text-sm font-semibold touch-manipulation"
-                style={{
-                  color: COPPER,
-                  padding: '8px 16px',
-                  borderRadius: 10,
-                  border: '1px dashed rgba(196,145,95,0.5)',
-                  backgroundColor: SURFACE_2,
-                  transition: 'background-color 200ms ease',
-                }}
-              >
-                + Log Mat Time
-              </button>
-            </div>
-          ) : (
-            <>
-              {/* Today prompt — if today has no sessions */}
-              {(sessionsByDate.get(toDateString(today)) ?? []).length === 0 && (
-                <button
-                  onClick={() => { setLogDate(toDateString(today)); setLogOpen(true); }}
-                  className="w-full text-left touch-manipulation"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '14px 20px',
-                    borderRadius: 14,
-                    backgroundColor: SURFACE_2,
-                    border: '1px dashed rgba(196,145,95,0.5)',
-                    transition: 'transform 250ms cubic-bezier(0.16, 1, 0.3, 1)',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(4px)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateX(0)'; }}
-                >
-                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>
-                    Today — {MONTH_NAMES[today.getMonth()]} {today.getDate()}
-                  </span>
-                  <span style={{ color: COPPER, fontSize: 14, fontWeight: 600 }}>
-                    + Mat Time
-                  </span>
-                </button>
-              )}
-
-              {/* Session cards */}
-              {weekSessionsList.map(({ session, day, dayStr }) => {
-                const daySessions = sessionsByDate.get(dayStr) ?? [];
-                const isToday = dayStr === toDateString(today);
-                const intensityColor = INTENSITY_COLOR[session.intensity] ?? '#CDDFA0';
-                const giLabel = session.gi_nogi === 'gi' ? 'Gi' : 'No-Gi';
-                const typeLabel = SESSION_TYPE_LABELS[session.session_type] ?? session.session_type;
-                const primaryTag = session.tags?.[0]
-                  ? (SKILL_TAGS.find(s => s.value === session.tags[0])?.label ?? session.tags[0])
-                  : null;
-                const title = primaryTag ? `${giLabel} ${typeLabel} — ${primaryTag}` : `${giLabel} ${typeLabel}`;
-                const { dayHasIntention } = getIntentionInfo(dayStr);
-
-                return (
-                  <button
-                    key={session.id}
-                    onClick={() => {
-                      const idx = daySessions.findIndex(s => s.id === session.id);
-                      setDetailSessions(daySessions);
-                      setDetailSessionIndex(idx >= 0 ? idx : 0);
-                      setDetailDate(day);
-                      setDetailIntention(dayHasIntention ? activeIntention : null);
-                    }}
-                    className="w-full text-left touch-manipulation"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 14,
-                      padding: '16px 20px',
-                      borderRadius: 14,
-                      backgroundColor: CARD_BG,
-                      border: isToday
-                        ? '1px solid rgba(196,145,95,0.5)'
-                        : '1px solid rgba(255,255,255,0.06)',
-                      boxShadow: WHISPER_BORDER,
-                      transition: 'transform 250ms cubic-bezier(0.16, 1, 0.3, 1)',
-                      cursor: 'pointer',
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(4px)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.transform = 'translateX(0)'; }}
-                  >
-                    {/* Type dot */}
-                    <span
-                      style={{
-                        width: 10,
-                        height: 10,
-                        borderRadius: '50%',
-                        backgroundColor: intensityColor,
-                        flexShrink: 0,
-                      }}
-                    />
-                    {/* Title + meta */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p
-                        style={{
-                          fontSize: 14,
-                          fontWeight: 600,
-                          color: 'rgba(255,255,255,0.88)',
-                          margin: 0,
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                        }}
-                      >
-                        {title}
-                      </p>
-                      <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', margin: '2px 0 0' }}>
-                        {DAY_NAMES[day.getDay()]}, {MONTH_NAMES[day.getMonth()]} {day.getDate()}
-                        {session.tags?.length > 1 && (
-                          <>
-                            <span style={{ margin: '0 5px', color: 'rgba(255,255,255,0.15)' }}>·</span>
-                            {SKILL_TAGS.find(s => s.value === session.tags[1])?.label ?? session.tags[1]}
-                          </>
-                        )}
-                      </p>
-                    </div>
-                    {/* Duration */}
-                    <span
-                      style={{
-                        fontSize: 14,
-                        fontWeight: 600,
-                        color: COPPER,
-                        flexShrink: 0,
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {formatDuration(session.duration)}
-                    </span>
-                  </button>
-                );
-              })}
-            </>
-          )}
-        </div>
-      )}
-
-      {/* ── Training history widget ───────────────────────────────── */}
-      <HeatmapPreviewWidget sessions={sessions} />
-
-      {/* ── Modals ────────────────────────────────────────────────── */}
-
+  const modals = (
+    <>
       {logOpen && (
         <div
           data-no-page-swipe=""
@@ -1012,6 +787,162 @@ export default function PathAheadPage() {
           onClose={() => setSetIntentOpen(false)}
         />
       )}
+    </>
+  );
+
+  // ── Render ─────────────────────────────────────────────────────────────
+
+  if (isDesktop) {
+    /* ═══════════════════════════════════════════════════════════════════
+       DESKTOP LAYOUT — two-column dashboard
+       ═══════════════════════════════════════════════════════════════════ */
+    return (
+      <PageContent ready={!loading} loadingMessages={['Shrimping down the mat...', 'Doing mat swims...', 'Pulling up gi pants...']}>
+      <div className="max-w-6xl mx-auto px-8 py-5">
+        {styleBlock}
+
+        {/* ── Header row ──────────────────────────────────────────── */}
+        <div className="flex items-end justify-between mb-6">
+          <div>
+            <h2
+              className="text-2xl font-bold tracking-tight"
+              style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}
+            >
+              The Path Ahead
+            </h2>
+            <p className="text-sm mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              {new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date())}
+              {name && <span style={{ color: 'rgba(255,255,255,0.25)' }}> — {name}</span>}
+            </p>
+          </div>
+          {primaryCta && (
+            <button
+              onClick={() => { setLogDate(toDateString(today)); setLogOpen(true); }}
+              className="rounded-xl px-6 py-2.5 text-sm font-semibold text-white"
+              style={{
+                backgroundColor: '#DA7422',
+                boxShadow: '0 2px 12px rgba(218,116,34,0.3)',
+                transition: 'transform 150ms ease, box-shadow 150ms ease',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(218,116,34,0.4)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(218,116,34,0.3)'; }}
+            >
+              + Log Session
+            </button>
+          )}
+        </div>
+
+        {/* Subtle divider */}
+        <div style={{
+          height: 1,
+          background: 'linear-gradient(to right, transparent 0%, rgba(196,145,95,0.25) 20%, rgba(196,145,95,0.25) 80%, transparent 100%)',
+          marginBottom: 24,
+        }} />
+
+        {allSessions.length === 0 ? (
+          /* ── Empty state ── */
+          <div className="max-w-md mx-auto">
+            <FirstVisitCard onLogFirst={() => { setLogDate(toDateString(today)); setLogOpen(true); }} />
+          </div>
+        ) : (
+          /* ── Two-column grid ────────────────────────────────────── */
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 28, alignItems: 'start' }}>
+
+            {/* ── LEFT: Main content ──────────────────────────────── */}
+            <div className="space-y-5">
+              {/* Week section */}
+              {weekSectionHeader}
+              {weekViewContent}
+
+              {/* Training Telemetry — always visible on desktop */}
+              {telemetryContent}
+            </div>
+
+            {/* ── RIGHT: Sidebar ──────────────────────────────────── */}
+            <div className="space-y-4">
+              {/* Stats */}
+              <StatStrip
+                streak={streak}
+                weekSessionCount={weekStats.count}
+                weekTotalMinutes={weekStats.totalMinutes}
+              />
+
+              {/* Intention */}
+              {intentionsEnabled && (
+                <IntentionHeroCard
+                  intention={activeIntention}
+                  onSetIntent={() => setSetIntentOpen(true)}
+                  onDeleteIntent={handleDeleteIntention}
+                />
+              )}
+
+              {/* Rep Roulette */}
+              {rouletteSection}
+
+              {/* Heatmap */}
+              {heatmapSection}
+            </div>
+          </div>
+        )}
+
+        {modals}
+      </div>
+      </PageContent>
+    );
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     MOBILE LAYOUT — single-column stacked (the modernized phone UI)
+     ═══════════════════════════════════════════════════════════════════════ */
+  return (
+    <PageContent ready={!loading} loadingMessages={['Shrimping down the mat...', 'Doing mat swims...', 'Pulling up gi pants...']}>
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 space-y-4">
+      {styleBlock}
+
+      {/* ── A. Contextual Header ──────────────────────────────────── */}
+      <HomeHeader name={name} />
+
+      {/* ── B. Stat Strip ────────────────────────────────────────── */}
+      <StatStrip
+        streak={streak}
+        weekSessionCount={weekStats.count}
+        weekTotalMinutes={weekStats.totalMinutes}
+        onTap={() => { setTelemetryOpen(prev => !prev); if (!telemetryOpen) setRouletteOpen(false); }}
+      />
+
+      {/* ── Telemetry expanded panel (above tiles) ──────────────── */}
+      <div style={{
+        maxHeight: telemetryOpen ? 200 : 0,
+        opacity: telemetryOpen ? 1 : 0,
+        overflow: 'hidden',
+        transition: 'max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease',
+      }}>
+        <div style={{ marginBottom: 8 }}>{telemetryContent}</div>
+      </div>
+
+      {/* ── C. Intention Hero Card ─────────────────────────────── */}
+      {intentionsEnabled && (
+        <IntentionHeroCard
+          intention={activeIntention}
+          onSetIntent={() => setSetIntentOpen(true)}
+          onDeleteIntent={handleDeleteIntention}
+        />
+      )}
+
+      {/* ── D-H. Main content (conditional on sessions) ────────── */}
+      {allSessions.length === 0 ? (
+        <FirstVisitCard onLogFirst={() => { setLogDate(toDateString(today)); setLogOpen(true); }} />
+      ) : (
+      <>
+        {weekSectionHeader}
+        {weekViewContent}
+        {primaryCta}
+        {rouletteSection}
+        {heatmapSection}
+      </>
+      )}
+
+      {modals}
     </div>
     </PageContent>
   );
