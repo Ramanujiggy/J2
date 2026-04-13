@@ -33,7 +33,7 @@ Development areas identified from codebase assessment. Updated as work progresse
 
 | Status | Area | Description |
 |---|---|---|
-| `[ ]` | **Streaks & consistency stats** | Consecutive days trained, current streak, longest streak. High-motivation metric for BJJ athletes. Slot into Path Ahead page or a dedicated stats card. |
+| `[x]` | **Streaks & consistency stats** | Current streak + longest streak computed in `computeStats` (`TrainingHeatmap.tsx`). Both surface in `StatStrip`: streak cell shows "best: Xd" sub-label, or "personal best" when current streak equals all-time best in the loaded window. |
 | `[ ]` | **Goal tracking** | Set a weekly or monthly mat-hours target. Show progress toward it on the Path Ahead summary card (e.g. "4.5 of 6h goal"). |
 | `[x]` | **Analytics custom date range** | `TimeRangeBar` component provides 7D/14D/30D/90D/180D/1Y presets plus a custom date-range picker (start + end date inputs). |
 | `[ ]` | **Session notes search** | Full-text search across session notes (PostgreSQL `tsvector` or simple `ILIKE`). Useful for finding technique notes from months ago. |
@@ -95,7 +95,7 @@ Full diagnostic rationale and implementation detail for each item lives in `impl
 | Status | Area | Description |
 |---|---|---|
 | `[ ]` | **Alignment heuristic too naive** | `computeAlignment()` splits label/tag text on 4+ char word boundaries and looks for overlap. High false-diverged rate — "Active Toes" vs "Stand-up" reads as diverged even if standup *is* the intended focus. Replace with an explicit pillar tag on the intention (e.g. select a `heading` when setting intent), or a configurable keyword-to-pillar map. |
-| `[ ]` | **Intention always anchors to Monday** | `getWeekStart(today)` always returns the current Monday. A 3-day intention set on Thursday starts Monday, so the window shown doesn't match the actual training window. Fix: use today as `week_start` when `duration_days < 7`, or add a start-date picker to the modal. |
+| `[x]` | **Intention always anchors to Monday** | `SetIntentionModal` now initializes `startDate` to today and exposes a date picker in create mode. `activeIntention` lookup in `PathAheadPage` uses a window-range check (`todayStr >= start && todayStr <= end`) rather than Monday matching. |
 | `[ ]` | **No future-week intention setting** | The modal always targets the current ISO week. No flow for setting next week's intention in advance — a common need for competition prep. |
 | `[ ]` | **Single active intention per week** | `activeIntention` is a `find()` against current-week start — only one intention surfaces on the home page even if multiple exist for the same week in the DB. |
 | `[ ]` | **Journal autosave not offline-safe** | `JournalEntryPage` calls `api.patch` directly, bypassing the offline write queue. Entries typed while offline are silently lost. Route through the existing offline queue or at minimum warn the user when offline. |
@@ -111,7 +111,7 @@ A subtle thematic tribute to a character whose ethos aligns with BJJ culture: pu
 | `[x]` | **Session 500 milestone toast** | When a user logs their 500th total session, a one-time toast fires: "500 sessions. The mat remembers every one." Backend returns `session_count` with the create-session response. Fires once via `localStorage` flag `j2-milestone-500`. |
 | `[ ]` | **Eight Gates — streak milestone system** | At streak thresholds 7, 14, 21, 30, 60, 90, 180, 365 days, the streak number's color and glow scale progressively (copper → green → gold). A one-time toast fires per tier, stored in localStorage. At 365 days: particle burst. |
 | `[ ]` | **Foundation Reps — Rep Roulette filter** | Add a `tier: 'foundation' \| 'chain'` field to `ROULETTE_DRILLS` in `constants.ts`. A "Foundation ✿" filter tab in Rep Roulette surfaces only the 6 pure-movement drills (hip escape, tech stand-up, etc.). |
-| `[ ]` | **"Dedication" intention category** | Add `dedication` as a sixth category in `SetIntentionModal`. Color: `#52B56C` (training green). For weeks where the goal is simply to show up. |
+| `[x]` | **"Presence" intention category** | Added as sixth category in `SetIntentionModal`. Color: `#52B56C` (mat green, distinct from all other categories). For weeks where the goal is simply to show up and be present on the mat. |
 | `[ ]` | **Full Commitment hours stat** | Extend `computeStats()` with `fullEffortMinutes` (intensity 4–5 only). Display as a secondary stat alongside total hours. |
 | `[ ]` | **The Drop — PR particle effect** | On logging a personal record (longest session, first intensity-5, or Nth milestone), small circle "weights" animate briefly downward. Uses existing particle system in `particles.ts`. |
 

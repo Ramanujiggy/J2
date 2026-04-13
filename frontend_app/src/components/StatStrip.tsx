@@ -3,16 +3,19 @@ import { formatDuration } from '../lib/sessionUtils.ts';
 
 interface Props {
   streak: number;
+  longestStreak: number;
   weekSessionCount: number;
   weekTotalMinutes: number;
   onTap?: () => void;
 }
 
-export default function StatStrip({ streak, weekSessionCount, weekTotalMinutes, onTap }: Props) {
-  const cells: { label: string; value: string; accent?: string }[] = [
+export default function StatStrip({ streak, longestStreak, weekSessionCount, weekTotalMinutes, onTap }: Props) {
+  const isPersonalBest = streak > 0 && streak >= longestStreak;
+  const cells: { label: string; value: string; sub?: string; accent?: string }[] = [
     {
       label: 'streak',
       value: streak > 0 ? `${streak}d` : '—',
+      sub: isPersonalBest && streak > 1 ? 'personal best' : longestStreak > 0 ? `best: ${longestStreak}d` : undefined,
       accent: streak > 0 ? COPPER : undefined,
     },
     {
@@ -55,6 +58,11 @@ export default function StatStrip({ streak, weekSessionCount, weekTotalMinutes, 
           <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.38)' }}>
             {cell.label}
           </span>
+          {cell.sub && (
+            <span className="text-[10px]" style={{ color: isPersonalBest && i === 0 ? COPPER : 'rgba(255,255,255,0.22)' }}>
+              {cell.sub}
+            </span>
+          )}
         </div>
       ))}
     </button>
