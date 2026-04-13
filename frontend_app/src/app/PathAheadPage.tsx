@@ -9,7 +9,7 @@ import LogSessionForm from '../components/LogSessionForm.tsx';
 import SessionDetailModal from '../components/SessionDetailModal.tsx';
 import SetIntentionModal from '../components/SetIntentionModal.tsx';
 import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER, COPPER_BORDER, SURFACE_2, SURFACE_2_BORDER, WHISPER_BORDER } from '../lib/theme.ts';
-import { CalendarDays, List } from 'lucide-react';
+import { CalendarDays, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from '../hooks/use-toast.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import PageContent from '../components/PageContent.tsx';
@@ -137,9 +137,13 @@ export default function PathAheadPage() {
     setRouletteIsDragging(false);
   };
 
+  // Week navigation offset (0 = current week, -1 = last week, +1 = next)
+  const [weekOffset, setWeekOffset] = useState(0);
+
   // Modals
   const [logOpen,             setLogOpen]             = useState(false);
   const [logDate,             setLogDate]             = useState<string | null>(null);
+  const [logPreset,           setLogPreset]           = useState<{ heading?: string; sessionType?: 'drilling'; subSkillTag?: string } | null>(null);
   const [setIntentOpen,       setSetIntentOpen]       = useState(false);
   const [detailSessions,      setDetailSessions]      = useState<SessionSummary[]>([]);
   const [detailSessionIndex,  setDetailSessionIndex]  = useState(0);
@@ -206,7 +210,7 @@ export default function PathAheadPage() {
     });
   }, [today]);
 
-  // Mon–Sun of the current ISO week (for the 7-dot indicator)
+  // Mon–Sun of the current ISO week — used for weekStats (StatStrip always shows current week)
   const weekDays = useMemo(() => {
     const monday = new Date(today);
     const dow = monday.getDay(); // 0 = Sun
@@ -217,6 +221,31 @@ export default function PathAheadPage() {
       return d;
     });
   }, [today]);
+
+  // Offset-shifted week — used by the visible carousel and list (weekOffset: -2..+1)
+  const displayWeekDays = useMemo(() => {
+    const monday = new Date(today);
+    const dow = monday.getDay();
+    monday.setDate(monday.getDate() - (dow === 0 ? 6 : dow - 1) + weekOffset * 7);
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      return d;
+    });
+  }, [today, weekOffset]);
+
+  // Section header label — "This Week" at offset 0, date range otherwise
+  const weekLabel = useMemo(() => {
+    if (weekOffset === 0) return 'This Week';
+    const start = displayWeekDays[0]!;
+    const end   = displayWeekDays[6]!;
+    const sm = MONTH_NAMES[start.getMonth()];
+    const em = MONTH_NAMES[end.getMonth()];
+    return sm === em
+      ? `${sm} ${start.getDate()} – ${end.getDate()}`
+      : `${sm} ${start.getDate()} – ${em} ${end.getDate()}`;
+  }, [weekOffset, displayWeekDays]);
+
   // Days-from-Monday offset for today (used to map weekDays index → windowDays index)
   const todayDowOffset = today.getDay() === 0 ? 6 : today.getDay() - 1;
 
@@ -263,17 +292,17 @@ export default function PathAheadPage() {
     return map;
   }, [allSessions]);
 
-  // Flat list of this-week sessions for the list view (sorted chronologically)
+  // Flat list of sessions for the list view — scoped to the displayed week
   const weekSessionsList = useMemo(() => {
     const list: { session: SessionSummary; day: Date; dayStr: string }[] = [];
-    for (const day of weekDays) {
+    for (const day of displayWeekDays) {
       const dayStr = toDateString(day);
       for (const session of (sessionsByDate.get(dayStr) ?? [])) {
         list.push({ session, day, dayStr });
       }
     }
     return list;
-  }, [weekDays, sessionsByDate]);
+  }, [displayWeekDays, sessionsByDate]);
 
   // ── Window stats ───────────────────────────────────────────────────────
 
@@ -441,12 +470,49 @@ export default function PathAheadPage() {
 
   const weekSectionHeader = (
     <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
-      <span
-        className="text-sm font-semibold uppercase tracking-wide"
-        style={{ color: 'rgba(255,255,255,0.4)', letterSpacing: '0.06em' }}
-      >
-        This Week
-      </span>
+      {/* Week label + prev/next navigation */}
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => setWeekOffset(o => Math.max(-2, o - 1))}
+          disabled={weekOffset <= -2}
+          className="flex items-center justify-center rounded-md touch-manipulation"
+          style={{
+            width: 26, height: 26,
+            color: weekOffset <= -2 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.45)',
+            transition: 'color 150ms ease',
+          }}
+          aria-label="Previous week"
+        >
+          <ChevronLeft size={15} strokeWidth={2} />
+        </button>
+        <button
+          onClick={() => setWeekOffset(0)}
+          className="text-sm font-semibold uppercase tracking-wide touch-manipulation"
+          style={{
+            color: weekOffset === 0 ? 'rgba(255,255,255,0.4)' : COPPER,
+            letterSpacing: '0.06em',
+            minWidth: 72,
+            textAlign: 'center',
+          }}
+          aria-label="Return to current week"
+        >
+          {weekLabel}
+        </button>
+        <button
+          onClick={() => setWeekOffset(o => Math.min(1, o + 1))}
+          disabled={weekOffset >= 1}
+          className="flex items-center justify-center rounded-md touch-manipulation"
+          style={{
+            width: 26, height: 26,
+            color: weekOffset >= 1 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.45)',
+            transition: 'color 150ms ease',
+          }}
+          aria-label="Next week"
+        >
+          <ChevronRight size={15} strokeWidth={2} />
+        </button>
+      </div>
+      {/* View mode toggle */}
       <div className="flex gap-0.5 p-0.5 rounded-lg" style={{ backgroundColor: SURFACE_2 }}>
         {([
           { id: 'carousel' as const, Icon: CalendarDays },
@@ -477,7 +543,7 @@ export default function PathAheadPage() {
 
   const weekViewContent = weekView === 'carousel' ? (
     <WeekIndicators
-      weekDays={weekDays}
+      weekDays={displayWeekDays}
       today={today}
       sessionsByDate={sessionsByDate}
       onDayTap={(day, sessions) => {
@@ -525,7 +591,7 @@ export default function PathAheadPage() {
         </div>
       ) : (
         <>
-          {(sessionsByDate.get(toDateString(today)) ?? []).length === 0 && (
+          {weekOffset === 0 && (sessionsByDate.get(toDateString(today)) ?? []).length === 0 && (
             <button
               onClick={() => { setLogDate(toDateString(today)); setLogOpen(true); }}
               className="w-full text-left touch-manipulation"
@@ -656,6 +722,15 @@ export default function PathAheadPage() {
     </button>
   ) : null;
 
+  const DRILL_FOCUS_TO_TAG: Record<string, string> = {
+    'Guard':          'guard',
+    'Stand-up':       'standup',
+    'Dynamic Pins':   'pins',
+    'Guard Passing':  'passing',
+    'Submissions':    'submissions',
+    'Guard Retention':'guard',
+  };
+
   const rouletteSection = (
     <>
       <button
@@ -686,7 +761,7 @@ export default function PathAheadPage() {
         }}>▾</span>
       </button>
       <div style={{
-        maxHeight: rouletteOpen ? 250 : 0,
+        maxHeight: rouletteOpen ? 320 : 0,
         opacity: rouletteOpen ? 1 : 0,
         overflow: 'hidden',
         transition: 'max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease',
@@ -720,8 +795,37 @@ export default function PathAheadPage() {
               <p className="text-sm mt-2 leading-relaxed" style={{ color: 'rgba(255,255,255,0.35)' }}>
                 {ROULETTE_DRILLS[drillHistory[drillHistoryIndex]].description}
               </p>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
+                <button
+                  onPointerDown={e => e.stopPropagation()}
+                  onClick={e => {
+                    e.stopPropagation();
+                    const drill = ROULETTE_DRILLS[drillHistory[drillHistoryIndex]];
+                    setLogDate(toDateString(today));
+                    setLogPreset({
+                      heading:     DRILL_FOCUS_TO_TAG[drill.focus],
+                      sessionType: 'drilling',
+                      subSkillTag: drill.name,
+                    });
+                    setRouletteOpen(false);
+                    setLogOpen(true);
+                  }}
+                  className="text-xs touch-manipulation"
+                  style={{
+                    color: 'rgba(196,145,95,0.7)',
+                    padding: '4px 10px',
+                    borderRadius: 8,
+                    border: '1px solid rgba(196,145,95,0.25)',
+                    backgroundColor: 'transparent',
+                    letterSpacing: '0.02em',
+                    transition: 'color 150ms ease, border-color 150ms ease',
+                  }}
+                >
+                  Log this drill →
+                </button>
+              </div>
               <p style={{
-                fontSize: 11, color: 'rgba(196,145,95,0.35)', marginTop: 10,
+                fontSize: 11, color: 'rgba(196,145,95,0.25)', marginTop: 8,
                 textAlign: 'center', letterSpacing: '0.04em', userSelect: 'none',
               }}>
                 ← swipe to browse →
@@ -767,13 +871,17 @@ export default function PathAheadPage() {
                 fetchAll();
                 setLogOpen(false);
                 setLogDate(null);
+                setLogPreset(null);
                 if (count === 500 && !localStorage.getItem('j2-milestone-500')) {
                   localStorage.setItem('j2-milestone-500', '1');
                   toast({ title: '500 sessions. The mat remembers every one.' });
                 }
               }}
-              onCancel={() => { setLogOpen(false); setLogDate(null); }}
+              onCancel={() => { setLogOpen(false); setLogDate(null); setLogPreset(null); }}
               defaultDate={logDate ?? undefined}
+              defaultHeading={logPreset?.heading}
+              defaultSessionType={logPreset?.sessionType}
+              defaultSubSkillTag={logPreset?.subSkillTag}
             />
           </div>
         </div>
