@@ -10,6 +10,7 @@ type Phase = 'loading' | 'fading' | 'ready';
 interface Props {
   ready: boolean;
   children: React.ReactNode;
+  loadingMessages?: string[];
 }
 
 export default function PageContent({ ready, children }: Props) {
