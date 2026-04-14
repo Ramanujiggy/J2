@@ -1,12 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { ChevronRight } from 'lucide-react';
 import { api } from '../lib/api.ts';
-import { PALE_YELLOW, GLOW_SOFT, SURFACE_2 } from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, SURFACE_2, COPPER } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
-import { CATEGORY_COLORS } from '../lib/constants.ts';
-import type { Intention, IntentionsResponse } from '../types/api.ts';
+import { CATEGORY_COLORS, SKILL_TAGS, MONTH_NAMES } from '../lib/constants.ts';
+import { formatDuration, INTENSITY_COLOR } from '../lib/sessionUtils.ts';
+import { vibrate } from '../lib/haptics.ts';
+import type { Intention, IntentionsResponse, SessionSummary, SessionsResponse } from '../types/api.ts';
 import PageContent from '../components/PageContent.tsx';
+import SessionDetailModal from '../components/SessionDetailModal.tsx';
 import { formatWeekLong } from '../lib/analyticsUtils.ts';
 
 export default function JournalEntryPage() {
@@ -16,6 +20,8 @@ export default function JournalEntryPage() {
   const { intentionsEnabled } = useProfile();
 
   const [intention, setIntention] = useState<Intention | null>(null);
+  const [sessions, setSessions] = useState<SessionSummary[]>([]);
+  const [selectedSession, setSelectedSession] = useState<SessionSummary | null>(null);
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -23,13 +29,28 @@ export default function JournalEntryPage() {
   const [error, setError] = useState('');
   const saveTimeout  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const textareaRef  = useRef<HTMLTextAreaElement>(null);
+  const textInitialized = useRef(false);
 
   const fetchIntention = useCallback(async () => {
     try {
       const data = await api.get<IntentionsResponse>('/api/intentions');
       const found = (data.intentions ?? []).find(i => i.id === id) ?? null;
       setIntention(found);
-      if (found?.journal_entry) setText(found.journal_entry);
+      // Only initialize text on first load — preserve in-progress edits on re-fetch
+      if (found?.journal_entry && !textInitialized.current) {
+        setText(found.journal_entry);
+        textInitialized.current = true;
+      }
+
+      // Fetch sessions within the intention's date window
+      if (found) {
+        const from = found.week_start.slice(0, 10);
+        const endDate = new Date(from + 'T00:00:00');
+        endDate.setDate(endDate.getDate() + found.duration_days - 1);
+        const to = endDate.toISOString().slice(0, 10);
+        const sesRes = await api.get<SessionsResponse>(`/api/sessions?from=${from}&to=${to}`);
+        setSessions(sesRes.sessions ?? []);
+      }
     } catch {
       setError('Could not load intention. Please go back and try again.');
     } finally {
@@ -193,6 +214,100 @@ export default function JournalEntryPage() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* ── Associated Sessions ────────────────────────────────── */}
+      <div>
+        <div className="flex items-center justify-between mb-2.5">
+          <h3 className="text-lg font-semibold" style={{ color: 'rgba(255,255,255,0.80)' }}>
+            Sessions
+          </h3>
+          {sessions.length > 0 && (
+            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.30)' }}>
+              {sessions.length} logged
+            </span>
+          )}
+        </div>
+
+        {/* Mini summary */}
+        {sessions.length > 0 && (() => {
+          const totalMin = sessions.reduce((s, ses) => s + ses.duration, 0);
+          return (
+            <p className="text-xs mb-2.5" style={{ color: 'rgba(255,255,255,0.30)' }}>
+              {formatDuration(totalMin)} across {sessions.length} session{sessions.length !== 1 ? 's' : ''}
+            </p>
+          );
+        })()}
+
+        {sessions.length > 0 ? (
+          <div className="space-y-2">
+            {sessions.map(session => {
+              const d = new Date(session.date + 'T00:00:00');
+              const dateLabel = `${MONTH_NAMES[d.getMonth()]} ${d.getDate()}`;
+              const primaryTag = session.tags?.[0];
+              const tagLabel = primaryTag ? (SKILL_TAGS.find(s => s.value === primaryTag)?.label ?? primaryTag) : null;
+              const intensityColor = INTENSITY_COLOR[session.intensity] ?? 'rgba(255,255,255,0.3)';
+
+              return (
+                <button
+                  key={session.id}
+                  onClick={() => { vibrate(8); setSelectedSession(session); }}
+                  className="w-full text-left rounded-xl px-4 py-3 flex items-center gap-3 j2-press touch-manipulation"
+                  style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}
+                >
+                  {/* Intensity dot */}
+                  <span
+                    className="flex-shrink-0 rounded-full"
+                    style={{ width: 8, height: 8, backgroundColor: intensityColor }}
+                  />
+
+                  {/* Session info */}
+                  <div className="flex-1 min-w-0 flex items-center gap-2">
+                    <span className="text-sm" style={{ color: 'rgba(255,255,255,0.80)' }}>
+                      {dateLabel}
+                    </span>
+                    <span className="text-xs" style={{ color: 'rgba(255,255,255,0.30)' }}>·</span>
+                    <span className="text-xs" style={{ color: 'rgba(255,255,255,0.50)' }}>
+                      {formatDuration(session.duration)}
+                    </span>
+                    {tagLabel && (
+                      <>
+                        <span className="text-xs" style={{ color: 'rgba(255,255,255,0.30)' }}>·</span>
+                        <span className="text-xs font-medium truncate" style={{ color: COPPER }}>
+                          {tagLabel}
+                        </span>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Chevron */}
+                  <ChevronRight size={14} strokeWidth={2} style={{ color: 'rgba(255,255,255,0.15)', flexShrink: 0 }} />
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div
+            className="rounded-xl px-5 py-4"
+            style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}
+          >
+            <p className="text-sm italic" style={{ color: 'rgba(255,255,255,0.30)' }}>
+              No sessions logged during this period.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* ── Session Detail Modal ──────────────────────────────── */}
+      {selectedSession && (
+        <SessionDetailModal
+          session={selectedSession}
+          date={new Date(selectedSession.date + 'T00:00:00')}
+          intention={{ intent_label: intention.intent_label, intent_category: intention.intent_category }}
+          onClose={() => setSelectedSession(null)}
+          onSaved={() => { setSelectedSession(null); fetchIntention(); }}
+          onDeleted={() => { setSelectedSession(null); fetchIntention(); }}
+        />
       )}
 
     </div>
