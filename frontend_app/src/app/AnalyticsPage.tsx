@@ -1,18 +1,19 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ChevronRight } from 'lucide-react';
 import { api, ApiError } from '../lib/api.ts';
 import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import SkillRadar from '../components/SkillRadar.tsx';
 import ErrorBoundary from '../components/ErrorBoundary.tsx';
-import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER_BORDER, CARD_SHADOW } from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER, COPPER_BORDER, CARD_SHADOW, SURFACE_2, SURFACE_2_BORDER } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import type { SessionSummary, SessionsResponse, Intention } from '../types/api.ts';
 import PageContent from '../components/PageContent.tsx';
-import { CATEGORY_COLORS } from '../lib/constants.ts';
+import { SKILL_TAGS, CATEGORY_COLORS } from '../lib/constants.ts';
 import { type TimeWindow, WINDOW_DAYS, formatWeekShort, topTagInRange, computeAlignment } from '../lib/analyticsUtils.ts';
 import { useCountUp } from '../hooks/useCountUp.ts';
-import { SKILL_TAGS } from '../lib/constants.ts';
-import { SURFACE_2, SURFACE_2_BORDER } from '../lib/theme.ts';
+import { vibrate } from '../lib/haptics.ts';
 
 const LS_WINDOW_KEY = 'j2-analytics-timeWindow';
 
@@ -23,6 +24,7 @@ const WINDOW_LABELS: Partial<Record<TimeWindow, string>> = {
 };
 
 export default function AnalyticsPage() {
+  const navigate = useNavigate();
   const isDesktop = useIsDesktop();
   const [sessions,    setSessions]    = useState<SessionSummary[]>([]);
   const [intentions,  setIntentions]  = useState<Intention[]>([]);
@@ -225,90 +227,132 @@ export default function AnalyticsPage() {
         </ErrorBoundary>
       </div>
 
-      {/* ── Intention vs Ambient Focus ─────────────────────────── */}
-      {intentions.length > 0 && (
+      {/* ── Intention Alignment ────────────────────────────────── */}
+      {intentions.length > 0 ? (
         <div className="animate-j2-card-enter" style={{ animationDelay: '120ms' }}>
-          <h3 style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.60)', letterSpacing: '0.04em' }}>
-            Intention vs Training Telemetry
-          </h3>
+          {/* Section header */}
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold" style={{ color: 'rgba(255,255,255,0.80)' }}>
+              Intention vs Training Telemetry
+            </h3>
+            <button
+              onClick={() => { vibrate(8); navigate('/intentions'); }}
+              className="flex items-center gap-0.5 text-xs font-medium touch-manipulation j2-press"
+              style={{ color: COPPER }}
+            >
+              View all <ChevronRight size={13} strokeWidth={2} />
+            </button>
+          </div>
 
-          <div
-            className="mt-3 rounded-2xl overflow-hidden"
-            style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}
-          >
-              {/* Column headers */}
-              <div className="hidden sm:grid grid-cols-[80px_1fr_1fr] gap-4 px-4 pt-3 pb-2">
-                <span className="text-[11px] text-white/25 uppercase tracking-wide">Week</span>
-                <span className="text-[11px] text-white/25 uppercase tracking-wide">Intention</span>
-                <span className="text-[11px] text-white/25 uppercase tracking-wide">Training Telemetry</span>
-              </div>
+          {/* Intention cards — matching IntentionsPage visual pattern */}
+          <div className="space-y-2.5">
+            {intentions.map(intention => {
+              const top       = topTagInRange(allSessions, intention.week_start, intention.duration_days);
+              const alignment = computeAlignment(intention, top);
+              const headingLabel = intention.heading
+                ? (SKILL_TAGS.find(s => s.value === intention.heading)?.label ?? intention.heading)
+                : null;
 
-              <div className="sm:divide-y sm:divide-white/[0.05] flex flex-col sm:block gap-2 sm:gap-0 p-3 sm:p-0">
-                {intentions.map(intention => {
-                  const top         = topTagInRange(allSessions, intention.week_start, intention.duration_days);
-                  const alignment   = computeAlignment(intention, top);
-                  const alignColor  = alignment === 'aligned'  ? 'rgba(82,181,108,0.85)'
-                                    : alignment === 'diverged' ? 'rgba(218,116,34,0.6)'
-                                    : 'rgba(255,255,255,0.08)';
-                  const alignTitle  = alignment === 'aligned'  ? 'Training aligned with intention'
-                                    : alignment === 'diverged' ? 'Training diverged from intention'
-                                    : 'No sessions logged';
-                  const categoryColor = CATEGORY_COLORS[intention.intent_category ?? ''] ?? 'rgba(255,255,255,0.3)';
-                  return (
-                    <div
-                      key={intention.id}
-                      className="grid sm:grid-cols-[80px_1fr_1fr] gap-2 sm:gap-4 sm:items-center px-3 sm:px-4 py-3
-                                 rounded-xl sm:rounded-none
-                                 bg-white/[0.03] sm:bg-transparent
-                                 border border-white/[0.07] sm:border-0"
-                    >
-                      {/* Week */}
-                      <span className="text-[11px] font-medium tracking-wide uppercase text-white/30 sm:text-xs sm:font-normal sm:tracking-normal sm:normal-case sm:text-white/35">
+              return (
+                <button
+                  key={intention.id}
+                  onClick={() => { vibrate(8); navigate(`/intentions/${intention.id}/journal`); }}
+                  className="w-full text-left rounded-xl px-4 py-3.5 flex items-center gap-3 j2-press touch-manipulation"
+                  style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}
+                >
+                  {/* Alignment bar */}
+                  <div
+                    className="rounded-full flex-shrink-0"
+                    style={{
+                      width: 4, height: 32,
+                      backgroundColor: alignment === 'aligned'  ? 'rgba(82,181,108,0.70)'
+                                     : alignment === 'diverged' ? 'rgba(218,116,34,0.50)'
+                                     : 'rgba(255,255,255,0.06)',
+                    }}
+                  />
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.90)' }}>
+                        {headingLabel ?? intention.intent_label}
+                      </span>
+                      <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.30)' }}>
                         {formatWeekShort(intention.week_start)}
                       </span>
-
-                      {/* Intention */}
-                      <div className="flex items-center gap-2 min-w-0">
-                        {intention.intent_category && (
-                          <span
-                            className="text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0 font-medium capitalize"
-                            style={{ backgroundColor: `${categoryColor}20`, color: categoryColor }}
-                          >
-                            {intention.intent_category}
-                          </span>
-                        )}
-                        <span className="text-sm text-white/80 truncate">{intention.intent_label}</span>
-                      </div>
-
-                      {/* Ambient Focus + alignment dot */}
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          title={alignTitle}
-                          style={{
-                            display: 'inline-block', width: 7, height: 7, borderRadius: '50%',
-                            backgroundColor: alignColor, flexShrink: 0,
-                          }}
-                        />
-                        {top ? (
-                          <>
-                            <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(218,116,34,0.85)' }}>
-                              ◎ {top.label}
-                            </span>
-                            {top.count > 1 && (
-                              <span style={{ fontSize: 12, color: 'rgba(218,116,34,0.45)' }}>
-                                × {top.count}
-                              </span>
-                            )}
-                          </>
-                        ) : (
-                          <span className="text-xs text-white/20 italic">— no sessions</span>
-                        )}
-                      </div>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {top ? (
+                        <>
+                          <span className="text-xs font-medium" style={{ color: COPPER }}>
+                            Trained: {top.label}
+                          </span>
+                          {alignment !== 'no-data' && (
+                            <span className="text-[10px]" style={{
+                              color: alignment === 'aligned' ? 'rgba(82,181,108,0.65)' : 'rgba(218,116,34,0.50)',
+                            }}>
+                              {alignment === 'aligned' ? 'Aligned' : 'Diverged'}
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-xs italic" style={{ color: 'rgba(255,255,255,0.20)' }}>
+                          No sessions logged
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Chevron */}
+                  <ChevronRight size={14} strokeWidth={2} style={{ color: 'rgba(255,255,255,0.15)', flexShrink: 0 }} />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : allSessions.length > 0 ? (
+        /* ── Nudge: has sessions but no intentions ──────────── */
+        <div
+          className="rounded-xl px-5 py-4 animate-j2-card-enter"
+          style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)', animationDelay: '120ms' }}
+        >
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.40)' }}>
+            Set a training intention to see how your focus aligns with your mat time.
+          </p>
+          <button
+            onClick={() => navigate('/home')}
+            className="text-xs font-medium mt-2 touch-manipulation j2-press"
+            style={{ color: COPPER }}
+          >
+            Set Intent →
+          </button>
+        </div>
+      ) : null}
+
+      {/* ── Empty state: no sessions at all ──────────────────── */}
+      {allSessions.length === 0 && !loading && (
+        <div
+          className="rounded-2xl text-center animate-j2-card-enter"
+          style={{
+            backgroundColor: CARD_BG,
+            border: `1px solid ${COPPER_BORDER}`,
+            boxShadow: CARD_SHADOW,
+            padding: '40px 24px',
+          }}
+        >
+          <h3 className="text-lg font-semibold mb-2" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
+            Your Analytics Await
+          </h3>
+          <p className="text-sm mb-4 leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>
+            Log your first session to start seeing your training data here.
+          </p>
+          <button
+            onClick={() => navigate('/home')}
+            className="text-sm font-medium touch-manipulation j2-press"
+            style={{ color: COPPER }}
+          >
+            Go to Home →
+          </button>
         </div>
       )}
 
