@@ -78,6 +78,11 @@ export interface BulkSessionInput {
     session_type: 'drilling' | 'class' | 'competition_training';
     tags: string[];
     notes: string;
+    heading?: string | null;
+    polarity?: string | null;
+    sub_skill_tag?: string | null;
+    script_source?: string | null;
+    resonance?: number | null;
 }
 
 export const bulkInsertSessions = async (userId: string, sessions: BulkSessionInput[]): Promise<number> => {
@@ -94,13 +99,17 @@ export const bulkInsertSessions = async (userId: string, sessions: BulkSessionIn
 
         for (const s of sessions) {
             valuePlaceholders.push(
-                `($${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++})`,
+                `($${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++})`,
             );
-            flatParams.push(userId, s.date, s.duration, s.notes || null, s.gi_nogi, s.intensity, s.session_type, s.tags);
+            flatParams.push(
+                userId, s.date, s.duration, s.notes || null, s.gi_nogi, s.intensity, s.session_type, s.tags,
+                s.heading ?? null, s.polarity ?? null, s.sub_skill_tag ?? null, s.script_source ?? null, s.resonance ?? null,
+            );
         }
 
         await client.query(
-            `INSERT INTO training_sessions (user_id, date, duration, notes, gi_nogi, intensity, session_type, tags)
+            `INSERT INTO training_sessions (user_id, date, duration, notes, gi_nogi, intensity, session_type, tags,
+                                            heading, polarity, sub_skill_tag, script_source, resonance)
              VALUES ${valuePlaceholders.join(', ')}`,
             flatParams,
         );

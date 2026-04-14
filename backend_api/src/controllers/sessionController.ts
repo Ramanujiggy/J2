@@ -206,6 +206,31 @@ export const importSessions = async (req: Request, res: Response): Promise<void>
                 return;
             }
 
+            // Optional migration-005 fields — validate only if present
+            if (s.heading !== undefined && s.heading !== null && !VALID_TAGS.has(s.heading)) {
+                res.status(400).json({ message: `${rowLabel}: invalid heading.` });
+                return;
+            }
+            if (s.polarity !== undefined && s.polarity !== null && !VALID_POLARITIES.has(s.polarity)) {
+                res.status(400).json({ message: `${rowLabel}: invalid polarity.` });
+                return;
+            }
+            if (s.script_source !== undefined && s.script_source !== null && !VALID_SOURCES.has(s.script_source)) {
+                res.status(400).json({ message: `${rowLabel}: invalid script_source.` });
+                return;
+            }
+            if (s.sub_skill_tag !== undefined && s.sub_skill_tag !== null) {
+                if (typeof s.sub_skill_tag !== 'string' || s.sub_skill_tag.length > 50) {
+                    res.status(400).json({ message: `${rowLabel}: sub_skill_tag must be a string ≤ 50 chars.` });
+                    return;
+                }
+            }
+            const resNum = (s.resonance !== undefined && s.resonance !== null) ? Number(s.resonance) : null;
+            if (resNum !== null && (!Number.isInteger(resNum) || resNum < 1 || resNum > 10)) {
+                res.status(400).json({ message: `${rowLabel}: resonance must be an integer 1–10.` });
+                return;
+            }
+
             validated.push({
                 date: s.date,
                 duration: dur,
@@ -214,6 +239,11 @@ export const importSessions = async (req: Request, res: Response): Promise<void>
                 session_type: s.session_type,
                 tags: s.tags,
                 notes: typeof s.notes === 'string' ? s.notes : '',
+                heading: s.heading ?? null,
+                polarity: s.polarity ?? null,
+                sub_skill_tag: s.sub_skill_tag ?? null,
+                script_source: s.script_source ?? null,
+                resonance: resNum,
             });
         }
 

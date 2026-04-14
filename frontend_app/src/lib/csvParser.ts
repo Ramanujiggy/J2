@@ -17,6 +17,11 @@ export interface ParsedRow {
   errors: string[];
   isDuplicate: boolean;
   skip: boolean;
+  heading: string | null;
+  polarity: string | null;
+  sub_skill_tag: string | null;
+  script_source: string | null;
+  resonance: number | null;
 }
 
 // ── Date parsing ────────────────────────────────────────────────────────────
@@ -70,10 +75,10 @@ function parseDuration(raw: string): number | null {
   const s = raw.trim();
   if (!s) return null;
 
-  // Plain number (treated as decimal hours, e.g. "1.5" → 90)
+  // Plain number: if > 12, treat as minutes (e.g. "90" → 90); otherwise hours (e.g. "1.5" → 90)
   const asNum = parseFloat(s);
   if (!isNaN(asNum) && asNum > 0) {
-    return Math.round(asNum * 60);
+    return asNum > 12 ? Math.round(asNum) : Math.round(asNum * 60);
   }
 
   // "90 mins" / "90 min" / "90m"
@@ -95,18 +100,22 @@ function parseDuration(raw: string): number | null {
 
 // ── Column header normalizer ─────────────────────────────────────────────────
 
-type ColKey = 'date' | 'duration' | 'notes' | 'restriction' | 'ignore';
+export type ColKey = 'date' | 'duration' | 'notes' | 'restriction' | 'heading' | 'polarity' | 'script_source' | 'sub_skill_tag' | 'resonance' | 'ignore';
 
-function classifyHeader(h: string): ColKey {
+export function classifyHeader(h: string): ColKey {
   const lower = h.toLowerCase().replace(/[^a-z0-9]/g, '');
   if (['date'].includes(lower)) return 'date';
   if (['hrs', 'hrs', 'duration', 'hours', 'hrstime', 'time'].includes(lower)) return 'duration';
   if (['goalsdrillinggoals', 'goals', 'drilling', 'notes', 'focus', 'goalsdrillings',
        'goaldrilling', 'goalsdrilling'].includes(lower)) return 'notes';
   if (lower === 'restriction') return 'restriction';
+  if (['heading', 'pillar'].includes(lower)) return 'heading';
+  if (['polarity'].includes(lower)) return 'polarity';
+  if (['scriptsource', 'script', 'source'].includes(lower)) return 'script_source';
+  if (['subskill', 'subskilltag'].includes(lower)) return 'sub_skill_tag';
+  if (['resonance'].includes(lower)) return 'resonance';
   if (lower.startsWith('hrsrunning') || lower.startsWith('runningtotal') ||
       lower === 'total' || lower === 'runninghrs') return 'ignore';
-  // fuzzy: contains 'running' → ignore
   if (lower.includes('running')) return 'ignore';
   return 'ignore';
 }
@@ -138,6 +147,11 @@ export function parseCSV(
         let durationVal: number | null = null;
         let notesVal = '';
         let restrictionVal = '';
+        let headingVal: string | null = null;
+        let polarityVal: string | null = null;
+        let scriptSourceVal: string | null = null;
+        let subSkillTagVal: string | null = null;
+        let resonanceVal: number | null = null;
 
         for (const [col, val] of Object.entries(raw)) {
           const key = colMap[col];
@@ -146,6 +160,11 @@ export function parseCSV(
           if (key === 'duration') durationVal = parseDuration(val);
           if (key === 'notes') notesVal = val.trim();
           if (key === 'restriction') restrictionVal = val.trim();
+          if (key === 'heading') { const v = val.trim().toLowerCase(); if (v) headingVal = v; }
+          if (key === 'polarity') { const v = val.trim().toLowerCase(); if (v) polarityVal = v; }
+          if (key === 'script_source') { const v = val.trim().toLowerCase(); if (v) scriptSourceVal = v; }
+          if (key === 'sub_skill_tag') { const v = val.trim(); if (v) subSkillTagVal = v; }
+          if (key === 'resonance') { const n = parseInt(val.trim()); if (!isNaN(n) && n >= 1 && n <= 10) resonanceVal = n; }
         }
 
         // Merge restriction into notes
@@ -173,6 +192,11 @@ export function parseCSV(
           errors,
           isDuplicate: dateVal ? existingDates.has(dateVal) : false,
           skip: false,
+          heading: headingVal,
+          polarity: polarityVal,
+          sub_skill_tag: subSkillTagVal,
+          script_source: scriptSourceVal,
+          resonance: resonanceVal,
         });
       });
 

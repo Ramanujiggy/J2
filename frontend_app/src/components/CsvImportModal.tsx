@@ -93,6 +93,12 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
     }));
   };
 
+  const [bulkTagOpen, setBulkTagOpen] = useState(false);
+  const setAllMissingTags = (tag: SkillTagValue) => {
+    setRows(prev => prev.map(r => r.skip || r.tags.length > 0 ? r : { ...r, tags: [tag] }));
+    setBulkTagOpen(false);
+  };
+
   // ── Import ───────────────────────────────────────────────────────────────
 
   const handleImport = async () => {
@@ -108,6 +114,11 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
       session_type: r.session_type,
       tags: r.tags,
       notes: r.notes || '',
+      heading: r.heading ?? null,
+      polarity: r.polarity ?? null,
+      sub_skill_tag: r.sub_skill_tag ?? null,
+      script_source: r.script_source ?? null,
+      resonance: r.resonance ?? null,
     }));
 
     try {
@@ -245,6 +256,31 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
                 >
                   Set all missing durations to 60 min
                 </button>
+              )}
+              {rows.some(r => !r.skip && r.tags.length === 0) && (
+                <span className="relative ml-2 inline-block">
+                  <button
+                    onClick={() => setBulkTagOpen(!bulkTagOpen)}
+                    className="text-xs underline"
+                    style={{ color: COPPER_DIM }}
+                  >
+                    Set all missing tags to…
+                  </button>
+                  {bulkTagOpen && (
+                    <span className="absolute left-0 top-full mt-1 z-10 flex flex-wrap gap-1 p-2 rounded-lg" style={{ backgroundColor: SURFACE_3, border: `1px solid ${SURFACE_3_BORDER}`, minWidth: 200 }}>
+                      {SKILL_TAGS.map(tag => (
+                        <button
+                          key={tag.value}
+                          onClick={() => setAllMissingTags(tag.value as SkillTagValue)}
+                          className="text-[10px] px-2 py-1 rounded-full transition-colors"
+                          style={{ backgroundColor: 'rgba(196,145,95,0.2)', color: COPPER_DIM, border: `1px solid ${COPPER_BORDER}` }}
+                        >
+                          {tag.label}
+                        </button>
+                      ))}
+                    </span>
+                  )}
+                </span>
               )}
             </div>
 
