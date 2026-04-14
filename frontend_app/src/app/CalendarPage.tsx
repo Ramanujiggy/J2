@@ -4,7 +4,7 @@ import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import TrainingHeatmap from '../components/TrainingHeatmap.tsx';
 import CompactHeatmap from '../components/CompactHeatmap.tsx';
-import HeatmapPreviewWidget from '../components/HeatmapPreviewWidget.tsx';
+import CalendarHeatmap from '../components/CalendarHeatmap.tsx';
 import LogSessionForm from '../components/LogSessionForm.tsx';
 import ErrorBoundary from '../components/ErrorBoundary.tsx';
 import { LayoutGrid, CalendarDays } from 'lucide-react';
@@ -177,7 +177,11 @@ export default function CalendarPage() {
         >
           {calView === 'compact' ? (
             isDesktop ? (
-              <HeatmapPreviewWidget sessions={allSessions} />
+              <CalendarHeatmap
+                sessions={allSessions}
+                year={displayYear}
+                onLogSession={(dateKey) => setLogDate(dateKey)}
+              />
             ) : (
               <CompactHeatmap
                 sessions={allSessions}
