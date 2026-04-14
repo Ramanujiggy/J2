@@ -95,27 +95,33 @@ describe('PathAheadPage — Rep Roulette FAB', () => {
     expect(fab).toBeInTheDocument();
   });
 
-  it('opens bottom sheet on FAB click and shows drill content', async () => {
+  it('opens card on FAB click and shows drill content', async () => {
     renderPage();
     const fab = await screen.findByLabelText('Rep Roulette');
     fireEvent.click(fab);
 
-    // Bottom sheet should appear with "Rep Roulette" header and a drill name
+    // Advance past the morph animation timeout (380ms)
+    vi.advanceTimersByTime(400);
+
     await waitFor(() => {
       expect(screen.getByText('Rep Roulette')).toBeInTheDocument();
       expect(screen.getByText('Log this drill →')).toBeInTheDocument();
     });
   });
 
-  it('closes bottom sheet via Close button', async () => {
+  it('closes card via close button', async () => {
     renderPage();
     const fab = await screen.findByLabelText('Rep Roulette');
     fireEvent.click(fab);
+    vi.advanceTimersByTime(400);
 
-    const closeBtn = await screen.findByText('Close');
+    const closeBtn = await screen.findByLabelText('Close roulette');
     fireEvent.click(closeBtn);
 
-    // FAB should reappear
+    // Advance past the close animation timeout (350ms)
+    vi.advanceTimersByTime(400);
+
+    // The container should revert to FAB state (collapsed, still has aria-label)
     await waitFor(() => {
       expect(screen.getByLabelText('Rep Roulette')).toBeInTheDocument();
     });
