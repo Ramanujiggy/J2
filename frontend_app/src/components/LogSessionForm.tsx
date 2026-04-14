@@ -222,7 +222,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
             SECTION 1: The Basics
             ══════════════════════════════════════════════════════════════ */}
         <div className="rounded-xl px-4 py-4 space-y-4" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
-          <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.28)' }}>
+          <span className="text-xs font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.40)' }}>
             The Basics
           </span>
 
@@ -242,7 +242,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
 
           {/* Duration — preset pills + stepper */}
           <div className="space-y-2">
-            <div className="flex gap-1.5">
+            <div className="flex gap-2">
               {DURATION_PRESETS.map(m => {
                 const active = durationMinutes === m;
                 return (
@@ -324,7 +324,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
                   key={label}
                   className="flex-1 text-center"
                   style={{
-                    fontSize: 9,
+                    fontSize: 11,
                     color: form.intensity === i + 1 ? 'rgba(255,255,255,0.50)' : 'rgba(255,255,255,0.22)',
                     fontWeight: form.intensity === i + 1 ? 600 : 400,
                     transition: 'color 200ms ease',
@@ -400,7 +400,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
             SECTION 3: Details (optional)
             ══════════════════════════════════════════════════════════════ */}
         <div className="rounded-xl px-4 py-4 space-y-3" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
-          <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.25)' }}>
+          <span className="text-xs font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.40)' }}>
             Details
           </span>
 
@@ -424,7 +424,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
             />
             {/* Recent tag chips */}
             {recentTags.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-2">
+              <div className="flex flex-wrap gap-2 mt-2">
                 {recentTags.map(tag => {
                   const active = subSkillTag === tag;
                   return (
@@ -435,7 +435,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
                         vibrate(6);
                         setSubSkillTag(prev => prev === tag ? '' : tag);
                       }}
-                      className="rounded-lg px-3 py-1.5 text-xs font-medium transition-all touch-manipulation"
+                      className="rounded-lg px-3 py-2 text-xs font-medium transition-all touch-manipulation j2-press"
                       style={{
                         backgroundColor: active ? COPPER : SURFACE_3,
                         color: active ? '#fff' : 'rgba(255,255,255,0.40)',

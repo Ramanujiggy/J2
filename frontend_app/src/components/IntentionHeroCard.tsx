@@ -138,14 +138,14 @@ export default function IntentionHeroCard({ intention, onSetIntent, onDeleteInte
                 {deleteConfirm && (
                   <button
                     onClick={() => setDeleteConfirm(false)}
-                    className="py-2 px-2 text-xs text-white/25 hover:text-white/50 transition-colors"
+                    className="py-2.5 px-3 text-sm text-white/25 hover:text-white/50 transition-colors min-h-[40px] touch-manipulation"
                   >
                     x
                   </button>
                 )}
                 <button
                   onClick={handleDelete}
-                  className="py-2 px-3 text-xs transition-colors flex-shrink-0"
+                  className="py-2.5 px-4 text-sm transition-colors flex-shrink-0 min-h-[40px] touch-manipulation"
                   style={{ color: deleteConfirm ? 'rgba(248,113,113,0.85)' : 'rgba(255,255,255,0.25)' }}
                 >
                   {deleteConfirm ? 'Confirm?' : 'Delete'}
@@ -158,7 +158,7 @@ export default function IntentionHeroCard({ intention, onSetIntent, onDeleteInte
         /* ── No intention — invitational ─────────────────────────── */
         <button
           onClick={onSetIntent}
-          className="w-full rounded-xl px-5 py-4 text-left touch-manipulation"
+          className="w-full rounded-xl px-5 py-4 text-left touch-manipulation j2-press"
           style={{
             backgroundColor: SURFACE_2,
             border: `1px dashed rgba(196,145,95,0.35)`,
