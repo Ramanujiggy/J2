@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.ts';
-import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER_BORDER, CARD_SHADOW } from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, SURFACE_2 } from '../lib/theme.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import { CATEGORY_COLORS, MONTH_NAMES } from '../lib/constants.ts';
 import type { Intention, IntentionsResponse } from '../types/api.ts';
@@ -41,7 +41,6 @@ export default function JournalEntryPage() {
 
   useEffect(() => { fetchIntention(); }, [fetchIntention]);
 
-  // Auto-resize textarea to fit content — runs on mount and every text change
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
@@ -49,7 +48,6 @@ export default function JournalEntryPage() {
     el.style.height = `${el.scrollHeight}px`;
   }, [text]);
 
-  // Autosave 1.5s after the user stops typing
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
     setText(val);
@@ -88,7 +86,8 @@ export default function JournalEntryPage() {
         <p className="text-sm text-red-400">Intention not found.</p>
         <button
           onClick={() => navigate('/intentions')}
-          className="mt-4 text-sm text-white/40 hover:text-white transition-colors"
+          className="mt-4 text-sm transition-colors"
+          style={{ color: 'rgba(255,255,255,0.40)' }}
         >
           ← Back to Intentions
         </button>
@@ -99,7 +98,8 @@ export default function JournalEntryPage() {
       {/* Back */}
       <button
         onClick={() => navigate('/intentions')}
-        className="text-sm text-white/40 hover:text-white transition-colors flex items-center gap-1.5"
+        className="text-sm flex items-center gap-1.5 transition-colors touch-manipulation"
+        style={{ color: 'rgba(255,255,255,0.40)' }}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
           <path d="M15 18l-6-6 6-6" />
@@ -116,58 +116,82 @@ export default function JournalEntryPage() {
           {intention.intent_label}
         </h2>
         <div className="flex items-center gap-2 mt-1.5">
-          <span className="text-xs text-white/35">{formatWeek(intention.week_start)}</span>
+          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            {formatWeek(intention.week_start)}
+          </span>
           {categoryColor && (
             <>
-              <span className="text-white/15">·</span>
+              <span style={{ color: 'rgba(255,255,255,0.15)' }}>·</span>
               <span
-                className="text-[10px] px-1.5 py-0.5 rounded-full font-medium capitalize"
+                className="text-[10px] px-2 py-0.5 rounded-lg font-medium capitalize"
                 style={{ backgroundColor: `${categoryColor}20`, color: categoryColor }}
               >
                 {intention.intent_category}
               </span>
             </>
           )}
-          <span className="text-white/15">·</span>
-          <span className="text-xs text-white/35">{intention.duration_days}d intention</span>
+          <span style={{ color: 'rgba(255,255,255,0.15)' }}>·</span>
+          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            {intention.duration_days}d intention
+          </span>
         </div>
       </div>
 
       {/* Journal card */}
       <div
-        className="rounded-2xl p-5"
-        style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}
+        className="rounded-xl px-5 py-5"
+        style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}
       >
-        <p className="text-xs text-white/35 mb-3 font-medium uppercase tracking-wide">Journal Entry</p>
+        <p
+          className="text-[10px] font-medium uppercase tracking-widest mb-3"
+          style={{ color: 'rgba(255,255,255,0.25)' }}
+        >
+          Journal Entry
+        </p>
         {!intentionsEnabled && (
-          <p className="text-xs text-white/25 mb-3 italic">Intentions are disabled — entry is read-only.</p>
+          <p className="text-xs mb-3 italic" style={{ color: 'rgba(255,255,255,0.22)' }}>
+            Intentions are disabled — entry is read-only.
+          </p>
         )}
         <textarea
           ref={textareaRef}
           value={text}
           onChange={intentionsEnabled ? handleChange : undefined}
           readOnly={!intentionsEnabled}
-          placeholder="Describe the context and goals of your training intentions this week…"
-          className="w-full bg-transparent resize-none outline-none text-sm text-white/80 placeholder-white/20 leading-relaxed"
-          style={{ minHeight: 200, height: 'auto', cursor: intentionsEnabled ? 'text' : 'default' }}
+          placeholder="Describe the context and goals of your training intentions this week..."
+          className="w-full bg-transparent resize-none outline-none text-sm leading-relaxed placeholder-white/20"
+          style={{
+            minHeight: 200,
+            height: 'auto',
+            color: 'rgba(255,255,255,0.75)',
+            cursor: intentionsEnabled ? 'text' : 'default',
+          }}
           autoFocus={intentionsEnabled}
         />
       </div>
 
-      {/* Footer: status + save */}
+      {/* Save area */}
       {intentionsEnabled && (
         <div className="flex items-center justify-between">
-          <span className="text-xs text-white/25">
-            {saving ? 'Saving…' : saved ? 'Saved' : ''}
+          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>
+            {saving ? 'Saving...' : saved ? 'Saved' : ''}
           </span>
           <div className="flex items-center gap-3">
             {error && <span className="text-xs text-red-400">{error}</span>}
             <button
               onClick={handleSave}
               disabled={saving}
-              className="bg-brand-orange hover:bg-brand-orange/90 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2 rounded-full transition-colors"
+              className="text-white font-semibold rounded-xl transition-all touch-manipulation disabled:opacity-50"
+              style={{
+                height: 44,
+                paddingLeft: 24,
+                paddingRight: 24,
+                backgroundColor: '#DA7422',
+                boxShadow: '0 2px 12px rgba(218,116,34,0.25)',
+                fontSize: 14,
+              }}
             >
-              {saving ? 'Saving…' : 'Save'}
+              {saving ? 'Saving...' : 'Save'}
             </button>
           </div>
         </div>

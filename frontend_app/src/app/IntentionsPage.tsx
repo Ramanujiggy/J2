@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Pencil } from 'lucide-react';
 import { api } from '../lib/api.ts';
-import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER_BORDER, SURFACE_2, SURFACE_2_BORDER } from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, COPPER, COPPER_BORDER, SURFACE_2, SURFACE_3 } from '../lib/theme.ts';
 import { SKILL_TAGS, CATEGORY_COLORS, MONTH_NAMES } from '../lib/constants.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import type { Intention, SessionSummary, IntentionsResponse, SessionsResponse } from '../types/api.ts';
@@ -14,7 +14,6 @@ function formatWeek(weekStart: string): string {
   return `${MONTH_NAMES[d.getMonth()]} ${d.getDate()}`;
 }
 
-// Returns the most-trained skill tag label over the intention's actual duration window
 function ambientFocus(sessions: SessionSummary[], weekStart: string, durationDays: number): string | null {
   const weekStartSlice = weekStart.slice(0, 10);
   const endDate = new Date(weekStartSlice + 'T00:00:00');
@@ -33,7 +32,6 @@ function ambientFocus(sessions: SessionSummary[], weekStart: string, durationDay
   return top ? (SKILL_TAGS.find(s => s.value === top)?.label ?? top) : null;
 }
 
-// Checks if the intent label text overlaps meaningfully with the ambient focus label
 function computeAlignment(intentLabel: string, ambientLabel: string | null): 'aligned' | 'diverged' | 'no-data' {
   if (!ambientLabel) return 'no-data';
   const norm = (s: string) => s.toLowerCase();
@@ -72,136 +70,167 @@ export default function IntentionsPage() {
     <PageContent ready={!loading} loadingMessages={['Loading your intentions...']}>
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-5">
 
-      <h2
-        className="text-2xl font-bold tracking-tight"
-        style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}
-      >
-        Intentions
-      </h2>
+      {/* Header */}
+      <div>
+        <h2
+          className="text-2xl font-bold tracking-tight"
+          style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}
+        >
+          Intentions
+        </h2>
+        <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.30)' }}>
+          Your training focus over time
+        </p>
+      </div>
 
       {!intentionsEnabled && (
         <div
           className="rounded-xl px-4 py-2.5 text-sm"
-          style={{ backgroundColor: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}`, color: 'rgba(255,255,255,0.35)' }}
+          style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.35)' }}
         >
           Intentions are currently disabled — viewing history only.
         </div>
       )}
 
       {intentions.length === 0 ? (
+        /* ── Empty state ────────────────────────────────────── */
         <div
           className="rounded-xl px-6 py-10 text-center"
           style={{ backgroundColor: SURFACE_2, border: `1px solid ${COPPER_BORDER}` }}
         >
-          <p className="text-white/30 text-sm">No intentions set yet.</p>
-          <p className="text-white/20 text-xs mt-1">Set your first weekly intention from the Home tab.</p>
+          <p className="text-sm mb-1" style={{ color: 'rgba(255,255,255,0.40)' }}>No intentions set yet.</p>
+          <p className="text-xs mb-5" style={{ color: 'rgba(255,255,255,0.22)' }}>
+            Declare what you're working on to track alignment.
+          </p>
+          <button
+            onClick={() => navigate('/home')}
+            className="w-full max-w-xs mx-auto text-white font-semibold rounded-xl transition-all touch-manipulation"
+            style={{
+              height: 52,
+              backgroundColor: '#DA7422',
+              boxShadow: '0 2px 12px rgba(218,116,34,0.25)',
+              fontSize: 16,
+            }}
+          >
+            Set Your First Intention
+          </button>
         </div>
       ) : (
-        <div className="space-y-2">
-          {/* Column headers */}
-          <div className="hidden sm:grid grid-cols-[80px_1fr_1fr_100px] gap-4 px-4 pb-1">
-            <span className="text-[11px] text-white/30 uppercase tracking-wide">Week</span>
-            <span className="text-[11px] text-white/30 uppercase tracking-wide">Intention</span>
-            <span className="text-[11px] text-white/30 uppercase tracking-wide">Training Telemetry</span>
-            <span className="text-[11px] text-white/30 uppercase tracking-wide">Journal</span>
-          </div>
-
+        /* ── Intention cards ────────────────────────────────── */
+        <div className="space-y-3">
           {intentions.map(intention => {
+            const headingLabel = intention.heading
+              ? (SKILL_TAGS.find(s => s.value === intention.heading)?.label ?? intention.heading)
+              : null;
             const ambient       = ambientFocus(sessions, intention.week_start, intention.duration_days);
             const alignment     = computeAlignment(intention.intent_label, ambient);
-            const alignColor    = alignment === 'aligned'  ? 'rgba(82,181,108,0.85)'
-                                : alignment === 'diverged' ? 'rgba(218,116,34,0.6)'
-                                : 'rgba(255,255,255,0.08)';
-            const alignTitle    = alignment === 'aligned'  ? 'Training aligned with intention'
-                                : alignment === 'diverged' ? 'Training diverged from intention'
-                                : 'No sessions logged';
             const categoryColor = intention.intent_category
               ? (CATEGORY_COLORS[intention.intent_category] ?? 'rgba(255,255,255,0.4)')
-              : 'rgba(255,255,255,0.4)';
+              : null;
             const hasJournal    = !!intention.journal_entry;
             const journalSnippet = hasJournal
-              ? intention.journal_entry!.slice(0, 22) + (intention.journal_entry!.length > 22 ? '…' : '')
+              ? intention.journal_entry!.slice(0, 40) + (intention.journal_entry!.length > 40 ? '...' : '')
               : null;
 
             return (
               <div
                 key={intention.id}
-                className="rounded-xl px-4 py-3 sm:grid sm:grid-cols-[80px_1fr_1fr_100px] sm:gap-4 sm:items-center"
-                style={{ backgroundColor: CARD_BG, border: `1px solid ${SURFACE_2_BORDER}` }}
+                className="rounded-xl px-4 py-4 space-y-3"
+                style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}
               >
-                {/* Mobile: top row — week + edit + journal link */}
-                <div className="flex items-center justify-between sm:contents">
-                  {/* Week + edit button */}
+                {/* Top row — week date + duration + edit */}
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <p className="text-xs text-white/40 font-medium">{formatWeek(intention.week_start)}</p>
-                    <button
-                      onClick={() => setEditTarget(intention)}
-                      className="text-white/20 hover:text-white/60 transition-colors"
-                      title="Edit intention"
+                    <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.40)' }}>
+                      {formatWeek(intention.week_start)}
+                    </span>
+                    <span
+                      className="text-[10px] px-2 py-0.5 rounded-lg font-medium"
+                      style={{ backgroundColor: SURFACE_3, color: COPPER }}
                     >
-                      <Pencil size={11} />
-                    </button>
-                  </div>
-
-                  {/* Journal entry link — right-aligned on mobile */}
-                  <button
-                    onClick={() => navigate(`/intentions/${intention.id}/journal`)}
-                    className="flex items-center gap-1.5 text-left transition-colors group sm:hidden"
-                    title={hasJournal ? intention.journal_entry! : 'Add a journal entry'}
-                  >
-                    {hasJournal ? (
-                      <span className="text-xs group-hover:opacity-90 transition-opacity" style={{ color: 'rgba(242,228,168,0.6)' }}>
-                        ✦ {journalSnippet}
+                      {intention.duration_days}d
+                    </span>
+                    {categoryColor && (
+                      <span
+                        className="text-[10px] px-2 py-0.5 rounded-lg font-medium capitalize"
+                        style={{ backgroundColor: `${categoryColor}20`, color: categoryColor }}
+                      >
+                        {intention.intent_category}
                       </span>
-                    ) : (
-                      <span className="text-xs text-white/20 group-hover:text-white/40 transition-colors italic">+ add</span>
                     )}
+                  </div>
+                  <button
+                    onClick={() => setEditTarget(intention)}
+                    className="p-1.5 rounded-lg transition-colors touch-manipulation"
+                    style={{ color: 'rgba(255,255,255,0.25)' }}
+                    title="Edit intention"
+                  >
+                    <Pencil size={13} />
                   </button>
                 </div>
 
-                {/* Intention label + category */}
-                <div className="flex items-center gap-2 min-w-0 mt-1 sm:mt-0">
-                  {intention.intent_category && (
-                    <span
-                      className="text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0 font-medium capitalize"
-                      style={{ backgroundColor: `${categoryColor}20`, color: categoryColor }}
-                    >
-                      {intention.intent_category}
-                    </span>
+                {/* Heading + label */}
+                <div>
+                  <p className="text-base font-semibold" style={{ color: 'rgba(255,255,255,0.90)' }}>
+                    {headingLabel ?? intention.intent_label}
+                  </p>
+                  {headingLabel && intention.intent_label && intention.intent_label.toLowerCase() !== (headingLabel ?? '').toLowerCase() && (
+                    <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.40)' }}>
+                      {intention.intent_label}
+                    </p>
                   )}
-                  <span className="text-sm font-semibold text-white truncate">{intention.intent_label}</span>
                 </div>
 
-                {/* Ambient focus + alignment dot */}
-                <div className="flex items-center gap-1.5 mt-0.5 sm:mt-0">
-                  <span
-                    title={alignTitle}
+                {/* Alignment row */}
+                <div className="flex items-center gap-2">
+                  {/* Alignment indicator bar */}
+                  <div
+                    className="rounded-full"
                     style={{
-                      display: 'inline-block', width: 7, height: 7, borderRadius: '50%',
-                      backgroundColor: alignColor, flexShrink: 0,
+                      width: 32,
+                      height: 4,
+                      backgroundColor: alignment === 'aligned'  ? 'rgba(82,181,108,0.70)'
+                                     : alignment === 'diverged' ? 'rgba(218,116,34,0.50)'
+                                     : 'rgba(255,255,255,0.06)',
                     }}
                   />
                   {ambient ? (
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(218,116,34,0.85)' }}>
-                      ◎ {ambient}
+                    <span className="text-xs font-medium" style={{ color: COPPER }}>
+                      Trained: {ambient}
                     </span>
                   ) : (
-                    <span className="text-xs text-white/20 italic">no sessions</span>
+                    <span className="text-xs italic" style={{ color: 'rgba(255,255,255,0.20)' }}>
+                      No sessions logged
+                    </span>
+                  )}
+                  {alignment !== 'no-data' && (
+                    <span
+                      className="text-[10px]"
+                      style={{
+                        color: alignment === 'aligned'
+                          ? 'rgba(82,181,108,0.65)'
+                          : 'rgba(218,116,34,0.50)',
+                      }}
+                    >
+                      {alignment === 'aligned' ? 'Aligned' : 'Diverged'}
+                    </span>
                   )}
                 </div>
 
-                {/* Journal entry link — desktop column only */}
+                {/* Journal row */}
                 <button
                   onClick={() => navigate(`/intentions/${intention.id}/journal`)}
-                  className="hidden sm:flex items-center gap-1.5 text-left transition-colors group"
-                  title={hasJournal ? intention.journal_entry! : 'Add a journal entry'}
+                  className="w-full flex items-center gap-2 pt-2 transition-colors touch-manipulation"
+                  style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}
                 >
                   {hasJournal ? (
-                    <span className="text-xs truncate group-hover:opacity-90 transition-opacity" style={{ color: 'rgba(242,228,168,0.6)' }}>
-                      ✦ {journalSnippet}
+                    <span className="text-xs truncate" style={{ color: 'rgba(242,228,168,0.45)' }}>
+                      {journalSnippet}
                     </span>
                   ) : (
-                    <span className="text-xs text-white/20 group-hover:text-white/40 transition-colors italic">+ add</span>
+                    <span className="text-xs font-medium" style={{ color: COPPER }}>
+                      + Write
+                    </span>
                   )}
                 </button>
               </div>
