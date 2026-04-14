@@ -37,7 +37,8 @@ function isRestOrEmpty(val: string): boolean {
 // ── Extract duration (hours) from a cell string ──────────────────────────────
 
 function extractDuration(cell: string): number | null {
-  const s = cell.trim().replace(/[—–]/g, '-');
+  // Normalize all dash variants (em-dash, en-dash, figure-dash) → hyphen
+  const s = cell.trim().replace(/[\u2012\u2013\u2014\u2015—–]/g, '-');
 
   // "2.5HR", "2.5 HR", "2.5hr", "3 hours", "2 hour"
   const hrMatch = s.match(/(\d+(?:\.\d+)?)\s*(?:HR|hrs?|hours?)/i);
@@ -60,8 +61,8 @@ function extractDuration(cell: string): number | null {
 // ── Extract date from a cell string given a context year/month ────────────────
 
 function extractDate(cell: string, contextYear: number, contextMonth: number): string | null {
-  // Normalize dashes: em-dash (—), en-dash (–) → regular hyphen
-  const s = cell.trim().replace(/[—–]/g, '-');
+  // Normalize all dash variants → regular hyphen
+  const s = cell.trim().replace(/[\u2012\u2013\u2014\u2015—–]/g, '-');
 
   // Pattern: "MM/DD/YY-duration" or "MM/DD/YY" (e.g. "11/20/23-1", "2/10/22")
   const slashDate = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
@@ -82,12 +83,12 @@ function extractDate(cell: string, contextYear: number, contextMonth: number): s
     const monthStr = dayFirst[2].toLowerCase().replace(/[^a-z]/g, '');
     const month = MONTH_MAP[monthStr];
     if (month !== undefined && day >= 1 && day <= 31) {
-      // Determine year: use context year, but handle year boundaries
+      // Determine year: use context year, but handle year boundaries.
+      // If the parsed month is far ahead of context (e.g. context=Oct, parsed=Jan),
+      // it means we've crossed into the next year.
       let year = contextYear;
-      // If context month is Dec but parsed month is Jan, we're in the next year
-      if (contextMonth >= 10 && month <= 1) year++;
-      // If context month is Jan but parsed month is Dec, we're in the previous year
-      if (contextMonth <= 1 && month >= 10) year--;
+      if (month < contextMonth && contextMonth - month > 6) year++;
+      if (month > contextMonth && month - contextMonth > 6) year--;
 
       const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       if (!isNaN(new Date(iso + 'T00:00:00').getTime())) return iso;
