@@ -34,12 +34,8 @@ export default function VolumeChart({ sessions }: { sessions: SessionSummary[] }
         return (
           <g key={m}>
             {h > 0
-              ? <rect x={x} y={baseY - barH} width={barW} height={barH} rx="1.5" fill={fill}>
-                  <title>{`${MONTH_NAMES[m]}: ${h.toFixed(1)}h`}</title>
-                </rect>
-              : <rect x={x} y={baseY - 1}    width={barW} height={1}    rx="0.5" fill="rgba(255,255,255,0.07)">
-                  <title>{`${MONTH_NAMES[m]}: no sessions`}</title>
-                </rect>
+              ? <rect x={x} y={baseY - barH} width={barW} height={barH} rx="1.5" fill={fill} />
+              : <rect x={x} y={baseY - 1}    width={barW} height={1}    rx="0.5" fill="rgba(255,255,255,0.07)" />
             }
             <text x={x + barW / 2} y={94} textAnchor="middle"
               fill={isCurrent ? PALE_YELLOW : 'rgba(242,228,168,0.25)'}

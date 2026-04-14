@@ -3,6 +3,7 @@ import { Info, Triangle, Target, BarChart2, Layers, BookOpen, Activity, type Luc
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { SKILL_TAGS, MONTH_NAMES } from '../lib/constants.ts';
 import { CARD_BG, COPPER, COPPER_BORDER, CARD_SHADOW, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3_BORDER } from '../lib/theme.ts';
+import { WINDOW_DAYS } from '../lib/analyticsUtils.ts';
 import type { SessionSummary } from './TrainingHeatmap.tsx';
 import TimeRangeBar from './TimeRangeBar.tsx';
 import RadarChart, { SKILL_COLORS, DEFAULT_COLORS } from './charts/RadarChart.tsx';
@@ -21,7 +22,7 @@ const SEG_COMP  = 'rgba(220,90,80,0.80)';
 // ─── Rail config ──────────────────────────────────────────────────────────────
 
 type ViewMode = 'prism' | 'volume' | 'split' | 'format' | 'weekly';
-export type TimeWindow = '7d' | '14d' | '30d' | '90d' | '180d' | '1y' | 'custom';
+export type { TimeWindow } from '../lib/analyticsUtils.ts';
 
 const RAIL_VIEWS: { id: ViewMode; label: string; short: string; Icon: LucideIcon }[] = [
   { id: 'prism',  label: 'Grappling Prism',  short: 'Prism',  Icon: Target    },
@@ -115,9 +116,6 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
   }
 
   // ── Filtered sessions ──
-  const WINDOW_DAYS: Partial<Record<TimeWindow, number>> = {
-    '7d': 7, '14d': 14, '30d': 30, '90d': 90, '180d': 180, '1y': 365,
-  };
   const filtered = useMemo(() => {
     if (timeWindow === 'custom' && customRange) {
       const start = new Date(customRange.start + 'T00:00:00');
@@ -261,14 +259,19 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
   function renderChart(mode: ViewMode) {
     if (mode === 'volume') return <VolumeChart sessions={filtered} />;
     if (mode === 'weekly') return (
-      <div
-        ref={weeklyScrollRef}
-        data-no-page-swipe=""
-        className="j2-weekly-scroll"
-        style={{ overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
-      >
-        <style>{`.j2-weekly-scroll::-webkit-scrollbar { display: none; }`}</style>
-        <WeeklyChart weeks={weeklyData} />
+      <div className="relative">
+        <div
+          ref={weeklyScrollRef}
+          data-no-page-swipe=""
+          className="j2-weekly-scroll"
+          style={{ overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+        >
+          <style>{`.j2-weekly-scroll::-webkit-scrollbar { display: none; }`}</style>
+          <WeeklyChart weeks={weeklyData} />
+        </div>
+        {/* Scroll edge fades */}
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-6" style={{ background: `linear-gradient(to right, ${CARD_BG}, transparent)` }} />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-6" style={{ background: `linear-gradient(to left, ${CARD_BG}, transparent)` }} />
       </div>
     );
     if (mode === 'split') return (
@@ -545,14 +548,14 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
               <button
                 key={id}
                 onClick={() => handleViewChange(id)}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-medium transition-colors min-h-[44px] touch-manipulation"
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-medium transition-colors min-h-[44px] touch-manipulation j2-press"
                 style={{
                   backgroundColor: isActive ? COPPER : 'transparent',
                   color: isActive ? '#fff' : 'rgba(255,255,255,0.4)',
                 }}
               >
                 <Icon size={13} strokeWidth={isActive ? 2 : 1.5} />
-                <span>{short}</span>
+                <span className="hidden min-[375px]:inline">{short}</span>
               </button>
             );
           })}
@@ -673,7 +676,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
                   <TooltipTrigger asChild>
                     <button
                       onClick={() => handleViewChange(id)}
-                      className="relative w-8 h-8 flex items-center justify-center rounded-md transition-all"
+                      className="relative w-8 h-8 flex items-center justify-center rounded-md transition-all j2-press"
                       style={{
                         color: active ? PALE_YELLOW : 'rgba(242,228,168,0.2)',
                         backgroundColor: active ? 'rgba(242,228,168,0.06)' : 'transparent',

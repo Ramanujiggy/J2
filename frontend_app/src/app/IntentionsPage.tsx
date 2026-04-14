@@ -4,43 +4,12 @@ import { Pencil } from 'lucide-react';
 import { api } from '../lib/api.ts';
 import { PALE_YELLOW, GLOW_SOFT, COPPER, COPPER_BORDER, SURFACE_2, SURFACE_3 } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
-import { SKILL_TAGS, CATEGORY_COLORS, MONTH_NAMES } from '../lib/constants.ts';
+import { SKILL_TAGS, CATEGORY_COLORS } from '../lib/constants.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import type { Intention, SessionSummary, IntentionsResponse, SessionsResponse } from '../types/api.ts';
 import PageContent from '../components/PageContent.tsx';
 import SetIntentionModal from '../components/SetIntentionModal.tsx';
-
-function formatWeek(weekStart: string): string {
-  const d = new Date(weekStart.slice(0, 10) + 'T00:00:00');
-  return `${MONTH_NAMES[d.getMonth()]} ${d.getDate()}`;
-}
-
-function ambientFocus(sessions: SessionSummary[], weekStart: string, durationDays: number): string | null {
-  const weekStartSlice = weekStart.slice(0, 10);
-  const endDate = new Date(weekStartSlice + 'T00:00:00');
-  endDate.setDate(endDate.getDate() + durationDays - 1);
-  const weekEndStr = endDate.toISOString().slice(0, 10);
-
-  const tagCounts: Record<string, number> = {};
-  sessions.forEach(s => {
-    const dateStr = typeof s.date === 'string' ? s.date.slice(0, 10) : new Date(s.date).toISOString().slice(0, 10);
-    if (dateStr >= weekStartSlice && dateStr <= weekEndStr) {
-      s.tags?.forEach(t => { tagCounts[t] = (tagCounts[t] ?? 0) + 1; });
-    }
-  });
-
-  const top = Object.entries(tagCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
-  return top ? (SKILL_TAGS.find(s => s.value === top)?.label ?? top) : null;
-}
-
-function computeAlignment(intentLabel: string, ambientLabel: string | null): 'aligned' | 'diverged' | 'no-data' {
-  if (!ambientLabel) return 'no-data';
-  const norm = (s: string) => s.toLowerCase();
-  const labelWords = norm(intentLabel).split(/\W+/).filter(w => w.length > 3);
-  const focusWords = norm(ambientLabel).split(/\W+/).filter(w => w.length > 3);
-  const match = labelWords.some(w => focusWords.includes(w)) || focusWords.some(w => labelWords.includes(w));
-  return match ? 'aligned' : 'diverged';
-}
+import { formatWeekShort, topTagInRange, computeAlignment } from '../lib/analyticsUtils.ts';
 
 export default function IntentionsPage() {
   const navigate = useNavigate();
@@ -124,8 +93,9 @@ export default function IntentionsPage() {
             const headingLabel = intention.heading
               ? (SKILL_TAGS.find(s => s.value === intention.heading)?.label ?? intention.heading)
               : null;
-            const ambient       = ambientFocus(sessions, intention.week_start, intention.duration_days);
-            const alignment     = computeAlignment(intention.intent_label, ambient);
+            const topTag        = topTagInRange(sessions, intention.week_start, intention.duration_days);
+            const ambient       = topTag?.label ?? null;
+            const alignment     = computeAlignment(intention, topTag);
             const categoryColor = intention.intent_category
               ? (CATEGORY_COLORS[intention.intent_category] ?? 'rgba(255,255,255,0.4)')
               : null;
@@ -144,7 +114,7 @@ export default function IntentionsPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.40)' }}>
-                      {formatWeek(intention.week_start)}
+                      {formatWeekShort(intention.week_start)}
                     </span>
                     <span
                       className="text-[10px] px-2 py-0.5 rounded-lg font-medium"
