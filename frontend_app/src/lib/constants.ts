@@ -1,3 +1,5 @@
+import { PRESTIGE_GREEN, PRESTIGE_GREEN_GLOW } from './theme';
+
 export const ROULETTE_DRILLS = [
   { name: 'Hip Escape Drill',        focus: 'Guard',           suggestion: '3 × 10 each side',
     description: 'From bottom mount or side control, bridge to create space then shrimp your hips out to re-guard. Focus on explosive hip movement and keeping your frames tight.' },
@@ -47,7 +49,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
   mental:      '#a78bfa',
   positional:  '#34d399',
   competitive: '#fbbf24',
-  presence:    '#52B56C',
+  presence:    '#4BA862',
 };
 
 export const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
@@ -56,7 +58,7 @@ export const EIGHT_GATES = [
   { weeks: 2,  color: '#C4915F', glow: 'rgba(196,145,95,0.35)',  toast: 'Two weeks. The mat is starting to know you.',            burst: false },
   { weeks: 4,  color: '#C4915F', glow: 'rgba(196,145,95,0.40)',  toast: 'Four weeks straight. A habit lives here now.',            burst: false },
   { weeks: 6,  color: '#DA7422', glow: 'rgba(218,116,34,0.40)',  toast: 'Six weeks. The mat knows your schedule.',                 burst: false },
-  { weeks: 8,  color: '#52B56C', glow: 'rgba(82,181,108,0.40)',  toast: 'Eight weeks. You show up. That is the whole secret.',     burst: false },
+  { weeks: 8,  color: PRESTIGE_GREEN, glow: PRESTIGE_GREEN_GLOW,  toast: 'Eight weeks. You show up. That is the whole secret.',     burst: false },
   { weeks: 12, color: '#6FD08C', glow: 'rgba(111,208,140,0.45)', toast: 'Three months. Most stop here. You did not.',              burst: false },
   { weeks: 16, color: '#6FD08C', glow: 'rgba(111,208,140,0.50)', toast: 'Sixteen weeks. Your body knows the way now.',             burst: false },
   { weeks: 20, color: '#F2E4A8', glow: 'rgba(242,228,168,0.50)', toast: 'Five months on the mat. The technique is in your hands.', burst: false },

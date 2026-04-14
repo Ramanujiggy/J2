@@ -41,6 +41,20 @@ export const PALE_YELLOW = '#F2E4A8' as const;
 /** Warm caramel — card borders and wave tile arc strokes. */
 export const COPPER = '#C4915F' as const;
 
+// ─── Prestige accents ────────────────────────────────────────────────────────
+
+/** Prestige green — 8th Gate milestone. Electric, fully saturated, teal-shifted. */
+export const PRESTIGE_GREEN = '#00E67A' as const;
+
+/** Prestige green glow — box-shadow / ring for gate indicators. */
+export const PRESTIGE_GREEN_GLOW = 'rgba(0,230,122,0.50)' as const;
+
+/** Prestige teal — greenish-blue variant for future prestige streak features. */
+export const PRESTIGE_TEAL = '#00D4AA' as const;
+
+/** Prestige teal glow — box-shadow for teal accent. */
+export const PRESTIGE_TEAL_GLOW = 'rgba(0,212,170,0.45)' as const;
+
 // ─── Derived composites ───────────────────────────────────────────────────────
 
 /** Standard card border (caramel at 45% opacity). */
