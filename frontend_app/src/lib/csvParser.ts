@@ -113,7 +113,7 @@ function parseDuration(raw: string): number | null {
 
 // ── Column header normalizer ─────────────────────────────────────────────────
 
-export type ColKey = 'date' | 'duration' | 'notes' | 'restriction' | 'heading' | 'polarity' | 'script_source' | 'sub_skill_tag' | 'resonance' | 'ignore';
+export type ColKey = 'date' | 'duration' | 'notes' | 'restriction' | 'heading' | 'polarity' | 'script_source' | 'sub_skill_tag' | 'resonance' | 'tags' | 'ignore';
 
 export function classifyHeader(h: string): ColKey {
   const lower = h.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -127,6 +127,7 @@ export function classifyHeader(h: string): ColKey {
   if (['scriptsource', 'script', 'source'].includes(lower)) return 'script_source';
   if (['subskill', 'subskilltag'].includes(lower)) return 'sub_skill_tag';
   if (['resonance'].includes(lower)) return 'resonance';
+  if (['tags', 'skilltags', 'tag'].includes(lower)) return 'tags';
   if (lower.startsWith('hrsrunning') || lower.startsWith('runningtotal') ||
       lower === 'total' || lower === 'runninghrs') return 'ignore';
   if (lower.includes('running')) return 'ignore';
@@ -166,6 +167,7 @@ export function parseCSV(
         let scriptSourceVal: string | null = null;
         let subSkillTagVal: string | null = null;
         let resonanceVal: number | null = null;
+        let tagsVal: SkillTagValue[] = [];
 
         for (const [col, val] of Object.entries(raw)) {
           const key = colMap[col];
@@ -179,6 +181,10 @@ export function parseCSV(
           if (key === 'script_source') { const v = val.trim().toLowerCase(); if (v) scriptSourceVal = v; }
           if (key === 'sub_skill_tag') { const v = val.trim(); if (v) subSkillTagVal = v; }
           if (key === 'resonance') { const n = parseInt(val.trim()); if (!isNaN(n) && n >= 1 && n <= 10) resonanceVal = n; }
+          if (key === 'tags') {
+            const validTagValues = new Set(SKILL_TAGS.map(t => t.value));
+            tagsVal = val.split(/[;,|]/).map((t: string) => t.trim().toLowerCase()).filter((t: string) => validTagValues.has(t)) as SkillTagValue[];
+          }
         }
 
         // Merge restriction into notes
@@ -202,7 +208,7 @@ export function parseCSV(
           gi_nogi: 'gi',
           intensity: 3,
           session_type: 'class',
-          tags: [],
+          tags: tagsVal,
           errors,
           isDuplicate: dateVal ? existingDates.has(dateVal) : false,
           skip: false,
