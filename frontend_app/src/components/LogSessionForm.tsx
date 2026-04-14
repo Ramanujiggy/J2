@@ -6,6 +6,7 @@ import { vibrate } from '../lib/haptics.ts';
 import { INTENSITY_COLOR } from '../lib/sessionUtils.ts';
 import BeltDateBanner from './BeltDateBanner.tsx';
 import PillarPrism from './PillarPrism.tsx';
+import SegmentedToggle from './SegmentedToggle.tsx';
 import type { Intention, SessionSummary } from '../types/api.ts';
 
 interface LogSessionResponse {
@@ -203,40 +204,6 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
       setLoading(false);
     }
   };
-
-  // ── Shared toggle renderer ────────────────────────────────────────────────
-  function SegmentedToggle<T extends string>({ options, value, onChange, deselectable }: {
-    options: { value: T; label: string }[];
-    value: T | null;
-    onChange: (v: T | null) => void;
-    deselectable?: boolean;
-  }) {
-    return (
-      <div className="flex rounded-xl p-0.5" style={{ backgroundColor: SURFACE_2 }}>
-        {options.map(opt => {
-          const active = value === opt.value;
-          return (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => {
-                vibrate(8);
-                onChange(deselectable && active ? null : opt.value);
-              }}
-              className="flex-1 h-10 rounded-[10px] text-sm font-medium transition-all touch-manipulation"
-              style={{
-                backgroundColor: active ? COPPER : 'transparent',
-                color: active ? '#fff' : 'rgba(255,255,255,0.45)',
-                transition: 'background-color 200ms ease, color 200ms ease',
-              }}
-            >
-              {opt.label}
-            </button>
-          );
-        })}
-      </div>
-    );
-  }
 
   return (
     <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, isolation: 'isolate' }}>
