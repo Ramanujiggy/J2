@@ -259,14 +259,19 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
   function renderChart(mode: ViewMode) {
     if (mode === 'volume') return <VolumeChart sessions={filtered} />;
     if (mode === 'weekly') return (
-      <div
-        ref={weeklyScrollRef}
-        data-no-page-swipe=""
-        className="j2-weekly-scroll"
-        style={{ overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
-      >
-        <style>{`.j2-weekly-scroll::-webkit-scrollbar { display: none; }`}</style>
-        <WeeklyChart weeks={weeklyData} />
+      <div className="relative">
+        <div
+          ref={weeklyScrollRef}
+          data-no-page-swipe=""
+          className="j2-weekly-scroll"
+          style={{ overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+        >
+          <style>{`.j2-weekly-scroll::-webkit-scrollbar { display: none; }`}</style>
+          <WeeklyChart weeks={weeklyData} />
+        </div>
+        {/* Scroll edge fades */}
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-6" style={{ background: `linear-gradient(to right, ${CARD_BG}, transparent)` }} />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-6" style={{ background: `linear-gradient(to left, ${CARD_BG}, transparent)` }} />
       </div>
     );
     if (mode === 'split') return (
@@ -550,7 +555,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
                 }}
               >
                 <Icon size={13} strokeWidth={isActive ? 2 : 1.5} />
-                <span>{short}</span>
+                <span className="hidden min-[375px]:inline">{short}</span>
               </button>
             );
           })}
