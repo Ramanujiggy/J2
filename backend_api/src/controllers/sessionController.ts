@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { query } from '../config/db.js';
-import { createSession, getSessionsByUser, updateSession as updateSessionModel, deleteSession as deleteSessionModel, bulkInsertSessions, type BulkSessionInput } from '../models/sessionModel.js';
+import { createSession, getSessionsByUser, searchSessions, updateSession as updateSessionModel, deleteSession as deleteSessionModel, bulkInsertSessions, type SessionFilter, type BulkSessionInput } from '../models/sessionModel.js';
 
 const VALID_TAGS        = new Set(['standup', 'passing', 'pins', 'submissions', 'guard']);
 const VALID_GI_NOGI     = new Set(['gi', 'no_gi']);
@@ -121,6 +121,46 @@ export const getSessions = async (req: Request, res: Response): Promise<void> =>
         res.json({ sessions });
     } catch (err) {
         console.error('❌ Error fetching sessions:', err);
+        res.status(500).json({ message: 'Server error.' });
+    }
+};
+
+export const searchSessionsHandler = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            res.status(401).json({ message: 'Unauthorized.' });
+            return;
+        }
+
+        const { from, to, q, gi_nogi, session_type, heading, polarity,
+                intensity_min, intensity_max, limit, offset } = req.query as Record<string, string | undefined>;
+
+        if (from && !DATE_RE.test(from)) { res.status(400).json({ message: 'from must be YYYY-MM-DD.' }); return; }
+        if (to && !DATE_RE.test(to)) { res.status(400).json({ message: 'to must be YYYY-MM-DD.' }); return; }
+        if (gi_nogi && !VALID_GI_NOGI.has(gi_nogi)) { res.status(400).json({ message: 'Invalid gi_nogi.' }); return; }
+        if (session_type && !VALID_SESSION_TYPES.has(session_type)) { res.status(400).json({ message: 'Invalid session_type.' }); return; }
+        if (heading && !VALID_TAGS.has(heading)) { res.status(400).json({ message: 'Invalid heading.' }); return; }
+        if (polarity && !VALID_POLARITIES.has(polarity)) { res.status(400).json({ message: 'Invalid polarity.' }); return; }
+
+        const filters: SessionFilter = {
+            limit: limit ? Number(limit) : 50,
+            offset: offset ? Number(offset) : 0,
+        };
+        if (from) filters.from = from;
+        if (to) filters.to = to;
+        if (q) filters.q = q;
+        if (gi_nogi) filters.gi_nogi = gi_nogi as 'gi' | 'no_gi';
+        if (session_type) filters.session_type = session_type;
+        if (heading) filters.heading = heading;
+        if (polarity) filters.polarity = polarity;
+        if (intensity_min) filters.intensity_min = Number(intensity_min);
+        if (intensity_max) filters.intensity_max = Number(intensity_max);
+
+        const result = await searchSessions(userId, filters);
+        res.json({ sessions: result.sessions, total: result.total });
+    } catch (err) {
+        console.error('Error searching sessions:', err);
         res.status(500).json({ message: 'Server error.' });
     }
 };
