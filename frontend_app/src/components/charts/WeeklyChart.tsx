@@ -35,11 +35,7 @@ export default function WeeklyChart({ weeks }: { weeks: WeekEntry[] }) {
             ? 'rgba(82,181,108,0.55)'
             : 'rgba(255,255,255,0.07)';
         return (
-          <rect key={i} x={x} y={baseY - barH} width={barW} height={Math.max(barH, 1)} rx={2} fill={color}>
-            <title>{w.hours > 0
-              ? `${w.weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: ${w.hours.toFixed(1)}h (${w.count} session${w.count !== 1 ? 's' : ''})`
-              : 'No sessions'}</title>
-          </rect>
+          <rect key={i} x={x} y={baseY - barH} width={barW} height={Math.max(barH, 1)} rx={2} fill={color} />
         );
       })}
       {monthLabels.map(({ x, label }) => (

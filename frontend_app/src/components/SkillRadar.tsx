@@ -543,7 +543,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
               <button
                 key={id}
                 onClick={() => handleViewChange(id)}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-medium transition-colors min-h-[44px] touch-manipulation"
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-medium transition-colors min-h-[44px] touch-manipulation j2-press"
                 style={{
                   backgroundColor: isActive ? COPPER : 'transparent',
                   color: isActive ? '#fff' : 'rgba(255,255,255,0.4)',
@@ -671,7 +671,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
                   <TooltipTrigger asChild>
                     <button
                       onClick={() => handleViewChange(id)}
-                      className="relative w-8 h-8 flex items-center justify-center rounded-md transition-all"
+                      className="relative w-8 h-8 flex items-center justify-center rounded-md transition-all j2-press"
                       style={{
                         color: active ? PALE_YELLOW : 'rgba(242,228,168,0.2)',
                         backgroundColor: active ? 'rgba(242,228,168,0.06)' : 'transparent',

@@ -153,7 +153,10 @@ export default function AnalyticsPage() {
 
   return (
     <PageContent ready={!loading} loadingMessages={['Counting stripes...', 'Trying to remember the technique...', 'Skipping warmups...']}>
-    <div className={`mx-auto space-y-5 ${isDesktop ? 'max-w-6xl px-8 py-5' : 'max-w-5xl px-4 sm:px-6 py-6'}`}>
+    <div
+      className={`mx-auto space-y-5 ${isDesktop ? 'max-w-6xl px-8 py-5' : 'max-w-5xl px-4 sm:px-6 py-6'}`}
+      style={{ overscrollBehavior: 'none' }}
+    >
 
       <h2
         className="text-2xl font-bold tracking-tight"
@@ -166,7 +169,7 @@ export default function AnalyticsPage() {
 
       {/* ── Hero Stats Strip ─────────────────────────────────── */}
       <div
-        className="rounded-xl flex animate-j2-card-enter"
+        className="rounded-xl flex animate-j2-card-enter select-none"
         style={{ backgroundColor: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}` }}
       >
         <div className="flex-1 flex flex-col items-center justify-center py-3 gap-0.5">
