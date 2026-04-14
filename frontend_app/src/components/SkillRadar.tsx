@@ -3,6 +3,7 @@ import { Info, Triangle, Target, BarChart2, Layers, BookOpen, Activity, type Luc
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { SKILL_TAGS, MONTH_NAMES } from '../lib/constants.ts';
 import { CARD_BG, COPPER, COPPER_BORDER, CARD_SHADOW, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3_BORDER } from '../lib/theme.ts';
+import { WINDOW_DAYS } from '../lib/analyticsUtils.ts';
 import type { SessionSummary } from './TrainingHeatmap.tsx';
 import TimeRangeBar from './TimeRangeBar.tsx';
 import RadarChart, { SKILL_COLORS, DEFAULT_COLORS } from './charts/RadarChart.tsx';
@@ -21,7 +22,7 @@ const SEG_COMP  = 'rgba(220,90,80,0.80)';
 // ─── Rail config ──────────────────────────────────────────────────────────────
 
 type ViewMode = 'prism' | 'volume' | 'split' | 'format' | 'weekly';
-export type TimeWindow = '7d' | '14d' | '30d' | '90d' | '180d' | '1y' | 'custom';
+export type { TimeWindow } from '../lib/analyticsUtils.ts';
 
 const RAIL_VIEWS: { id: ViewMode; label: string; short: string; Icon: LucideIcon }[] = [
   { id: 'prism',  label: 'Grappling Prism',  short: 'Prism',  Icon: Target    },
@@ -115,9 +116,6 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
   }
 
   // ── Filtered sessions ──
-  const WINDOW_DAYS: Partial<Record<TimeWindow, number>> = {
-    '7d': 7, '14d': 14, '30d': 30, '90d': 90, '180d': 180, '1y': 365,
-  };
   const filtered = useMemo(() => {
     if (timeWindow === 'custom' && customRange) {
       const start = new Date(customRange.start + 'T00:00:00');

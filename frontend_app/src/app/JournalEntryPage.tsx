@@ -4,14 +4,10 @@ import { api } from '../lib/api.ts';
 import { PALE_YELLOW, GLOW_SOFT, SURFACE_2 } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
-import { CATEGORY_COLORS, MONTH_NAMES } from '../lib/constants.ts';
+import { CATEGORY_COLORS } from '../lib/constants.ts';
 import type { Intention, IntentionsResponse } from '../types/api.ts';
 import PageContent from '../components/PageContent.tsx';
-
-function formatWeek(weekStart: string): string {
-  const d = new Date(weekStart.slice(0, 10) + 'T00:00:00');
-  return `Week of ${MONTH_NAMES[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
-}
+import { formatWeekLong } from '../lib/analyticsUtils.ts';
 
 export default function JournalEntryPage() {
   const { id } = useParams<{ id: string }>();
@@ -119,7 +115,7 @@ export default function JournalEntryPage() {
         </h2>
         <div className="flex items-center gap-2 mt-1.5">
           <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
-            {formatWeek(intention.week_start)}
+            {formatWeekLong(intention.week_start)}
           </span>
           {categoryColor && (
             <>

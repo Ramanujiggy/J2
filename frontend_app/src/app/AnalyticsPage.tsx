@@ -2,57 +2,14 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { api, ApiError } from '../lib/api.ts';
 import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
-import SkillRadar, { type TimeWindow } from '../components/SkillRadar.tsx';
+import SkillRadar from '../components/SkillRadar.tsx';
 import ErrorBoundary from '../components/ErrorBoundary.tsx';
 import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER_BORDER, CARD_SHADOW } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import type { SessionSummary, SessionsResponse, Intention } from '../types/api.ts';
 import PageContent from '../components/PageContent.tsx';
-import { SKILL_TAGS, CATEGORY_COLORS, MONTH_NAMES } from '../lib/constants.ts';
-
-const WINDOW_DAYS: Partial<Record<TimeWindow, number>> = {
-  '7d': 7, '14d': 14, '30d': 30, '90d': 90, '180d': 180, '1y': 365,
-};
-
-const LS_WINDOW_KEY = 'j2-analytics-timeWindow';
-
-function formatWeek(weekStart: string): string {
-  const d = new Date(weekStart.slice(0, 10) + 'T00:00:00');
-  return `${MONTH_NAMES[d.getMonth()]} ${d.getDate()}`;
-}
-
-function topTagInRange(
-  sessions: SessionSummary[],
-  weekStart: string,
-  durationDays: number,
-): { label: string; count: number } | null {
-  const start = weekStart.slice(0, 10);
-  const end = new Date(start + 'T00:00:00');
-  end.setDate(end.getDate() + durationDays - 1);
-  const endStr = end.toISOString().slice(0, 10);
-
-  const counts: Record<string, number> = {};
-  sessions.forEach(s => {
-    const d = s.date.slice(0, 10);
-    if (d >= start && d <= endStr) {
-      s.tags?.forEach(t => { counts[t] = (counts[t] ?? 0) + 1; });
-    }
-  });
-
-  const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
-  if (!top) return null;
-  const label = SKILL_TAGS.find(s => s.value === top[0])?.label ?? top[0];
-  return { label, count: top[1] };
-}
-
-function computeAlignment(intentLabel: string, ambientLabel: string | null): 'aligned' | 'diverged' | 'no-data' {
-  if (!ambientLabel) return 'no-data';
-  const norm = (s: string) => s.toLowerCase();
-  const labelWords = norm(intentLabel).split(/\W+/).filter(w => w.length > 3);
-  const focusWords = norm(ambientLabel).split(/\W+/).filter(w => w.length > 3);
-  const match = labelWords.some(w => focusWords.includes(w)) || focusWords.some(w => labelWords.includes(w));
-  return match ? 'aligned' : 'diverged';
-}
+import { CATEGORY_COLORS } from '../lib/constants.ts';
+import { type TimeWindow, WINDOW_DAYS, formatWeekShort, topTagInRange, computeAlignment } from '../lib/analyticsUtils.ts';
 
 export default function AnalyticsPage() {
   const isDesktop = useIsDesktop();
@@ -153,7 +110,7 @@ export default function AnalyticsPage() {
               <div className="sm:divide-y sm:divide-white/[0.05] flex flex-col sm:block gap-2 sm:gap-0 p-3 sm:p-0">
                 {intentions.map(intention => {
                   const top         = topTagInRange(allSessions, intention.week_start, intention.duration_days);
-                  const alignment   = computeAlignment(intention.intent_label, top?.label ?? null);
+                  const alignment   = computeAlignment(intention, top);
                   const alignColor  = alignment === 'aligned'  ? 'rgba(82,181,108,0.85)'
                                     : alignment === 'diverged' ? 'rgba(218,116,34,0.6)'
                                     : 'rgba(255,255,255,0.08)';
@@ -171,7 +128,7 @@ export default function AnalyticsPage() {
                     >
                       {/* Week */}
                       <span className="text-[11px] font-medium tracking-wide uppercase text-white/30 sm:text-xs sm:font-normal sm:tracking-normal sm:normal-case sm:text-white/35">
-                        {formatWeek(intention.week_start)}
+                        {formatWeekShort(intention.week_start)}
                       </span>
 
                       {/* Intention */}
