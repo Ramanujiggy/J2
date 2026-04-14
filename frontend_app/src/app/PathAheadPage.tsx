@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef, useSyncExternalStore } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { api, ApiError } from '../lib/api.ts';
 import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
@@ -22,20 +22,7 @@ import FirstVisitCard from '../components/FirstVisitCard.tsx';
 import { toDateString, addDays, formatDuration, DAY_NAMES, INTENSITY_COLOR, SESSION_TYPE_LABELS } from '../lib/sessionUtils.ts';
 import { STATS_PARTICLES } from '../lib/particles.ts';
 import { computeStats } from '../components/TrainingHeatmap.tsx';
-
-// ── Desktop breakpoint hook ───────────────────────────────────────────────
-
-const DESKTOP_MQ = '(min-width: 1024px)';
-const mqSubscribe = (cb: () => void) => {
-  const mql = window.matchMedia(DESKTOP_MQ);
-  mql.addEventListener('change', cb);
-  return () => mql.removeEventListener('change', cb);
-};
-const mqSnapshot = () => window.matchMedia(DESKTOP_MQ).matches;
-const mqServerSnapshot = () => false;
-function useIsDesktop() {
-  return useSyncExternalStore(mqSubscribe, mqSnapshot, mqServerSnapshot);
-}
+import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 

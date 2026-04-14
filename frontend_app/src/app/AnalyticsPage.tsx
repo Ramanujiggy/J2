@@ -5,6 +5,7 @@ import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import SkillRadar, { type TimeWindow } from '../components/SkillRadar.tsx';
 import ErrorBoundary from '../components/ErrorBoundary.tsx';
 import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER_BORDER, CARD_SHADOW } from '../lib/theme.ts';
+import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import type { SessionSummary, SessionsResponse, Intention } from '../types/api.ts';
 import PageContent from '../components/PageContent.tsx';
 import { SKILL_TAGS, CATEGORY_COLORS, MONTH_NAMES } from '../lib/constants.ts';
@@ -54,6 +55,7 @@ function computeAlignment(intentLabel: string, ambientLabel: string | null): 'al
 }
 
 export default function AnalyticsPage() {
+  const isDesktop = useIsDesktop();
   const [sessions,    setSessions]    = useState<SessionSummary[]>([]);
   const [intentions,  setIntentions]  = useState<Intention[]>([]);
   const [loading,     setLoading]     = useState(true);
@@ -109,7 +111,7 @@ export default function AnalyticsPage() {
 
   return (
     <PageContent ready={!loading} loadingMessages={['Counting stripes...', 'Trying to remember the technique...', 'Skipping warmups...']}>
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-5">
+    <div className={`mx-auto space-y-5 ${isDesktop ? 'max-w-6xl px-8 py-5' : 'max-w-5xl px-4 sm:px-6 py-6'}`}>
 
       <h2
         className="text-2xl font-bold tracking-tight"

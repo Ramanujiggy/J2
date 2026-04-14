@@ -8,9 +8,11 @@ import LogSessionForm from '../components/LogSessionForm.tsx';
 import ErrorBoundary from '../components/ErrorBoundary.tsx';
 import { LayoutGrid, CalendarDays } from 'lucide-react';
 import { PALE_YELLOW, GLOW_SOFT, COPPER, SURFACE_2 } from '../lib/theme.ts';
+import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import type { SessionSummary, CalendarIntention, SessionsResponse, IntentionsResponse } from '../types/api.ts';
 
 export default function CalendarPage() {
+  const isDesktop = useIsDesktop();
   const [sessions,    setSessions]    = useState<SessionSummary[]>([]);
   const [intentions,  setIntentions]  = useState<CalendarIntention[]>([]);
   const [loading,     setLoading]     = useState(true);
@@ -92,7 +94,7 @@ export default function CalendarPage() {
       </div>
     )}
 
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-5">
+    <div className={`mx-auto space-y-5 ${isDesktop ? 'max-w-7xl px-8 py-5' : 'max-w-5xl px-4 sm:px-6 py-6'}`}>
 
       {/* Header row */}
       <div className="flex items-center justify-between">

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.ts';
 import { PALE_YELLOW, GLOW_SOFT, SURFACE_2 } from '../lib/theme.ts';
+import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import { CATEGORY_COLORS, MONTH_NAMES } from '../lib/constants.ts';
 import type { Intention, IntentionsResponse } from '../types/api.ts';
@@ -15,6 +16,7 @@ function formatWeek(weekStart: string): string {
 export default function JournalEntryPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const isDesktop = useIsDesktop();
   const { intentionsEnabled } = useProfile();
 
   const [intention, setIntention] = useState<Intention | null>(null);
@@ -82,7 +84,7 @@ export default function JournalEntryPage() {
   return (
     <PageContent ready={!loading} loadingMessages={['Loading your intentions...']}>
     {!intention ? (
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6">
+      <div className={`mx-auto py-6 ${isDesktop ? 'max-w-3xl px-8' : 'max-w-2xl px-4 sm:px-6'}`}>
         <p className="text-sm text-red-400">Intention not found.</p>
         <button
           onClick={() => navigate('/intentions')}

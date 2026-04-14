@@ -111,6 +111,20 @@ function extractDate(cell: string, contextYear: number, contextMonth: number): s
     }
   }
 
+  // Fallback: MM/DD with no year (e.g. "10/30-1")
+  const slashNoYear = s.match(/^(\d{1,2})\/(\d{1,2})/);
+  if (slashNoYear) {
+    const month = parseInt(slashNoYear[1]) - 1;
+    const day = parseInt(slashNoYear[2]);
+    if (month >= 0 && month <= 11 && day >= 1 && day <= 31) {
+      let year = contextYear;
+      if (month < contextMonth && contextMonth - month > 6) year++;
+      if (month > contextMonth && month - contextMonth > 6) year--;
+      const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      if (!isNaN(new Date(iso + 'T00:00:00').getTime())) return iso;
+    }
+  }
+
   // Fallback: bare ordinal like "18th-1.5", "5th-2", "21st-1"
   const bareOrdinal = s.match(/^(\d{1,2})(?:st|nd|rd|th)/i);
   if (bareOrdinal) {
@@ -129,13 +143,27 @@ function extractDate(cell: string, contextYear: number, contextMonth: number): s
 function parseMonthContext(val: string): { year: number; month: number } | null {
   const s = val.trim();
 
-  // "10/1/20", "11/1/20", "2/1/21", "2/1/22", "3/1/23" (MM/DD/YY)
+  // "10/1/20", "11/1/20", "2/1/21", "2/1/22", "3/1/23" (MM/DD/YY or MM/DD/YYYY)
   const slashMatch = s.match(/^(\d{1,2})\/\d{1,2}\/(\d{2,4})$/);
   if (slashMatch) {
     const month = parseInt(slashMatch[1]) - 1;
     const y = slashMatch[2];
     const year = y.length === 2 ? 2000 + parseInt(y) : parseInt(y);
     return { year, month };
+  }
+
+  // JS Date string from SheetJS raw mode: "Thu Oct 01 2020 01:00:00 GMT-0500 ..."
+  const jsDateMatch = s.match(/([A-Za-z]+)\s+(\d{1,2})\s+(\d{4})\s+\d{2}:/);
+  if (jsDateMatch) {
+    const monthStr = jsDateMatch[1].toLowerCase();
+    const month = MONTH_MAP[monthStr];
+    if (month !== undefined) return { year: parseInt(jsDateMatch[3]), month };
+  }
+
+  // ISO string from SheetJS: "2020-10-01T06:00:00.000Z"
+  const isoMatch = s.match(/^(\d{4})-(\d{2})-\d{2}T/);
+  if (isoMatch) {
+    return { year: parseInt(isoMatch[1]), month: parseInt(isoMatch[2]) - 1 };
   }
 
   // "january (2023)", "2021= 520ish hours"

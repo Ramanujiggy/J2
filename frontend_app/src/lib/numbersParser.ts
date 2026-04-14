@@ -1,5 +1,6 @@
 import { SKILL_TAGS } from './constants.ts';
 import { classifyHeader, type ParsedRow, type SkillTagValue } from './csvParser.ts';
+import { parseTrainingLog } from './trainingLogParser.ts';
 
 const VALID_TAGS = new Set(SKILL_TAGS.map(t => t.value));
 const VALID_POLARITIES = new Set(['offense', 'defense', 'neutral']);
@@ -92,7 +93,24 @@ export async function parseNumbers(
       return;
     }
 
-    // Classify column headers using CSV parser's classifyHeader
+    // Detect Training Log weekly-grid format: row 1 has "Mon", "Tues", etc.
+    if (jsonRows.length >= 2) {
+      const row1Vals = Object.values(jsonRows[1]).map(v => String(v).toLowerCase().trim());
+      const weekdayHits = ['mon', 'tues', 'wed', 'thurs', 'fri', 'sat', 'sun']
+        .filter(d => row1Vals.some(v => v === d));
+      if (weekdayHits.length >= 5) {
+        // This is the weekly-grid Training Log format — use dedicated parser
+        const sessions = parseTrainingLog(jsonRows, existingDates);
+        if (sessions.length === 0) {
+          onError('No sessions found in the Training Log. Check that cells contain dates and durations.');
+          return;
+        }
+        onDone(sessions);
+        return;
+      }
+    }
+
+    // Standard column-per-field format — classify headers
     const headers = Object.keys(jsonRows[0]);
     const colMap: Record<string, ReturnType<typeof classifyHeader>> = {};
     for (const h of headers) colMap[h] = classifyHeader(h);

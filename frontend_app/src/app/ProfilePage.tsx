@@ -4,7 +4,8 @@ import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 
 import { api } from '../lib/api.ts';
 import { useAuth } from '../hooks/useAuth.ts';
-import { CARD_BG, COPPER_BORDER, CARD_SHADOW, PALE_YELLOW, SURFACE_2, SURFACE_2_BORDER } from '../lib/theme.ts';
+import { CARD_BG, COPPER_BORDER, CARD_SHADOW, SURFACE_2, SURFACE_2_BORDER } from '../lib/theme.ts';
+import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import CsvImportModal from '../components/CsvImportModal.tsx';
 import PageContent from '../components/PageContent.tsx';
 import { type BeltRank } from '../components/BeltBar.tsx';
@@ -54,6 +55,7 @@ const inputCls =
   'w-full bg-white/10 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-orange';
 
 export default function ProfilePage() {
+  const isDesktop = useIsDesktop();
   const { refreshProfile } = useProfile();
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -155,7 +157,7 @@ export default function ProfilePage() {
   return (
     <div className="flex flex-col">
 
-      <main className="flex-1 max-w-xl w-full mx-auto px-4 sm:px-6 py-6">
+      <main className={`flex-1 w-full mx-auto py-6 ${isDesktop ? 'max-w-2xl px-8' : 'max-w-xl px-4 sm:px-6'}`}>
         <h2 className="text-lg font-semibold text-white mb-6">Your Profile</h2>
 
         <PageContent ready={!loading} loadingMessages={['Taping fingers...']}>

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Pencil } from 'lucide-react';
 import { api } from '../lib/api.ts';
 import { PALE_YELLOW, GLOW_SOFT, COPPER, COPPER_BORDER, SURFACE_2, SURFACE_3 } from '../lib/theme.ts';
+import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import { SKILL_TAGS, CATEGORY_COLORS, MONTH_NAMES } from '../lib/constants.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import type { Intention, SessionSummary, IntentionsResponse, SessionsResponse } from '../types/api.ts';
@@ -43,6 +44,7 @@ function computeAlignment(intentLabel: string, ambientLabel: string | null): 'al
 
 export default function IntentionsPage() {
   const navigate = useNavigate();
+  const isDesktop = useIsDesktop();
   const { intentionsEnabled } = useProfile();
   const [intentions,  setIntentions]  = useState<Intention[]>([]);
   const [sessions,    setSessions]    = useState<SessionSummary[]>([]);
@@ -68,7 +70,7 @@ export default function IntentionsPage() {
 
   return (
     <PageContent ready={!loading} loadingMessages={['Loading your intentions...']}>
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-5">
+    <div className={`mx-auto space-y-5 ${isDesktop ? 'max-w-6xl px-8 py-5' : 'max-w-5xl px-4 sm:px-6 py-6'}`}>
 
       {/* Header */}
       <div>
@@ -117,7 +119,7 @@ export default function IntentionsPage() {
         </div>
       ) : (
         /* ── Intention cards ────────────────────────────────── */
-        <div className="space-y-3">
+        <div className={isDesktop ? 'grid grid-cols-2 gap-5' : 'space-y-3'}>
           {intentions.map(intention => {
             const headingLabel = intention.heading
               ? (SKILL_TAGS.find(s => s.value === intention.heading)?.label ?? intention.heading)
