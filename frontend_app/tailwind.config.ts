@@ -151,6 +151,10 @@ export default {
           from: { opacity: '0' },
           to:   { opacity: '1' },
         },
+        'j2SheetSlideUp': {
+          from: { transform: 'translateY(100%)' },
+          to:   { transform: 'translateY(0)' },
+        },
         'j2RouletteEdgeBounce': {
           '0%':       { transform: 'translateX(0)' },
           '15%':      { transform: 'translateX(-12px)' },

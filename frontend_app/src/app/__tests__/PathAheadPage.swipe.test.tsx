@@ -85,111 +85,39 @@ describe('PathAheadPage — week view', () => {
   });
 });
 
-// ── Rep Roulette tests ──────────────────────────────────────────────────────
+// ── Rep Roulette FAB tests ──────────────────────────────────────────────────
 
-describe('PathAheadPage — Rep Roulette', () => {
+describe('PathAheadPage — Rep Roulette FAB', () => {
 
-  it('renders the roulette header', async () => {
+  it('renders the FAB button', async () => {
     renderPage();
-    const header = await screen.findByTestId('roulette-header');
-    expect(header).toBeInTheDocument();
-    expect(screen.getByText('Rep Roulette')).toBeInTheDocument();
+    const fab = await screen.findByLabelText('Rep Roulette');
+    expect(fab).toBeInTheDocument();
   });
 
-  it('expands on click and shows drill content', async () => {
+  it('opens bottom sheet on FAB click and shows drill content', async () => {
     renderPage();
-    const header = await screen.findByTestId('roulette-header');
-    fireEvent.click(header);
+    const fab = await screen.findByLabelText('Rep Roulette');
+    fireEvent.click(fab);
 
-    // The drill area should now be visible with a drill name
-    const drillArea = screen.getByTestId('roulette-drill-area');
-    expect(drillArea).toBeInTheDocument();
-    expect(drillArea.querySelector('.text-xl')).toBeTruthy();
-  });
-
-  it('collapses on second click', async () => {
-    renderPage();
-    const header = await screen.findByTestId('roulette-header');
-
-    // Expand
-    fireEvent.click(header);
-    expect(screen.getByTestId('roulette-drill-area')).toBeInTheDocument();
-
-    // Collapse
-    fireEvent.click(header);
-    // The drill area container still exists in DOM (animated out via maxHeight: 0)
-    // but the parent has opacity: 0 — we verify the roulette header is still there
-    expect(header).toBeInTheDocument();
-  });
-
-  it('left swipe advances to a new drill', async () => {
-    renderPage();
-    const header = await screen.findByTestId('roulette-header');
-    fireEvent.click(header);
-
-    const drillArea = screen.getByTestId('roulette-drill-area');
-    const initialDrillName = drillArea.querySelector('.text-xl')?.textContent;
-
-    // Swipe left: dx = −80px, fast
-    swipe(drillArea, 200, 120);
-
+    // Bottom sheet should appear with "Rep Roulette" header and a drill name
     await waitFor(() => {
-      const newDrillName = drillArea.querySelector('.text-xl')?.textContent;
-      expect(newDrillName).not.toBe(initialDrillName);
+      expect(screen.getByText('Rep Roulette')).toBeInTheDocument();
+      expect(screen.getByText('Log this drill →')).toBeInTheDocument();
     });
   });
 
-  it('right swipe at index 0 stays on the same drill', async () => {
+  it('closes bottom sheet via Close button', async () => {
     renderPage();
-    const header = await screen.findByTestId('roulette-header');
-    fireEvent.click(header);
+    const fab = await screen.findByLabelText('Rep Roulette');
+    fireEvent.click(fab);
 
-    const drillArea = screen.getByTestId('roulette-drill-area');
-    const initialDrillName = drillArea.querySelector('.text-xl')?.textContent;
+    const closeBtn = await screen.findByText('Close');
+    fireEvent.click(closeBtn);
 
-    // Swipe right at index 0: dx = +80px
-    swipe(drillArea, 200, 280);
-
+    // FAB should reappear
     await waitFor(() => {
-      const currentDrillName = drillArea.querySelector('.text-xl')?.textContent;
-      expect(currentDrillName).toBe(initialDrillName);
-    });
-  });
-
-  it('left swipe then right swipe returns to previous drill', async () => {
-    renderPage();
-    const header = await screen.findByTestId('roulette-header');
-    fireEvent.click(header);
-
-    const drillArea = screen.getByTestId('roulette-drill-area');
-    const firstDrillName = drillArea.querySelector('.text-xl')?.textContent;
-
-    // Swipe left to get a new drill
-    swipe(drillArea, 200, 120);
-    await waitFor(() => {
-      expect(drillArea.querySelector('.text-xl')?.textContent).not.toBe(firstDrillName);
-    });
-
-    // Swipe right to go back
-    swipe(drillArea, 200, 280);
-    await waitFor(() => {
-      expect(drillArea.querySelector('.text-xl')?.textContent).toBe(firstDrillName);
-    });
-  });
-
-  it('small slow swipe does not change drill', async () => {
-    renderPage();
-    const header = await screen.findByTestId('roulette-header');
-    fireEvent.click(header);
-
-    const drillArea = screen.getByTestId('roulette-drill-area');
-    const initialDrillName = drillArea.querySelector('.text-xl')?.textContent;
-
-    // dx = −30px with dt = 500ms → vel = 0.06, dist < 45 → no change
-    swipe(drillArea, 200, 170, 500);
-
-    await waitFor(() => {
-      expect(drillArea.querySelector('.text-xl')?.textContent).toBe(initialDrillName);
+      expect(screen.getByLabelText('Rep Roulette')).toBeInTheDocument();
     });
   });
 });
