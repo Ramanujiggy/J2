@@ -15,17 +15,23 @@ const DRILL_FOCUS_TO_TAG: Record<string, string> = {
   'Guard Retention':'guard',
 };
 
+// ── Timing constants ─────────────────────────────────────────────────────
+
+const OPEN_MS  = 340;  // FAB → card morph duration
+const CLOSE_MS = 280;  // card → FAB reverse morph
+const OPEN_CURVE  = 'cubic-bezier(0.16, 1, 0.3, 1)';   // M3 "heavy" ease-out
+const CLOSE_CURVE = 'cubic-bezier(0.4, 0, 0.6, 1)';     // smooth ease-in-out
+
 // ── Component ────────────────────────────────────────────────────────────
 
 interface Props {
   onLogDrill: (preset: { heading: string; sessionType: 'drilling'; subSkillTag: string }) => void;
 }
 
+type Phase = 'fab' | 'opening' | 'open' | 'closing';
+
 export default function RepRouletteFab({ onLogDrill }: Props) {
-  // expanded = card is open; morphing = animation in progress
-  const [expanded, setExpanded] = useState(false);
-  const [morphing, setMorphing] = useState(false);
-  const [visible, setVisible]   = useState(false); // delays content render for enter animation
+  const [phase, setPhase] = useState<Phase>('fab');
 
   const [drillHistory, setDrillHistory] = useState<number[]>(
     () => [Math.floor(Math.random() * ROULETTE_DRILLS.length)]
@@ -43,36 +49,26 @@ export default function RepRouletteFab({ onLogDrill }: Props) {
 
   const drill = ROULETTE_DRILLS[drillHistory[drillHistoryIndex]];
 
-  // ── Morph animation orchestration ──────────────────────────────────
+  // ── Phase transitions ──────────────────────────────────────────────
 
-  const handleOpen = () => {
+  const handleOpen = useCallback(() => {
     vibrate(10);
-    setExpanded(true);
-    setMorphing(true);
-    // After the morph transition completes, reveal content
-    setTimeout(() => {
-      setMorphing(false);
-      setVisible(true);
-    }, 380);
-  };
+    setPhase('opening');
+    setTimeout(() => setPhase('open'), OPEN_MS);
+  }, []);
 
-  const handleClose = () => {
-    setVisible(false);
-    setMorphing(true);
-    // Delay actual collapse to let content fade out
-    setTimeout(() => {
-      setExpanded(false);
-      setMorphing(false);
-    }, 350);
-  };
+  const handleClose = useCallback(() => {
+    setPhase('closing');
+    setTimeout(() => setPhase('fab'), CLOSE_MS);
+  }, []);
 
   // Close on Escape
   useEffect(() => {
-    if (!expanded) return;
+    if (phase !== 'open' && phase !== 'opening') return;
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') handleClose(); };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [expanded]);
+  }, [phase, handleClose]);
 
   // ── Swipe handlers ─────────────────────────────────────────────────
 
@@ -136,111 +132,100 @@ export default function RepRouletteFab({ onLogDrill }: Props) {
     handleClose();
   };
 
-  // ── Shared position constants ──────────────────────────────────────
-  // FAB sits at right:16, bottom: 5rem + safe-area + 16px (above tab bar)
-  // Card expands from that origin point
+  // ── Derived state ──────────────────────────────────────────────────
 
+  const showCard = phase !== 'fab';
+  const cardVisible = phase === 'open' || phase === 'opening';
+  const fabVisible = phase === 'fab';
   const fabBottom = 'calc(5rem + env(safe-area-inset-bottom, 0px) + 16px)';
 
   // ── Render ─────────────────────────────────────────────────────────
 
-  // The container is always rendered — we animate between FAB and card states
-  // via CSS transitions on the same element (true container transform).
-  const container = createPortal(
+  return createPortal(
     <>
-      {/* Scrim — only when expanded */}
-      {expanded && (
+      {/* ── Scrim ── */}
+      {showCard && (
         <div
           className="fixed inset-0 z-40 sm:hidden"
           onClick={handleClose}
           style={{
             backgroundColor: 'rgba(13, 26, 20, 0.5)',
-            opacity: visible ? 1 : 0,
-            transition: 'opacity 0.25s ease',
-            pointerEvents: visible ? 'auto' : 'none',
+            opacity: phase === 'open' ? 1 : 0,
+            transition: `opacity ${phase === 'closing' ? CLOSE_MS : OPEN_MS}ms ease`,
           }}
         />
       )}
 
-      {/* The morphing container — transitions from circle to card */}
-      <div
-        data-no-page-swipe=""
-        className="fixed z-50 sm:hidden"
-        onClick={expanded ? undefined : handleOpen}
+      {/* ── FAB button ── */}
+      <button
+        className="fixed z-50 sm:hidden flex items-center justify-center rounded-full touch-manipulation j2-press"
+        onClick={handleOpen}
         style={{
-          // Position: always anchored to bottom-right
-          right: expanded ? 12 : 16,
-          bottom: expanded
-            ? fabBottom
-            : fabBottom,
-          // Size: circle → card
-          width: expanded ? 'calc(100vw - 24px)' : 48,
-          height: expanded ? 'auto' : 48,
-          maxHeight: expanded ? 'calc(100vh - 10rem - env(safe-area-inset-bottom, 0px))' : 48,
-          // Shape: circle → rounded card
-          borderRadius: expanded ? 20 : 24,
-          // Background: subtle glass → warm copper card
-          backgroundColor: expanded ? '#1A3528' : 'rgba(196,145,95,0.20)',
-          border: `1px solid ${expanded ? 'rgba(196,145,95,0.55)' : COPPER_BORDER}`,
-          backdropFilter: expanded ? 'none' : 'blur(12px)',
-          WebkitBackdropFilter: expanded ? 'none' : 'blur(12px)',
-          // Shadow: small → dramatic
-          boxShadow: expanded
-            ? '0 8px 40px rgba(0,0,0,0.45), 0 0 0 1px rgba(196,145,95,0.2), 0 0 30px rgba(196,145,95,0.08)'
-            : '0 4px 16px rgba(0,0,0,0.3), 0 0 0 1px rgba(196,145,95,0.15)',
-          // Transform origin: bottom-right so card expands leftward + upward
-          transformOrigin: 'bottom right',
-          // Overflow hidden during morph to clip content
-          overflow: 'hidden',
-          // The actual transition — cubic-bezier for that M3 feel
-          transition: morphing || expanded
-            ? 'width 0.38s cubic-bezier(0.2, 0.9, 0.3, 1), height 0.38s cubic-bezier(0.2, 0.9, 0.3, 1), max-height 0.38s cubic-bezier(0.2, 0.9, 0.3, 1), border-radius 0.35s ease, right 0.35s ease, background-color 0.3s ease, box-shadow 0.35s ease, border-color 0.3s ease'
-            : 'none',
-          // Cursor when collapsed
-          cursor: expanded ? 'default' : 'pointer',
-          // Ensure touch-friendly
-          touchAction: 'manipulation',
+          right: 16,
+          bottom: fabBottom,
+          width: 48,
+          height: 48,
+          backgroundColor: 'rgba(196,145,95,0.20)',
+          border: `1px solid ${COPPER_BORDER}`,
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.3), 0 0 0 1px rgba(196,145,95,0.15)',
+          // Morph out: scale down + fade when card opens
+          transform: fabVisible ? 'scale(1)' : 'scale(0.5)',
+          opacity: fabVisible ? 1 : 0,
+          transition: `transform ${OPEN_MS}ms ${OPEN_CURVE}, opacity ${OPEN_MS * 0.4}ms ease`,
+          pointerEvents: fabVisible ? 'auto' : 'none',
         }}
         aria-label="Rep Roulette"
-        role={expanded ? 'dialog' : 'button'}
       >
-        {/* FAB icon — visible when collapsed, fades out on expand */}
-        <div
-          className="flex items-center justify-center"
-          style={{
-            width: 48,
-            height: 48,
-            opacity: expanded ? 0 : 1,
-            transition: 'opacity 0.15s ease',
-            position: expanded ? 'absolute' : 'relative',
-            right: 0,
-            bottom: 0,
-            pointerEvents: expanded ? 'none' : 'auto',
-          }}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ color: PALE_YELLOW }}>
-            <rect x="2" y="2" width="20" height="20" rx="3" />
-            <circle cx="8" cy="8" r="1.5" fill="currentColor" stroke="none" />
-            <circle cx="16" cy="8" r="1.5" fill="currentColor" stroke="none" />
-            <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
-            <circle cx="8" cy="16" r="1.5" fill="currentColor" stroke="none" />
-            <circle cx="16" cy="16" r="1.5" fill="currentColor" stroke="none" />
-          </svg>
-        </div>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ color: PALE_YELLOW }}>
+          <rect x="2" y="2" width="20" height="20" rx="3" />
+          <circle cx="8" cy="8" r="1.5" fill="currentColor" stroke="none" />
+          <circle cx="16" cy="8" r="1.5" fill="currentColor" stroke="none" />
+          <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
+          <circle cx="8" cy="16" r="1.5" fill="currentColor" stroke="none" />
+          <circle cx="16" cy="16" r="1.5" fill="currentColor" stroke="none" />
+        </svg>
+      </button>
 
-        {/* Card content — fades in after morph completes */}
-        {expanded && (
+      {/* ── Card ── */}
+      {showCard && (
+        <div
+          data-no-page-swipe=""
+          className="fixed z-50 sm:hidden"
+          style={{
+            right: 12,
+            bottom: fabBottom,
+            width: 'calc(100vw - 24px)',
+            maxHeight: 'calc(100vh - 10rem - env(safe-area-inset-bottom, 0px))',
+            borderRadius: 20,
+            backgroundColor: '#1A3528',
+            border: '1px solid rgba(196,145,95,0.55)',
+            boxShadow: '0 8px 40px rgba(0,0,0,0.45), 0 0 0 1px rgba(196,145,95,0.2), 0 0 30px rgba(196,145,95,0.08)',
+            overflow: 'hidden',
+            // Scale from FAB origin (bottom-right corner)
+            transformOrigin: 'calc(100% - 16px) calc(100% + 4px)',
+            transform: cardVisible ? 'scale(1)' : 'scale(0.12)',
+            opacity: cardVisible ? 1 : 0,
+            transition: phase === 'closing'
+              ? `transform ${CLOSE_MS}ms ${CLOSE_CURVE}, opacity ${CLOSE_MS * 0.6}ms ease ${CLOSE_MS * 0.3}ms`
+              : `transform ${OPEN_MS}ms ${OPEN_CURVE}, opacity ${OPEN_MS * 0.5}ms ease`,
+          }}
+          role="dialog"
+        >
+          {/* Inner content — separate fade for stagger effect */}
           <div
             style={{
-              opacity: visible ? 1 : 0,
-              transition: 'opacity 0.2s ease 0.05s',
+              opacity: phase === 'open' ? 1 : 0,
+              transition: phase === 'closing'
+                ? `opacity ${CLOSE_MS * 0.4}ms ease`
+                : `opacity ${OPEN_MS * 0.5}ms ease ${OPEN_MS * 0.3}ms`,
               padding: '16px 16px 20px',
             }}
           >
             {/* Header row */}
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                {/* Mini dice icon */}
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ color: COPPER }}>
                   <rect x="2" y="2" width="20" height="20" rx="3" />
                   <circle cx="8" cy="8" r="1.5" fill="currentColor" stroke="none" />
@@ -285,7 +270,7 @@ export default function RepRouletteFab({ onLogDrill }: Props) {
               onTouchEnd={handleTouchEnd}
             >
               <div style={{
-                animation: visible ? 'j2RouletteEdgeBounce 0.8s ease 0.1s both' : 'none',
+                animation: phase === 'open' ? 'j2RouletteEdgeBounce 0.8s ease 0.05s both' : 'none',
               }}>
                 <div style={{
                   transform: `translateX(${isDragging ? dragX : 0}px)`,
@@ -341,11 +326,9 @@ export default function RepRouletteFab({ onLogDrill }: Props) {
               }}
             />
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </>,
     document.body,
   );
-
-  return container;
 }
