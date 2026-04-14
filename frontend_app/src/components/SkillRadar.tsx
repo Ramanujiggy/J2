@@ -580,7 +580,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
             <div className="flex overflow-hidden rounded-lg text-xs" style={{ border: `1px solid ${SURFACE_3_BORDER}` }}>
               <button
                 onClick={() => setDisplayMode('hours')}
-                className="px-3 py-2 touch-manipulation"
+                className="px-3 py-3 min-h-[40px] touch-manipulation j2-press"
                 style={{
                   backgroundColor: displayMode === 'hours' ? COPPER : 'transparent',
                   color: displayMode === 'hours' ? 'white' : 'rgba(255,255,255,0.4)',
@@ -589,7 +589,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
               >h</button>
               <button
                 onClick={() => setDisplayMode('pct')}
-                className="px-3 py-2 touch-manipulation"
+                className="px-3 py-3 min-h-[40px] touch-manipulation j2-press"
                 style={{
                   backgroundColor: displayMode === 'pct' ? COPPER : 'transparent',
                   color: displayMode === 'pct' ? 'white' : 'rgba(255,255,255,0.4)',

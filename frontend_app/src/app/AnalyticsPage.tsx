@@ -178,14 +178,14 @@ export default function AnalyticsPage() {
               {animHours.toFixed(1)}h
             </span>
             {hoursDelta && (
-              <span className="text-[11px] font-semibold" style={{
+              <span className="text-xs font-semibold" style={{
                 color: hoursDelta.startsWith('↑') ? 'rgba(82,181,108,0.85)' : 'rgba(218,90,70,0.75)',
               }}>
                 {hoursDelta}
               </span>
             )}
           </div>
-          <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.38)' }}>
+          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.38)' }}>
             {windowLabel}
           </span>
         </div>
@@ -194,7 +194,7 @@ export default function AnalyticsPage() {
           <span className="text-lg font-bold" style={{ color: PALE_YELLOW }}>
             {Math.round(animSessions)}
           </span>
-          <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.38)' }}>
+          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.38)' }}>
             sessions
           </span>
         </div>
@@ -203,7 +203,7 @@ export default function AnalyticsPage() {
           <span className="text-lg font-bold" style={{ color: PALE_YELLOW }}>
             {animAvg.toFixed(1)}h
           </span>
-          <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.38)' }}>
+          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.38)' }}>
             avg / wk
           </span>
         </div>
@@ -212,7 +212,7 @@ export default function AnalyticsPage() {
       {/* ── Insight sentence ─────────────────────────────────── */}
       <p
         className="text-sm leading-relaxed animate-j2-card-enter"
-        style={{ color: 'rgba(255,255,255,0.45)', animationDelay: '40ms' }}
+        style={{ color: 'rgba(255,255,255,0.55)', animationDelay: '40ms' }}
       >
         {insightSentence}
       </p>
@@ -240,8 +240,8 @@ export default function AnalyticsPage() {
             </h3>
             <button
               onClick={() => { vibrate(8); navigate('/intentions'); }}
-              className="flex items-center gap-0.5 text-xs font-medium touch-manipulation j2-press"
-              style={{ color: COPPER }}
+              className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium min-h-[40px] touch-manipulation j2-press"
+              style={{ color: COPPER, backgroundColor: 'rgba(255,255,255,0.05)' }}
             >
               View all <ChevronRight size={13} strokeWidth={2} />
             </button>
@@ -267,7 +267,7 @@ export default function AnalyticsPage() {
                   <div
                     className="rounded-full flex-shrink-0"
                     style={{
-                      width: 4, height: 32,
+                      width: 6, height: 32,
                       backgroundColor: alignment === 'aligned'  ? 'rgba(82,181,108,0.70)'
                                      : alignment === 'diverged' ? 'rgba(218,116,34,0.50)'
                                      : 'rgba(255,255,255,0.06)',
@@ -280,7 +280,7 @@ export default function AnalyticsPage() {
                       <span className="text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.90)' }}>
                         {headingLabel ?? intention.intent_label}
                       </span>
-                      <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.30)' }}>
+                      <span className="text-xs" style={{ color: 'rgba(255,255,255,0.30)' }}>
                         {formatWeekShort(intention.week_start)}
                       </span>
                     </div>
@@ -291,7 +291,7 @@ export default function AnalyticsPage() {
                             Trained: {top.label}
                           </span>
                           {alignment !== 'no-data' && (
-                            <span className="text-[10px]" style={{
+                            <span className="text-xs" style={{
                               color: alignment === 'aligned' ? 'rgba(82,181,108,0.65)' : 'rgba(218,116,34,0.50)',
                             }}>
                               {alignment === 'aligned' ? 'Aligned' : 'Diverged'}
