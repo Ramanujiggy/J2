@@ -53,6 +53,15 @@ export const CARD_SHADOW =
 /** Standalone whisper border — subtle inset rim-light for layered depth. */
 export const WHISPER_BORDER = 'inset 0 0 0 1px rgba(255,255,255,0.045)' as const;
 
+/** Backlit card glow — replaces COPPER_BORDER + CARD_SHADOW on major surfaces.
+ *  Deep drop shadow + faint ambient copper bloom beneath the card.
+ *  Pair with CARD_GLOW_BORDER for near-invisible edge geometry. */
+export const CARD_GLOW =
+  '0 2px 8px rgba(0,0,0,0.55), 0 12px 40px rgba(0,0,0,0.55), 0 0 32px 10px rgba(196,145,95,0.07), inset 0 1px 0 rgba(255,255,255,0.06)' as const;
+
+/** Ghost border to pair with CARD_GLOW — defines card geometry without the "webpage click" gold line. */
+export const CARD_GLOW_BORDER = 'rgba(196,145,95,0.08)' as const;
+
 /** Title glow — used on the large "Journada" wordmark. */
 export const GLOW_TITLE = '0 0 14px rgba(242,228,168,0.45), 0 0 32px rgba(242,228,168,0.2)' as const;
 

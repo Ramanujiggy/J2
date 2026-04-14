@@ -4,7 +4,7 @@ import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import SkillRadar, { type TimeWindow } from '../components/SkillRadar.tsx';
 import ErrorBoundary from '../components/ErrorBoundary.tsx';
-import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER_BORDER, CARD_SHADOW } from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, CARD_BG, CARD_GLOW, CARD_GLOW_BORDER } from '../lib/theme.ts';
 import type { SessionSummary, SessionsResponse, Intention } from '../types/api.ts';
 import PageContent from '../components/PageContent.tsx';
 import { SKILL_TAGS, CATEGORY_COLORS, MONTH_NAMES } from '../lib/constants.ts';
@@ -139,7 +139,7 @@ export default function AnalyticsPage() {
 
           <div
             className="mt-3 rounded-2xl overflow-hidden"
-            style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}
+            style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}
           >
               {/* Column headers */}
               <div className="hidden sm:grid grid-cols-[80px_1fr_1fr] gap-4 px-4 pt-3 pb-2">

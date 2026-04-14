@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { Info, Triangle, Target, BarChart2, Layers, BookOpen, Activity, type LucideIcon } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { SKILL_TAGS, MONTH_NAMES } from '../lib/constants.ts';
-import { CARD_BG, COPPER, COPPER_BORDER, CARD_SHADOW, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3_BORDER } from '../lib/theme.ts';
+import { CARD_BG, COPPER, CARD_GLOW, CARD_GLOW_BORDER, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3_BORDER } from '../lib/theme.ts';
 import type { SessionSummary } from './TrainingHeatmap.tsx';
 import TimeRangeBar from './TimeRangeBar.tsx';
 import RadarChart, { SKILL_COLORS, DEFAULT_COLORS } from './charts/RadarChart.tsx';
@@ -461,7 +461,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
   const isVolumeType = viewMode === 'volume' || viewMode === 'weekly';
 
   return (
-    <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
+    <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}>
 
       {/* ── Header: title row ── */}
       <div className="flex items-center gap-1.5 mb-2">
