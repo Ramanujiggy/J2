@@ -141,9 +141,11 @@ export default function IntentionHeroCard({ intention, weekSessionCount = 0, onS
                 <div
                   className="h-full rounded-full"
                   style={{
-                    width: `${Math.min(100, (weekSessionCount / 3) * 100)}%`,
+                    width: '100%',
                     backgroundColor: weekSessionCount >= 3 ? 'rgba(82,181,108,0.70)' : COPPER,
-                    transition: 'width 600ms ease-out',
+                    transform: `scaleX(${Math.min(1, weekSessionCount / 3)})`,
+                    transformOrigin: 'left center',
+                    transition: 'transform 600ms cubic-bezier(0.16, 1, 0.3, 1), background-color 400ms ease',
                   }}
                 />
               </div>

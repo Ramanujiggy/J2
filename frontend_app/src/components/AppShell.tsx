@@ -234,16 +234,18 @@ export default function AppShell({ children }: Props) {
             style={{
               position: 'absolute',
               bottom: 0,
-              left: indicator.left,
+              left: 0,
               width: indicator.width,
               height: 2,
               borderRadius: 1,
               backgroundColor: PALE_YELLOW,
               boxShadow: '0 0 8px rgba(242,228,168,0.6), 0 0 16px rgba(196,145,95,0.3)',
+              transform: `translateX(${indicator.left}px)`,
               transition: hasInitialized.current
-                ? 'left 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.3s ease'
+                ? 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.3s ease'
                 : 'none',
               pointerEvents: 'none',
+              willChange: 'transform',
             }}
           />
         </nav>
