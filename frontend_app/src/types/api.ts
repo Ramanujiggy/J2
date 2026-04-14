@@ -42,6 +42,11 @@ export interface IntentionsResponse {
   intentions: Intention[];
 }
 
+export interface SearchSessionsResponse {
+  sessions: SessionSummary[];
+  total: number;
+}
+
 export interface ProfileResponse {
   profile: { name: string | null; belt_rank: string | null; stripes: number; intentions_enabled: boolean } | null;
 }

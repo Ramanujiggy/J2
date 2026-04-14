@@ -62,6 +62,61 @@ export const getSessionsByUser = async (userId: string, from?: string, to?: stri
     return result.rows;
 };
 
+export interface SessionFilter {
+    from?: string;
+    to?: string;
+    q?: string;
+    gi_nogi?: 'gi' | 'no_gi';
+    session_type?: string;
+    heading?: string;
+    polarity?: string;
+    intensity_min?: number;
+    intensity_max?: number;
+    limit?: number;
+    offset?: number;
+}
+
+export const searchSessions = async (
+    userId: string,
+    filters: SessionFilter,
+): Promise<{ sessions: Session[]; total: number }> => {
+    const params: unknown[] = [userId];
+    const conditions: string[] = ['user_id = $1'];
+
+    if (filters.from)         { params.push(filters.from);         conditions.push(`date >= $${params.length}`); }
+    if (filters.to)           { params.push(filters.to);           conditions.push(`date <= $${params.length}`); }
+    if (filters.gi_nogi)      { params.push(filters.gi_nogi);      conditions.push(`gi_nogi = $${params.length}`); }
+    if (filters.session_type) { params.push(filters.session_type); conditions.push(`session_type = $${params.length}`); }
+    if (filters.heading)      { params.push(filters.heading);      conditions.push(`heading = $${params.length}`); }
+    if (filters.polarity)     { params.push(filters.polarity);     conditions.push(`polarity = $${params.length}`); }
+    if (filters.intensity_min != null) { params.push(filters.intensity_min); conditions.push(`intensity >= $${params.length}`); }
+    if (filters.intensity_max != null) { params.push(filters.intensity_max); conditions.push(`intensity <= $${params.length}`); }
+    if (filters.q) {
+        params.push(`%${filters.q}%`);
+        const idx = params.length;
+        conditions.push(`(notes ILIKE $${idx} OR sub_skill_tag ILIKE $${idx} OR heading ILIKE $${idx})`);
+    }
+
+    const where = conditions.join(' AND ');
+
+    const countResult = await query(
+        `SELECT COUNT(*)::int AS total FROM training_sessions WHERE ${where}`,
+        params,
+    );
+    const total: number = countResult.rows[0].total;
+
+    const limit = Math.min(filters.limit ?? 50, 200);
+    const offset = filters.offset ?? 0;
+    params.push(limit, offset);
+
+    const result = await query(
+        `SELECT * FROM training_sessions WHERE ${where} ORDER BY date DESC LIMIT $${params.length - 1} OFFSET $${params.length}`,
+        params,
+    );
+
+    return { sessions: result.rows, total };
+};
+
 export const deleteSession = async (id: string, userId: string): Promise<boolean> => {
     const result = await query(
         'DELETE FROM training_sessions WHERE id = $1 AND user_id = $2',
