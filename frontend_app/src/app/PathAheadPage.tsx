@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback, useMemo, useRef, useSyncExternalStore } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api, ApiError } from '../lib/api.ts';
 import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock.ts';
-import { SKILL_TAGS, ROULETTE_DRILLS, MONTH_NAMES, EIGHT_GATES } from '../lib/constants.ts';
+import { SKILL_TAGS, MONTH_NAMES, EIGHT_GATES } from '../lib/constants.ts';
 import type { SessionSummary, Intention, IntentionsResponse, SessionsResponse } from '../types/api.ts';
 import LogSessionForm from '../components/LogSessionForm.tsx';
 import SessionDetailModal from '../components/SessionDetailModal.tsx';
@@ -19,23 +20,11 @@ import StatStrip from '../components/StatStrip.tsx';
 import IntentionHeroCard from '../components/IntentionHeroCard.tsx';
 import WeekIndicators from '../components/WeekIndicators.tsx';
 import FirstVisitCard from '../components/FirstVisitCard.tsx';
+import RepRouletteFab from '../components/RepRouletteFab.tsx';
 import { toDateString, addDays, formatDuration, DAY_NAMES, INTENSITY_COLOR, SESSION_TYPE_LABELS } from '../lib/sessionUtils.ts';
 import { STATS_PARTICLES } from '../lib/particles.ts';
 import { computeStats } from '../components/TrainingHeatmap.tsx';
-
-// ── Desktop breakpoint hook ───────────────────────────────────────────────
-
-const DESKTOP_MQ = '(min-width: 1024px)';
-const mqSubscribe = (cb: () => void) => {
-  const mql = window.matchMedia(DESKTOP_MQ);
-  mql.addEventListener('change', cb);
-  return () => mql.removeEventListener('change', cb);
-};
-const mqSnapshot = () => window.matchMedia(DESKTOP_MQ).matches;
-const mqServerSnapshot = () => false;
-function useIsDesktop() {
-  return useSyncExternalStore(mqSubscribe, mqSnapshot, mqServerSnapshot);
-}
+import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -44,6 +33,7 @@ interface DeleteResponse      { message: string }
 // ── PathAheadPage ──────────────────────────────────────────────────────────
 
 export default function PathAheadPage() {
+  const navigate = useNavigate();
   const { name, intentionsEnabled } = useProfile();
   const isDesktop = useIsDesktop();
   const [sessions,   setSessions]   = useState<SessionSummary[]>([]);
@@ -54,22 +44,6 @@ export default function PathAheadPage() {
   const weekScrollRef = useRef<HTMLDivElement>(null);
   const MINI_CARD_W = 110;
   const MINI_CARD_GAP = 10;
-
-  // Rep Roulette — expand/collapse + drill history
-  const [rouletteOpen, setRouletteOpen] = useState(false);
-  const [drillHistory, setDrillHistory] = useState<number[]>(
-    () => [Math.floor(Math.random() * ROULETTE_DRILLS.length)]
-  );
-  const [drillHistoryIndex, setDrillHistoryIndex] = useState(0);
-
-  // Roulette swipe state
-  const rouletteTouchStartX    = useRef(0);
-  const rouletteTouchStartY    = useRef(0);
-  const rouletteTouchStartTime = useRef(0);
-  const rouletteIsHorizontal   = useRef<boolean | null>(null);
-  const rouletteRafRef         = useRef<number | undefined>(undefined);
-  const [rouletteDragX,      setRouletteDragX]      = useState(0);
-  const [rouletteIsDragging, setRouletteIsDragging] = useState(false);
 
   // Training Telemetry — expand/collapse + stat toggle
   const [telemetryOpen, setTelemetryOpen] = useState(false);
@@ -84,59 +58,6 @@ export default function PathAheadPage() {
     localStorage.setItem('j2_week_view', mode);
   }, []);
 
-  const handleRouletteTouchStart = (e: React.TouchEvent) => {
-    rouletteTouchStartX.current    = e.touches[0].clientX;
-    rouletteTouchStartY.current    = e.touches[0].clientY;
-    rouletteTouchStartTime.current = Date.now();
-    rouletteIsHorizontal.current   = null;
-    setRouletteIsDragging(true);
-  };
-  const handleRouletteTouchMove = (e: React.TouchEvent) => {
-    const rawDx = e.touches[0].clientX - rouletteTouchStartX.current;
-    const dy    = e.touches[0].clientY - rouletteTouchStartY.current;
-
-    // Direction lock — decide on first significant movement
-    if (rouletteIsHorizontal.current === null) {
-      if (Math.abs(rawDx) > 8 || Math.abs(dy) > 8) {
-        rouletteIsHorizontal.current = Math.abs(rawDx) > Math.abs(dy);
-      }
-      return;
-    }
-    if (!rouletteIsHorizontal.current) return;
-
-    // Rubber-band at left edge (no history to go back to)
-    let dx = rawDx;
-    if (drillHistoryIndex === 0 && rawDx > 0) {
-      dx = rawDx * 0.3;
-    }
-
-    if (rouletteRafRef.current !== undefined) return;
-    rouletteRafRef.current = requestAnimationFrame(() => {
-      setRouletteDragX(dx);
-      rouletteRafRef.current = undefined;
-    });
-  };
-  const handleRouletteTouchEnd = (e: React.TouchEvent) => {
-    if (rouletteRafRef.current !== undefined) { cancelAnimationFrame(rouletteRafRef.current); rouletteRafRef.current = undefined; }
-    const dx  = e.changedTouches[0].clientX - rouletteTouchStartX.current;
-    const dt  = Date.now() - rouletteTouchStartTime.current;
-    const vel = Math.abs(dx) / Math.max(dt, 1);
-    if (Math.abs(dx) > 45 || vel > 0.35) {
-      if (dx < 0) {
-        // Swipe left → new random drill
-        const currentDrill = drillHistory[drillHistoryIndex];
-        const next = (currentDrill + 1 + Math.floor(Math.random() * (ROULETTE_DRILLS.length - 1))) % ROULETTE_DRILLS.length;
-        setDrillHistory(prev => [...prev.slice(0, drillHistoryIndex + 1), next]);
-        setDrillHistoryIndex(i => i + 1);
-      } else {
-        // Swipe right → previous drill from history
-        setDrillHistoryIndex(i => Math.max(0, i - 1));
-      }
-    }
-    setRouletteDragX(0);
-    setRouletteIsDragging(false);
-  };
-
   // Week navigation offset (0 = current week, -1 = last week, +1 = next)
   const [weekOffset, setWeekOffset] = useState(0);
 
@@ -145,6 +66,7 @@ export default function PathAheadPage() {
   const [logDate,             setLogDate]             = useState<string | null>(null);
   const [logPreset,           setLogPreset]           = useState<{ heading?: string; sessionType?: 'drilling'; subSkillTag?: string } | null>(null);
   const [setIntentOpen,       setSetIntentOpen]       = useState(false);
+  const [editIntention,       setEditIntention]       = useState<Intention | null>(null);
   const [detailSessions,      setDetailSessions]      = useState<SessionSummary[]>([]);
   const [detailSessionIndex,  setDetailSessionIndex]  = useState(0);
   const [detailDate,          setDetailDate]          = useState<Date | null>(null);
@@ -722,121 +644,6 @@ export default function PathAheadPage() {
     </button>
   ) : null;
 
-  const DRILL_FOCUS_TO_TAG: Record<string, string> = {
-    'Guard':          'guard',
-    'Stand-up':       'standup',
-    'Dynamic Pins':   'pins',
-    'Guard Passing':  'passing',
-    'Submissions':    'submissions',
-    'Guard Retention':'guard',
-  };
-
-  const rouletteSection = (
-    <>
-      <button
-        onClick={() => { if (rouletteOpen) { setRouletteOpen(false); } else { setRouletteOpen(true); setTelemetryOpen(false); } }}
-        className="w-full rounded-xl px-4 py-3 flex items-center justify-between touch-manipulation"
-        style={{
-          backgroundColor: rouletteOpen ? 'rgba(242,228,168,0.06)' : CARD_BG,
-          border: `1px solid ${rouletteOpen ? 'rgba(242,228,168,0.25)' : COPPER_BORDER}`,
-          transition: 'background-color 0.3s ease, border-color 0.3s ease',
-        }}
-        data-testid="roulette-header"
-      >
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold uppercase tracking-wide" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
-            Rep Roulette
-          </span>
-          {!rouletteOpen && (
-            <span className="text-xs truncate max-w-[140px]" style={{ color: 'rgba(255,255,255,0.30)' }}>
-              {ROULETTE_DRILLS[drillHistory[drillHistoryIndex]].name}
-            </span>
-          )}
-        </div>
-        <span style={{
-          color: 'rgba(196,145,95,0.7)',
-          transform: rouletteOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-          transition: 'transform 0.3s ease',
-          fontSize: 12,
-        }}>▾</span>
-      </button>
-      <div style={{
-        maxHeight: rouletteOpen ? 320 : 0,
-        opacity: rouletteOpen ? 1 : 0,
-        overflow: 'hidden',
-        transition: 'max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease',
-      }}>
-        <div
-          className="rounded-xl px-4 py-3 mt-2"
-          style={{
-            touchAction: 'pan-y',
-            backgroundColor: 'rgba(242,228,168,0.04)',
-            border: '1px solid rgba(242,228,168,0.15)',
-          }}
-          data-testid="roulette-drill-area"
-          data-no-page-swipe=""
-          onTouchStart={handleRouletteTouchStart}
-          onTouchMove={handleRouletteTouchMove}
-          onTouchEnd={handleRouletteTouchEnd}
-        >
-          <div style={{ animation: rouletteOpen ? 'j2RouletteEdgeBounce 0.8s ease 0.4s both' : 'none' }}>
-            <div style={{
-              transform: `translateX(${rouletteIsDragging ? rouletteDragX : 0}px)`,
-              transition: rouletteIsDragging ? 'none' : 'transform 0.38s cubic-bezier(0.25, 1.3, 0.4, 1)',
-            }}>
-              <p className="text-xl font-semibold mb-0.5" style={{ color: 'rgba(242,228,168,0.85)' }}>
-                {ROULETTE_DRILLS[drillHistory[drillHistoryIndex]].name}
-              </p>
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                {ROULETTE_DRILLS[drillHistory[drillHistoryIndex]].focus}
-                <span style={{ color: 'rgba(255,255,255,0.2)', margin: '0 6px' }}>·</span>
-                {ROULETTE_DRILLS[drillHistory[drillHistoryIndex]].suggestion}
-              </p>
-              <p className="text-sm mt-2 leading-relaxed" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                {ROULETTE_DRILLS[drillHistory[drillHistoryIndex]].description}
-              </p>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
-                <button
-                  onPointerDown={e => e.stopPropagation()}
-                  onClick={e => {
-                    e.stopPropagation();
-                    const drill = ROULETTE_DRILLS[drillHistory[drillHistoryIndex]];
-                    setLogDate(toDateString(today));
-                    setLogPreset({
-                      heading:     DRILL_FOCUS_TO_TAG[drill.focus],
-                      sessionType: 'drilling',
-                      subSkillTag: drill.name,
-                    });
-                    setRouletteOpen(false);
-                    setLogOpen(true);
-                  }}
-                  className="text-xs touch-manipulation"
-                  style={{
-                    color: 'rgba(196,145,95,0.7)',
-                    padding: '4px 10px',
-                    borderRadius: 8,
-                    border: '1px solid rgba(196,145,95,0.25)',
-                    backgroundColor: 'transparent',
-                    letterSpacing: '0.02em',
-                    transition: 'color 150ms ease, border-color 150ms ease',
-                  }}
-                >
-                  Log this drill →
-                </button>
-              </div>
-              <p style={{
-                fontSize: 11, color: 'rgba(196,145,95,0.25)', marginTop: 8,
-                textAlign: 'center', letterSpacing: '0.04em', userSelect: 'none',
-              }}>
-                ← swipe to browse →
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-
   const heatmapSection = allSessions.length >= 5 ? (
     <HeatmapPreviewWidget sessions={sessions} />
   ) : (
@@ -902,10 +709,11 @@ export default function PathAheadPage() {
         />
       )}
 
-      {setIntentOpen && (
+      {(setIntentOpen || editIntention) && (
         <SetIntentionModal
-          onSaved={fetchAll}
-          onClose={() => setSetIntentOpen(false)}
+          editIntention={editIntention ?? undefined}
+          onSaved={() => { fetchAll(); setEditIntention(null); }}
+          onClose={() => { setSetIntentOpen(false); setEditIntention(null); }}
         />
       )}
     </>
@@ -994,13 +802,13 @@ export default function PathAheadPage() {
               {intentionsEnabled && (
                 <IntentionHeroCard
                   intention={activeIntention}
+                  weekSessionCount={weekStats.count}
                   onSetIntent={() => setSetIntentOpen(true)}
+                  onEditIntent={activeIntention ? () => setEditIntention(activeIntention) : undefined}
+                  onViewJournal={activeIntention ? () => navigate(`/intentions/${activeIntention.id}/journal`) : undefined}
                   onDeleteIntent={handleDeleteIntention}
                 />
               )}
-
-              {/* Rep Roulette */}
-              {rouletteSection}
 
               {/* Heatmap */}
               {heatmapSection}
@@ -1009,6 +817,11 @@ export default function PathAheadPage() {
         )}
 
         {modals}
+        <RepRouletteFab onLogDrill={(preset) => {
+          setLogDate(toDateString(today));
+          setLogPreset(preset);
+          setLogOpen(true);
+        }} />
       </div>
       </PageContent>
     );
@@ -1032,7 +845,7 @@ export default function PathAheadPage() {
         weekSessionCount={weekStats.count}
         weekTotalMinutes={weekStats.totalMinutes}
         consistentWeeks={consistentWeeks}
-        onTap={() => { setTelemetryOpen(prev => !prev); if (!telemetryOpen) setRouletteOpen(false); }}
+        onTap={() => setTelemetryOpen(prev => !prev)}
       />
 
       {/* ── Telemetry expanded panel (above tiles) ──────────────── */}
@@ -1049,7 +862,10 @@ export default function PathAheadPage() {
       {intentionsEnabled && (
         <IntentionHeroCard
           intention={activeIntention}
+          weekSessionCount={weekStats.count}
           onSetIntent={() => setSetIntentOpen(true)}
+          onEditIntent={activeIntention ? () => setEditIntention(activeIntention) : undefined}
+          onViewJournal={activeIntention ? () => navigate(`/intentions/${activeIntention.id}/journal`) : undefined}
           onDeleteIntent={handleDeleteIntention}
         />
       )}
@@ -1062,12 +878,16 @@ export default function PathAheadPage() {
         {weekSectionHeader}
         {weekViewContent}
         {primaryCta}
-        {rouletteSection}
         {heatmapSection}
       </>
       )}
 
       {modals}
+      <RepRouletteFab onLogDrill={(preset) => {
+        setLogDate(toDateString(today));
+        setLogPreset(preset);
+        setLogOpen(true);
+      }} />
     </div>
     </PageContent>
   );

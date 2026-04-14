@@ -3,12 +3,13 @@ import { Info, Triangle, Target, BarChart2, Layers, BookOpen, Activity, type Luc
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { SKILL_TAGS, MONTH_NAMES } from '../lib/constants.ts';
 import { CARD_BG, COPPER, CARD_GLOW, CARD_GLOW_BORDER, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3_BORDER } from '../lib/theme.ts';
+import { WINDOW_DAYS, type TimeWindow } from '../lib/analyticsUtils.ts';
 import type { SessionSummary } from './TrainingHeatmap.tsx';
 import TimeRangeBar from './TimeRangeBar.tsx';
 import RadarChart, { SKILL_COLORS, DEFAULT_COLORS } from './charts/RadarChart.tsx';
 import DonutChart from './charts/DonutChart.tsx';
 import VolumeChart, { sessionMonth } from './charts/VolumeChart.tsx';
-import WeeklyChart, { BAR_W, BAR_GAP } from './charts/WeeklyChart.tsx';
+import WeeklyChart from './charts/WeeklyChart.tsx';
 
 // ─── Segment colors ───────────────────────────────────────────────────────────
 
@@ -21,7 +22,7 @@ const SEG_COMP  = 'rgba(220,90,80,0.80)';
 // ─── Rail config ──────────────────────────────────────────────────────────────
 
 type ViewMode = 'prism' | 'volume' | 'split' | 'format' | 'weekly';
-export type TimeWindow = '7d' | '14d' | '30d' | '90d' | '180d' | '1y' | 'custom';
+export type { TimeWindow } from '../lib/analyticsUtils.ts';
 
 const RAIL_VIEWS: { id: ViewMode; label: string; short: string; Icon: LucideIcon }[] = [
   { id: 'prism',  label: 'Grappling Prism',  short: 'Prism',  Icon: Target    },
@@ -73,14 +74,13 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
   const animLockTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const weeklyScrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll weekly chart to current week on mount / when switching to weekly view
+  // Auto-scroll weekly chart to show current week (rightmost bar) on mount / view switch
   useEffect(() => {
     if (viewMode !== 'weekly') return;
     const el = weeklyScrollRef.current;
     if (!el) return;
-    // Current week is always at index 51; offsetX=12
-    const x = 12 + 51 * (BAR_W + BAR_GAP);
-    el.scrollTo({ left: Math.max(0, x - el.clientWidth / 2), behavior: 'smooth' });
+    // Scroll to the right edge where the current week lives
+    el.scrollTo({ left: el.scrollWidth - el.clientWidth, behavior: 'smooth' });
   }, [viewMode]);
 
   // Safety-net: clear the animation lock after 750ms even if onAnimationEnd doesn't fire (iOS Safari)
@@ -116,9 +116,6 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
   }
 
   // ── Filtered sessions ──
-  const WINDOW_DAYS: Partial<Record<TimeWindow, number>> = {
-    '7d': 7, '14d': 14, '30d': 30, '90d': 90, '180d': 180, '1y': 365,
-  };
   const filtered = useMemo(() => {
     if (timeWindow === 'custom' && customRange) {
       const start = new Date(customRange.start + 'T00:00:00');
@@ -185,6 +182,8 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
   const avgPerMonth   = trainedMonths > 0 ? totalVolHours / trainedMonths : 0;
 
   // ── Weekly rhythm data ──
+  // Build full 52-week array, then trim leading empty weeks so the chart
+  // starts where actual training data begins.
   const weeklyData = useMemo(() => {
     const monday = (d: Date) => {
       const c = new Date(d);
@@ -194,7 +193,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
       return c;
     };
     const thisMonday = monday(new Date());
-    return Array.from({ length: 52 }, (_, i) => {
+    const all = Array.from({ length: 52 }, (_, i) => {
       const weekStart = new Date(thisMonday);
       weekStart.setDate(weekStart.getDate() - (51 - i) * 7);
       const weekEnd = new Date(weekStart);
@@ -210,6 +209,10 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
         isCurrent: i === 51,
       };
     });
+    // Trim leading empty weeks (keep from first week with data through current)
+    const firstNonEmpty = all.findIndex(w => w.hours > 0);
+    if (firstNonEmpty <= 0) return all; // all empty or first week has data — return as-is
+    return all.slice(firstNonEmpty);
   }, [filtered]);
 
   const totalWeeklyHours = weeklyData.reduce((s, w) => s + w.hours, 0);
@@ -256,14 +259,19 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
   function renderChart(mode: ViewMode) {
     if (mode === 'volume') return <VolumeChart sessions={filtered} />;
     if (mode === 'weekly') return (
-      <div
-        ref={weeklyScrollRef}
-        data-no-page-swipe=""
-        className="j2-weekly-scroll"
-        style={{ overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
-      >
-        <style>{`.j2-weekly-scroll::-webkit-scrollbar { display: none; }`}</style>
-        <WeeklyChart weeks={weeklyData} />
+      <div className="relative">
+        <div
+          ref={weeklyScrollRef}
+          data-no-page-swipe=""
+          className="j2-weekly-scroll"
+          style={{ overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+        >
+          <style>{`.j2-weekly-scroll::-webkit-scrollbar { display: none; }`}</style>
+          <WeeklyChart weeks={weeklyData} />
+        </div>
+        {/* Scroll edge fades */}
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-6" style={{ background: `linear-gradient(to right, ${CARD_BG}, transparent)` }} />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-6" style={{ background: `linear-gradient(to left, ${CARD_BG}, transparent)` }} />
       </div>
     );
     if (mode === 'split') return (
@@ -540,14 +548,14 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
               <button
                 key={id}
                 onClick={() => handleViewChange(id)}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-medium transition-colors min-h-[44px] touch-manipulation"
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-medium transition-colors min-h-[44px] touch-manipulation j2-press"
                 style={{
                   backgroundColor: isActive ? COPPER : 'transparent',
                   color: isActive ? '#fff' : 'rgba(255,255,255,0.4)',
                 }}
               >
                 <Icon size={13} strokeWidth={isActive ? 2 : 1.5} />
-                <span>{short}</span>
+                <span className="hidden min-[375px]:inline">{short}</span>
               </button>
             );
           })}
@@ -572,7 +580,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
             <div className="flex overflow-hidden rounded-lg text-xs" style={{ border: `1px solid ${SURFACE_3_BORDER}` }}>
               <button
                 onClick={() => setDisplayMode('hours')}
-                className="px-3 py-2 touch-manipulation"
+                className="px-3 py-3 min-h-[40px] touch-manipulation j2-press"
                 style={{
                   backgroundColor: displayMode === 'hours' ? COPPER : 'transparent',
                   color: displayMode === 'hours' ? 'white' : 'rgba(255,255,255,0.4)',
@@ -581,7 +589,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
               >h</button>
               <button
                 onClick={() => setDisplayMode('pct')}
-                className="px-3 py-2 touch-manipulation"
+                className="px-3 py-3 min-h-[40px] touch-manipulation j2-press"
                 style={{
                   backgroundColor: displayMode === 'pct' ? COPPER : 'transparent',
                   color: displayMode === 'pct' ? 'white' : 'rgba(255,255,255,0.4)',
@@ -668,7 +676,7 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
                   <TooltipTrigger asChild>
                     <button
                       onClick={() => handleViewChange(id)}
-                      className="relative w-8 h-8 flex items-center justify-center rounded-md transition-all"
+                      className="relative w-8 h-8 flex items-center justify-center rounded-md transition-all j2-press"
                       style={{
                         color: active ? PALE_YELLOW : 'rgba(242,228,168,0.2)',
                         backgroundColor: active ? 'rgba(242,228,168,0.06)' : 'transparent',

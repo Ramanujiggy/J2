@@ -17,47 +17,65 @@ export interface ParsedRow {
   errors: string[];
   isDuplicate: boolean;
   skip: boolean;
+  heading: string | null;
+  polarity: string | null;
+  sub_skill_tag: string | null;
+  script_source: string | null;
+  resonance: number | null;
 }
+
+// ── Date format ────────────────────────────────────────────────────────────
+
+export type DateFormat = 'auto' | 'mdy' | 'dmy';
 
 // ── Date parsing ────────────────────────────────────────────────────────────
 
-function parseDate(raw: string): string | null {
+function parseDate(raw: string, format: DateFormat = 'auto'): string | null {
   const s = raw.trim();
   if (!s) return null;
 
-  // YYYY-MM-DD
+  // YYYY-MM-DD (unambiguous, always accepted)
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
     const d = new Date(s + 'T00:00:00');
     if (!isNaN(d.getTime())) return s;
   }
 
-  // MM/DD/YYYY
-  const mdy4 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (mdy4) {
-    const [, m, d, y] = mdy4;
-    const iso = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-    const dt = new Date(iso + 'T00:00:00');
-    if (!isNaN(dt.getTime())) return iso;
+  // X/Y/YYYY — interpretation depends on format
+  const slashFull = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (slashFull) {
+    const [, a, b, y] = slashFull;
+    if (format === 'dmy') {
+      // DD/MM/YYYY
+      const iso = `${y}-${b.padStart(2, '0')}-${a.padStart(2, '0')}`;
+      if (!isNaN(new Date(iso + 'T00:00:00').getTime())) return iso;
+    } else if (format === 'mdy') {
+      // MM/DD/YYYY
+      const iso = `${y}-${a.padStart(2, '0')}-${b.padStart(2, '0')}`;
+      if (!isNaN(new Date(iso + 'T00:00:00').getTime())) return iso;
+    } else {
+      // Auto: if first segment > 12, must be DD/MM; otherwise default MM/DD
+      if (parseInt(a) > 12) {
+        const iso = `${y}-${b.padStart(2, '0')}-${a.padStart(2, '0')}`;
+        if (!isNaN(new Date(iso + 'T00:00:00').getTime())) return iso;
+      } else {
+        const iso = `${y}-${a.padStart(2, '0')}-${b.padStart(2, '0')}`;
+        if (!isNaN(new Date(iso + 'T00:00:00').getTime())) return iso;
+      }
+    }
   }
 
-  // MM/DD/YY
-  const mdy2 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
-  if (mdy2) {
-    const [, m, d, y] = mdy2;
+  // X/Y/YY (2-digit year)
+  const slashShort = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
+  if (slashShort) {
+    const [, a, b, y] = slashShort;
     const fullYear = parseInt(y) >= 50 ? `19${y}` : `20${y}`;
-    const iso = `${fullYear}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-    const dt = new Date(iso + 'T00:00:00');
-    if (!isNaN(dt.getTime())) return iso;
-  }
-
-  // DD/MM/YYYY (only if day > 12, otherwise ambiguous — default MM/DD)
-  const dmy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (dmy) {
-    const [, d, m, y] = dmy;
-    if (parseInt(d) > 12) {
-      const iso = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-      const dt = new Date(iso + 'T00:00:00');
-      if (!isNaN(dt.getTime())) return iso;
+    if (format === 'dmy') {
+      const iso = `${fullYear}-${b.padStart(2, '0')}-${a.padStart(2, '0')}`;
+      if (!isNaN(new Date(iso + 'T00:00:00').getTime())) return iso;
+    } else {
+      // mdy or auto (default MM/DD for short years)
+      const iso = `${fullYear}-${a.padStart(2, '0')}-${b.padStart(2, '0')}`;
+      if (!isNaN(new Date(iso + 'T00:00:00').getTime())) return iso;
     }
   }
 
@@ -70,10 +88,10 @@ function parseDuration(raw: string): number | null {
   const s = raw.trim();
   if (!s) return null;
 
-  // Plain number (treated as decimal hours, e.g. "1.5" → 90)
+  // Plain number: if > 12, treat as minutes (e.g. "90" → 90); otherwise hours (e.g. "1.5" → 90)
   const asNum = parseFloat(s);
   if (!isNaN(asNum) && asNum > 0) {
-    return Math.round(asNum * 60);
+    return asNum > 12 ? Math.round(asNum) : Math.round(asNum * 60);
   }
 
   // "90 mins" / "90 min" / "90m"
@@ -95,18 +113,23 @@ function parseDuration(raw: string): number | null {
 
 // ── Column header normalizer ─────────────────────────────────────────────────
 
-type ColKey = 'date' | 'duration' | 'notes' | 'restriction' | 'ignore';
+export type ColKey = 'date' | 'duration' | 'notes' | 'restriction' | 'heading' | 'polarity' | 'script_source' | 'sub_skill_tag' | 'resonance' | 'tags' | 'ignore';
 
-function classifyHeader(h: string): ColKey {
+export function classifyHeader(h: string): ColKey {
   const lower = h.toLowerCase().replace(/[^a-z0-9]/g, '');
   if (['date'].includes(lower)) return 'date';
   if (['hrs', 'hrs', 'duration', 'hours', 'hrstime', 'time'].includes(lower)) return 'duration';
   if (['goalsdrillinggoals', 'goals', 'drilling', 'notes', 'focus', 'goalsdrillings',
        'goaldrilling', 'goalsdrilling'].includes(lower)) return 'notes';
   if (lower === 'restriction') return 'restriction';
+  if (['heading', 'pillar'].includes(lower)) return 'heading';
+  if (['polarity'].includes(lower)) return 'polarity';
+  if (['scriptsource', 'script', 'source'].includes(lower)) return 'script_source';
+  if (['subskill', 'subskilltag'].includes(lower)) return 'sub_skill_tag';
+  if (['resonance'].includes(lower)) return 'resonance';
+  if (['tags', 'skilltags', 'tag'].includes(lower)) return 'tags';
   if (lower.startsWith('hrsrunning') || lower.startsWith('runningtotal') ||
       lower === 'total' || lower === 'runninghrs') return 'ignore';
-  // fuzzy: contains 'running' → ignore
   if (lower.includes('running')) return 'ignore';
   return 'ignore';
 }
@@ -118,6 +141,7 @@ export function parseCSV(
   existingDates: Set<string>,
   onDone: (rows: ParsedRow[]) => void,
   onError: (msg: string) => void,
+  dateFormat: DateFormat = 'auto',
 ) {
   Papa.parse<Record<string, string>>(file, {
     header: true,
@@ -138,14 +162,29 @@ export function parseCSV(
         let durationVal: number | null = null;
         let notesVal = '';
         let restrictionVal = '';
+        let headingVal: string | null = null;
+        let polarityVal: string | null = null;
+        let scriptSourceVal: string | null = null;
+        let subSkillTagVal: string | null = null;
+        let resonanceVal: number | null = null;
+        let tagsVal: SkillTagValue[] = [];
 
         for (const [col, val] of Object.entries(raw)) {
           const key = colMap[col];
           if (!key || key === 'ignore') continue;
-          if (key === 'date') dateVal = parseDate(val);
+          if (key === 'date') dateVal = parseDate(val, dateFormat);
           if (key === 'duration') durationVal = parseDuration(val);
           if (key === 'notes') notesVal = val.trim();
           if (key === 'restriction') restrictionVal = val.trim();
+          if (key === 'heading') { const v = val.trim().toLowerCase(); if (v) headingVal = v; }
+          if (key === 'polarity') { const v = val.trim().toLowerCase(); if (v) polarityVal = v; }
+          if (key === 'script_source') { const v = val.trim().toLowerCase(); if (v) scriptSourceVal = v; }
+          if (key === 'sub_skill_tag') { const v = val.trim(); if (v) subSkillTagVal = v; }
+          if (key === 'resonance') { const n = parseInt(val.trim()); if (!isNaN(n) && n >= 1 && n <= 10) resonanceVal = n; }
+          if (key === 'tags') {
+            const validTagValues = new Set(SKILL_TAGS.map(t => t.value));
+            tagsVal = val.split(/[;,|]/).map((t: string) => t.trim().toLowerCase()).filter((t: string) => validTagValues.has(t)) as SkillTagValue[];
+          }
         }
 
         // Merge restriction into notes
@@ -169,10 +208,15 @@ export function parseCSV(
           gi_nogi: 'gi',
           intensity: 3,
           session_type: 'class',
-          tags: [],
+          tags: tagsVal,
           errors,
           isDuplicate: dateVal ? existingDates.has(dateVal) : false,
           skip: false,
+          heading: headingVal,
+          polarity: polarityVal,
+          sub_skill_tag: subSkillTagVal,
+          script_source: scriptSourceVal,
+          resonance: resonanceVal,
         });
       });
 
@@ -181,9 +225,9 @@ export function parseCSV(
         return;
       }
 
-      if (rows.length > 500) {
-        // Cap at 500 and warn — caller handles the warning display
-        onDone(rows.slice(0, 500));
+      if (rows.length > 2000) {
+        // Cap at 2000 and warn — caller handles the warning display
+        onDone(rows.slice(0, 2000));
         return;
       }
 

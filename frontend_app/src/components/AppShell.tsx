@@ -3,7 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import WaveBackground from './WaveBackground.tsx';
-import BeltBar, { type BeltRank, BELT_COLORS, PATCH_COLORS } from './BeltBar.tsx';
+import RiveBeltBar from './RiveBeltBar.tsx';
+import { type BeltRank, BELT_COLORS, PATCH_COLORS } from './BeltBar.tsx';
 import { PAGE_BG, PALE_YELLOW, GLOW_TITLE, GLOW_NAV, COPPER_BORDER } from '../lib/theme.ts';
 import PageTransition from './PageTransition.tsx';
 import OfflineBanner from './OfflineBanner.tsx';
@@ -202,7 +203,7 @@ export default function AppShell({ children }: Props) {
             >
               Journada
             </h1>
-            <BeltBar rank={beltRank} stripes={stripes} />
+            <RiveBeltBar rank={beltRank} stripes={stripes} />
           </div>
         </div>
 
@@ -233,16 +234,18 @@ export default function AppShell({ children }: Props) {
             style={{
               position: 'absolute',
               bottom: 0,
-              left: indicator.left,
+              left: 0,
               width: indicator.width,
               height: 2,
               borderRadius: 1,
               backgroundColor: PALE_YELLOW,
               boxShadow: '0 0 8px rgba(242,228,168,0.6), 0 0 16px rgba(196,145,95,0.3)',
+              transform: `translateX(${indicator.left}px)`,
               transition: hasInitialized.current
-                ? 'left 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.3s ease'
+                ? 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.3s ease'
                 : 'none',
               pointerEvents: 'none',
+              willChange: 'transform',
             }}
           />
         </nav>

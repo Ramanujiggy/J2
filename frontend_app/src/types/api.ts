@@ -23,6 +23,7 @@ export interface Intention {
   week_start: string;
   intent_label: string;
   intent_category: string | null;
+  heading: string | null;
   duration_days: number;
   journal_entry: string | null;
   created_at: string;
@@ -39,6 +40,11 @@ export interface SessionsResponse {
 
 export interface IntentionsResponse {
   intentions: Intention[];
+}
+
+export interface SearchSessionsResponse {
+  sessions: SessionSummary[];
+  total: number;
 }
 
 export interface ProfileResponse {

@@ -4,8 +4,11 @@ import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 
 import { api } from '../lib/api.ts';
 import { useAuth } from '../hooks/useAuth.ts';
-import { CARD_BG, COPPER_BORDER, CARD_SHADOW, PALE_YELLOW, SURFACE_2, SURFACE_2_BORDER } from '../lib/theme.ts';
+import { CARD_BG, COPPER_BORDER, CARD_SHADOW, SURFACE_2, SURFACE_2_BORDER } from '../lib/theme.ts';
+import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import CsvImportModal from '../components/CsvImportModal.tsx';
+import { exportSessionsCsv, exportIntentionsCsv } from '../lib/csvExport.ts';
+import type { SessionSummary, Intention } from '../types/api.ts';
 import PageContent from '../components/PageContent.tsx';
 import { type BeltRank } from '../components/BeltBar.tsx';
 import { useProfile } from '../context/ProfileContext.tsx';
@@ -54,6 +57,7 @@ const inputCls =
   'w-full bg-white/10 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-orange';
 
 export default function ProfilePage() {
+  const isDesktop = useIsDesktop();
   const { refreshProfile } = useProfile();
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -74,6 +78,7 @@ export default function ProfilePage() {
   const [error, setError] = useState('');
   const [importOpen, setImportOpen] = useState(false);
   const [existingDates, setExistingDates] = useState<Set<string>>(new Set());
+  const [exporting, setExporting] = useState(false);
 
   // Load existing profile
   const fetchProfile = useCallback(() => {
@@ -155,7 +160,7 @@ export default function ProfilePage() {
   return (
     <div className="flex flex-col">
 
-      <main className="flex-1 max-w-xl w-full mx-auto px-4 sm:px-6 py-6">
+      <main className={`flex-1 w-full mx-auto py-6 ${isDesktop ? 'max-w-2xl px-8' : 'max-w-xl px-4 sm:px-6'}`}>
         <h2 className="text-lg font-semibold text-white mb-6">Your Profile</h2>
 
         <PageContent ready={!loading} loadingMessages={['Taping fingers...']}>
@@ -313,6 +318,59 @@ export default function ProfilePage() {
           >
             ↑ Upload CSV
           </button>
+        </div>
+
+        {/* Export section */}
+        <div
+          className="mt-4 rounded-2xl p-5"
+          style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}` }}
+        >
+          <p className="text-sm font-semibold text-white mb-1">Export Your Data</p>
+          <p className="text-xs text-white/40 mb-4">
+            Download your training data as CSV files you can open in any spreadsheet app.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={async () => {
+                setExporting(true);
+                try {
+                  const data = await api.get<{ sessions: SessionSummary[] }>('/api/sessions');
+                  exportSessionsCsv(data.sessions ?? []);
+                  toast({ title: 'Sessions exported!' });
+                } catch {
+                  toast({ title: 'Export failed. Please try again.' });
+                } finally {
+                  setExporting(false);
+                }
+              }}
+              disabled={exporting}
+              className="text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+              style={{ backgroundColor: 'rgba(196,145,95,0.15)', color: 'rgba(196,145,95,0.85)' }}
+            >
+              ↓ Export Sessions
+            </button>
+            {intentionsEnabled && (
+              <button
+                onClick={async () => {
+                  setExporting(true);
+                  try {
+                    const data = await api.get<{ intentions: Intention[] }>('/api/intentions');
+                    exportIntentionsCsv(data.intentions ?? []);
+                    toast({ title: 'Intentions exported!' });
+                  } catch {
+                    toast({ title: 'Export failed. Please try again.' });
+                  } finally {
+                    setExporting(false);
+                  }
+                }}
+                disabled={exporting}
+                className="text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                style={{ backgroundColor: 'rgba(196,145,95,0.15)', color: 'rgba(196,145,95,0.85)' }}
+              >
+                ↓ Export Intentions
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="mt-6 flex justify-center">

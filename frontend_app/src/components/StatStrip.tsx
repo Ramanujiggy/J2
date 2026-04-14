@@ -106,17 +106,14 @@ export default function StatStrip({ streak, longestStreak, weekSessionCount, wee
 
         <div style={{ transition: 'opacity 0.12s', opacity: fading ? 0 : 1 }}>
           <span className="text-lg font-bold block text-center" style={{ color: valueColor }}>
-            {view === 'daily' && streak > 0 && (
-              <span style={{ marginRight: 4, fontSize: 14 }}>🔥</span>
-            )}
             {cellValue}
           </span>
-          <span className="text-[11px] block text-center" style={{ color: 'rgba(255,255,255,0.38)' }}>
+          <span className="text-xs block text-center" style={{ color: 'rgba(255,255,255,0.38)' }}>
             {cellLabel}
           </span>
           {cellSub && (
             <span
-              className="text-[10px] block text-center"
+              className="text-[11px] block text-center"
               style={{ color: isPersonalBest && view === 'daily' ? COPPER : 'rgba(255,255,255,0.22)' }}
             >
               {cellSub}
@@ -126,8 +123,8 @@ export default function StatStrip({ streak, longestStreak, weekSessionCount, wee
 
         {/* Cycle hint */}
         <span
-          className="absolute bottom-1 right-1.5 text-[8px] select-none"
-          style={{ color: 'rgba(255,255,255,0.22)' }}
+          className="absolute bottom-1 right-1.5 text-[10px] select-none"
+          style={{ color: 'rgba(255,255,255,0.30)' }}
         >
           ⇄
         </span>
@@ -138,7 +135,7 @@ export default function StatStrip({ streak, longestStreak, weekSessionCount, wee
         <span className="text-lg font-bold" style={{ color: 'rgba(255,255,255,0.88)' }}>
           {weekTotalMinutes > 0 ? formatDuration(weekTotalMinutes) : '0h'}
         </span>
-        <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.38)' }}>
+        <span className="text-xs" style={{ color: 'rgba(255,255,255,0.38)' }}>
           this week
         </span>
       </div>

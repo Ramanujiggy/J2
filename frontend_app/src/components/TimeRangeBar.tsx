@@ -35,7 +35,7 @@ export default function TimeRangeBar({ value, onChange, customRange, onCustomRan
   const [draftStart, setDraftStart] = useState('');
   const [draftEnd, setDraftEnd]     = useState('');
 
-  const pill  = 'px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none touch-manipulation';
+  const pill  = 'px-3 py-2.5 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none touch-manipulation j2-press min-h-[40px] flex items-center justify-center';
   const active   = { backgroundColor: COPPER,      color: '#fff' };
   const inactive = { backgroundColor: SURFACE_3, color: 'rgba(255,255,255,0.55)' };
 
@@ -127,7 +127,7 @@ export default function TimeRangeBar({ value, onChange, customRange, onCustomRan
               onClick={e => { e.stopPropagation(); onChange('30d'); onCustomRange(null); }}
               className="ml-0.5 rounded hover:opacity-70 transition-opacity"
             >
-              <X size={11} strokeWidth={2.5} />
+              <X size={14} strokeWidth={2.5} />
             </span>
           </button>
         ) : (
@@ -207,14 +207,15 @@ export default function TimeRangeBar({ value, onChange, customRange, onCustomRan
             <div className="flex items-center justify-between mt-5">
               <button
                 onClick={() => setPickerOpen(false)}
-                className="text-xs text-white/40 hover:text-white/70 transition-colors"
+                className="px-4 py-2.5 rounded-lg text-xs text-white/50 transition-colors touch-manipulation j2-press"
+                style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
               >
                 Cancel
               </button>
               <button
                 onClick={applyCustom}
                 disabled={!draftStart || !draftEnd || draftStart > draftEnd}
-                className="px-4 py-2 rounded-full text-xs font-semibold transition-opacity disabled:opacity-40"
+                className="px-4 py-2.5 rounded-xl text-xs font-semibold transition-opacity disabled:opacity-40 min-h-[40px] touch-manipulation j2-press"
                 style={{ backgroundColor: COPPER, color: '#fff' }}
               >
                 Apply

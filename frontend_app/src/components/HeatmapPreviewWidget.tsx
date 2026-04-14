@@ -183,45 +183,6 @@ export default function HeatmapPreviewWidget({ sessions }: HeatmapPreviewWidgetP
           )}
         </div>
       </div>
-
-      {/* Weekly volume pulse strip */}
-      {(() => {
-        const weekAgg = weeks.map(w => ({
-          minutes: w.days.reduce((s, d) => s + d.day.totalMinutes, 0),
-          maxIntensity: w.days.reduce((m, d) => Math.max(m, d.day.maxIntensity), 0),
-        }));
-        const maxMins = Math.max(...weekAgg.map(w => w.minutes), 1);
-        return (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: `repeat(${WEEKS}, ${CELL_SIZE}px)`,
-              gap: CELL_GAP,
-              height: 16,
-              marginTop: 8,
-              alignItems: 'flex-end',
-            }}
-          >
-            {weekAgg.map((w, i) => {
-              const h = w.minutes > 0 ? Math.max(2, (w.minutes / maxMins) * 16) : 0;
-              const isLast = i === WEEKS - 1;
-              return (
-                <div
-                  key={i}
-                  style={{
-                    height: h,
-                    borderRadius: '2px 2px 0 0',
-                    backgroundColor: w.minutes > 0
-                      ? cellColor({ count: 1, totalMinutes: w.minutes, maxIntensity: w.maxIntensity, notes: [] })
-                      : 'rgba(255,255,255,0.03)',
-                    borderBottom: isLast ? '2px solid rgba(196,145,95,0.6)' : 'none',
-                  }}
-                />
-              );
-            })}
-          </div>
-        );
-      })()}
     </div>
   );
 }

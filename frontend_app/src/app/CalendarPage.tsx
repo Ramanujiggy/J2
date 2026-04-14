@@ -4,13 +4,17 @@ import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import TrainingHeatmap from '../components/TrainingHeatmap.tsx';
 import CompactHeatmap from '../components/CompactHeatmap.tsx';
+import CalendarHeatmap from '../components/CalendarHeatmap.tsx';
 import LogSessionForm from '../components/LogSessionForm.tsx';
 import ErrorBoundary from '../components/ErrorBoundary.tsx';
-import { LayoutGrid, CalendarDays } from 'lucide-react';
+import { LayoutGrid, CalendarDays, Search, X } from 'lucide-react';
+import SessionSearchPanel from '../components/SessionSearchPanel.tsx';
 import { PALE_YELLOW, GLOW_SOFT, COPPER, SURFACE_2 } from '../lib/theme.ts';
+import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import type { SessionSummary, CalendarIntention, SessionsResponse, IntentionsResponse } from '../types/api.ts';
 
 export default function CalendarPage() {
+  const isDesktop = useIsDesktop();
   const [sessions,    setSessions]    = useState<SessionSummary[]>([]);
   const [intentions,  setIntentions]  = useState<CalendarIntention[]>([]);
   const [loading,     setLoading]     = useState(true);
@@ -18,6 +22,7 @@ export default function CalendarPage() {
   const [displayYear, setDisplayYear] = useState(new Date().getFullYear());
   const [flipDir,     setFlipDir]     = useState<'forward' | 'back' | null>(null);
   const [logDate,     setLogDate]     = useState<string | null>(null); // YYYY-MM-DD for log-from-calendar
+  const [searchOpen,  setSearchOpen]  = useState(false);
 
   // View toggle — compact hero vs full detailed heatmap
   type CalendarViewMode = 'compact' | 'detailed';
@@ -92,7 +97,7 @@ export default function CalendarPage() {
       </div>
     )}
 
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-5">
+    <div className={`mx-auto space-y-5 ${isDesktop ? 'max-w-7xl px-8 py-5' : 'max-w-5xl px-4 sm:px-6 py-6'}`}>
 
       {/* Header row */}
       <div className="flex items-center justify-between">
@@ -104,6 +109,21 @@ export default function CalendarPage() {
         </h2>
 
         <div className="flex items-center gap-2">
+          {/* Search toggle */}
+          <button
+            onClick={() => setSearchOpen(v => !v)}
+            className="flex items-center justify-center rounded-lg transition-colors touch-manipulation"
+            style={{
+              width: 34,
+              height: 30,
+              backgroundColor: searchOpen ? COPPER : SURFACE_2,
+              color: searchOpen ? '#fff' : 'rgba(242,228,168,0.45)',
+            }}
+            aria-label={searchOpen ? 'Close search' : 'Search sessions'}
+          >
+            {searchOpen ? <X size={14} /> : <Search size={14} />}
+          </button>
+
           {/* View toggle */}
           <div className="flex gap-0.5 p-0.5 rounded-lg" style={{ backgroundColor: SURFACE_2 }}>
             {([
@@ -164,33 +184,49 @@ export default function CalendarPage() {
 
       {fetchError && <p className="text-sm text-red-400">{fetchError}</p>}
 
-      <ErrorBoundary>
-        <div
-          key={displayYear}
-          onAnimationEnd={() => setFlipDir(null)}
-          style={flipDir ? {
-            animation: `j2PageFlip${flipDir === 'forward' ? 'Forward' : 'Back'} 380ms ease-out both`,
-          } : undefined}
-        >
-          {calView === 'compact' ? (
-            <CompactHeatmap
-              sessions={allSessions}
-              year={displayYear}
-              loading={loading}
-            />
-          ) : (
-            <TrainingHeatmap
-              sessions={allSessions}
-              intentions={intentions}
-              loading={loading}
-              onSessionUpdated={fetchAll}
-              onGoToToday={() => setDisplayYear(currentYear)}
-              onLogSession={(dateKey) => setLogDate(dateKey)}
-              year={displayYear}
-            />
-          )}
-        </div>
-      </ErrorBoundary>
+      {searchOpen ? (
+        <SessionSearchPanel
+          cachedSessions={allSessions}
+          onClose={() => setSearchOpen(false)}
+          onRefresh={fetchAll}
+        />
+      ) : (
+        <ErrorBoundary>
+          <div
+            key={displayYear}
+            onAnimationEnd={() => setFlipDir(null)}
+            style={flipDir ? {
+              animation: `j2PageFlip${flipDir === 'forward' ? 'Forward' : 'Back'} 380ms ease-out both`,
+            } : undefined}
+          >
+            {calView === 'compact' ? (
+              isDesktop ? (
+                <CalendarHeatmap
+                  sessions={allSessions}
+                  year={displayYear}
+                  onLogSession={(dateKey) => setLogDate(dateKey)}
+                />
+              ) : (
+                <CompactHeatmap
+                  sessions={allSessions}
+                  year={displayYear}
+                  loading={loading}
+                />
+              )
+            ) : (
+              <TrainingHeatmap
+                sessions={allSessions}
+                intentions={intentions}
+                loading={loading}
+                onSessionUpdated={fetchAll}
+                onGoToToday={() => setDisplayYear(currentYear)}
+                onLogSession={(dateKey) => setLogDate(dateKey)}
+                year={displayYear}
+              />
+            )}
+          </div>
+        </ErrorBoundary>
+      )}
     </div>
     </>
   );

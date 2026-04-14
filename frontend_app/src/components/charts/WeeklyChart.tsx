@@ -9,8 +9,8 @@ export default function WeeklyChart({ weeks }: { weeks: WeekEntry[] }) {
   const maxH = Math.max(...weeks.map(w => w.hours), 0.001);
   const barW = BAR_W, gap = BAR_GAP;
   const chartH = 78, baseY = 90;
-  const contentW = 52 * (barW + gap) - gap; // 52 * 16 - 4 = 828
-  const W = contentW + 24;                   // 852, 12px margin each side
+  const contentW = weeks.length * (barW + gap) - gap;
+  const W = contentW + 24;                   // 12px margin each side
   const H = 110;
   const offsetX = 12;
 
@@ -35,11 +35,7 @@ export default function WeeklyChart({ weeks }: { weeks: WeekEntry[] }) {
             ? 'rgba(82,181,108,0.55)'
             : 'rgba(255,255,255,0.07)';
         return (
-          <rect key={i} x={x} y={baseY - barH} width={barW} height={Math.max(barH, 1)} rx={2} fill={color}>
-            <title>{w.hours > 0
-              ? `${w.weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: ${w.hours.toFixed(1)}h (${w.count} session${w.count !== 1 ? 's' : ''})`
-              : 'No sessions'}</title>
-          </rect>
+          <rect key={i} x={x} y={baseY - barH} width={barW} height={Math.max(barH, 1)} rx={2} fill={color} />
         );
       })}
       {monthLabels.map(({ x, label }) => (

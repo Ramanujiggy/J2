@@ -1,7 +1,8 @@
 import { useState, useRef, useCallback } from 'react';
-import { parseCSV, type ParsedRow, type GiNogi, type SessionType, type SkillTagValue } from '../lib/csvParser.ts';
+import { parseCSV, type ParsedRow, type GiNogi, type SessionType, type SkillTagValue, type DateFormat } from '../lib/csvParser.ts';
+import { parseJSON } from '../lib/jsonParser.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
-import { api } from '../lib/api.ts';
+import { api, ApiError } from '../lib/api.ts';
 import { CARD_BG, COPPER_BORDER, SURFACE_2, SURFACE_2_BORDER, SURFACE_3, SURFACE_3_BORDER } from '../lib/theme.ts';
 
 const COPPER_DIM = 'rgba(196,145,95,0.85)';
@@ -22,14 +23,18 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState('');
   const [importedCount, setImportedCount] = useState(0);
+  const [duplicatePrompt, setDuplicatePrompt] = useState<string[] | null>(null);
   const [capped, setCapped]       = useState(false);
+  const [dateFormat, setDateFormat] = useState<DateFormat>('auto');
+  const [currentFile, setCurrentFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Parse ────────────────────────────────────────────────────────────────
 
-  const handleFile = useCallback((file: File) => {
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-      setParseError('Please upload a .csv file.');
+  const handleFile = useCallback(async (file: File, fmt: DateFormat = dateFormat) => {
+    const ext = file.name.toLowerCase().split('.').pop();
+    if (!ext || !['csv', 'json', 'numbers'].includes(ext)) {
+      setParseError('Please upload a .csv, .json, or .numbers file.');
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
@@ -37,30 +42,38 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
       return;
     }
     setParseError('');
-    const wasCapped = file.size > 0; // placeholder; real cap set in callback
-    parseCSV(
-      file,
-      existingDates,
-      (parsed) => {
-        // Detect whether we hit the 500-row cap (parser sliced to 500)
-        setCapped(parsed.length === 500);
-        setRows(parsed);
-        setStep('review');
-      },
-      (msg) => setParseError(msg),
-    );
-    void wasCapped;
-  }, [existingDates]);
+    setCurrentFile(file);
+
+    const onDone = (parsed: ParsedRow[]) => {
+      setCapped(parsed.length === 2000);
+      setRows(parsed);
+      setStep('review');
+    };
+    const onErr = (msg: string) => setParseError(msg);
+
+    if (ext === 'json') {
+      parseJSON(file, existingDates, onDone, onErr);
+    } else if (ext === 'numbers') {
+      try {
+        const { parseNumbers } = await import('../lib/numbersParser.ts');
+        await parseNumbers(file, existingDates, onDone, onErr);
+      } catch {
+        setParseError('Could not load .numbers file parser.');
+      }
+    } else {
+      parseCSV(file, existingDates, onDone, onErr, fmt);
+    }
+  }, [existingDates, dateFormat]);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
-    if (file) handleFile(file);
+    if (file) void handleFile(file);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) handleFile(file);
+    if (file) void handleFile(file);
   };
 
   // ── Row editors ──────────────────────────────────────────────────────────
@@ -80,7 +93,8 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
   // ── Validation ───────────────────────────────────────────────────────────
 
   const activeRows = rows.filter(r => !r.skip);
-  const rowsWithErrors = activeRows.filter(r => r.errors.length > 0 || r.tags.length === 0);
+  const rowsWithErrors = activeRows.filter(r => r.errors.length > 0);
+  const rowsMissingTags = activeRows.filter(r => r.tags.length === 0);
   const canImport = rowsWithErrors.length === 0 && activeRows.length > 0;
 
   // ── Bulk fixes ───────────────────────────────────────────────────────────
@@ -93,12 +107,23 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
     }));
   };
 
+  const [bulkTagOpen, setBulkTagOpen] = useState(false);
+  const setAllMissingTags = (tag: SkillTagValue) => {
+    setRows(prev => prev.map(r => r.skip || r.tags.length > 0 ? r : { ...r, tags: [tag] }));
+    setBulkTagOpen(false);
+  };
+
+  const skipAllUntagged = () => {
+    setRows(prev => prev.map(r => r.tags.length === 0 && !r.skip ? { ...r, skip: true } : r));
+  };
+
   // ── Import ───────────────────────────────────────────────────────────────
 
-  const handleImport = async () => {
+  const doImport = async (confirmDuplicates = false) => {
     if (!canImport) return;
     setImporting(true);
     setImportError('');
+    setDuplicatePrompt(null);
 
     const payload = activeRows.map(r => ({
       date: r.date!,
@@ -108,25 +133,37 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
       session_type: r.session_type,
       tags: r.tags,
       notes: r.notes || '',
+      heading: r.heading ?? null,
+      polarity: r.polarity ?? null,
+      sub_skill_tag: r.sub_skill_tag ?? null,
+      script_source: r.script_source ?? null,
+      resonance: r.resonance ?? null,
     }));
 
     try {
-      const res = await api.post<{ imported: number }>('/api/sessions/import', { sessions: payload });
+      const res = await api.post<{ imported: number }>('/api/sessions/import', { sessions: payload, confirmDuplicates });
       setImportedCount(res.imported);
       setStep('done');
       onImported();
     } catch (err) {
-      setImportError(err instanceof Error ? err.message : 'Import failed. Please try again.');
+      if (err instanceof ApiError && err.status === 409) {
+        // Duplicate dates detected — show confirmation prompt
+        setDuplicatePrompt([err.message]);
+      } else {
+        setImportError(err instanceof Error ? err.message : 'Import failed. Please try again.');
+      }
     } finally {
       setImporting(false);
     }
   };
 
+  const handleImport = () => void doImport(false);
+
   // ── Summary stats ─────────────────────────────────────────────────────────
 
   const totalFound   = rows.length;
   const skipped      = rows.filter(r => r.skip).length;
-  const needAttention = rows.filter(r => !r.skip && (r.errors.length > 0 || r.tags.length === 0)).length;
+  const needAttention = rows.filter(r => !r.skip && r.errors.length > 0).length;
   const duplicates   = rows.filter(r => !r.skip && r.isDuplicate).length;
   const missingDur   = rows.filter(r => !r.skip && r.duration === null).length;
 
@@ -187,15 +224,41 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
             >
               <span style={{ fontSize: 32 }}>📂</span>
               <p className="text-white/70 text-sm text-center">
-                Drop your CSV file here, or <span style={{ color: COPPER_DIM }}>click to browse</span>
+                Drop your file here, or <span style={{ color: COPPER_DIM }}>click to browse</span>
               </p>
+              <p className="text-white/30 text-xs">.csv · .json · .numbers</p>
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".csv"
+                accept=".csv,.json,.numbers"
                 className="hidden"
                 onChange={handleInputChange}
               />
+            </div>
+
+            {/* Date format selector */}
+            <div className="mt-4 flex items-center gap-3">
+              <span className="text-xs text-white/40">Date format:</span>
+              <div className="flex rounded overflow-hidden" style={{ border: `1px solid ${SURFACE_3_BORDER}` }}>
+                {([['auto', 'Auto'], ['mdy', 'MM/DD'], ['dmy', 'DD/MM']] as const).map(([val, label]) => (
+                  <button
+                    key={val}
+                    onClick={() => {
+                      setDateFormat(val);
+                      if (currentFile && currentFile.name.toLowerCase().endsWith('.csv')) {
+                        void handleFile(currentFile, val);
+                      }
+                    }}
+                    className="text-xs px-3 py-1 transition-colors"
+                    style={{
+                      backgroundColor: dateFormat === val ? 'rgba(196,145,95,0.3)' : 'transparent',
+                      color: dateFormat === val ? 'rgba(218,116,34,0.9)' : 'rgba(255,255,255,0.4)',
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div
@@ -232,8 +295,9 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
             >
               <span className="text-white/70">
                 Found <strong className="text-white">{totalFound}</strong> sessions
-                {capped && <span className="text-amber-400"> (capped at 500)</span>}
+                {capped && <span className="text-amber-400"> (capped at 2,000)</span>}
                 {needAttention > 0 && <span className="text-amber-400"> · {needAttention} need attention</span>}
+                {rowsMissingTags.length > 0 && <span className="text-white/30"> · {rowsMissingTags.length} without tags</span>}
                 {duplicates > 0 && <span style={{ color: COPPER_FG }}> · {duplicates} duplicate date{duplicates > 1 ? 's' : ''}</span>}
                 {skipped > 0 && <span className="text-white/40"> · {skipped} skipped</span>}
               </span>
@@ -244,6 +308,40 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
                   style={{ color: COPPER_DIM }}
                 >
                   Set all missing durations to 60 min
+                </button>
+              )}
+              {rows.some(r => !r.skip && r.tags.length === 0) && (
+                <span className="relative ml-2 inline-block">
+                  <button
+                    onClick={() => setBulkTagOpen(!bulkTagOpen)}
+                    className="text-xs underline"
+                    style={{ color: COPPER_DIM }}
+                  >
+                    Set all missing tags to…
+                  </button>
+                  {bulkTagOpen && (
+                    <span className="absolute left-0 top-full mt-1 z-10 flex flex-wrap gap-1 p-2 rounded-lg" style={{ backgroundColor: SURFACE_3, border: `1px solid ${SURFACE_3_BORDER}`, minWidth: 200 }}>
+                      {SKILL_TAGS.map(tag => (
+                        <button
+                          key={tag.value}
+                          onClick={() => setAllMissingTags(tag.value as SkillTagValue)}
+                          className="text-[10px] px-2 py-1 rounded-full transition-colors"
+                          style={{ backgroundColor: 'rgba(196,145,95,0.2)', color: COPPER_DIM, border: `1px solid ${COPPER_BORDER}` }}
+                        >
+                          {tag.label}
+                        </button>
+                      ))}
+                    </span>
+                  )}
+                </span>
+              )}
+              {rows.some(r => !r.skip && r.tags.length === 0) && (
+                <button
+                  onClick={skipAllUntagged}
+                  className="ml-2 text-xs underline"
+                  style={{ color: 'rgba(255,255,255,0.35)' }}
+                >
+                  Skip all untagged
                 </button>
               )}
             </div>
@@ -260,6 +358,28 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
               ))}
             </div>
 
+            {duplicatePrompt && (
+              <div className="mt-3 rounded-lg px-4 py-3" style={{ backgroundColor: 'rgba(196,145,95,0.1)', border: `1px solid ${COPPER_BORDER}` }}>
+                <p className="text-sm" style={{ color: COPPER_DIM }}>{duplicatePrompt[0]}</p>
+                <div className="flex gap-3 mt-2">
+                  <button
+                    onClick={() => void doImport(true)}
+                    disabled={importing}
+                    className="text-xs font-semibold px-4 py-1.5 rounded-lg"
+                    style={{ backgroundColor: 'rgba(218,116,34,0.85)', color: 'white' }}
+                  >
+                    {importing ? 'Importing…' : 'Import anyway'}
+                  </button>
+                  <button
+                    onClick={() => setDuplicatePrompt(null)}
+                    className="text-xs text-white/40 hover:text-white/70"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
             {importError && (
               <p className="mt-3 text-sm text-red-400">{importError}</p>
             )}
@@ -274,7 +394,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
               </button>
               <div className="flex items-center gap-3">
                 {!canImport && needAttention > 0 && (
-                  <span className="text-xs text-amber-400">Fix {needAttention} row{needAttention > 1 ? 's' : ''} or mark as skip</span>
+                  <span className="text-xs text-amber-400">Fix {needAttention} error{needAttention > 1 ? 's' : ''} to import</span>
                 )}
                 {!canImport && activeRows.length === 0 && (
                   <span className="text-xs text-white/40">All rows skipped</span>
@@ -343,7 +463,7 @@ const COPPER_BORDER_STR = 'rgba(196,145,95,0.45)';
 
 function ReviewRow({ row, onUpdate, onToggleTag }: ReviewRowProps) {
   const needsTag = !row.skip && row.tags.length === 0;
-  const hasErrors = row.errors.length > 0 || needsTag;
+  const hasErrors = row.errors.length > 0;
 
   const rowBg = row.skip
     ? 'rgba(255,255,255,0.02)'
@@ -480,7 +600,7 @@ function ReviewRow({ row, onUpdate, onToggleTag }: ReviewRowProps) {
             );
           })}
           {needsTag && (
-            <span className="text-[10px] text-amber-400 self-center ml-1">← select at least one</span>
+            <span className="text-[10px] text-white/25 self-center ml-1">← optional</span>
           )}
         </div>
       )}

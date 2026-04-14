@@ -1,21 +1,18 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.ts';
-import { PALE_YELLOW, SURFACE_2, SURFACE_3, COPPER, DATE_INPUT_STYLE } from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, COPPER_BORDER, SURFACE_2, SURFACE_3, COPPER } from '../lib/theme.ts';
+import { vibrate } from '../lib/haptics.ts';
+import PillarPrism from './PillarPrism.tsx';
+import SegmentedToggle from './SegmentedToggle.tsx';
 import type { Intention } from '../types/api.ts';
 
-const CATEGORIES = [
-  { value: 'technical',   label: 'Technical'   },
-  { value: 'physical',    label: 'Physical'     },
-  { value: 'mental',      label: 'Mental'       },
-  { value: 'positional',  label: 'Positional'   },
-  { value: 'competitive', label: 'Competitive'  },
-  { value: 'presence',    label: 'Presence'     },
-] as const;
-
-type Category = typeof CATEGORIES[number]['value'];
-
-const DURATION_OPTIONS = [3, 5, 7, 14] as const;
+const DURATION_OPTIONS: { value: string; label: string }[] = [
+  { value: '3',  label: '3d' },
+  { value: '5',  label: '5d' },
+  { value: '7',  label: '7d' },
+  { value: '14', label: '14d' },
+];
 
 function todayStr(): string {
   const d = new Date();
@@ -30,19 +27,16 @@ interface Props {
 
 interface IntentionResponse {
   message: string;
-  intention: { id: string; intent_label: string; intent_category: string | null };
+  intention: { id: string; intent_label: string; heading: string | null };
 }
 
 export default function SetIntentionModal({ onSaved, onClose, editIntention }: Props) {
   const navigate = useNavigate();
   const isEdit = !!editIntention;
 
+  const [heading,      setHeading]      = useState<string | null>(editIntention?.heading ?? null);
   const [label,        setLabel]        = useState(editIntention?.intent_label ?? '');
-  const [category,     setCategory]     = useState<Category | ''>(
-    (editIntention?.intent_category as Category | null) ?? '',
-  );
   const [durationDays, setDurationDays] = useState<number>(editIntention?.duration_days ?? 7);
-  const [startDate,    setStartDate]    = useState<string>(todayStr());
   const [writeJournal, setWriteJournal] = useState(false);
   const [saving,       setSaving]       = useState(false);
   const [error,        setError]        = useState('');
@@ -51,24 +45,27 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!label.trim()) return;
+    if (!heading) {
+      setError('Tap a vertex on the Prism to set your focus.');
+      return;
+    }
     setSaving(true);
     setError('');
     try {
       if (isEdit) {
         await api.patch<IntentionResponse>(`/api/intentions/${editIntention!.id}`, {
-          intent_label:     label.trim(),
-          intent_category:  category || null,
-          duration_days:    durationDays,
+          intent_label:  label.trim() || undefined,
+          heading,
+          duration_days: durationDays,
         });
         onSaved();
         onClose();
       } else {
         const res = await api.post<IntentionResponse>('/api/intentions', {
-          intent_label:    label.trim(),
-          intent_category: category || null,
-          week_start:      startDate,
-          duration_days:   durationDays,
+          intent_label:  label.trim() || undefined,
+          heading,
+          week_start:    todayStr(),
+          duration_days: durationDays,
         });
         onSaved();
         if (writeJournal && res.intention?.id) {
@@ -96,143 +93,138 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
       onClick={onClose}
     >
       <div
-        className="w-full sm:max-w-sm rounded-2xl p-6 animate-j2-modal-in"
+        className="w-full sm:max-w-sm rounded-2xl overflow-hidden animate-j2-modal-in"
         style={{
           backgroundColor: '#152E22',
-          border: '1px solid rgba(196,145,95,0.45)',
+          border: `1px solid ${COPPER_BORDER}`,
           maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem)',
           overflowY: 'auto',
         }}
         onClick={e => e.stopPropagation()}
       >
-        <p className="text-base font-semibold mb-1" style={{ color: PALE_YELLOW }}>
-          {isEdit ? 'Edit intention' : "Set this week's intention"}
-        </p>
-        <p className="text-xs text-white/40 mb-5">
-          {isEdit ? 'Update your focus label, category, or duration.' : 'A short focus to carry through your training this week.'}
-        </p>
+        <div className="p-5 space-y-4">
+          <h2 className="text-lg font-semibold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
+            {isEdit ? 'Edit your focus' : 'Set your focus'}
+          </h2>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
 
-          {/* Label input */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs text-white/60">Focus label</label>
-              <span className={`text-[11px] ${charsLeft < 5 ? 'text-brand-orange' : 'text-white/30'}`}>
-                {charsLeft} left
-              </span>
-            </div>
-            <input
-              type="text"
-              maxLength={20}
-              required
-              value={label}
-              onChange={e => setLabel(e.target.value)}
-              placeholder="e.g. Active Toes"
-              className="w-full bg-white/8 border border-white/10 rounded-lg px-4 py-2.5 text-white text-sm placeholder-white/25 outline-none focus:border-white/25"
-              style={{ backgroundColor: SURFACE_2 }}
-              autoFocus
-            />
-          </div>
+            {/* ── Focus card ───────────────────────────────── */}
+            <div className="rounded-xl px-4 py-4 space-y-4" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                Tap a vertex to declare what you're working on.
+              </p>
 
-          {/* Start date — create mode only */}
-          {!isEdit && (
-            <div>
-              <label className="text-xs text-white/60 block mb-1.5">Start date</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={e => setStartDate(e.target.value)}
-                className="w-full rounded-lg px-3 py-2.5 text-sm text-white/90 outline-none focus:ring-1"
-                style={DATE_INPUT_STYLE}
+              <PillarPrism
+                heading={heading}
+                resonance={heading ? 10 : null}
+                defaultHeading={editIntention?.heading ?? undefined}
+                snapOnly
+                onSelect={(h, _r, _w) => { setHeading(h); setError(''); }}
               />
-            </div>
-          )}
 
-          {/* Category */}
-          <div>
-            <label className="text-xs text-white/60 block mb-1.5">Category</label>
-            <div className="flex flex-wrap gap-1.5">
-              {CATEGORIES.map(c => (
-                <button
-                  key={c.value}
-                  type="button"
-                  onClick={() => setCategory(prev => prev === c.value ? '' : c.value)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                  style={{
-                    backgroundColor: category === c.value ? COPPER : SURFACE_3,
-                    color: category === c.value ? '#fff' : 'rgba(255,255,255,0.5)',
-                  }}
-                >
-                  {c.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Duration */}
-          <div>
-            <label className="text-xs text-white/60 block mb-1.5">Duration</label>
-            <div className="flex gap-1.5">
-              {DURATION_OPTIONS.map(d => (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => setDurationDays(d)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                  style={{
-                    backgroundColor: durationDays === d ? COPPER : SURFACE_3,
-                    color: durationDays === d ? '#fff' : 'rgba(255,255,255,0.5)',
-                  }}
-                >
-                  {d}d
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Journal toggle — create mode only */}
-          {!isEdit && (
-            <label className="flex items-center gap-2.5 cursor-pointer group">
-              <div
-                onClick={() => setWriteJournal(v => !v)}
-                className="w-9 h-5 rounded-full relative transition-colors flex-shrink-0"
-                style={{ backgroundColor: writeJournal ? COPPER : 'rgba(255,255,255,0.1)' }}
-              >
-                <span
-                  className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform"
-                  style={{ transform: writeJournal ? 'translateX(18px)' : 'translateX(2px)' }}
+              {/* Optional label */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs" style={{ color: 'rgba(255,255,255,0.40)' }}>
+                    What specifically? <span style={{ color: 'rgba(255,255,255,0.20)' }}>(optional)</span>
+                  </label>
+                  {label.length > 0 && (
+                    <span className="text-[11px]" style={{ color: charsLeft < 5 ? COPPER : 'rgba(255,255,255,0.25)' }}>
+                      {charsLeft}
+                    </span>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  maxLength={20}
+                  value={label}
+                  onChange={e => setLabel(e.target.value)}
+                  placeholder="e.g. Half guard sweeps"
+                  className="w-full border rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/25 outline-none transition-colors"
+                  style={{ backgroundColor: SURFACE_3, borderColor: 'rgba(255,255,255,0.08)' }}
                 />
               </div>
-              <span className="text-xs text-white/50 group-hover:text-white/70 transition-colors">
-                Write a journal entry for this intention
+            </div>
+
+            {/* ── Duration card ─────────────────────────────── */}
+            <div className="rounded-xl px-4 py-4 space-y-3" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
+              <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                Duration
               </span>
-            </label>
-          )}
 
-          {error && <p className="text-xs text-red-400">{error}</p>}
+              <SegmentedToggle
+                options={DURATION_OPTIONS}
+                value={String(durationDays)}
+                onChange={v => { if (v) setDurationDays(Number(v)); }}
+              />
 
-          <div className="flex justify-end gap-3 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-sm text-white/40 hover:text-white transition-colors px-4 py-2"
+              <p className="text-[10px] text-center" style={{ color: 'rgba(255,255,255,0.22)' }}>
+                How long to hold this focus
+              </p>
+            </div>
+
+            {/* ── Journal toggle (create only) ──────────────── */}
+            {!isEdit && (
+              <button
+                type="button"
+                onClick={() => { vibrate(8); setWriteJournal(v => !v); }}
+                className="w-full flex items-center gap-3 rounded-xl px-4 py-3 transition-colors touch-manipulation"
+                style={{
+                  backgroundColor: writeJournal ? 'rgba(196,145,95,0.08)' : SURFACE_2,
+                  border: writeJournal ? '1px solid rgba(196,145,95,0.25)' : '1px solid rgba(255,255,255,0.05)',
+                }}
+              >
+                <div
+                  className="w-11 h-6 rounded-full relative flex-shrink-0 transition-colors"
+                  style={{ backgroundColor: writeJournal ? COPPER : 'rgba(255,255,255,0.10)' }}
+                >
+                  <span
+                    className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform"
+                    style={{ transform: writeJournal ? 'translateX(22px)' : 'translateX(2px)' }}
+                  />
+                </div>
+                <span className="text-sm" style={{ color: writeJournal ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.40)' }}>
+                  Write a journal entry
+                </span>
+              </button>
+            )}
+
+            {error && <p className="text-xs text-red-400">{error}</p>}
+
+            {/* ── Action row ────────────────────────────────── */}
+            <div
+              className="flex items-center gap-3 pt-2"
+              style={{ borderTop: '1px solid rgba(196,145,95,0.12)' }}
             >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saving || !label.trim()}
-              className="bg-brand-orange hover:bg-brand-orange/90 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2 rounded-full transition-colors"
-            >
-              {saving
-                ? (isEdit ? 'Updating…' : 'Setting…')
-                : isEdit
-                  ? 'Update'
-                  : writeJournal ? 'Set & Write' : 'Set Intent'}
-            </button>
-          </div>
-        </form>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-3 text-sm font-medium transition-colors touch-manipulation"
+                style={{ color: 'rgba(255,255,255,0.40)' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving || !heading}
+                className="flex-1 text-white font-semibold rounded-xl transition-all touch-manipulation disabled:opacity-40"
+                style={{
+                  height: 52,
+                  backgroundColor: '#DA7422',
+                  boxShadow: '0 2px 12px rgba(218,116,34,0.25)',
+                  fontSize: 16,
+                }}
+              >
+                {saving
+                  ? (isEdit ? 'Updating...' : 'Setting...')
+                  : isEdit
+                    ? 'Update Focus'
+                    : writeJournal ? 'Set & Write' : 'Set Focus'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

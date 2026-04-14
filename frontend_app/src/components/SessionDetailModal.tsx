@@ -1,43 +1,29 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../lib/api.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
-import { SURFACE_2, SURFACE_2_BORDER, SURFACE_3 } from '../lib/theme.ts';
+import { COPPER, COPPER_BORDER, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3 } from '../lib/theme.ts';
+import { INTENSITY_COLOR } from '../lib/sessionUtils.ts';
+import { vibrate } from '../lib/haptics.ts';
+import SegmentedToggle from './SegmentedToggle.tsx';
+import PillarPrism from './PillarPrism.tsx';
 import type { SessionSummary } from './TrainingHeatmap.tsx';
 
-const INTENSITY_COLOR: Record<number, string> = {
-  1: '#CDDFA0',
-  2: '#CDDFA0',
-  3: '#6FD08C',
-  4: '#DA7422',
-  5: '#DA7422',
-};
+// ── Constants ─────────────────────────────────────────────────────────────
 
 const INTENSITY_LABEL: Record<number, string> = {
-  1: 'Very Light',
-  2: 'Light',
-  3: 'Moderate',
-  4: 'Hard',
-  5: 'Max Effort',
+  1: 'Light', 2: 'Easy', 3: 'Moderate', 4: 'Hard', 5: 'Max',
 };
 
 const SESSION_TYPE_LABELS: Record<string, string> = {
-  class:                'Class',
-  drilling:             'Drilling',
-  competition_training: 'Competition',
+  class: 'Class', drilling: 'Drilling', competition_training: 'Competition',
 };
 
-const DURATION_PRESETS = [
-  { label: '1h',      minutes: 60  },
-  { label: '1h 30m', minutes: 90  },
-  { label: '2h',      minutes: 120 },
-  { label: '2h 30m', minutes: 150 },
-  { label: '3h',      minutes: 180 },
-];
+const DURATION_PRESETS = [30, 60, 90, 120];
+const DUR_STEP = 30;
+const DUR_MIN  = 30;
+const DUR_MAX  = 240;
 
-const PRESET_MINUTES = new Set(DURATION_PRESETS.map(p => p.minutes));
-
-// Particles for the modal intention effect
 const MODAL_PARTICLES = [
   { left: '7%',  bottom: 3, size: 2, drift: '-4px', duration: 4.1, delay: 0.0 },
   { left: '22%', bottom: 2, size: 2, drift: '5px',  duration: 3.7, delay: 0.9 },
@@ -47,13 +33,20 @@ const MODAL_PARTICLES = [
   { left: '89%', bottom: 2, size: 2, drift: '3px',  duration: 3.9, delay: 2.1 },
 ] as const;
 
-function formatDuration(minutes: number): string {
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  if (h === 0) return `${m}m`;
-  if (m === 0) return `${h}h`;
-  return `${h}h ${m}m`;
+type GiNoGi = 'gi' | 'no_gi';
+type SessionType = 'class' | 'drilling' | 'competition_training';
+type Polarity = 'offense' | 'defense' | 'neutral';
+type ScriptSource = 'directed' | 'organic';
+
+function fmtDuration(m: number): string {
+  const h = Math.floor(m / 60);
+  const min = m % 60;
+  if (h === 0) return `${min}m`;
+  if (min === 0) return `${h}h`;
+  return `${h}h ${min}m`;
 }
+
+// ── Component ─────────────────────────────────────────────────────────────
 
 interface IntentionSummary {
   intent_label: string;
@@ -74,53 +67,52 @@ interface Props {
 
 export default function SessionDetailModal({ session, date, intention, sessionCount, sessionIndex, onNavigate, onClose, onSaved, onDeleted }: Props) {
   const [isEditing, setIsEditing] = useState(false);
-  const [form, setForm] = useState({
-    duration:     session.duration,
-    gi_nogi:      session.gi_nogi,
-    intensity:    session.intensity,
-    session_type: session.session_type,
-    notes:        session.notes ?? '',
-    tags:         session.tags ?? [],
-  });
 
-  const initialPreset = PRESET_MINUTES.has(session.duration) ? session.duration : 'custom' as const;
-  const [durationPreset, setDurationPreset] = useState<number | 'custom'>(initialPreset);
-  const [customH, setCustomH] = useState(
-    initialPreset === 'custom' ? String(Math.floor(session.duration / 60)) : ''
-  );
-  const [customM, setCustomM] = useState(
-    initialPreset === 'custom' ? String(session.duration % 60) : ''
-  );
+  // ── Form state (includes Pillar Engine fields) ──────────────────────────
+  const [form, setForm] = useState({
+    duration:      session.duration,
+    gi_nogi:       session.gi_nogi as GiNoGi,
+    intensity:     session.intensity,
+    session_type:  session.session_type as SessionType,
+    notes:         session.notes ?? '',
+    heading:       session.heading ?? null as string | null,
+    polarity:      (session.polarity ?? null) as Polarity | null,
+    sub_skill_tag: session.sub_skill_tag ?? '',
+    script_source: (session.script_source ?? null) as ScriptSource | null,
+    resonance:     session.resonance ?? null as number | null,
+  });
 
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const intensityColor = INTENSITY_COLOR[session.intensity] ?? '#CDDFA0';
+  // Recent sub-skill tags for chip suggestions
+  const [recentTags, setRecentTags] = useState<string[]>([]);
+  useEffect(() => {
+    if (!isEditing) return;
+    const from = new Date(Date.now() - 90 * 86_400_000).toISOString().slice(0, 10);
+    api.get<{ sessions: SessionSummary[] }>(`/api/sessions?from=${from}`)
+      .then(r => {
+        const tags = (r.sessions ?? [])
+          .map(s => s.sub_skill_tag)
+          .filter((t): t is string => !!t && t.trim().length > 0);
+        setRecentTags([...new Set(tags)].slice(0, 6));
+      })
+      .catch(() => {});
+  }, [isEditing]);
+
+  const intensityColor = INTENSITY_COLOR[session.intensity] ?? '#A8CB72';
 
   const dateLabel = date.toLocaleDateString('en-US', {
     weekday: 'long', month: 'long', day: 'numeric',
   });
 
-  const selectPreset = (minutes: number) => {
-    setDurationPreset(minutes);
-    setForm(f => ({ ...f, duration: minutes }));
-  };
+  const headingLabel = session.heading
+    ? (SKILL_TAGS.find(s => s.value === session.heading)?.label ?? session.heading)
+    : null;
 
-  const selectCustom = () => setDurationPreset('custom');
-
-  const applyCustom = (h: string, m: string) => {
-    const total = Number(h || 0) * 60 + Number(m || 0);
-    setForm(f => ({ ...f, duration: total }));
-  };
-
-  const toggleTag = (tag: string) => {
-    setForm(f => ({
-      ...f,
-      tags: f.tags.includes(tag) ? f.tags.filter(t => t !== tag) : [...f.tags, tag],
-    }));
-  };
+  // ── Handlers ────────────────────────────────────────────────────────────
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -138,7 +130,19 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
     setSaving(true);
     setSaveError(false);
     try {
-      await api.put(`/api/sessions/${session.id}`, form);
+      await api.put(`/api/sessions/${session.id}`, {
+        duration:      form.duration,
+        gi_nogi:       form.gi_nogi,
+        intensity:     form.intensity,
+        session_type:  form.session_type,
+        notes:         form.notes,
+        tags:          form.heading ? [form.heading] : [],
+        heading:       form.heading,
+        polarity:      form.polarity,
+        sub_skill_tag: form.sub_skill_tag || undefined,
+        script_source: form.script_source,
+        resonance:     form.resonance,
+      });
       onSaved();
       onClose();
     } catch {
@@ -148,16 +152,56 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
     }
   };
 
-  const chipBase = 'px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer';
-  const chipActive = 'bg-brand-orange text-white';
-  const chipInactive = 'bg-white/8 text-white/55 hover:bg-white/15';
+  // ── Shared intensity bar (used in both view & edit) ─────────────────────
+  const IntensityBar = ({ value, interactive }: { value: number; interactive?: boolean }) => (
+    <div className="space-y-1.5">
+      <div className="flex rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.05)' }}>
+        {[1, 2, 3, 4, 5].map(n => {
+          const active = value === n;
+          const color = INTENSITY_COLOR[n] ?? '#A8CB72';
+          return (
+            <button
+              key={n}
+              type="button"
+              disabled={!interactive}
+              onClick={interactive ? () => { vibrate(10); setForm(f => ({ ...f, intensity: n })); } : undefined}
+              className="flex-1 flex items-center justify-center font-semibold transition-all"
+              style={{
+                height: active ? 44 : 40,
+                backgroundColor: active ? color : `${color}33`,
+                color: active ? '#152E22' : `${color}88`,
+                fontSize: active ? 16 : 14,
+                cursor: interactive ? 'pointer' : 'default',
+                transition: 'height 200ms ease, background-color 200ms ease, color 200ms ease',
+              }}
+            >
+              {n}
+            </button>
+          );
+        })}
+      </div>
+      <div className="flex">
+        {Object.values(INTENSITY_LABEL).map((label, i) => (
+          <span
+            key={label}
+            className="flex-1 text-center"
+            style={{
+              fontSize: 9,
+              color: value === i + 1 ? 'rgba(255,255,255,0.50)' : 'rgba(255,255,255,0.22)',
+              fontWeight: value === i + 1 ? 600 : 400,
+            }}
+          >
+            {label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
 
-  // Displayed session tags in order
-  const sessionTagObjects = SKILL_TAGS.filter(({ value }) => session.tags.includes(value));
+  // ── Render ──────────────────────────────────────────────────────────────
 
   return createPortal(
     <>
-      {/* Backdrop */}
       <div
         data-no-page-swipe=""
         role="dialog"
@@ -172,19 +216,21 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
         }}
         onClick={onClose}
       >
-        {/* Card */}
         <div
           className="w-full sm:max-w-md animate-j2-modal-in"
           onClick={e => e.stopPropagation()}
           style={{
             position: 'relative',
             backgroundColor: '#152E22',
-            border: '1px solid rgba(196,145,95,0.45)',
+            border: `1px solid ${COPPER_BORDER}`,
             borderRadius: '1rem',
             overflow: 'hidden',
           }}
         >
-          {/* ── VIEW PANEL ── */}
+
+          {/* ════════════════════════════════════════════════════════════
+              VIEW PANEL
+              ════════════════════════════════════════════════════════════ */}
           <div
             style={{
               position: isEditing ? 'absolute' : 'relative',
@@ -199,8 +245,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
             {intention && (
               <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0, overflow: 'hidden', borderRadius: 16 }}>
                 <div style={{
-                  position: 'absolute', bottom: -12, left: '50%',
-                  transform: 'translateX(-50%)',
+                  position: 'absolute', bottom: -12, left: '50%', transform: 'translateX(-50%)',
                   width: '55%', height: 56, borderRadius: '50%',
                   background: 'radial-gradient(ellipse at center bottom, rgba(167,139,250,0.18) 0%, transparent 80%)',
                   animation: 'j2IntentPurplePulse 4.2s ease-in-out infinite',
@@ -208,8 +253,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                 <div style={{
                   position: 'absolute', bottom: 0, left: 0, right: 0, height: 36,
                   background: 'linear-gradient(to top, rgba(242,228,168,0.07) 0%, transparent 100%)',
-                  animation: 'j2IntentYellowPulse 3.1s ease-in-out infinite',
-                  transformOrigin: 'center bottom',
+                  animation: 'j2IntentYellowPulse 3.1s ease-in-out infinite', transformOrigin: 'center bottom',
                 }} />
                 {MODAL_PARTICLES.map((p, i) => (
                   <span key={i} style={{
@@ -226,31 +270,26 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
               </div>
             )}
 
-            {/* Content above particle layer — owns scroll + padding so face div stays overflow-free */}
             <div style={{
               position: 'relative', zIndex: 1,
               overflowY: 'auto',
               maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem)',
-              padding: '1.5rem',
+              padding: '1.25rem',
             }}>
               {/* Session navigator */}
               {(sessionCount ?? 1) > 1 && onNavigate && (
                 <div className="flex items-center gap-2 mb-3">
-                  <button
-                    onClick={() => onNavigate(sessionIndex! - 1)}
-                    disabled={sessionIndex === 0}
-                    className="text-sm transition-colors"
-                    style={{ color: sessionIndex === 0 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.5)' }}
-                  >←</button>
+                  <button onClick={() => onNavigate(sessionIndex! - 1)} disabled={sessionIndex === 0}
+                    className="text-sm transition-colors" style={{ color: sessionIndex === 0 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.5)' }}>
+                    ←
+                  </button>
                   <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)' }}>
                     session {sessionIndex! + 1} of {sessionCount}
                   </span>
-                  <button
-                    onClick={() => onNavigate(sessionIndex! + 1)}
-                    disabled={sessionIndex === sessionCount! - 1}
-                    className="text-sm transition-colors"
-                    style={{ color: sessionIndex === sessionCount! - 1 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.5)' }}
-                  >→</button>
+                  <button onClick={() => onNavigate(sessionIndex! + 1)} disabled={sessionIndex === sessionCount! - 1}
+                    className="text-sm transition-colors" style={{ color: sessionIndex === sessionCount! - 1 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.5)' }}>
+                    →
+                  </button>
                 </div>
               )}
 
@@ -259,97 +298,101 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                 <p className="text-2xl font-bold leading-tight" style={{ color: intensityColor }}>
                   {dateLabel}
                 </p>
-                <button
-                  onClick={onClose}
+                <button onClick={onClose}
                   className="ml-3 mt-0.5 shrink-0 text-white/30 hover:text-white/70 transition-colors text-lg leading-none"
-                  aria-label="Close"
-                >×</button>
+                  aria-label="Close">
+                  ×
+                </button>
               </div>
 
               {/* Intention banner */}
               {intention && (
-                <div
-                  className="flex items-center gap-2 mb-4 px-3 py-2 rounded-xl"
-                  style={{ backgroundColor: 'rgba(242,228,168,0.07)', border: '1px solid rgba(242,228,168,0.14)' }}
-                >
+                <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-xl"
+                  style={{ backgroundColor: 'rgba(242,228,168,0.07)', border: '1px solid rgba(242,228,168,0.14)' }}>
                   <span style={{ color: 'rgba(242,228,168,0.5)', fontSize: 12 }}>◈</span>
-                  <span className="text-sm font-semibold" style={{ color: '#F2E4A8' }}>{intention.intent_label}</span>
+                  <span className="text-sm font-semibold" style={{ color: PALE_YELLOW }}>{intention.intent_label}</span>
                   {intention.intent_category && (
-                    <span
-                      className="text-[11px] px-2 py-0.5 rounded-full capitalize"
-                      style={{ backgroundColor: SURFACE_3, color: 'rgba(255,255,255,0.45)' }}
-                    >
+                    <span className="text-[11px] px-2 py-0.5 rounded-full capitalize"
+                      style={{ backgroundColor: SURFACE_3, color: 'rgba(255,255,255,0.45)' }}>
                       {intention.intent_category}
                     </span>
                   )}
                 </div>
               )}
 
-              {/* Stat strip */}
-              <div
-                className="flex gap-0 mb-5 rounded-xl overflow-hidden"
-                style={{ border: `1px solid ${SURFACE_2_BORDER}`, backgroundColor: SURFACE_2 }}
-              >
-                {[
-                  { label: 'Style',     value: session.gi_nogi === 'gi' ? 'Gi' : 'No-Gi' },
-                  { label: 'Type',      value: SESSION_TYPE_LABELS[session.session_type] ?? session.session_type },
-                  { label: 'Duration',  value: formatDuration(session.duration) },
-                  { label: 'Intensity', value: `${session.intensity} / 5`, color: intensityColor },
-                ].map(({ label, value, color }, i, arr) => (
-                  <div
-                    key={label}
-                    className="flex-1 px-3 py-3"
-                    style={{ borderRight: i < arr.length - 1 ? `1px solid ${SURFACE_2_BORDER}` : 'none' }}
-                  >
-                    <p className="text-[10px] font-medium mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>{label}</p>
-                    <p className="text-sm font-semibold leading-tight" style={{ color: color ?? 'rgba(255,255,255,0.85)' }}>
-                      {value}
-                    </p>
+              <div className="space-y-3">
+                {/* ── Stats card ───────────────────────────── */}
+                <div className="rounded-xl px-4 py-4 space-y-3" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
+                  {/* Style + Type pills */}
+                  <div className="flex gap-2">
+                    <span className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ backgroundColor: SURFACE_3, color: 'rgba(255,255,255,0.65)' }}>
+                      {session.gi_nogi === 'gi' ? 'Gi' : 'No-Gi'}
+                    </span>
+                    <span className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ backgroundColor: SURFACE_3, color: 'rgba(255,255,255,0.65)' }}>
+                      {SESSION_TYPE_LABELS[session.session_type] ?? session.session_type}
+                    </span>
+                    {session.script_source && (
+                      <span className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ backgroundColor: SURFACE_3, color: COPPER }}>
+                        {session.script_source === 'directed' ? 'Coach-led' : 'Open Mat'}
+                      </span>
+                    )}
                   </div>
-                ))}
+
+                  {/* Duration — large */}
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-2xl font-bold" style={{ color: PALE_YELLOW }}>{fmtDuration(session.duration)}</span>
+                    {session.polarity && (
+                      <span className="text-xs font-medium capitalize" style={{ color: COPPER }}>
+                        {session.polarity}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Intensity bar (read-only) */}
+                  <IntensityBar value={session.intensity} />
+                </div>
+
+                {/* ── Focus card ───────────────────────────── */}
+                {headingLabel && (
+                  <div className="rounded-xl px-4 py-4" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                      Focus
+                    </span>
+                    <p className="text-base font-semibold mt-1" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
+                      {headingLabel}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      {session.sub_skill_tag && (
+                        <span className="px-2.5 py-1 rounded-lg text-xs font-medium" style={{ backgroundColor: SURFACE_3, color: 'rgba(255,255,255,0.50)' }}>
+                          {session.sub_skill_tag}
+                        </span>
+                      )}
+                      {session.resonance != null && (
+                        <span className="text-xs" style={{ color: 'rgba(255,255,255,0.30)' }}>
+                          {session.resonance >= 10 ? 'Focused' : session.resonance >= 8 ? 'Targeted' : session.resonance >= 6 ? 'Solid' : session.resonance >= 4 ? 'Mixed' : 'Exploratory'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Journal card ─────────────────────────── */}
+                <div className="rounded-xl px-4 py-4" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                    Journal
+                  </span>
+                  {session.notes?.trim() ? (
+                    <p className="text-sm leading-relaxed mt-2" style={{ color: 'rgba(255,255,255,0.6)', whiteSpace: 'pre-wrap' }}>
+                      {session.notes.trim()}
+                    </p>
+                  ) : (
+                    <p className="text-xs italic mt-2" style={{ color: 'rgba(255,255,255,0.20)' }}>No notes recorded.</p>
+                  )}
+                </div>
               </div>
 
-              {/* Intensity description */}
-              <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.30)' }}>
-                {INTENSITY_LABEL[session.intensity] ?? ''} effort
-              </p>
-
-              {/* Skills */}
-              {sessionTagObjects.length > 0 && (
-                <div className="mb-4">
-                  <p className="text-[10px] font-medium mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>SKILLS</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {sessionTagObjects.map(({ value, label }) => (
-                      <span
-                        key={value}
-                        className="px-2.5 py-1 rounded-lg text-xs font-medium"
-                        style={{ backgroundColor: SURFACE_3, color: 'rgba(255,255,255,0.55)' }}
-                      >
-                        {label}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Notes */}
-              {session.notes?.trim() ? (
-                <div className="mb-5">
-                  <p className="text-[10px] font-medium mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>JOURNAL</p>
-                  <p
-                    className="text-sm leading-relaxed"
-                    style={{ color: 'rgba(255,255,255,0.6)', whiteSpace: 'pre-wrap' }}
-                  >
-                    {session.notes.trim()}
-                  </p>
-                </div>
-              ) : (
-                <p className="text-xs italic mb-5" style={{ color: 'rgba(255,255,255,0.20)' }}>No notes for this session.</p>
-              )}
-
-              {/* View actions */}
-              <div className="flex items-center justify-between">
-                {/* Delete — left side */}
+              {/* ── Action row ─────────────────────────────── */}
+              <div className="flex items-center justify-between mt-5 pt-3" style={{ borderTop: '1px solid rgba(196,145,95,0.12)' }}>
                 {!confirmDelete ? (
                   <button
                     onClick={() => setConfirmDelete(true)}
@@ -362,30 +405,19 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                   </button>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Delete this session?</span>
-                    <button
-                      onClick={() => setConfirmDelete(false)}
-                      className="text-xs text-white/40 hover:text-white transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleDelete}
-                      disabled={deleting}
+                    <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Delete?</span>
+                    <button onClick={() => setConfirmDelete(false)} className="text-xs text-white/40 hover:text-white transition-colors">Cancel</button>
+                    <button onClick={handleDelete} disabled={deleting}
                       className="text-xs font-semibold px-3 py-1 rounded-lg transition-colors disabled:opacity-50"
-                      style={{ backgroundColor: 'rgba(239,68,68,0.15)', color: 'rgba(239,68,68,0.9)' }}
-                    >
-                      {deleting ? 'Deleting…' : 'Delete'}
+                      style={{ backgroundColor: 'rgba(239,68,68,0.15)', color: 'rgba(239,68,68,0.9)' }}>
+                      {deleting ? 'Deleting...' : 'Delete'}
                     </button>
                   </div>
                 )}
-
-                {/* Edit — right side */}
                 {!confirmDelete && (
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="bg-brand-orange hover:bg-brand-orange/90 text-white text-sm font-semibold px-5 py-2 rounded-full transition-colors"
-                  >
+                  <button onClick={() => setIsEditing(true)}
+                    className="text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors touch-manipulation"
+                    style={{ backgroundColor: COPPER, color: '#fff' }}>
                     Edit
                   </button>
                 )}
@@ -393,7 +425,9 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
             </div>
           </div>
 
-          {/* ── EDIT PANEL ── */}
+          {/* ════════════════════════════════════════════════════════════
+              EDIT PANEL
+              ════════════════════════════════════════════════════════════ */}
           <div
             style={{
               position: isEditing ? 'relative' : 'absolute',
@@ -404,156 +438,203 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
               pointerEvents: isEditing ? 'auto' : 'none',
             }}
           >
-          <div style={{ overflowY: 'auto', maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem)', padding: '1.5rem' }}>
-            {/* Date header */}
-            <p className="text-2xl font-bold mb-4" style={{ color: intensityColor }}>
-              {dateLabel}
-            </p>
+            <div style={{
+              overflowY: 'auto',
+              maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem)',
+              padding: '1.25rem',
+            }}>
+              {/* Date header */}
+              <p className="text-2xl font-bold mb-4" style={{ color: intensityColor }}>{dateLabel}</p>
 
-            {/* Stat tiles — 2×2 grid */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="space-y-4">
+                {/* ── Basics card ───────────────────────────── */}
+                <div className="rounded-xl px-4 py-4 space-y-4" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.28)' }}>
+                    The Basics
+                  </span>
 
-              {/* Style */}
-              <div className="bg-white/5 rounded-xl p-3">
-                <p className="text-xs text-white/40 mb-1">Style</p>
-                <select
-                  className="bg-transparent text-sm font-semibold text-white w-full outline-none"
-                  value={form.gi_nogi}
-                  onChange={e => setForm(f => ({ ...f, gi_nogi: e.target.value as 'gi' | 'no_gi' }))}
-                >
-                  <option value="gi"    style={{ backgroundColor: '#152E22' }}>Gi</option>
-                  <option value="no_gi" style={{ backgroundColor: '#152E22' }}>No-Gi</option>
-                </select>
-              </div>
+                  <SegmentedToggle
+                    options={[{ value: 'gi' as GiNoGi, label: 'Gi' }, { value: 'no_gi' as GiNoGi, label: 'No-Gi' }]}
+                    value={form.gi_nogi}
+                    onChange={v => v && setForm(f => ({ ...f, gi_nogi: v }))}
+                  />
 
-              {/* Type */}
-              <div className="bg-white/5 rounded-xl p-3">
-                <p className="text-xs text-white/40 mb-1">Type</p>
-                <select
-                  className="bg-transparent text-sm font-semibold text-white w-full outline-none"
-                  value={form.session_type}
-                  onChange={e => setForm(f => ({ ...f, session_type: e.target.value as SessionSummary['session_type'] }))}
-                >
-                  <option value="class"                style={{ backgroundColor: '#152E22' }}>Class</option>
-                  <option value="drilling"             style={{ backgroundColor: '#152E22' }}>Drilling</option>
-                  <option value="competition_training" style={{ backgroundColor: '#152E22' }}>Competition</option>
-                </select>
-              </div>
+                  <SegmentedToggle
+                    options={[
+                      { value: 'class' as SessionType, label: 'Class' },
+                      { value: 'drilling' as SessionType, label: 'Drilling' },
+                      { value: 'competition_training' as SessionType, label: 'Competition' },
+                    ]}
+                    value={form.session_type}
+                    onChange={v => v && setForm(f => ({ ...f, session_type: v }))}
+                  />
 
-              {/* Intensity */}
-              <div className="bg-white/5 rounded-xl p-3">
-                <p className="text-xs text-white/40 mb-1">Intensity</p>
-                <div className="flex gap-1 mt-0.5">
-                  {[1, 2, 3, 4, 5].map(n => (
-                    <button
-                      key={n}
-                      onClick={() => setForm(f => ({ ...f, intensity: n }))}
-                      className="w-8 h-8 rounded text-xs font-bold transition-colors"
-                      style={
-                        form.intensity === n
-                          ? { backgroundColor: INTENSITY_COLOR[n], color: '#152E22' }
-                          : { backgroundColor: SURFACE_3, color: 'rgba(255,255,255,0.35)' }
-                      }
-                    >{n}</button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Duration */}
-              <div className="bg-white/5 rounded-xl p-3">
-                <p className="text-xs text-white/40 mb-1">Duration</p>
-                <div className="flex flex-wrap gap-1 mb-1.5">
-                  {DURATION_PRESETS.map(({ label, minutes }) => (
-                    <button
-                      key={minutes}
-                      onClick={() => selectPreset(minutes)}
-                      className={`${chipBase} ${durationPreset === minutes ? chipActive : chipInactive}`}
-                      style={durationPreset !== minutes ? { backgroundColor: SURFACE_3 } : {}}
-                    >{label}</button>
-                  ))}
-                  <button
-                    onClick={selectCustom}
-                    className={`${chipBase} ${durationPreset === 'custom' ? chipActive : chipInactive}`}
-                    style={durationPreset !== 'custom' ? { backgroundColor: SURFACE_3 } : {}}
-                  >Custom</button>
-                </div>
-                {durationPreset === 'custom' && (
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <input
-                      type="number" min={0} max={12} value={customH}
-                      onChange={e => { setCustomH(e.target.value); applyCustom(e.target.value, customM); }}
-                      className="w-10 bg-white/10 rounded text-xs text-white text-center outline-none px-1 py-1"
-                      placeholder="0"
-                    />
-                    <span className="text-xs text-white/40">h</span>
-                    <input
-                      type="number" min={0} max={59} value={customM}
-                      onChange={e => { setCustomM(e.target.value); applyCustom(customH, e.target.value); }}
-                      className="w-10 bg-white/10 rounded text-xs text-white text-center outline-none px-1 py-1"
-                      placeholder="0"
-                    />
-                    <span className="text-xs text-white/40">m</span>
+                  {/* Duration presets + stepper */}
+                  <div className="space-y-2">
+                    <div className="flex gap-1.5">
+                      {DURATION_PRESETS.map(m => {
+                        const active = form.duration === m;
+                        return (
+                          <button key={m} type="button"
+                            onClick={() => { vibrate(8); setForm(f => ({ ...f, duration: m })); }}
+                            className="flex-1 h-9 rounded-[10px] text-xs font-medium transition-all touch-manipulation"
+                            style={{
+                              backgroundColor: active ? COPPER : SURFACE_3,
+                              color: active ? '#fff' : 'rgba(255,255,255,0.45)',
+                            }}>
+                            {fmtDuration(m)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="flex items-center justify-center gap-3 rounded-xl py-2" style={{ backgroundColor: SURFACE_3 }}>
+                      <button type="button"
+                        onClick={() => { vibrate(8); setForm(f => ({ ...f, duration: Math.max(DUR_MIN, f.duration - DUR_STEP) })); }}
+                        className="w-11 h-11 rounded-lg text-lg font-semibold transition-colors touch-manipulation"
+                        style={{ backgroundColor: SURFACE_2, color: 'rgba(255,255,255,0.55)' }}
+                        disabled={form.duration <= DUR_MIN}>
+                        −
+                      </button>
+                      <span className="text-xl font-bold w-28 text-center" style={{ color: PALE_YELLOW }}>
+                        {fmtDuration(form.duration)}
+                      </span>
+                      <button type="button"
+                        onClick={() => { vibrate(8); setForm(f => ({ ...f, duration: Math.min(DUR_MAX, f.duration + DUR_STEP) })); }}
+                        className="w-11 h-11 rounded-lg text-lg font-semibold transition-colors touch-manipulation"
+                        style={{ backgroundColor: SURFACE_2, color: 'rgba(255,255,255,0.55)' }}
+                        disabled={form.duration >= DUR_MAX}>
+                        +
+                      </button>
+                    </div>
                   </div>
-                )}
+
+                  {/* Intensity color bar */}
+                  <IntensityBar value={form.intensity} interactive />
+                </div>
+
+                {/* ── Focus card ────────────────────────────── */}
+                <div className="rounded-xl px-4 py-4 space-y-4" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <h3 className="text-sm font-semibold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
+                    What did you work on?
+                  </h3>
+
+                  <PillarPrism
+                    heading={form.heading}
+                    resonance={form.resonance}
+                    defaultHeading={form.heading ?? undefined}
+                    onSelect={(h, r) => { setForm(f => ({ ...f, heading: h, resonance: r, polarity: f.heading !== h ? null : f.polarity })); }}
+                  />
+
+                  {(form.heading === 'guard' || form.heading === 'pins') && (
+                    <div>
+                      <SegmentedToggle
+                        options={[
+                          { value: 'defense' as Polarity, label: 'Defense' },
+                          { value: 'neutral' as Polarity, label: 'Neutral' },
+                          { value: 'offense' as Polarity, label: 'Offense' },
+                        ]}
+                        value={form.polarity}
+                        onChange={v => setForm(f => ({ ...f, polarity: v }))}
+                        deselectable
+                      />
+                      <p className="text-[10px] mt-1.5 text-center" style={{ color: 'rgba(255,255,255,0.22)' }}>
+                        What side of the exchange were you primarily on?
+                      </p>
+                    </div>
+                  )}
+
+                  <div>
+                    <SegmentedToggle
+                      options={[
+                        { value: 'directed' as ScriptSource, label: 'Coach-led' },
+                        { value: 'organic' as ScriptSource, label: 'Open Mat' },
+                      ]}
+                      value={form.script_source}
+                      onChange={v => setForm(f => ({ ...f, script_source: v }))}
+                      deselectable
+                    />
+                    <p className="text-[10px] mt-1.5 text-center" style={{ color: 'rgba(255,255,255,0.22)' }}>
+                      Was this instructor-led or self-directed?
+                    </p>
+                  </div>
+                </div>
+
+                {/* ── Details card ──────────────────────────── */}
+                <div className="rounded-xl px-4 py-4 space-y-3" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                    Details
+                  </span>
+
+                  {/* Sub-skill tag */}
+                  <div>
+                    <label className="block text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.40)' }}>
+                      Sub-skill <span style={{ color: 'rgba(255,255,255,0.20)' }}>(optional)</span>
+                    </label>
+                    <input
+                      type="text" maxLength={50}
+                      value={form.sub_skill_tag}
+                      onChange={e => setForm(f => ({ ...f, sub_skill_tag: e.target.value }))}
+                      placeholder="e.g. K-Guard, Single Leg, Guillotine"
+                      className="w-full border rounded-xl px-4 py-2.5 text-white text-sm outline-none transition-colors"
+                      style={{ backgroundColor: SURFACE_3, borderColor: 'rgba(255,255,255,0.08)' }}
+                    />
+                    {recentTags.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {recentTags.map(tag => {
+                          const active = form.sub_skill_tag === tag;
+                          return (
+                            <button key={tag} type="button"
+                              onClick={() => { vibrate(6); setForm(f => ({ ...f, sub_skill_tag: f.sub_skill_tag === tag ? '' : tag })); }}
+                              className="rounded-lg px-3 py-1.5 text-xs font-medium transition-all touch-manipulation"
+                              style={{
+                                backgroundColor: active ? COPPER : SURFACE_3,
+                                color: active ? '#fff' : 'rgba(255,255,255,0.40)',
+                              }}>
+                              {tag}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Notes */}
+                  <div>
+                    <label className="block text-xs mb-1" style={{ color: 'rgba(255,255,255,0.40)' }}>
+                      Notes <span style={{ color: 'rgba(255,255,255,0.20)' }}>(optional)</span>
+                    </label>
+                    <textarea
+                      rows={3} value={form.notes}
+                      onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                      placeholder="What stood out today?"
+                      className="w-full rounded-xl px-4 py-2.5 text-sm text-white/90 placeholder-white/25 outline-none resize-none transition-colors"
+                      style={{ backgroundColor: SURFACE_3, border: '1px solid rgba(255,255,255,0.08)' }}
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
 
-            {/* Skills */}
-            <div className="mb-4">
-              <p className="text-xs text-white/40 mb-2">Skills</p>
-              <div className="flex flex-wrap gap-1.5">
-                {SKILL_TAGS.map(({ value, label }) => (
-                  <button
-                    key={value}
-                    onClick={() => toggleTag(value)}
-                    className={`${chipBase} ${form.tags.includes(value) ? chipActive : chipInactive}`}
-                    style={!form.tags.includes(value) ? { backgroundColor: SURFACE_3 } : {}}
-                  >{label}</button>
-                ))}
-              </div>
-            </div>
+              {/* ── Action row ─────────────────────────────── */}
+              {saveError && <p className="text-red-400 text-xs mt-3">Save failed — please try again.</p>}
 
-            {/* Journal */}
-            <div className="mb-5">
-              <p className="text-xs text-white/40 mb-2">Journal</p>
-              <textarea
-                rows={4}
-                placeholder="Add a note…"
-                value={form.notes}
-                onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                className="w-full rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 resize-none outline-none transition-colors border"
-                style={{
-                  backgroundColor: SURFACE_2,
-                  borderColor: 'rgba(255,255,255,0.18)',
-                }}
-              />
-            </div>
-
-            {/* Edit actions */}
-            <div className="flex justify-between items-center">
-              <button
-                onClick={() => { setSaveError(false); setIsEditing(false); }}
-                className="text-sm text-white/40 hover:text-white transition-colors px-4 py-2"
-              >
-                Cancel
-              </button>
-              <div className="flex items-center gap-3">
-                {saveError && (
-                  <p className="text-xs text-red-400">Save failed.</p>
-                )}
+              <div className="flex items-center gap-3 mt-5 pt-3" style={{ borderTop: '1px solid rgba(196,145,95,0.12)' }}>
                 <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="bg-brand-orange hover:bg-brand-orange/90 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2 rounded-full transition-colors"
-                >
-                  {saving ? 'Saving…' : 'Save'}
+                  onClick={() => { setSaveError(false); setIsEditing(false); }}
+                  className="px-4 py-3 text-sm font-medium transition-colors touch-manipulation"
+                  style={{ color: 'rgba(255,255,255,0.40)' }}>
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave} disabled={saving}
+                  className="flex-1 text-white font-semibold rounded-xl transition-all touch-manipulation disabled:opacity-50"
+                  style={{ height: 52, backgroundColor: '#DA7422', boxShadow: '0 2px 12px rgba(218,116,34,0.25)', fontSize: 16 }}>
+                  {saving ? 'Saving...' : 'Save'}
                 </button>
               </div>
             </div>
-          </div>{/* end inner scroll wrapper */}
-          </div>{/* end back face */}
+          </div>
 
-        </div>{/* end card */}
+        </div>
       </div>
     </>,
     document.body

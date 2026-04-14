@@ -115,16 +115,16 @@ function BeltLoaderInner({
           100% { transform: translateX(-50%) translateY(0)   scaleY(1);    opacity: 1; }
         }
         @keyframes j2LdrTailL {
-          0%   { height: 0;                   transform: rotate(0deg); }
-          50%  { height: ${TAIL_H * 1.09}px;  transform: rotate(-22deg); }
-          76%  { height: ${TAIL_H * 0.97}px;  transform: rotate(6deg); }
-          100% { height: ${TAIL_H}px;         transform: rotate(0deg); }
+          0%   { transform: scaleY(0)    rotate(0deg);   }
+          50%  { transform: scaleY(1.09) rotate(-22deg); }
+          76%  { transform: scaleY(0.97) rotate(6deg);   }
+          100% { transform: scaleY(1)    rotate(0deg);   }
         }
         @keyframes j2LdrTailR {
-          0%   { height: 0;                   transform: rotate(0deg); }
-          50%  { height: ${TAIL_H * 1.09}px;  transform: rotate(22deg); }
-          76%  { height: ${TAIL_H * 0.97}px;  transform: rotate(-6deg); }
-          100% { height: ${TAIL_H}px;         transform: rotate(0deg); }
+          0%   { transform: scaleY(0)    rotate(0deg);   }
+          50%  { transform: scaleY(1.09) rotate(22deg);  }
+          76%  { transform: scaleY(0.97) rotate(-6deg);  }
+          100% { transform: scaleY(1)    rotate(0deg);   }
         }
         @keyframes j2LdrTieT {
           0%   { opacity:0; transform:translate(0,-50%); }
@@ -215,12 +215,13 @@ function BeltLoaderInner({
             left: `calc(50% - ${TAIL_W + 2}px)`,
             top: BELT_H,
             width: TAIL_W,
+            height: TAIL_H,
             background: leftTailBg,
             borderRadius: '0 0 3px 3px',
             transformOrigin: 'top center',
             overflow: 'hidden',
             zIndex: 2,
-            height: 0,
+            transform: tailsIn ? undefined : 'scaleY(0)',
             animation: tailsIn ? `j2LdrTailL ${TAIL_MS}ms ease-out forwards` : 'none',
           }}>
             {Array.from({ length: stripes }).map((_, i) => (
@@ -240,12 +241,13 @@ function BeltLoaderInner({
             left: `calc(50% + 2px)`,
             top: BELT_H,
             width: TAIL_W,
+            height: TAIL_H,
             background: ribbed(beltColor),
             borderRadius: '0 0 3px 3px',
             transformOrigin: 'top center',
             overflow: 'hidden',
             zIndex: 2,
-            height: 0,
+            transform: tailsIn ? undefined : 'scaleY(0)',
             animation: tailsIn ? `j2LdrTailR ${TAIL_MS}ms ease-out forwards ${TAIL_R_LAG}ms` : 'none',
           }} />
 

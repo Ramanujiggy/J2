@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { api, ApiError } from '../lib/api.ts';
 import { toast } from '../hooks/use-toast.ts';
-import { CARD_BG, COPPER, COPPER_BORDER, SURFACE_2, SURFACE_3, DATE_INPUT_STYLE, PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
+import { CARD_BG, COPPER, COPPER_BORDER, SURFACE_2, SURFACE_3, PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
+import { vibrate } from '../lib/haptics.ts';
+import { INTENSITY_COLOR } from '../lib/sessionUtils.ts';
 import BeltDateBanner from './BeltDateBanner.tsx';
 import PillarPrism from './PillarPrism.tsx';
-import type { Intention } from '../types/api.ts';
+import SegmentedToggle from './SegmentedToggle.tsx';
+import type { Intention, SessionSummary } from '../types/api.ts';
 
 interface LogSessionResponse {
   message: string;
@@ -34,9 +37,9 @@ const SESSION_TYPES: { value: SessionType; label: string }[] = [
   { value: 'competition_training', label: 'Competition' },
 ];
 
-const btnBase = 'px-4 py-2 rounded-full text-sm font-medium transition-colors cursor-pointer';
-const btnActive = 'bg-brand-orange text-white';
-const btnInactive = 'bg-white/10 text-white/60 hover:bg-white/20';
+// ── Intensity labels & duration presets ────────────────────────────────────
+const INTENSITY_LABELS = ['Light', 'Easy', 'Moderate', 'Hard', 'Max'];
+const DURATION_PRESETS = [30, 60, 90, 120];
 
 export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defaultHeading, defaultSessionType, defaultSubSkillTag }: { onSuccess?: (sessionCount?: number) => void; onCancel?: () => void; defaultDate?: string; defaultHeading?: string; defaultSessionType?: SessionType; defaultSubSkillTag?: string }) {
   const [form, setForm] = useState<SessionFormData>({
@@ -68,6 +71,9 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
   // resonance initialized to max when pre-filled from roulette (dot sits at the vertex)
   const [scriptSource, setScriptSource] = useState<ScriptSource | null>(null);
   const [resonance,    setResonance]    = useState<number | null>(defaultHeading ? 10 : null);
+  // Phase 1: weights computed and displayed by PillarPrism but not sent to API yet (Phase 2)
+  const [_pillarWeights, setPillarWeights] = useState<Record<string, number> | null>(null);
+  void _pillarWeights; // suppress unused warning — will be sent to API in Phase 2
 
   // Current intention hint
   const [currentIntention, setCurrentIntention] = useState<Intention | null>(null);
@@ -81,6 +87,21 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
     })();
     api.get<{ intention: Intention | null }>(`/api/intentions/current?week_start=${weekStart}`)
       .then(r => setCurrentIntention(r.intention))
+      .catch(() => {});
+  }, []);
+
+  // Recent sub-skill tags for chip suggestions
+  const [recentTags, setRecentTags] = useState<string[]>([]);
+  useEffect(() => {
+    const from = new Date(Date.now() - 90 * 86_400_000).toISOString().slice(0, 10);
+    api.get<{ sessions: SessionSummary[] }>(`/api/sessions?from=${from}`)
+      .then(r => {
+        const tags = (r.sessions ?? [])
+          .map(s => s.sub_skill_tag)
+          .filter((t): t is string => !!t && t.trim().length > 0);
+        const unique = [...new Set(tags)].slice(0, 6);
+        setRecentTags(unique);
+      })
       .catch(() => {});
   }, []);
 
@@ -99,6 +120,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
     setSubSkillTag('');
     setScriptSource(null);
     setResonance(null);
+    setPillarWeights(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -193,69 +215,77 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
           onChange={date => setForm(prev => ({ ...prev, date }))}
         />
 
-        <div className="px-6 pb-6 pt-4">
-        <h2 className="text-lg font-semibold mb-4" style={{ color: PALE_YELLOW }}>Log a Training Session</h2>
+        <div className="px-5 pb-5 pt-4 space-y-4">
+        <h2 className="text-lg font-semibold" style={{ color: PALE_YELLOW }}>Log a Training Session</h2>
 
-        {/* ── SECTION 1: The Basics ───────────────────────────────── */}
-        <div className="space-y-3">
-          {/* Style + Type — side by side on desktop */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex-1">
-              <div className="flex gap-2">
-                {(['gi', 'no_gi'] as GiNoGi[]).map(val => (
+        {/* ══════════════════════════════════════════════════════════════
+            SECTION 1: The Basics
+            ══════════════════════════════════════════════════════════════ */}
+        <div className="rounded-xl px-4 py-4 space-y-4" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
+          <span className="text-xs font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.40)' }}>
+            The Basics
+          </span>
+
+          {/* Gi / No-Gi */}
+          <SegmentedToggle
+            options={[{ value: 'gi' as GiNoGi, label: 'Gi' }, { value: 'no_gi' as GiNoGi, label: 'No-Gi' }]}
+            value={form.gi_nogi}
+            onChange={v => v && setForm(prev => ({ ...prev, gi_nogi: v }))}
+          />
+
+          {/* Session Type */}
+          <SegmentedToggle
+            options={SESSION_TYPES}
+            value={form.session_type}
+            onChange={v => v && setForm(prev => ({ ...prev, session_type: v }))}
+          />
+
+          {/* Duration — preset pills + stepper */}
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              {DURATION_PRESETS.map(m => {
+                const active = durationMinutes === m;
+                return (
                   <button
-                    key={val}
+                    key={m}
                     type="button"
-                    onClick={() => setForm(prev => ({ ...prev, gi_nogi: val }))}
-                    className={`${btnBase} ${form.gi_nogi === val ? btnActive : btnInactive}`}
-                  >
-                    {val === 'gi' ? 'Gi' : 'No-Gi'}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="flex-1">
-              <div className="flex gap-1.5">
-                {SESSION_TYPES.map(({ value, label }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setForm(prev => ({ ...prev, session_type: value }))}
-                    className="flex-1 min-w-0 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                    onClick={() => { vibrate(8); setDurationMinutes(m); }}
+                    className="flex-1 h-9 rounded-[10px] text-xs font-medium transition-all touch-manipulation"
                     style={{
-                      backgroundColor: form.session_type === value ? COPPER : SURFACE_3,
-                      color: form.session_type === value ? '#fff' : 'rgba(255,255,255,0.5)',
+                      backgroundColor: active ? COPPER : SURFACE_3,
+                      color: active ? '#fff' : 'rgba(255,255,255,0.45)',
+                      transition: 'background-color 200ms ease, color 200ms ease',
                     }}
                   >
-                    {label}
+                    {fmtDuration(m)}
                   </button>
-                ))}
-              </div>
+                );
+              })}
             </div>
-          </div>
-
-          {/* Duration — stepper */}
-          <div>
-            <label className="block text-sm text-white/70 mb-1.5">Duration</label>
-            <div className="flex items-center gap-3">
+            <div
+              className="flex items-center justify-center gap-3 rounded-xl py-2"
+              style={{ backgroundColor: SURFACE_3 }}
+            >
               <button
                 type="button"
-                onClick={() => setDurationMinutes(m => Math.max(DUR_MIN, (m ?? 60) - DUR_STEP))}
-                className="w-10 h-10 rounded-lg text-lg font-semibold transition-colors bg-white/10 text-white/60 hover:bg-white/20 disabled:opacity-30"
+                onClick={() => { vibrate(8); setDurationMinutes(m => Math.max(DUR_MIN, (m ?? 60) - DUR_STEP)); }}
+                className="w-11 h-11 rounded-lg text-lg font-semibold transition-colors touch-manipulation"
+                style={{ backgroundColor: SURFACE_2, color: 'rgba(255,255,255,0.55)' }}
                 disabled={!!durationMinutes && durationMinutes <= DUR_MIN}
               >
                 −
               </button>
               <span
-                className="text-lg font-semibold w-24 text-center"
-                style={{ color: durationMinutes ? 'rgba(242,228,168,0.9)' : 'rgba(255,255,255,0.35)' }}
+                className="text-xl font-bold w-28 text-center"
+                style={{ color: durationMinutes ? PALE_YELLOW : 'rgba(255,255,255,0.22)' }}
               >
-                {durationMinutes ? fmtDuration(durationMinutes) : '— —'}
+                {durationMinutes ? fmtDuration(durationMinutes) : 'tap above'}
               </span>
               <button
                 type="button"
-                onClick={() => setDurationMinutes(m => Math.min(DUR_MAX, (m ?? 0) + DUR_STEP))}
-                className="w-10 h-10 rounded-lg text-lg font-semibold transition-colors bg-white/10 text-white/60 hover:bg-white/20 disabled:opacity-30"
+                onClick={() => { vibrate(8); setDurationMinutes(m => Math.min(DUR_MAX, (m ?? 0) + DUR_STEP)); }}
+                className="w-11 h-11 rounded-lg text-lg font-semibold transition-colors touch-manipulation"
+                style={{ backgroundColor: SURFACE_2, color: 'rgba(255,255,255,0.55)' }}
                 disabled={!!durationMinutes && durationMinutes >= DUR_MAX}
               >
                 +
@@ -263,109 +293,121 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
             </div>
           </div>
 
-          {/* Intensity */}
-          <div>
-            <label className="block text-sm text-white/70 mb-1.5">Intensity</label>
-            <div className="flex gap-2">
-              {[1, 2, 3, 4, 5].map(n => (
-                <button
-                  key={n}
-                  type="button"
-                  onClick={() => setForm(prev => ({ ...prev, intensity: n }))}
-                  className={`flex-1 h-10 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
-                    form.intensity === n ? btnActive : btnInactive
-                  }`}
+          {/* Intensity — color-gradient segmented bar */}
+          <div className="space-y-1.5">
+            <div className="flex rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.05)' }}>
+              {[1, 2, 3, 4, 5].map(n => {
+                const active = form.intensity === n;
+                const color = INTENSITY_COLOR[n] ?? '#A8CB72';
+                return (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => { vibrate(10); setForm(prev => ({ ...prev, intensity: n })); }}
+                    className="flex-1 flex items-center justify-center font-semibold transition-all touch-manipulation"
+                    style={{
+                      height: active ? 44 : 40,
+                      backgroundColor: active ? color : `${color}33`,
+                      color: active ? '#152E22' : `${color}88`,
+                      fontSize: active ? 16 : 14,
+                      transition: 'height 200ms ease, background-color 200ms ease, color 200ms ease, font-size 200ms ease',
+                    }}
+                  >
+                    {n}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex">
+              {INTENSITY_LABELS.map((label, i) => (
+                <span
+                  key={label}
+                  className="flex-1 text-center"
+                  style={{
+                    fontSize: 11,
+                    color: form.intensity === i + 1 ? 'rgba(255,255,255,0.50)' : 'rgba(255,255,255,0.22)',
+                    fontWeight: form.intensity === i + 1 ? 600 : 400,
+                    transition: 'color 200ms ease',
+                  }}
                 >
-                  {n}
-                </button>
+                  {label}
+                </span>
               ))}
             </div>
           </div>
         </div>
 
-        {/* ── SECTION 2: Your Focus ───────────────────────────────── */}
-        <div
-          className="mt-5 pt-5 space-y-4"
-          style={{ borderTop: '1px solid rgba(196,145,95,0.15)' }}
-        >
-          <h3 className="text-base font-semibold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
-            What did you work on?
-          </h3>
-
-          {currentIntention && (
-            <p className="text-xs -mt-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
-              This week's focus: <span style={{ color: COPPER }}>{currentIntention.intent_label}</span>
-            </p>
-          )}
+        {/* ══════════════════════════════════════════════════════════════
+            SECTION 2: Your Focus
+            ══════════════════════════════════════════════════════════════ */}
+        <div className="rounded-xl px-4 py-4 space-y-4" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
+          <div>
+            <h3 className="text-sm font-semibold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
+              What did you work on?
+            </h3>
+            {currentIntention && (
+              <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.30)' }}>
+                This week's focus: <span style={{ color: COPPER }}>{currentIntention.intent_label}</span>
+              </p>
+            )}
+          </div>
 
           {/* Pillar Prism — tap/drag to mark focus and alignment */}
           <PillarPrism
             heading={heading}
             resonance={resonance}
             defaultHeading={defaultHeading}
-            onSelect={(h, r) => { setHeading(h); setResonance(r); setPolarity(null); }}
+            onSelect={(h, r, w) => { setHeading(h); setResonance(r); setPillarWeights(w); setPolarity(null); }}
           />
 
-          {/* Polarity — directional capsule, only for guard and pins */}
+          {/* Polarity — only for guard and pins */}
           {(heading === 'guard' || heading === 'pins') && (
-            <div style={{ display: 'flex', borderRadius: 10, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
-              {([
-                { value: 'defense' as Polarity, label: '↙ Defense' },
-                { value: 'neutral' as Polarity, label: '· Neutral ·' },
-                { value: 'offense' as Polarity, label: 'Offense ↗' },
-              ]).map((p, i) => (
-                <button
-                  key={p.value}
-                  type="button"
-                  onClick={() => setPolarity(prev => prev === p.value ? null : p.value)}
-                  className="flex-1 py-2 text-xs font-medium transition-colors touch-manipulation"
-                  style={{
-                    backgroundColor: polarity === p.value ? COPPER : SURFACE_3,
-                    color: polarity === p.value ? '#fff' : 'rgba(255,255,255,0.45)',
-                    borderLeft: i > 0 ? '1px solid rgba(255,255,255,0.08)' : 'none',
-                  }}
-                >
-                  {p.label}
-                </button>
-              ))}
+            <div>
+              <SegmentedToggle
+                options={[
+                  { value: 'defense' as Polarity, label: 'Defense' },
+                  { value: 'neutral' as Polarity, label: 'Neutral' },
+                  { value: 'offense' as Polarity, label: 'Offense' },
+                ]}
+                value={polarity}
+                onChange={setPolarity}
+                deselectable
+              />
+              <p className="text-[10px] mt-1.5 text-center" style={{ color: 'rgba(255,255,255,0.22)' }}>
+                What side of the exchange were you primarily on?
+              </p>
             </div>
           )}
 
           {/* Source */}
           <div>
-            <label className="block text-xs text-white/60 mb-1.5">Source</label>
-            <div className="flex gap-1.5 w-full">
-              {(['directed', 'organic'] as ScriptSource[]).map(s => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setScriptSource(prev => prev === s ? null : s)}
-                  className="flex-1 min-w-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer"
-                  style={{
-                    backgroundColor: scriptSource === s ? COPPER : SURFACE_3,
-                    color: scriptSource === s ? '#fff' : 'rgba(255,255,255,0.5)',
-                  }}
-                >
-                  {s === 'directed' ? 'Directed' : 'Open Mat'}
-                </button>
-              ))}
-            </div>
+            <SegmentedToggle
+              options={[
+                { value: 'directed' as ScriptSource, label: 'Coach-led' },
+                { value: 'organic' as ScriptSource, label: 'Open Mat' },
+              ]}
+              value={scriptSource}
+              onChange={setScriptSource}
+              deselectable
+            />
+            <p className="text-[10px] mt-1.5 text-center" style={{ color: 'rgba(255,255,255,0.22)' }}>
+              Was this instructor-led or self-directed?
+            </p>
           </div>
         </div>
 
-        {/* ── SECTION 3: Details (optional) ───────────────────────── */}
-        <div
-          className="mt-5 pt-4 space-y-3"
-          style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
-        >
-          <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.25)' }}>
+        {/* ══════════════════════════════════════════════════════════════
+            SECTION 3: Details (optional)
+            ══════════════════════════════════════════════════════════════ */}
+        <div className="rounded-xl px-4 py-4 space-y-3" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
+          <span className="text-xs font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.40)' }}>
             Details
           </span>
 
           {/* Sub-skill tag */}
           <div>
-            <label className="block text-xs text-white/50 mb-1.5">
-              Sub-skill <span className="text-white/25">(optional)</span>
+            <label className="block text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.40)' }}>
+              Sub-skill <span style={{ color: 'rgba(255,255,255,0.20)' }}>(optional)</span>
             </label>
             <input
               type="text"
@@ -373,35 +415,74 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
               value={subSkillTag}
               onChange={e => setSubSkillTag(e.target.value)}
               placeholder="e.g. K-Guard, Single Leg, Guillotine"
-              className="w-full border border-white/10 rounded-lg px-4 py-2.5 text-white text-sm placeholder-white/25 outline-none focus:border-white/25"
-              style={{ backgroundColor: SURFACE_2 }}
+              className="w-full border rounded-xl px-4 py-2.5 text-white text-sm outline-none transition-colors"
+              style={{
+                backgroundColor: SURFACE_3,
+                borderColor: 'rgba(255,255,255,0.08)',
+                ...(subSkillTag ? {} : {}),
+              }}
             />
+            {/* Recent tag chips */}
+            {recentTags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {recentTags.map(tag => {
+                  const active = subSkillTag === tag;
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => {
+                        vibrate(6);
+                        setSubSkillTag(prev => prev === tag ? '' : tag);
+                      }}
+                      className="rounded-lg px-3 py-2 text-xs font-medium transition-all touch-manipulation j2-press"
+                      style={{
+                        backgroundColor: active ? COPPER : SURFACE_3,
+                        color: active ? '#fff' : 'rgba(255,255,255,0.40)',
+                        transition: 'background-color 200ms ease, color 200ms ease',
+                      }}
+                    >
+                      {tag}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Notes */}
           <div>
-            <label className="block text-xs text-white/50 mb-1">Notes <span className="text-white/25">(optional)</span></label>
+            <label className="block text-xs mb-1" style={{ color: 'rgba(255,255,255,0.40)' }}>
+              Notes <span style={{ color: 'rgba(255,255,255,0.20)' }}>(optional)</span>
+            </label>
             <textarea
               name="notes"
               rows={2}
               value={form.notes}
               onChange={handleChange}
-              placeholder="What did you work on today?"
-              className="w-full rounded-lg px-3 py-2.5 text-sm text-white/90 placeholder-white/30 outline-none focus:ring-1 resize-none"
-              style={DATE_INPUT_STYLE}
+              placeholder="What stood out today?"
+              className="w-full rounded-xl px-4 py-2.5 text-sm text-white/90 placeholder-white/25 outline-none resize-none transition-colors"
+              style={{
+                backgroundColor: SURFACE_3,
+                border: '1px solid rgba(255,255,255,0.08)',
+              }}
             />
           </div>
         </div>
 
         {/* ── Error + CTA ─────────────────────────────────────────── */}
-        {error && <p className="text-red-400 text-sm mt-4">{error}</p>}
+        {error && <p className="text-red-400 text-sm">{error}</p>}
 
-        <div className="flex items-center gap-3 mt-5">
+        <div
+          className="flex items-center gap-3 pt-2"
+          style={{ borderTop: '1px solid rgba(196,145,95,0.12)' }}
+        >
           {onCancel && (
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 py-3 rounded-xl text-sm font-medium text-white/50 hover:text-white/80 transition-colors"
+              className="px-4 py-3 text-sm font-medium transition-colors touch-manipulation"
+              style={{ color: 'rgba(255,255,255,0.40)' }}
             >
               Cancel
             </button>
@@ -409,13 +490,19 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
           <button
             type="submit"
             disabled={loading}
-            className="flex-1 bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-50"
+            className="flex-1 text-white font-semibold rounded-xl transition-all touch-manipulation disabled:opacity-50"
+            style={{
+              height: 52,
+              backgroundColor: '#DA7422',
+              boxShadow: '0 2px 12px rgba(218,116,34,0.25)',
+              fontSize: 16,
+            }}
           >
             {loading ? 'Saving...' : 'Log Session'}
           </button>
         </div>
 
-        </div>{/* end px-6 pb-6 wrapper */}
+        </div>{/* end content wrapper */}
       </form>
     </div>
   );
