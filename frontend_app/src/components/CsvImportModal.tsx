@@ -93,7 +93,8 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
   // ── Validation ───────────────────────────────────────────────────────────
 
   const activeRows = rows.filter(r => !r.skip);
-  const rowsWithErrors = activeRows.filter(r => r.errors.length > 0 || r.tags.length === 0);
+  const rowsWithErrors = activeRows.filter(r => r.errors.length > 0);
+  const rowsMissingTags = activeRows.filter(r => r.tags.length === 0);
   const canImport = rowsWithErrors.length === 0 && activeRows.length > 0;
 
   // ── Bulk fixes ───────────────────────────────────────────────────────────
@@ -162,7 +163,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
 
   const totalFound   = rows.length;
   const skipped      = rows.filter(r => r.skip).length;
-  const needAttention = rows.filter(r => !r.skip && (r.errors.length > 0 || r.tags.length === 0)).length;
+  const needAttention = rows.filter(r => !r.skip && r.errors.length > 0).length;
   const duplicates   = rows.filter(r => !r.skip && r.isDuplicate).length;
   const missingDur   = rows.filter(r => !r.skip && r.duration === null).length;
 
@@ -296,6 +297,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
                 Found <strong className="text-white">{totalFound}</strong> sessions
                 {capped && <span className="text-amber-400"> (capped at 2,000)</span>}
                 {needAttention > 0 && <span className="text-amber-400"> · {needAttention} need attention</span>}
+                {rowsMissingTags.length > 0 && <span className="text-white/30"> · {rowsMissingTags.length} without tags</span>}
                 {duplicates > 0 && <span style={{ color: COPPER_FG }}> · {duplicates} duplicate date{duplicates > 1 ? 's' : ''}</span>}
                 {skipped > 0 && <span className="text-white/40"> · {skipped} skipped</span>}
               </span>
@@ -392,7 +394,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
               </button>
               <div className="flex items-center gap-3">
                 {!canImport && needAttention > 0 && (
-                  <span className="text-xs text-amber-400">Fix {needAttention} row{needAttention > 1 ? 's' : ''} or mark as skip</span>
+                  <span className="text-xs text-amber-400">Fix {needAttention} error{needAttention > 1 ? 's' : ''} to import</span>
                 )}
                 {!canImport && activeRows.length === 0 && (
                   <span className="text-xs text-white/40">All rows skipped</span>
@@ -461,7 +463,7 @@ const COPPER_BORDER_STR = 'rgba(196,145,95,0.45)';
 
 function ReviewRow({ row, onUpdate, onToggleTag }: ReviewRowProps) {
   const needsTag = !row.skip && row.tags.length === 0;
-  const hasErrors = row.errors.length > 0 || needsTag;
+  const hasErrors = row.errors.length > 0;
 
   const rowBg = row.skip
     ? 'rgba(255,255,255,0.02)'
@@ -598,7 +600,7 @@ function ReviewRow({ row, onUpdate, onToggleTag }: ReviewRowProps) {
             );
           })}
           {needsTag && (
-            <span className="text-[10px] text-amber-400 self-center ml-1">← select at least one</span>
+            <span className="text-[10px] text-white/25 self-center ml-1">← optional</span>
           )}
         </div>
       )}

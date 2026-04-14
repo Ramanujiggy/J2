@@ -202,8 +202,13 @@ export const importSessions = async (req: Request, res: Response): Promise<void>
                 return;
             }
 
-            if (!isValidTagArray(s.tags)) {
-                res.status(400).json({ message: `${rowLabel}: at least one valid skill tag required.` });
+            // Tags are optional for import — validate contents if provided, but allow empty
+            if (s.tags !== undefined && s.tags !== null && !Array.isArray(s.tags)) {
+                res.status(400).json({ message: `${rowLabel}: tags must be an array.` });
+                return;
+            }
+            if (Array.isArray(s.tags) && s.tags.length > 0 && !isValidTagArray(s.tags)) {
+                res.status(400).json({ message: `${rowLabel}: invalid skill tag value.` });
                 return;
             }
 
@@ -238,7 +243,7 @@ export const importSessions = async (req: Request, res: Response): Promise<void>
                 gi_nogi: s.gi_nogi,
                 intensity: inten,
                 session_type: s.session_type,
-                tags: s.tags,
+                tags: Array.isArray(s.tags) ? s.tags : [],
                 notes: typeof s.notes === 'string' ? s.notes : '',
                 heading: s.heading ?? null,
                 polarity: s.polarity ?? null,
