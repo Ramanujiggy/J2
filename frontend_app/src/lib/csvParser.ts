@@ -24,45 +24,58 @@ export interface ParsedRow {
   resonance: number | null;
 }
 
+// ── Date format ────────────────────────────────────────────────────────────
+
+export type DateFormat = 'auto' | 'mdy' | 'dmy';
+
 // ── Date parsing ────────────────────────────────────────────────────────────
 
-function parseDate(raw: string): string | null {
+function parseDate(raw: string, format: DateFormat = 'auto'): string | null {
   const s = raw.trim();
   if (!s) return null;
 
-  // YYYY-MM-DD
+  // YYYY-MM-DD (unambiguous, always accepted)
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
     const d = new Date(s + 'T00:00:00');
     if (!isNaN(d.getTime())) return s;
   }
 
-  // MM/DD/YYYY
-  const mdy4 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (mdy4) {
-    const [, m, d, y] = mdy4;
-    const iso = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-    const dt = new Date(iso + 'T00:00:00');
-    if (!isNaN(dt.getTime())) return iso;
+  // X/Y/YYYY — interpretation depends on format
+  const slashFull = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (slashFull) {
+    const [, a, b, y] = slashFull;
+    if (format === 'dmy') {
+      // DD/MM/YYYY
+      const iso = `${y}-${b.padStart(2, '0')}-${a.padStart(2, '0')}`;
+      if (!isNaN(new Date(iso + 'T00:00:00').getTime())) return iso;
+    } else if (format === 'mdy') {
+      // MM/DD/YYYY
+      const iso = `${y}-${a.padStart(2, '0')}-${b.padStart(2, '0')}`;
+      if (!isNaN(new Date(iso + 'T00:00:00').getTime())) return iso;
+    } else {
+      // Auto: if first segment > 12, must be DD/MM; otherwise default MM/DD
+      if (parseInt(a) > 12) {
+        const iso = `${y}-${b.padStart(2, '0')}-${a.padStart(2, '0')}`;
+        if (!isNaN(new Date(iso + 'T00:00:00').getTime())) return iso;
+      } else {
+        const iso = `${y}-${a.padStart(2, '0')}-${b.padStart(2, '0')}`;
+        if (!isNaN(new Date(iso + 'T00:00:00').getTime())) return iso;
+      }
+    }
   }
 
-  // MM/DD/YY
-  const mdy2 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
-  if (mdy2) {
-    const [, m, d, y] = mdy2;
+  // X/Y/YY (2-digit year)
+  const slashShort = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
+  if (slashShort) {
+    const [, a, b, y] = slashShort;
     const fullYear = parseInt(y) >= 50 ? `19${y}` : `20${y}`;
-    const iso = `${fullYear}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-    const dt = new Date(iso + 'T00:00:00');
-    if (!isNaN(dt.getTime())) return iso;
-  }
-
-  // DD/MM/YYYY (only if day > 12, otherwise ambiguous — default MM/DD)
-  const dmy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (dmy) {
-    const [, d, m, y] = dmy;
-    if (parseInt(d) > 12) {
-      const iso = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-      const dt = new Date(iso + 'T00:00:00');
-      if (!isNaN(dt.getTime())) return iso;
+    if (format === 'dmy') {
+      const iso = `${fullYear}-${b.padStart(2, '0')}-${a.padStart(2, '0')}`;
+      if (!isNaN(new Date(iso + 'T00:00:00').getTime())) return iso;
+    } else {
+      // mdy or auto (default MM/DD for short years)
+      const iso = `${fullYear}-${a.padStart(2, '0')}-${b.padStart(2, '0')}`;
+      if (!isNaN(new Date(iso + 'T00:00:00').getTime())) return iso;
     }
   }
 
@@ -127,6 +140,7 @@ export function parseCSV(
   existingDates: Set<string>,
   onDone: (rows: ParsedRow[]) => void,
   onError: (msg: string) => void,
+  dateFormat: DateFormat = 'auto',
 ) {
   Papa.parse<Record<string, string>>(file, {
     header: true,
@@ -156,7 +170,7 @@ export function parseCSV(
         for (const [col, val] of Object.entries(raw)) {
           const key = colMap[col];
           if (!key || key === 'ignore') continue;
-          if (key === 'date') dateVal = parseDate(val);
+          if (key === 'date') dateVal = parseDate(val, dateFormat);
           if (key === 'duration') durationVal = parseDuration(val);
           if (key === 'notes') notesVal = val.trim();
           if (key === 'restriction') restrictionVal = val.trim();

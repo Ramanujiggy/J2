@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { query } from '../config/db.js';
 import { createSession, getSessionsByUser, updateSession as updateSessionModel, deleteSession as deleteSessionModel, bulkInsertSessions, type BulkSessionInput } from '../models/sessionModel.js';
 
 const VALID_TAGS        = new Set(['standup', 'passing', 'pins', 'submissions', 'guard']);
@@ -156,7 +157,7 @@ export const importSessions = async (req: Request, res: Response): Promise<void>
             return;
         }
 
-        const { sessions } = req.body;
+        const { sessions, confirmDuplicates } = req.body;
 
         if (!Array.isArray(sessions) || sessions.length === 0) {
             res.status(400).json({ message: 'sessions must be a non-empty array.' });
@@ -245,6 +246,23 @@ export const importSessions = async (req: Request, res: Response): Promise<void>
                 script_source: s.script_source ?? null,
                 resonance: resNum,
             });
+        }
+
+        // Check for duplicate dates unless explicitly confirmed
+        if (!confirmDuplicates) {
+            const importDates = [...new Set(validated.map(s => s.date))];
+            const existing = await query(
+                `SELECT DISTINCT date::text FROM training_sessions WHERE user_id = $1 AND date = ANY($2::date[])`,
+                [userId, importDates],
+            );
+            if (existing.rows.length > 0) {
+                const duplicateDates = existing.rows.map((r: { date: string }) => r.date.slice(0, 10));
+                res.status(409).json({
+                    message: `${duplicateDates.length} date${duplicateDates.length > 1 ? 's' : ''} already exist in your log.`,
+                    duplicateDates,
+                });
+                return;
+            }
         }
 
         const imported = await bulkInsertSessions(userId, validated);
