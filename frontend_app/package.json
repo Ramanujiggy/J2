@@ -17,6 +17,7 @@
     "@radix-ui/react-slot": "^1.2.4",
     "@radix-ui/react-toast": "^1.2.15",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@rive-app/react-canvas": "^4.28.0",
     "@types/d3": "^7.4.3",
     "@types/papaparse": "^5.5.2",
     "class-variance-authority": "^0.7.1",

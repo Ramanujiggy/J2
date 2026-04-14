@@ -3,7 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import WaveBackground from './WaveBackground.tsx';
-import BeltBar, { type BeltRank, BELT_COLORS, PATCH_COLORS } from './BeltBar.tsx';
+import RiveBeltBar from './RiveBeltBar.tsx';
+import { type BeltRank, BELT_COLORS, PATCH_COLORS } from './BeltBar.tsx';
 import { PAGE_BG, PALE_YELLOW, GLOW_TITLE, GLOW_NAV, COPPER_BORDER } from '../lib/theme.ts';
 import PageTransition from './PageTransition.tsx';
 import OfflineBanner from './OfflineBanner.tsx';
@@ -202,7 +203,7 @@ export default function AppShell({ children }: Props) {
             >
               Journada
             </h1>
-            <BeltBar rank={beltRank} stripes={stripes} />
+            <RiveBeltBar rank={beltRank} stripes={stripes} />
           </div>
         </div>
 

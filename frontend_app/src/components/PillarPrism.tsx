@@ -75,9 +75,11 @@ interface Props {
   onSelect: (heading: string, resonance: number, weights: Record<string, number>) => void;
   /** If provided, places the dot at this vertex at full resonance (roulette pre-fill) */
   defaultHeading?: string;
+  /** When true, always snap to nearest vertex (no distribution mode). Used for intention setting. */
+  snapOnly?: boolean;
 }
 
-export default function PillarPrism({ heading, resonance, onSelect, defaultHeading }: Props) {
+export default function PillarPrism({ heading, resonance, onSelect, defaultHeading, snapOnly }: Props) {
   // Dot position in SVG coordinate space
   const [dotPos, setDotPos] = useState<{ x: number; y: number } | null>(() => {
     if (!defaultHeading) return null;
@@ -137,11 +139,13 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
     }
     prevResRef.current = res;
 
-    const w = calculateWeights(clampedX, clampedY);
-    const snapped = Object.values(w).some(v => v === 1.0);
+    const w = snapOnly
+      ? (() => { const ww: Record<string, number> = {}; VERTICES.forEach(v => { ww[v.value] = v.value === nearest.value ? 1.0 : 0.0; }); return ww; })()
+      : calculateWeights(clampedX, clampedY);
+    const snapped = snapOnly || Object.values(w).some(v => v === 1.0);
     setWeights(w);
     setIsSnapped(snapped);
-    setDotPos({ x: clampedX, y: clampedY });
+    setDotPos(snapOnly ? { x: nearest.cx, y: nearest.cy } : { x: clampedX, y: clampedY });
     onSelect(nearest.value, res, w);
   }
 

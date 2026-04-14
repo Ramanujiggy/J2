@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Intention } from '../types/api.ts';
 import { PALE_YELLOW, GLOW_SOFT, SURFACE_2, COPPER } from '../lib/theme.ts';
-import { CATEGORY_COLORS } from '../lib/constants.ts';
+import { SKILL_TAGS } from '../lib/constants.ts';
 import { INTENT_PARTICLES } from '../lib/particles.ts';
 import { addDays, toDateString } from '../lib/sessionUtils.ts';
 
@@ -119,20 +119,16 @@ export default function IntentionHeroCard({ intention, onSetIntent, onDeleteInte
                   </span>
                 </div>
                 <p className="text-lg font-semibold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
-                  {intention.intent_label}
+                  {intention.heading
+                    ? (SKILL_TAGS.find(s => s.value === intention.heading)?.label ?? intention.heading)
+                    : intention.intent_label}
                 </p>
+                {intention.heading && intention.intent_label && intention.intent_label !== intention.heading && (
+                  <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                    {intention.intent_label}
+                  </p>
+                )}
                 <div className="flex items-center gap-2 mt-1.5">
-                  {intention.intent_category && (
-                    <span
-                      className="text-[11px] px-2 py-0.5 rounded-full font-medium capitalize"
-                      style={{
-                        backgroundColor: `${CATEGORY_COLORS[intention.intent_category] ?? '#fff'}22`,
-                        color: CATEGORY_COLORS[intention.intent_category] ?? 'rgba(255,255,255,0.5)',
-                      }}
-                    >
-                      {intention.intent_category}
-                    </span>
-                  )}
                   <span className="text-xs" style={{ color: 'rgba(255,255,255,0.30)' }}>
                     {daysRemaining === 0 ? 'Last day' : `${daysRemaining}d remaining`}
                   </span>

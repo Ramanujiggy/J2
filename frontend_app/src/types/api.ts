@@ -23,6 +23,7 @@ export interface Intention {
   week_start: string;
   intent_label: string;
   intent_category: string | null;
+  heading: string | null;
   duration_days: number;
   journal_entry: string | null;
   created_at: string;
