@@ -10,7 +10,8 @@ import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER, COPPER_BORDER, CARD_SHADOW, SU
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import type { SessionSummary, SessionsResponse, Intention } from '../types/api.ts';
 import PageContent from '../components/PageContent.tsx';
-import { SKILL_TAGS, CATEGORY_COLORS } from '../lib/constants.ts';
+import { SKILL_TAGS } from '../lib/constants.ts';
+import { addDays } from '../lib/sessionUtils.ts';
 import { type TimeWindow, WINDOW_DAYS, formatWeekShort, topTagInRange, computeAlignment } from '../lib/analyticsUtils.ts';
 import { useCountUp } from '../hooks/useCountUp.ts';
 import { vibrate } from '../lib/haptics.ts';
@@ -22,6 +23,143 @@ const WINDOW_LABELS: Partial<Record<TimeWindow, string>> = {
   '7d': '7 days', '14d': '2 weeks', '30d': '30 days',
   '90d': '90 days', '180d': '6 months', '1y': '1 year',
 };
+
+// ── Alignment Timeline ────────────────────────────────────────────────────
+
+function AlignmentTimeline({ intentions, allSessions, navigate }: {
+  intentions: Intention[];
+  allSessions: SessionSummary[];
+  navigate: ReturnType<typeof useNavigate>;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const INITIAL_SHOW = 3;
+
+  // Compute alignment for each intention
+  const rows = intentions.map(intention => {
+    const top       = topTagInRange(allSessions, intention.week_start, intention.duration_days);
+    const alignment = computeAlignment(intention, top);
+    const headingLabel = intention.heading
+      ? (SKILL_TAGS.find(s => s.value === intention.heading)?.label ?? intention.heading)
+      : null;
+    const endDate = addDays(intention.week_start, intention.duration_days);
+    return { intention, top, alignment, headingLabel, endDate };
+  });
+
+  const alignedCount = rows.filter(r => r.alignment === 'aligned').length;
+  const withDataCount = rows.filter(r => r.alignment !== 'no-data').length;
+  const alignPct = withDataCount > 0 ? Math.round((alignedCount / withDataCount) * 100) : 0;
+
+  const visibleRows = expanded ? rows : rows.slice(0, INITIAL_SHOW);
+  const hiddenCount = rows.length - INITIAL_SHOW;
+
+  return (
+    <div className="animate-j2-card-enter" style={{ animationDelay: '120ms' }}>
+      {/* Section header */}
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-lg font-semibold" style={{ color: 'rgba(255,255,255,0.80)' }}>
+          Alignment
+        </h3>
+        <button
+          onClick={() => { vibrate(8); navigate('/intentions'); }}
+          className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium min-h-[40px] touch-manipulation j2-press"
+          style={{ color: COPPER, backgroundColor: 'rgba(255,255,255,0.05)' }}
+        >
+          View all <ChevronRight size={13} strokeWidth={2} />
+        </button>
+      </div>
+
+      {/* Summary stat + progress bar */}
+      {withDataCount > 0 && (
+        <div className="mb-3">
+          <div className="flex items-baseline gap-2 mb-1.5">
+            <span className="text-lg font-bold" style={{ color: PALE_YELLOW }}>
+              {alignedCount} of {withDataCount}
+            </span>
+            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.40)' }}>
+              aligned ({alignPct}%)
+            </span>
+          </div>
+          <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
+            <div
+              className="h-full rounded-full"
+              style={{
+                width: `${alignPct}%`,
+                backgroundColor: 'rgba(82,181,108,0.70)',
+                transition: 'width 600ms ease-out',
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Compact timeline rows */}
+      <div
+        className="rounded-xl overflow-hidden"
+        style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}
+      >
+        {visibleRows.map(({ intention, top, alignment, headingLabel, endDate }, i) => (
+          <button
+            key={intention.id}
+            onClick={() => { vibrate(8); navigate(`/intentions/${intention.id}/journal`); }}
+            className="w-full text-left flex items-center gap-3 px-4 py-3 j2-press touch-manipulation min-h-[48px]"
+            style={i < visibleRows.length - 1 ? { borderBottom: '1px solid rgba(255,255,255,0.04)' } : undefined}
+          >
+            {/* Alignment bar */}
+            <div
+              className="rounded-full flex-shrink-0"
+              style={{
+                width: 6, height: 28,
+                backgroundColor: alignment === 'aligned'  ? 'rgba(82,181,108,0.70)'
+                               : alignment === 'diverged' ? 'rgba(218,116,34,0.50)'
+                               : 'rgba(255,255,255,0.06)',
+              }}
+            />
+
+            {/* Content */}
+            <div className="flex-1 min-w-0">
+              <span className="text-sm font-semibold block truncate" style={{ color: 'rgba(255,255,255,0.90)' }}>
+                {headingLabel ?? intention.intent_label}
+              </span>
+              <span className="text-xs block" style={{ color: 'rgba(255,255,255,0.30)' }}>
+                {formatWeekShort(intention.week_start)} – {formatWeekShort(endDate)}
+              </span>
+            </div>
+
+            {/* Status pill */}
+            {alignment !== 'no-data' ? (
+              <span
+                className="text-xs px-2 py-0.5 rounded-full flex-shrink-0 font-medium"
+                style={{
+                  backgroundColor: alignment === 'aligned' ? 'rgba(82,181,108,0.12)' : 'rgba(218,116,34,0.12)',
+                  color: alignment === 'aligned' ? 'rgba(82,181,108,0.80)' : 'rgba(218,116,34,0.70)',
+                }}
+              >
+                {alignment === 'aligned' ? 'Aligned' : 'Diverged'}
+              </span>
+            ) : (
+              <span className="text-xs italic flex-shrink-0" style={{ color: 'rgba(255,255,255,0.20)' }}>
+                No data
+              </span>
+            )}
+
+            <ChevronRight size={14} strokeWidth={2} style={{ color: 'rgba(255,255,255,0.12)', flexShrink: 0 }} />
+          </button>
+        ))}
+
+        {/* Show more */}
+        {!expanded && hiddenCount > 0 && (
+          <button
+            onClick={() => setExpanded(true)}
+            className="w-full text-center py-3 text-xs font-medium touch-manipulation j2-press min-h-[44px]"
+            style={{ color: COPPER, borderTop: '1px solid rgba(255,255,255,0.04)' }}
+          >
+            Show {hiddenCount} more
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function AnalyticsPage() {
   const navigate = useNavigate();
@@ -178,14 +316,14 @@ export default function AnalyticsPage() {
               {animHours.toFixed(1)}h
             </span>
             {hoursDelta && (
-              <span className="text-[11px] font-semibold" style={{
+              <span className="text-xs font-semibold" style={{
                 color: hoursDelta.startsWith('↑') ? 'rgba(82,181,108,0.85)' : 'rgba(218,90,70,0.75)',
               }}>
                 {hoursDelta}
               </span>
             )}
           </div>
-          <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.38)' }}>
+          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.38)' }}>
             {windowLabel}
           </span>
         </div>
@@ -194,7 +332,7 @@ export default function AnalyticsPage() {
           <span className="text-lg font-bold" style={{ color: PALE_YELLOW }}>
             {Math.round(animSessions)}
           </span>
-          <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.38)' }}>
+          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.38)' }}>
             sessions
           </span>
         </div>
@@ -203,7 +341,7 @@ export default function AnalyticsPage() {
           <span className="text-lg font-bold" style={{ color: PALE_YELLOW }}>
             {animAvg.toFixed(1)}h
           </span>
-          <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.38)' }}>
+          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.38)' }}>
             avg / wk
           </span>
         </div>
@@ -212,7 +350,7 @@ export default function AnalyticsPage() {
       {/* ── Insight sentence ─────────────────────────────────── */}
       <p
         className="text-sm leading-relaxed animate-j2-card-enter"
-        style={{ color: 'rgba(255,255,255,0.45)', animationDelay: '40ms' }}
+        style={{ color: 'rgba(255,255,255,0.55)', animationDelay: '40ms' }}
       >
         {insightSentence}
       </p>
@@ -232,87 +370,11 @@ export default function AnalyticsPage() {
 
       {/* ── Intention Alignment ────────────────────────────────── */}
       {intentions.length > 0 ? (
-        <div className="animate-j2-card-enter" style={{ animationDelay: '120ms' }}>
-          {/* Section header */}
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-semibold" style={{ color: 'rgba(255,255,255,0.80)' }}>
-              Intention vs Training Telemetry
-            </h3>
-            <button
-              onClick={() => { vibrate(8); navigate('/intentions'); }}
-              className="flex items-center gap-0.5 text-xs font-medium touch-manipulation j2-press"
-              style={{ color: COPPER }}
-            >
-              View all <ChevronRight size={13} strokeWidth={2} />
-            </button>
-          </div>
-
-          {/* Intention cards — matching IntentionsPage visual pattern */}
-          <div className="space-y-2.5">
-            {intentions.map(intention => {
-              const top       = topTagInRange(allSessions, intention.week_start, intention.duration_days);
-              const alignment = computeAlignment(intention, top);
-              const headingLabel = intention.heading
-                ? (SKILL_TAGS.find(s => s.value === intention.heading)?.label ?? intention.heading)
-                : null;
-
-              return (
-                <button
-                  key={intention.id}
-                  onClick={() => { vibrate(8); navigate(`/intentions/${intention.id}/journal`); }}
-                  className="w-full text-left rounded-xl px-4 py-3.5 flex items-center gap-3 j2-press touch-manipulation"
-                  style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}
-                >
-                  {/* Alignment bar */}
-                  <div
-                    className="rounded-full flex-shrink-0"
-                    style={{
-                      width: 4, height: 32,
-                      backgroundColor: alignment === 'aligned'  ? 'rgba(82,181,108,0.70)'
-                                     : alignment === 'diverged' ? 'rgba(218,116,34,0.50)'
-                                     : 'rgba(255,255,255,0.06)',
-                    }}
-                  />
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.90)' }}>
-                        {headingLabel ?? intention.intent_label}
-                      </span>
-                      <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.30)' }}>
-                        {formatWeekShort(intention.week_start)}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      {top ? (
-                        <>
-                          <span className="text-xs font-medium" style={{ color: COPPER }}>
-                            Trained: {top.label}
-                          </span>
-                          {alignment !== 'no-data' && (
-                            <span className="text-[10px]" style={{
-                              color: alignment === 'aligned' ? 'rgba(82,181,108,0.65)' : 'rgba(218,116,34,0.50)',
-                            }}>
-                              {alignment === 'aligned' ? 'Aligned' : 'Diverged'}
-                            </span>
-                          )}
-                        </>
-                      ) : (
-                        <span className="text-xs italic" style={{ color: 'rgba(255,255,255,0.20)' }}>
-                          No sessions logged
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Chevron */}
-                  <ChevronRight size={14} strokeWidth={2} style={{ color: 'rgba(255,255,255,0.15)', flexShrink: 0 }} />
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <AlignmentTimeline
+          intentions={intentions}
+          allSessions={allSessions}
+          navigate={navigate}
+        />
       ) : allSessions.length > 0 ? (
         /* ── Nudge: has sessions but no intentions ──────────── */
         <div
