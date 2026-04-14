@@ -112,6 +112,10 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
     setBulkTagOpen(false);
   };
 
+  const skipAllUntagged = () => {
+    setRows(prev => prev.map(r => r.tags.length === 0 && !r.skip ? { ...r, skip: true } : r));
+  };
+
   // ── Import ───────────────────────────────────────────────────────────────
 
   const doImport = async (confirmDuplicates = false) => {
@@ -328,6 +332,15 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
                     </span>
                   )}
                 </span>
+              )}
+              {rows.some(r => !r.skip && r.tags.length === 0) && (
+                <button
+                  onClick={skipAllUntagged}
+                  className="ml-2 text-xs underline"
+                  style={{ color: 'rgba(255,255,255,0.35)' }}
+                >
+                  Skip all untagged
+                </button>
               )}
             </div>
 
