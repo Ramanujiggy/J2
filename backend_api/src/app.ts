@@ -125,7 +125,7 @@ const corsOptions: cors.CorsOptions = {
 };
 app.use(cors(corsOptions));
 app.options('/{*path}', cors(corsOptions)); // respond to preflight for every route
-app.use(express.json()); //allows the server to read json body content
+app.use(express.json({ limit: '5mb' })); // raised from default 100KB to support bulk session imports
 
 
 // Health check — visit https://<backend>.railway.app/ to confirm the backend is alive
