@@ -7,11 +7,14 @@ import { addDays, toDateString } from '../lib/sessionUtils.ts';
 
 interface Props {
   intention: Intention | null;
+  weekSessionCount?: number;
   onSetIntent: () => void;
+  onEditIntent?: () => void;
+  onViewJournal?: () => void;
   onDeleteIntent: () => void;
 }
 
-export default function IntentionHeroCard({ intention, onSetIntent, onDeleteIntent }: Props) {
+export default function IntentionHeroCard({ intention, weekSessionCount = 0, onSetIntent, onEditIntent, onViewJournal, onDeleteIntent }: Props) {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   const handleDelete = () => {
@@ -59,7 +62,7 @@ export default function IntentionHeroCard({ intention, onSetIntent, onDeleteInte
       {intention ? (
         /* ── Active intention ─────────────────────────────────────── */
         <div
-          className="rounded-xl px-5 py-4"
+          className="rounded-xl px-5 py-5"
           style={{
             position: 'relative',
             overflow: 'hidden',
@@ -110,47 +113,81 @@ export default function IntentionHeroCard({ intention, onSetIntent, onDeleteInte
 
           {/* Content */}
           <div style={{ position: 'relative', zIndex: 2 }}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm" style={{ color: 'rgba(242,228,168,0.5)' }}>◈</span>
-                  <span className="text-xs uppercase tracking-wide font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                    This week's focus
-                  </span>
-                </div>
-                <p className="text-lg font-semibold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
-                  {intention.heading
-                    ? (SKILL_TAGS.find(s => s.value === intention.heading)?.label ?? intention.heading)
-                    : intention.intent_label}
-                </p>
-                {intention.heading && intention.intent_label && intention.intent_label !== intention.heading && (
-                  <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                    {intention.intent_label}
-                  </p>
-                )}
-                <div className="flex items-center gap-2 mt-1.5">
-                  <span className="text-xs" style={{ color: 'rgba(255,255,255,0.30)' }}>
-                    {daysRemaining === 0 ? 'Last day' : `${daysRemaining}d remaining`}
-                  </span>
-                </div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-sm" style={{ color: 'rgba(242,228,168,0.5)' }}>◈</span>
+              <span className="text-xs uppercase tracking-wide font-medium" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                This week's focus
+              </span>
+            </div>
+            <p className="text-lg font-semibold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
+              {intention.heading
+                ? (SKILL_TAGS.find(s => s.value === intention.heading)?.label ?? intention.heading)
+                : intention.intent_label}
+            </p>
+            {intention.heading && intention.intent_label && intention.intent_label !== intention.heading && (
+              <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                {intention.intent_label}
+              </p>
+            )}
+            <div className="flex items-center gap-2 mt-1.5">
+              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.30)' }}>
+                {daysRemaining === 0 ? 'Last day' : `${daysRemaining}d remaining`}
+              </span>
+            </div>
+
+            {/* Session progress */}
+            <div className="flex items-center gap-2.5 mt-3">
+              <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${Math.min(100, (weekSessionCount / 3) * 100)}%`,
+                    backgroundColor: weekSessionCount >= 3 ? 'rgba(82,181,108,0.70)' : COPPER,
+                    transition: 'width 600ms ease-out',
+                  }}
+                />
               </div>
-              <div className="flex items-center gap-1 flex-shrink-0">
-                {deleteConfirm && (
-                  <button
-                    onClick={() => setDeleteConfirm(false)}
-                    className="py-2.5 px-3 text-sm text-white/25 hover:text-white/50 transition-colors min-h-[40px] touch-manipulation"
-                  >
-                    x
-                  </button>
-                )}
+              <span className="text-xs flex-shrink-0" style={{ color: 'rgba(255,255,255,0.40)' }}>
+                {weekSessionCount} session{weekSessionCount !== 1 ? 's' : ''}
+              </span>
+            </div>
+
+            {/* Action row */}
+            <div className="flex items-center gap-1 mt-3 pt-2.5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              {onEditIntent && (
                 <button
-                  onClick={handleDelete}
-                  className="py-2.5 px-4 text-sm transition-colors flex-shrink-0 min-h-[40px] touch-manipulation"
-                  style={{ color: deleteConfirm ? 'rgba(248,113,113,0.85)' : 'rgba(255,255,255,0.25)' }}
+                  onClick={onEditIntent}
+                  className="px-3 py-2 rounded-lg text-xs font-medium touch-manipulation j2-press min-h-[40px]"
+                  style={{ color: COPPER }}
                 >
-                  {deleteConfirm ? 'Confirm?' : 'Delete'}
+                  Edit
                 </button>
-              </div>
+              )}
+              {onViewJournal && (
+                <button
+                  onClick={onViewJournal}
+                  className="px-3 py-2 rounded-lg text-xs font-medium touch-manipulation j2-press min-h-[40px]"
+                  style={{ color: 'rgba(255,255,255,0.45)' }}
+                >
+                  Journal
+                </button>
+              )}
+              <div className="flex-1" />
+              {deleteConfirm && (
+                <button
+                  onClick={() => setDeleteConfirm(false)}
+                  className="px-3 py-2 rounded-lg text-xs text-white/25 transition-colors touch-manipulation min-h-[40px]"
+                >
+                  Cancel
+                </button>
+              )}
+              <button
+                onClick={handleDelete}
+                className="px-3 py-2 rounded-lg text-xs transition-colors touch-manipulation min-h-[40px]"
+                style={{ color: deleteConfirm ? 'rgba(248,113,113,0.85)' : 'rgba(255,255,255,0.20)' }}
+              >
+                {deleteConfirm ? 'Confirm?' : 'Delete'}
+              </button>
             </div>
           </div>
         </div>

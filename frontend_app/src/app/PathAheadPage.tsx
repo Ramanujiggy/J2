@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api, ApiError } from '../lib/api.ts';
 import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
@@ -31,6 +32,7 @@ interface DeleteResponse      { message: string }
 // ── PathAheadPage ──────────────────────────────────────────────────────────
 
 export default function PathAheadPage() {
+  const navigate = useNavigate();
   const { name, intentionsEnabled } = useProfile();
   const isDesktop = useIsDesktop();
   const [sessions,   setSessions]   = useState<SessionSummary[]>([]);
@@ -132,6 +134,7 @@ export default function PathAheadPage() {
   const [logDate,             setLogDate]             = useState<string | null>(null);
   const [logPreset,           setLogPreset]           = useState<{ heading?: string; sessionType?: 'drilling'; subSkillTag?: string } | null>(null);
   const [setIntentOpen,       setSetIntentOpen]       = useState(false);
+  const [editIntention,       setEditIntention]       = useState<Intention | null>(null);
   const [detailSessions,      setDetailSessions]      = useState<SessionSummary[]>([]);
   const [detailSessionIndex,  setDetailSessionIndex]  = useState(0);
   const [detailDate,          setDetailDate]          = useState<Date | null>(null);
@@ -889,10 +892,11 @@ export default function PathAheadPage() {
         />
       )}
 
-      {setIntentOpen && (
+      {(setIntentOpen || editIntention) && (
         <SetIntentionModal
-          onSaved={fetchAll}
-          onClose={() => setSetIntentOpen(false)}
+          editIntention={editIntention ?? undefined}
+          onSaved={() => { fetchAll(); setEditIntention(null); }}
+          onClose={() => { setSetIntentOpen(false); setEditIntention(null); }}
         />
       )}
     </>
@@ -981,7 +985,10 @@ export default function PathAheadPage() {
               {intentionsEnabled && (
                 <IntentionHeroCard
                   intention={activeIntention}
+                  weekSessionCount={weekStats.count}
                   onSetIntent={() => setSetIntentOpen(true)}
+                  onEditIntent={activeIntention ? () => setEditIntention(activeIntention) : undefined}
+                  onViewJournal={activeIntention ? () => navigate(`/intentions/${activeIntention.id}/journal`) : undefined}
                   onDeleteIntent={handleDeleteIntention}
                 />
               )}
@@ -1036,7 +1043,10 @@ export default function PathAheadPage() {
       {intentionsEnabled && (
         <IntentionHeroCard
           intention={activeIntention}
+          weekSessionCount={weekStats.count}
           onSetIntent={() => setSetIntentOpen(true)}
+          onEditIntent={activeIntention ? () => setEditIntention(activeIntention) : undefined}
+          onViewJournal={activeIntention ? () => navigate(`/intentions/${activeIntention.id}/journal`) : undefined}
           onDeleteIntent={handleDeleteIntention}
         />
       )}
