@@ -32,7 +32,7 @@ export function parseJSON(
         return;
       }
 
-      const capped = arr.slice(0, 500);
+      const capped = arr.slice(0, 2000);
 
       const rows: ParsedRow[] = capped.map((obj: Record<string, unknown>, i: number) => {
         const errors: string[] = [];

@@ -219,9 +219,9 @@ export function parseCSV(
         return;
       }
 
-      if (rows.length > 500) {
-        // Cap at 500 and warn — caller handles the warning display
-        onDone(rows.slice(0, 500));
+      if (rows.length > 2000) {
+        // Cap at 2000 and warn — caller handles the warning display
+        onDone(rows.slice(0, 2000));
         return;
       }
 

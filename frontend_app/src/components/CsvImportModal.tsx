@@ -45,7 +45,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
     setCurrentFile(file);
 
     const onDone = (parsed: ParsedRow[]) => {
-      setCapped(parsed.length === 500);
+      setCapped(parsed.length === 2000);
       setRows(parsed);
       setStep('review');
     };
@@ -290,7 +290,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
             >
               <span className="text-white/70">
                 Found <strong className="text-white">{totalFound}</strong> sessions
-                {capped && <span className="text-amber-400"> (capped at 500)</span>}
+                {capped && <span className="text-amber-400"> (capped at 2,000)</span>}
                 {needAttention > 0 && <span className="text-amber-400"> · {needAttention} need attention</span>}
                 {duplicates > 0 && <span style={{ color: COPPER_FG }}> · {duplicates} duplicate date{duplicates > 1 ? 's' : ''}</span>}
                 {skipped > 0 && <span className="text-white/40"> · {skipped} skipped</span>}

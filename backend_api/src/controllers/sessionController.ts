@@ -164,8 +164,8 @@ export const importSessions = async (req: Request, res: Response): Promise<void>
             return;
         }
 
-        if (sessions.length > 500) {
-            res.status(400).json({ message: 'Maximum 500 sessions per import.' });
+        if (sessions.length > 2000) {
+            res.status(400).json({ message: 'Maximum 2000 sessions per import.' });
             return;
         }
 

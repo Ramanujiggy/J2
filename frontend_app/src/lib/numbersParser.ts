@@ -117,7 +117,7 @@ export async function parseNumbers(
 
     const rows: ParsedRow[] = [];
 
-    for (let i = 0; i < Math.min(jsonRows.length, 500); i++) {
+    for (let i = 0; i < Math.min(jsonRows.length, 2000); i++) {
       const raw = jsonRows[i];
 
       // Skip fully empty rows

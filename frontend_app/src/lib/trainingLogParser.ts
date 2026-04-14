@@ -263,6 +263,6 @@ export function parseTrainingLog(
     }
   }
 
-  // Cap at 500
-  return sessions.slice(0, 500);
+  // Cap at 2000
+  return sessions.slice(0, 2000);
 }
