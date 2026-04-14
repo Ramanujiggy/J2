@@ -41,6 +41,28 @@ const GUIDE_RINGS = GUIDE_SCALES.map(s =>
   ).join(' ')
 );
 
+// Snap threshold — within this distance of a vertex, snap to 100%
+const SNAP_THRESHOLD = R * 0.20;
+
+// IDW weight calculation — returns 5 floats summing to 1.0
+function calculateWeights(px: number, py: number): Record<string, number> {
+  // Check for vertex snap — clean 100% selection
+  for (const v of VERTICES) {
+    if (Math.hypot(px - v.cx, py - v.cy) < SNAP_THRESHOLD) {
+      const w: Record<string, number> = {};
+      VERTICES.forEach(vv => { w[vv.value] = vv.value === v.value ? 1.0 : 0.0; });
+      return w;
+    }
+  }
+  // IDW distribution — p=2 sharpens focus near vertices
+  const distances = VERTICES.map(v => Math.max(Math.hypot(px - v.cx, py - v.cy), 0.01));
+  const rawWeights = distances.map(d => 1 / (d * d));
+  const total = rawWeights.reduce((a, b) => a + b, 0);
+  const w: Record<string, number> = {};
+  VERTICES.forEach((v, i) => { w[v.value] = rawWeights[i] / total; });
+  return w;
+}
+
 // Map resonance score → visual opacity on the dashed line
 function resonanceToOpacity(r: number): number {
   return 0.25 + (r / 10) * 0.55;
@@ -49,8 +71,8 @@ function resonanceToOpacity(r: number): number {
 interface Props {
   heading: string | null;
   resonance: number | null;
-  /** Called with nearest vertex value + computed resonance on any tap/drag */
-  onSelect: (heading: string, resonance: number) => void;
+  /** Called with nearest vertex value, computed resonance, and IDW pillar weights */
+  onSelect: (heading: string, resonance: number, weights: Record<string, number>) => void;
   /** If provided, places the dot at this vertex at full resonance (roulette pre-fill) */
   defaultHeading?: string;
 }
@@ -62,6 +84,14 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
     const v = VERTICES.find(v => v.value === defaultHeading);
     return v ? { x: v.cx, y: v.cy } : null;
   });
+
+  const [weights, setWeights] = useState<Record<string, number> | null>(() => {
+    if (!defaultHeading) return null;
+    const w: Record<string, number> = {};
+    VERTICES.forEach(v => { w[v.value] = v.value === defaultHeading ? 1.0 : 0.0; });
+    return w;
+  });
+  const [isSnapped, setIsSnapped] = useState(!!defaultHeading);
 
   const activeVertex = VERTICES.find(v => v.value === heading) ?? null;
   const prevNearestRef = useRef<string | null>(heading);
@@ -107,8 +137,12 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
     }
     prevResRef.current = res;
 
+    const w = calculateWeights(clampedX, clampedY);
+    const snapped = Object.values(w).some(v => v === 1.0);
+    setWeights(w);
+    setIsSnapped(snapped);
     setDotPos({ x: clampedX, y: clampedY });
-    onSelect(nearest.value, res);
+    onSelect(nearest.value, res, w);
   }
 
   return (
@@ -243,20 +277,52 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
             </text>
           );
         })}
+
+        {/* Weight percentages — only shown in distribution mode (not snapped to vertex) */}
+        {weights && !isSnapped && VERTICES.map(v => {
+          const pct = Math.round((weights[v.value] ?? 0) * 100);
+          if (pct < 3) return null;
+          const above = v.cy < CY;
+          return (
+            <text
+              key={v.value + '-pct'}
+              x={v.cx}
+              y={v.cy + (above ? -18 : 22)}
+              textAnchor="middle"
+              fontSize={9}
+              fontWeight={600}
+              fill={pct > 40 ? COPPER : 'rgba(255,255,255,0.35)'}
+              style={{ pointerEvents: 'none', transition: 'fill 0.15s' }}
+            >
+              {pct}%
+            </text>
+          );
+        })}
       </svg>
 
       {/* Hint */}
       <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.28)', textAlign: 'center', lineHeight: 1.4 }}>
         {heading
-          ? (() => {
-              const label = PRISM_VERTICES.find(v => v.value === heading)?.label ?? heading;
-              const desc = resonance == null ? '' :
-                resonance >= 10 ? '· focused' :
-                resonance >= 8  ? '· targeted' :
-                resonance >= 6  ? '· solid' :
-                resonance >= 4  ? '· mixed' : '· exploratory';
-              return `${label} ${desc}`;
-            })()
+          ? isSnapped
+            ? (() => {
+                const label = PRISM_VERTICES.find(v => v.value === heading)?.label ?? heading;
+                const desc = resonance == null ? '' :
+                  resonance >= 10 ? '· focused' :
+                  resonance >= 8  ? '· targeted' :
+                  resonance >= 6  ? '· solid' :
+                  resonance >= 4  ? '· mixed' : '· exploratory';
+                return `${label} ${desc}`;
+              })()
+            : (() => {
+                const sorted = Object.entries(weights ?? {}).sort((a, b) => b[1] - a[1]);
+                const top = sorted[0];
+                const second = sorted[1];
+                if (!top) return '';
+                const topLabel = PRISM_VERTICES.find(v => v.value === top[0])?.label ?? top[0];
+                if (!second || second[1] < 0.15) return topLabel;
+                const secondLabel = PRISM_VERTICES.find(v => v.value === second[0])?.shortLabel ?? second[0];
+                return `${topLabel} · ${secondLabel}`;
+              })()
           : 'Tap or drag to mark your training focus'}
       </p>
     </div>

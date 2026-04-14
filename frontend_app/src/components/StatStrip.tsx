@@ -106,9 +106,6 @@ export default function StatStrip({ streak, longestStreak, weekSessionCount, wee
 
         <div style={{ transition: 'opacity 0.12s', opacity: fading ? 0 : 1 }}>
           <span className="text-lg font-bold block text-center" style={{ color: valueColor }}>
-            {view === 'daily' && streak > 0 && (
-              <span style={{ marginRight: 4, fontSize: 14 }}>🔥</span>
-            )}
             {cellValue}
           </span>
           <span className="text-[11px] block text-center" style={{ color: 'rgba(255,255,255,0.38)' }}>
