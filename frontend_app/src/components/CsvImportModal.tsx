@@ -189,7 +189,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
         style={{
           width: '100%', maxWidth: 680,
           backgroundColor: CARD_BG,
-          border: `1px solid ${COPPER_BORDER}`,
+          border: '1px solid rgba(255,255,255,0.10)',
           borderRadius: '1rem',
           padding: '1.5rem',
           position: 'relative',
