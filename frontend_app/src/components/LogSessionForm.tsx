@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api, ApiError } from '../lib/api.ts';
 import { toast } from '../hooks/use-toast.ts';
-import { CARD_BG, COPPER, COPPER_BORDER, SURFACE_2, SURFACE_3, PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
+import { CARD_BG, COPPER, SURFACE_2, SURFACE_3, PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
 import { vibrate } from '../lib/haptics.ts';
 import { INTENSITY_COLOR } from '../lib/sessionUtils.ts';
 import BeltDateBanner from './BeltDateBanner.tsx';
@@ -206,7 +206,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
   };
 
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, isolation: 'isolate' }}>
+    <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: CARD_BG, border: '1px solid rgba(255,255,255,0.10)', isolation: 'isolate' }}>
       <form onSubmit={handleSubmit}>
         {/* Belt date banner — full-bleed, animates in from the right on mount */}
         <BeltDateBanner

@@ -4,7 +4,7 @@ import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 
 import { api } from '../lib/api.ts';
 import { useAuth } from '../hooks/useAuth.ts';
-import { CARD_BG, COPPER_BORDER, CARD_SHADOW, SURFACE_2, SURFACE_2_BORDER } from '../lib/theme.ts';
+import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, SURFACE_2, SURFACE_2_BORDER } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import CsvImportModal from '../components/CsvImportModal.tsx';
 import { exportSessionsCsv, exportIntentionsCsv } from '../lib/csvExport.ts';
@@ -164,7 +164,7 @@ export default function ProfilePage() {
         <h2 className="text-lg font-semibold text-white mb-6">Your Profile</h2>
 
         <PageContent ready={!loading} loadingMessages={['Taping fingers...']}>
-          <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl p-6" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
+          <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl p-6" style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}>
 
             {/* Name */}
             <div>
@@ -295,7 +295,7 @@ export default function ProfilePage() {
         {/* Import section */}
         <div
           className="mt-4 rounded-2xl p-5"
-          style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}` }}
+          style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}
         >
           <p className="text-sm font-semibold text-white mb-1">Import Training History</p>
           <p className="text-xs text-white/40 mb-4">
@@ -323,7 +323,7 @@ export default function ProfilePage() {
         {/* Export section */}
         <div
           className="mt-4 rounded-2xl p-5"
-          style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}` }}
+          style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}
         >
           <p className="text-sm font-semibold text-white mb-1">Export Your Data</p>
           <p className="text-xs text-white/40 mb-4">

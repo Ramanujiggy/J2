@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../lib/api.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
-import { COPPER, COPPER_BORDER, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3 } from '../lib/theme.ts';
+import { COPPER, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3 } from '../lib/theme.ts';
 import { INTENSITY_COLOR } from '../lib/sessionUtils.ts';
 import { vibrate } from '../lib/haptics.ts';
 import SegmentedToggle from './SegmentedToggle.tsx';
@@ -222,7 +222,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
           style={{
             position: 'relative',
             backgroundColor: '#152E22',
-            border: `1px solid ${COPPER_BORDER}`,
+            border: '1px solid rgba(255,255,255,0.10)',
             borderRadius: '1rem',
             overflow: 'hidden',
           }}

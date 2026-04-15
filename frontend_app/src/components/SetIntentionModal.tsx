@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.ts';
-import { PALE_YELLOW, GLOW_SOFT, COPPER_BORDER, SURFACE_2, SURFACE_3, COPPER } from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3, COPPER } from '../lib/theme.ts';
 import { vibrate } from '../lib/haptics.ts';
 import PillarPrism from './PillarPrism.tsx';
 import SegmentedToggle from './SegmentedToggle.tsx';
@@ -96,7 +96,7 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
         className="w-full sm:max-w-sm rounded-2xl overflow-hidden animate-j2-modal-in"
         style={{
           backgroundColor: '#152E22',
-          border: `1px solid ${COPPER_BORDER}`,
+          border: '1px solid rgba(255,255,255,0.10)',
           maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem)',
           overflowY: 'auto',
         }}
