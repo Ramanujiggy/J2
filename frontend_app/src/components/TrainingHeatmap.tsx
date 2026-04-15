@@ -10,7 +10,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import SessionDetailModal from './SessionDetailModal.tsx';
-import { CARD_BG, COPPER_BORDER, CARD_SHADOW, HEATMAP_REST, HEATMAP_FUTURE, HEATMAP_HEADER_BG, PALE_YELLOW, GLOW_SOFT, SURFACE_2 } from '../lib/theme.ts';
+import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, HEATMAP_REST, HEATMAP_FUTURE, HEATMAP_HEADER_BG, PALE_YELLOW, GLOW_SOFT, SURFACE_2 } from '../lib/theme.ts';
 import type { SessionSummary, CalendarIntention } from '../types/api.ts';
 export type { SessionSummary };
 
@@ -218,7 +218,7 @@ interface TrainingHeatmapProps {
 // Skeleton shimmer shown while sessions are fetching.
 function HeatmapSkeleton() {
   return (
-    <div className="rounded-2xl p-6 animate-pulse" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
+    <div className="rounded-2xl p-6 animate-pulse" style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}>
       {/* Shimmer stats row */}
       <div className="flex gap-8 mb-6 pb-5 border-b border-white/10">
         {[80, 64, 56].map(w => (
@@ -418,9 +418,9 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
     `}</style>
     {/* Stacked journal pages peeking out below-right */}
     <div style={{ position: 'relative' }}>
-      <div style={{ position: 'absolute', inset: 0, transform: 'translate(6px, 4px)', borderRadius: '1rem', backgroundColor: CARD_BG, border: '1px solid rgba(196,145,95,0.12)', borderRight: '2px solid rgba(196,145,95,0.18)', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', inset: 0, transform: 'translate(3px, 2px)', borderRadius: '1rem', backgroundColor: CARD_BG, border: '1px solid rgba(196,145,95,0.22)', borderRight: '2px solid rgba(196,145,95,0.30)', pointerEvents: 'none' }} />
-    <div className="rounded-2xl p-6" style={{ position: 'relative', zIndex: 1, backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
+      <div style={{ position: 'absolute', inset: 0, transform: 'translate(6px, 4px)', borderRadius: '1rem', backgroundColor: CARD_BG, border: '1px solid rgba(196,145,95,0.04)', borderRight: '2px solid rgba(196,145,95,0.06)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', inset: 0, transform: 'translate(3px, 2px)', borderRadius: '1rem', backgroundColor: CARD_BG, border: '1px solid rgba(196,145,95,0.06)', borderRight: '2px solid rgba(196,145,95,0.09)', pointerEvents: 'none' }} />
+    <div className="rounded-2xl p-6" style={{ position: 'relative', zIndex: 1, backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}>
 
       {/* Stats — 3 primary metrics on a consistent grid */}
       <div className="grid grid-cols-3 gap-4 mb-4 pb-4 border-b border-white/10">

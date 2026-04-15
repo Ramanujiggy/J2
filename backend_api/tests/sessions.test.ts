@@ -3,7 +3,7 @@ import request from 'supertest';
 import jwt from 'jsonwebtoken';
 
 vi.mock('../src/config/db.js', () => ({
-  query: vi.fn(),
+  query: vi.fn().mockResolvedValue({ rows: [] }),
   default: { connect: vi.fn() },
 }));
 

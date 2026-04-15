@@ -204,8 +204,8 @@ export const importSessions = async (req: Request, res: Response): Promise<void>
             return;
         }
 
-        if (sessions.length > 2000) {
-            res.status(400).json({ message: 'Maximum 2000 sessions per import.' });
+        if (sessions.length > 500) {
+            res.status(400).json({ message: 'Maximum 500 sessions per import.' });
             return;
         }
 
@@ -242,12 +242,12 @@ export const importSessions = async (req: Request, res: Response): Promise<void>
                 return;
             }
 
-            // Tags are optional for import — validate contents if provided, but allow empty
-            if (s.tags !== undefined && s.tags !== null && !Array.isArray(s.tags)) {
-                res.status(400).json({ message: `${rowLabel}: tags must be an array.` });
+            // Tags are required and must be non-empty
+            if (!Array.isArray(s.tags) || s.tags.length === 0) {
+                res.status(400).json({ message: `${rowLabel}: tags must be a non-empty array.` });
                 return;
             }
-            if (Array.isArray(s.tags) && s.tags.length > 0 && !isValidTagArray(s.tags)) {
+            if (!isValidTagArray(s.tags)) {
                 res.status(400).json({ message: `${rowLabel}: invalid skill tag value.` });
                 return;
             }
