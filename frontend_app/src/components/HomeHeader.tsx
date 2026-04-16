@@ -18,7 +18,7 @@ export default function HomeHeader({ name }: Props) {
   return (
     <div className="flex flex-col gap-0.5">
       <h2
-        className="text-xl font-semibold tracking-tight"
+        className="text-xl font-display font-semibold tracking-tight"
         style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}
       >
         {displayGreeting}

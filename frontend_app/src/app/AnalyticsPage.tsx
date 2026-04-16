@@ -435,7 +435,7 @@ export default function AnalyticsPage() {
             padding: '40px 24px',
           }}
         >
-          <h3 className="text-lg font-semibold mb-2" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
+          <h3 className="text-lg font-display font-semibold mb-2" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
             Your Analytics Await
           </h3>
           <p className="text-sm mb-4 leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>

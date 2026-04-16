@@ -295,7 +295,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
 
               {/* Date + close */}
               <div className="flex items-start justify-between mb-4">
-                <p className="text-2xl font-bold leading-tight" style={{ color: intensityColor }}>
+                <p className="text-2xl font-display font-bold leading-tight" style={{ color: intensityColor }}>
                   {dateLabel}
                 </p>
                 <button onClick={onClose}
@@ -444,7 +444,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
               padding: '1.25rem',
             }}>
               {/* Date header */}
-              <p className="text-2xl font-bold mb-4" style={{ color: intensityColor }}>{dateLabel}</p>
+              <p className="text-2xl font-display font-bold mb-4" style={{ color: intensityColor }}>{dateLabel}</p>
 
               <div className="space-y-4">
                 {/* ── Basics card ───────────────────────────── */}

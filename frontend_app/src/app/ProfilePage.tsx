@@ -161,7 +161,7 @@ export default function ProfilePage() {
     <div className="flex flex-col">
 
       <main className={`flex-1 w-full mx-auto py-6 ${isDesktop ? 'max-w-2xl px-8' : 'max-w-xl px-4 sm:px-6'}`}>
-        <h2 className="text-lg font-semibold text-white mb-6">Your Profile</h2>
+        <h2 className="text-lg font-display font-semibold text-white mb-6">Your Profile</h2>
 
         <PageContent ready={!loading} loadingMessages={['Taping fingers...']}>
           <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl p-6" style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}>
