@@ -9,7 +9,7 @@ import { useProfile } from '../context/ProfileContext.tsx';
 import type { Intention, SessionSummary, IntentionsResponse, SessionsResponse } from '../types/api.ts';
 import PageContent from '../components/PageContent.tsx';
 import SetIntentionModal from '../components/SetIntentionModal.tsx';
-import { formatWeekShort, topTagInRange, computeAlignment } from '../lib/analyticsUtils.ts';
+import { formatWeekShort, topTagInRange, computeAlignment, tagHoursInRange } from '../lib/analyticsUtils.ts';
 
 export default function IntentionsPage() {
   const navigate = useNavigate();
@@ -44,7 +44,7 @@ export default function IntentionsPage() {
       {/* Header */}
       <div>
         <h2
-          className="text-2xl font-bold tracking-tight"
+          className="text-2xl font-display font-bold tracking-tight"
           style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}
         >
           Intentions
@@ -95,7 +95,8 @@ export default function IntentionsPage() {
               : null;
             const topTag        = topTagInRange(sessions, intention.week_start, intention.duration_days);
             const ambient       = topTag?.label ?? null;
-            const alignment     = computeAlignment(intention, topTag);
+            const hours         = tagHoursInRange(sessions, intention.week_start, intention.duration_days);
+            const alignment     = computeAlignment(intention, topTag, hours);
             const categoryColor = intention.intent_category
               ? (CATEGORY_COLORS[intention.intent_category] ?? 'rgba(255,255,255,0.4)')
               : null;
@@ -161,8 +162,8 @@ export default function IntentionsPage() {
                     style={{
                       width: 32,
                       height: 4,
-                      backgroundColor: alignment === 'aligned'  ? 'rgba(82,181,108,0.70)'
-                                     : alignment === 'diverged' ? 'rgba(218,116,34,0.50)'
+                      backgroundColor: alignment.status === 'aligned'  ? 'rgba(82,181,108,0.70)'
+                                     : alignment.status === 'diverged' ? 'rgba(218,116,34,0.50)'
                                      : 'rgba(255,255,255,0.06)',
                     }}
                   />
@@ -175,16 +176,16 @@ export default function IntentionsPage() {
                       No sessions logged
                     </span>
                   )}
-                  {alignment !== 'no-data' && (
+                  {alignment.status !== 'no-data' && (
                     <span
                       className="text-[10px]"
                       style={{
-                        color: alignment === 'aligned'
+                        color: alignment.status === 'aligned'
                           ? 'rgba(82,181,108,0.65)'
                           : 'rgba(218,116,34,0.50)',
                       }}
                     >
-                      {alignment === 'aligned' ? 'Aligned' : 'Diverged'}
+                      {alignment.score !== null ? `${alignment.score}%` : (alignment.status === 'aligned' ? 'Aligned' : 'Diverged')}
                     </span>
                   )}
                 </div>

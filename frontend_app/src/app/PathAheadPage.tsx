@@ -20,6 +20,7 @@ import StatStrip from '../components/StatStrip.tsx';
 import IntentionHeroCard from '../components/IntentionHeroCard.tsx';
 import WeekIndicators from '../components/WeekIndicators.tsx';
 import FirstVisitCard from '../components/FirstVisitCard.tsx';
+import { computeACWR, computeDecay, rustiest } from '../lib/analyticsModels.ts';
 import RepRouletteFab from '../components/RepRouletteFab.tsx';
 import { toDateString, addDays, formatDuration, DAY_NAMES, INTENSITY_COLOR, SESSION_TYPE_LABELS } from '../lib/sessionUtils.ts';
 import { STATS_PARTICLES } from '../lib/particles.ts';
@@ -237,7 +238,7 @@ export default function PathAheadPage() {
     const totalMinutes = windowSessions.reduce((acc, s) => acc + s.duration, 0);
     // Top skill tag
     const tagCounts: Record<string, number> = {};
-    windowSessions.forEach(s => s.tags?.forEach(t => { tagCounts[t] = (tagCounts[t] ?? 0) + 1; }));
+    windowSessions.forEach(s => { const hrs = (s.duration ?? 0) / 60; s.tags?.forEach(t => { tagCounts[t] = (tagCounts[t] ?? 0) + hrs; }); });
     const sorted = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]);
     const topTagEntry = sorted[0] ?? null;
     const topTag      = topTagEntry?.[0] ?? null;
@@ -258,6 +259,11 @@ export default function PathAheadPage() {
     const totalMinutes = weekSessions.reduce((acc, s) => acc + s.duration, 0);
     return { count: weekSessions.length, totalMinutes };
   }, [allSessions, weekDays]);
+
+  // ── Advanced models ────────────────────────────────────────────────────
+  const acwr = useMemo(() => computeACWR(allSessions), [allSessions]);
+  const decay = useMemo(() => computeDecay(allSessions), [allSessions]);
+  const rustiestPillar = useMemo(() => rustiest(decay), [decay]);
 
   // ── Intent delete ──────────────────────────────────────────────────────
 
@@ -734,7 +740,7 @@ export default function PathAheadPage() {
         <div className="flex items-end justify-between mb-6">
           <div>
             <h2
-              className="text-2xl font-bold tracking-tight"
+              className="text-2xl font-display font-bold tracking-tight"
               style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}
             >
               The Path Ahead
@@ -796,6 +802,8 @@ export default function PathAheadPage() {
                 weekSessionCount={weekStats.count}
                 weekTotalMinutes={weekStats.totalMinutes}
                 consistentWeeks={consistentWeeks}
+                acwr={acwr}
+                rustiest={rustiestPillar}
               />
 
               {/* Intention */}
@@ -845,6 +853,8 @@ export default function PathAheadPage() {
         weekSessionCount={weekStats.count}
         weekTotalMinutes={weekStats.totalMinutes}
         consistentWeeks={consistentWeeks}
+        acwr={acwr}
+        rustiest={rustiestPillar}
         onTap={() => setTelemetryOpen(prev => !prev)}
       />
 

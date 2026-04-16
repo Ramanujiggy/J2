@@ -12,7 +12,8 @@ import type { SessionSummary, SessionsResponse, Intention } from '../types/api.t
 import PageContent from '../components/PageContent.tsx';
 import { SKILL_TAGS } from '../lib/constants.ts';
 import { addDays } from '../lib/sessionUtils.ts';
-import { type TimeWindow, WINDOW_DAYS, formatWeekShort, topTagInRange, computeAlignment } from '../lib/analyticsUtils.ts';
+import { type TimeWindow, WINDOW_DAYS, formatWeekShort, topTagInRange, computeAlignment, tagHoursInRange } from '../lib/analyticsUtils.ts';
+import { computeEntropy, computeACWR, computeDecay, rustiest } from '../lib/analyticsModels.ts';
 import { useCountUp } from '../hooks/useCountUp.ts';
 import { vibrate } from '../lib/haptics.ts';
 
@@ -37,7 +38,8 @@ function AlignmentTimeline({ intentions, allSessions, navigate }: {
   // Compute alignment for each intention
   const rows = intentions.map(intention => {
     const top       = topTagInRange(allSessions, intention.week_start, intention.duration_days);
-    const alignment = computeAlignment(intention, top);
+    const hours     = tagHoursInRange(allSessions, intention.week_start, intention.duration_days);
+    const alignment = computeAlignment(intention, top, hours);
     const headingLabel = intention.heading
       ? (SKILL_TAGS.find(s => s.value === intention.heading)?.label ?? intention.heading)
       : null;
@@ -45,8 +47,8 @@ function AlignmentTimeline({ intentions, allSessions, navigate }: {
     return { intention, top, alignment, headingLabel, endDate };
   });
 
-  const alignedCount = rows.filter(r => r.alignment === 'aligned').length;
-  const withDataCount = rows.filter(r => r.alignment !== 'no-data').length;
+  const alignedCount = rows.filter(r => r.alignment.status === 'aligned').length;
+  const withDataCount = rows.filter(r => r.alignment.status !== 'no-data').length;
   const alignPct = withDataCount > 0 ? Math.round((alignedCount / withDataCount) * 100) : 0;
 
   const visibleRows = expanded ? rows : rows.slice(0, INITIAL_SHOW);
@@ -109,8 +111,8 @@ function AlignmentTimeline({ intentions, allSessions, navigate }: {
               className="rounded-full flex-shrink-0"
               style={{
                 width: 6, height: 28,
-                backgroundColor: alignment === 'aligned'  ? 'rgba(82,181,108,0.70)'
-                               : alignment === 'diverged' ? 'rgba(218,116,34,0.50)'
+                backgroundColor: alignment.status === 'aligned'  ? 'rgba(82,181,108,0.70)'
+                               : alignment.status === 'diverged' ? 'rgba(218,116,34,0.50)'
                                : 'rgba(255,255,255,0.06)',
               }}
             />
@@ -126,15 +128,15 @@ function AlignmentTimeline({ intentions, allSessions, navigate }: {
             </div>
 
             {/* Status pill */}
-            {alignment !== 'no-data' ? (
+            {alignment.status !== 'no-data' ? (
               <span
                 className="text-xs px-2 py-0.5 rounded-full flex-shrink-0 font-medium"
                 style={{
-                  backgroundColor: alignment === 'aligned' ? 'rgba(82,181,108,0.12)' : 'rgba(218,116,34,0.12)',
-                  color: alignment === 'aligned' ? 'rgba(82,181,108,0.80)' : 'rgba(218,116,34,0.70)',
+                  backgroundColor: alignment.status === 'aligned' ? 'rgba(82,181,108,0.12)' : 'rgba(218,116,34,0.12)',
+                  color: alignment.status === 'aligned' ? 'rgba(82,181,108,0.80)' : 'rgba(218,116,34,0.70)',
                 }}
               >
-                {alignment === 'aligned' ? 'Aligned' : 'Diverged'}
+                {alignment.score !== null ? `${alignment.score}%` : (alignment.status === 'aligned' ? 'Aligned' : 'Diverged')}
               </span>
             ) : (
               <span className="text-xs italic flex-shrink-0" style={{ color: 'rgba(255,255,255,0.20)' }}>
@@ -261,26 +263,54 @@ export default function AnalyticsPage() {
 
   const hoursDelta = delta(totalHours, priorTotalHours);
 
-  // ── Dominant skill (for insight sentence) ──
-  const dominantSkill = useMemo(() => {
-    const counts: Record<string, number> = {};
+  // ── Dominant skill (hours-weighted) ──
+  const hoursMap = useMemo(() => {
+    const m: Record<string, number> = {};
     for (const s of filtered) {
-      for (const t of s.tags ?? []) { counts[t] = (counts[t] ?? 0) + 1; }
+      const hrs = (s.duration ?? 0) / 60;
+      for (const t of s.tags ?? []) { m[t] = (m[t] ?? 0) + hrs; }
     }
-    const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
-    return top ? (SKILL_TAGS.find(s => s.value === top[0])?.label ?? top[0]) : null;
+    return m;
   }, [filtered]);
+  const dominantSkill = useMemo(() => {
+    const top = Object.entries(hoursMap).sort((a, b) => b[1] - a[1])[0];
+    return top ? (SKILL_TAGS.find(s => s.value === top[0])?.label ?? top[0]) : null;
+  }, [hoursMap]);
 
-  // ── Insight sentence ──
+  // ── Advanced models ──
+  const entropy = useMemo(() => computeEntropy(hoursMap), [hoursMap]);
+  const acwr = useMemo(() => computeACWR(allSessions), [allSessions]);
+  const decay = useMemo(() => computeDecay(allSessions), [allSessions]);
+  const rustiestSkill = useMemo(() => rustiest(decay), [decay]);
+
+  // ── Insight sentence (enriched with new models) ──
   const insightSentence = useMemo(() => {
     if (filtered.length === 0) return 'No sessions in this window. Roll around, it counts.';
+
     const deltaNum = priorTotalHours != null && priorTotalHours >= 0.01
       ? Math.round(((totalHours - priorTotalHours) / priorTotalHours) * 100) : null;
+
+    // Priority 1: ACWR danger zone
+    if (acwr.zone === 'danger') return `Your training load has spiked — ratio at ${acwr.ratio?.toFixed(1)}. Consider a lighter session.`;
+
+    // Priority 2: Volume swings
     if (deltaNum != null && deltaNum >= 20) return `Volume is up ${deltaNum}% from the prior period. Momentum.`;
     if (deltaNum != null && deltaNum <= -20) return `Volume is down ${Math.abs(deltaNum)}% from the prior period. The mat is patient.`;
+
+    // Priority 3: Entropy extremes
+    if (entropy.score !== null && entropy.score < 0.25) return `You're deep in specialist mode — almost all ${dominantSkill}.`;
+    if (entropy.score !== null && entropy.score > 0.85) return `Your game is well-rounded. Every pillar is getting time.`;
+
+    // Priority 4: Rustiest skill
+    if (rustiestSkill && rustiestSkill.retention < 0.4 && rustiestSkill.daysSince < Infinity) {
+      return `${rustiestSkill.label} is getting rusty — ${rustiestSkill.daysSince} days since your last session.`;
+    }
+
+    // Priority 5: Dominant skill
     if (dominantSkill) return `Your training is gravitating toward ${dominantSkill}.`;
+
     return 'Keep showing up.';
-  }, [filtered, totalHours, priorTotalHours, dominantSkill]);
+  }, [filtered, totalHours, priorTotalHours, dominantSkill, acwr, entropy, rustiestSkill]);
 
   // Animated stat values
   const animHours    = useCountUp(Math.round(totalHours * 10) / 10);
@@ -297,7 +327,7 @@ export default function AnalyticsPage() {
     >
 
       <h2
-        className="text-2xl font-bold tracking-tight"
+        className="text-2xl font-display font-bold tracking-tight"
         style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}
       >
         Analytics

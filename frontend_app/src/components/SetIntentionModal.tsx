@@ -103,7 +103,7 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
         onClick={e => e.stopPropagation()}
       >
         <div className="p-5 space-y-4">
-          <h2 className="text-lg font-semibold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
+          <h2 className="text-lg font-display font-semibold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
             {isEdit ? 'Edit your focus' : 'Set your focus'}
           </h2>
 

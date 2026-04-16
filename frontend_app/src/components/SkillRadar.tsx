@@ -10,6 +10,7 @@ import RadarChart, { SKILL_COLORS, DEFAULT_COLORS } from './charts/RadarChart.ts
 import DonutChart from './charts/DonutChart.tsx';
 import VolumeChart, { sessionMonth } from './charts/VolumeChart.tsx';
 import WeeklyChart from './charts/WeeklyChart.tsx';
+import { computeEntropy } from '../lib/analyticsModels.ts';
 
 // ─── Segment colors ───────────────────────────────────────────────────────────
 
@@ -445,6 +446,22 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
         {rows.every(r => r.h === 0) && (
           <p className="text-xs text-white/25 italic pt-1">No tagged sessions in this window.</p>
         )}
+        {(() => {
+          const entropy = computeEntropy(hoursMap);
+          if (entropy.score === null) return null;
+          return (
+            <div className="flex items-baseline gap-2 pt-2 mt-1" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+              <span className="text-xs font-bold" style={{ color: PALE_YELLOW }}>Diversity</span>
+              <span className="text-xs" style={{ color: 'rgba(242,228,168,0.25)' }}>|</span>
+              <span className="text-sm font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
+                {entropy.score.toFixed(2)}
+              </span>
+              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.30)' }}>
+                {entropy.label}
+              </span>
+            </div>
+          );
+        })()}
       </div>
     );
   }

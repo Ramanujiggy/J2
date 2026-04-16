@@ -129,7 +129,7 @@ export default function JournalEntryPage() {
       {/* Header */}
       <div>
         <h2
-          className="text-2xl font-bold tracking-tight"
+          className="text-2xl font-display font-bold tracking-tight"
           style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}
         >
           {intention.intent_label}

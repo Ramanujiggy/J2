@@ -40,7 +40,8 @@ export function topTagInRange(
   sessions.forEach(s => {
     const d = typeof s.date === 'string' ? s.date.slice(0, 10) : new Date(s.date).toISOString().slice(0, 10);
     if (d >= start && d <= endStr) {
-      s.tags?.forEach(t => { counts[t] = (counts[t] ?? 0) + 1; });
+      const hours = (s.duration ?? 0) / 60;
+      s.tags?.forEach(t => { counts[t] = (counts[t] ?? 0) + hours; });
     }
   });
 
@@ -52,22 +53,36 @@ export function topTagInRange(
 
 // ── Alignment ────────────────────────────────────────────────────────────────
 
+export interface AlignmentResult {
+  status: 'aligned' | 'diverged' | 'no-data';
+  /** Percentage of training hours matching the intention heading (0–100). null when no data or no heading. */
+  score: number | null;
+}
+
 /**
  * Determines whether an intention's focus aligns with actual training.
- *
- * When the intention has a `heading` (pillar vertex), uses reliable
- * pillar-to-pillar matching against the top trained tag.
- * Falls back to word-overlap heuristic for legacy intentions without heading.
+ * Returns both a status label and a graduated score (% of hours on-intention).
  */
 export function computeAlignment(
   intention: Pick<Intention, 'heading' | 'intent_label'>,
   topTag: { label: string; value: string } | null,
-): 'aligned' | 'diverged' | 'no-data' {
-  if (!topTag) return 'no-data';
+  /** Hours-weighted counts per tag for the intention window (from topTagInRange aggregation). */
+  tagHours?: Record<string, number>,
+): AlignmentResult {
+  if (!topTag) return { status: 'no-data', score: null };
+
+  // Graduated score: what % of total hours matched the intention heading?
+  let score: number | null = null;
+  if (intention.heading && tagHours) {
+    const totalHours = Object.values(tagHours).reduce((a, b) => a + b, 0);
+    const matchHours = tagHours[intention.heading] ?? 0;
+    score = totalHours > 0 ? Math.round((matchHours / totalHours) * 100) : 0;
+  }
 
   // Pillar-to-pillar: reliable when heading is set
   if (intention.heading) {
-    return intention.heading === topTag.value ? 'aligned' : 'diverged';
+    const status = intention.heading === topTag.value ? 'aligned' : 'diverged';
+    return { status, score };
   }
 
   // Legacy fallback: word overlap (for old intentions without heading)
@@ -75,5 +90,30 @@ export function computeAlignment(
   const intentWords = norm(intention.intent_label).split(/\W+/).filter(w => w.length > 3);
   const focusWords  = norm(topTag.label).split(/\W+/).filter(w => w.length > 3);
   const match = intentWords.some(w => focusWords.includes(w)) || focusWords.some(w => intentWords.includes(w));
-  return match ? 'aligned' : 'diverged';
+  return { status: match ? 'aligned' : 'diverged', score: null };
+}
+
+/**
+ * Builds hours-weighted tag counts for sessions within an intention's date window.
+ * Used alongside topTagInRange to feed graduated alignment scoring.
+ */
+export function tagHoursInRange(
+  sessions: SessionSummary[],
+  weekStart: string,
+  durationDays: number,
+): Record<string, number> {
+  const start = weekStart.slice(0, 10);
+  const end = new Date(start + 'T00:00:00');
+  end.setDate(end.getDate() + durationDays - 1);
+  const endStr = end.toISOString().slice(0, 10);
+
+  const counts: Record<string, number> = {};
+  sessions.forEach(s => {
+    const d = typeof s.date === 'string' ? s.date.slice(0, 10) : new Date(s.date).toISOString().slice(0, 10);
+    if (d >= start && d <= endStr) {
+      const hours = (s.duration ?? 0) / 60;
+      s.tags?.forEach(t => { counts[t] = (counts[t] ?? 0) + hours; });
+    }
+  });
+  return counts;
 }

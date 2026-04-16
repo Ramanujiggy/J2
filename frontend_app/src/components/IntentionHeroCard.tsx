@@ -119,7 +119,7 @@ export default function IntentionHeroCard({ intention, weekSessionCount = 0, onS
                 This week's focus
               </span>
             </div>
-            <p className="text-lg font-semibold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
+            <p className="text-lg font-display font-semibold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
               {intention.heading
                 ? (SKILL_TAGS.find(s => s.value === intention.heading)?.label ?? intention.heading)
                 : intention.intent_label}

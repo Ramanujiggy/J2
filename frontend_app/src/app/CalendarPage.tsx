@@ -102,7 +102,7 @@ export default function CalendarPage() {
       {/* Header row */}
       <div className="flex items-center justify-between">
         <h2
-          className="text-2xl font-bold tracking-tight"
+          className="text-2xl font-display font-bold tracking-tight"
           style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}
         >
           {displayYear} Mat Time

@@ -55,7 +55,7 @@ export default {
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
-        display: ['DM Serif Display', 'serif'],
+        display: ['"Cormorant Garamond"', 'Georgia', 'serif'],
       },
       transitionTimingFunction: {
         heavy:  'cubic-bezier(0.16, 1, 0.3, 1)',

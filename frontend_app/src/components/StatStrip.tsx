@@ -3,6 +3,7 @@ import { SURFACE_2, SURFACE_2_BORDER, COPPER } from '../lib/theme.ts';
 import { formatDuration } from '../lib/sessionUtils.ts';
 import { EIGHT_GATES } from '../lib/constants.ts';
 import { generateBurstParticles } from '../lib/particles.ts';
+import type { ACWRResult, DecayResult } from '../lib/analyticsModels.ts';
 
 interface Props {
   streak: number;
@@ -10,6 +11,8 @@ interface Props {
   weekSessionCount: number;
   weekTotalMinutes: number;
   consistentWeeks: number;
+  acwr?: ACWRResult | null;
+  rustiest?: DecayResult | null;
   onTap?: () => void;
 }
 
@@ -20,8 +23,10 @@ function getActiveGate(consistentWeeks: number) {
 
 const BURST_PARTICLES = generateBurstParticles();
 
-export default function StatStrip({ streak, longestStreak, weekSessionCount, weekTotalMinutes, consistentWeeks, onTap }: Props) {
-  const [view, setView] = useState<'daily' | 'weekly' | 'sessions'>('daily');
+export default function StatStrip({ streak, longestStreak, weekSessionCount, weekTotalMinutes, consistentWeeks, acwr, rustiest: rustiestPillar, onTap }: Props) {
+  type View = 'daily' | 'weekly' | 'sessions' | 'readiness' | 'rustiest';
+  const views: View[] = ['daily', 'weekly', 'sessions', ...(acwr && acwr.zone !== 'no-data' ? ['readiness' as const] : []), ...(rustiestPillar ? ['rustiest' as const] : [])];
+  const [view, setView] = useState<View>('daily');
   const [fading, setFading] = useState(false);
   const flipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -34,30 +39,44 @@ export default function StatStrip({ streak, longestStreak, weekSessionCount, wee
     setFading(true);
     if (flipTimerRef.current) clearTimeout(flipTimerRef.current);
     flipTimerRef.current = setTimeout(() => {
-      setView(v => v === 'daily' ? 'weekly' : v === 'weekly' ? 'sessions' : 'daily');
+      setView(v => { const idx = views.indexOf(v); return views[(idx + 1) % views.length]; });
       setFading(false);
     }, 120);
   }, [fading]);
 
   // Per-view display values
+  const acwrColor =
+    acwr?.zone === 'sweet-spot' ? 'rgba(82,181,108,0.85)' :
+    acwr?.zone === 'caution'    ? 'rgba(218,180,60,0.85)' :
+    acwr?.zone === 'danger'     ? 'rgba(218,90,70,0.85)' :
+    acwr?.zone === 'deload'     ? 'rgba(90,175,210,0.85)' :
+    'rgba(255,255,255,0.88)';
+
   const valueColor =
-    view === 'weekly'  ? (gate ? gate.color : 'rgba(255,255,255,0.88)') :
-    view === 'daily'   ? (streak > 0 ? COPPER : 'rgba(255,255,255,0.88)') :
+    view === 'weekly'    ? (gate ? gate.color : 'rgba(255,255,255,0.88)') :
+    view === 'daily'     ? (streak > 0 ? COPPER : 'rgba(255,255,255,0.88)') :
+    view === 'readiness' ? acwrColor :
+    view === 'rustiest'  ? 'rgba(218,116,34,0.85)' :
     'rgba(255,255,255,0.88)';
 
   const cellValue =
-    view === 'daily'    ? (streak > 0 ? `${streak}d` : '—') :
-    view === 'weekly'   ? (consistentWeeks > 0 ? `${consistentWeeks}` : '—') :
+    view === 'daily'     ? (streak > 0 ? `${streak}d` : '—') :
+    view === 'weekly'    ? (consistentWeeks > 0 ? `${consistentWeeks}` : '—') :
+    view === 'readiness' ? (acwr?.ratio != null ? `${acwr.ratio.toFixed(1)}` : '—') :
+    view === 'rustiest'  ? (rustiestPillar ? `${Math.round(rustiestPillar.retention * 100)}%` : '—') :
     `${weekSessionCount}`;
 
   const cellLabel =
-    view === 'daily'    ? 'streak' :
-    view === 'weekly'   ? 'weeks of consistent mat time' :
+    view === 'daily'     ? 'streak' :
+    view === 'weekly'    ? 'weeks of consistent mat time' :
+    view === 'readiness' ? (acwr?.zone === 'sweet-spot' ? 'readiness — sweet spot' : acwr?.zone === 'danger' ? 'readiness — spike risk' : acwr?.zone === 'caution' ? 'readiness — watch it' : 'readiness — deloading') :
+    view === 'rustiest'  ? (rustiestPillar ? `${rustiestPillar.label} retention` : 'retention') :
     weekSessionCount === 1 ? 'session this week' : 'sessions this week';
 
   const cellSub =
     view === 'daily' && isPersonalBest && streak > 1 ? 'personal best' :
     view === 'daily' && longestStreak > 0            ? `best: ${longestStreak}d` :
+    view === 'rustiest' && rustiestPillar && rustiestPillar.daysSince < Infinity ? `${rustiestPillar.daysSince}d since last session` :
     null;
 
   const cellGlow = view === 'weekly' && gate ? `0 0 10px 2px ${gate.glow}` : undefined;
