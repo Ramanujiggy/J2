@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { SURFACE_2, SURFACE_2_BORDER, COPPER } from '../lib/theme.ts';
+import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, COPPER } from '../lib/theme.ts';
 import { formatDuration } from '../lib/sessionUtils.ts';
 import { EIGHT_GATES } from '../lib/constants.ts';
 import { generateBurstParticles } from '../lib/particles.ts';
@@ -87,8 +87,9 @@ export default function StatStrip({ streak, longestStreak, weekSessionCount, wee
       onClick={onTap}
       className="w-full rounded-xl flex touch-manipulation"
       style={{
-        backgroundColor: SURFACE_2,
-        border: `1px solid ${SURFACE_2_BORDER}`,
+        backgroundColor: CARD_BG,
+        border: `1px solid ${CARD_GLOW_BORDER}`,
+        boxShadow: CARD_GLOW,
         cursor: onTap ? 'pointer' : 'default',
       }}
     >

@@ -6,7 +6,7 @@ import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import SkillRadar from '../components/SkillRadar.tsx';
 import ErrorBoundary from '../components/ErrorBoundary.tsx';
-import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER, COPPER_BORDER, CARD_SHADOW, SURFACE_2, SURFACE_2_BORDER } from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER, CARD_GLOW, CARD_GLOW_BORDER, SURFACE_2, SURFACE_2_BORDER } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import type { SessionSummary, SessionsResponse, Intention } from '../types/api.ts';
 import PageContent from '../components/PageContent.tsx';
@@ -430,8 +430,8 @@ export default function AnalyticsPage() {
           className="rounded-2xl text-center animate-j2-card-enter"
           style={{
             backgroundColor: CARD_BG,
-            border: `1px solid ${COPPER_BORDER}`,
-            boxShadow: CARD_SHADOW,
+            border: `1px solid ${CARD_GLOW_BORDER}`,
+            boxShadow: CARD_GLOW,
             padding: '40px 24px',
           }}
         >

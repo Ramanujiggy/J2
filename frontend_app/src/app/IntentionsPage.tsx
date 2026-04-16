@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Pencil } from 'lucide-react';
 import { api } from '../lib/api.ts';
-import { PALE_YELLOW, GLOW_SOFT, COPPER, COPPER_BORDER, SURFACE_2, SURFACE_3 } from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, COPPER, SURFACE_2, SURFACE_3 } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import { SKILL_TAGS, CATEGORY_COLORS } from '../lib/constants.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
@@ -67,7 +67,7 @@ export default function IntentionsPage() {
         /* ── Empty state ────────────────────────────────────── */
         <div
           className="rounded-xl px-6 py-10 text-center"
-          style={{ backgroundColor: SURFACE_2, border: `1px solid ${COPPER_BORDER}` }}
+          style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.06)' }}
         >
           <p className="text-sm mb-1" style={{ color: 'rgba(255,255,255,0.40)' }}>No intentions set yet.</p>
           <p className="text-xs mb-5" style={{ color: 'rgba(255,255,255,0.22)' }}>
