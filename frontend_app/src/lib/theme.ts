@@ -99,6 +99,36 @@ export const HEATMAP_OUTSIDE_YEAR = '#0D1812' as const;
 /** Sticky calendar column-header row background — marginally lighter than page bg. */
 export const HEATMAP_HEADER_BG = '#111D16' as const;
 
+// ─── Desktop editorial tokens (Phase 1 of desktop redesign) ─────────────────
+
+/** Darker copper — hover / shadow variant of COPPER. */
+export const COPPER_DEEP = '#8E6741' as const;
+
+/** Editorial serif stack — use for large stat numbers, section titles,
+ *  and anywhere `font-family: var(--font-editorial)` appears in CSS. */
+export const FONT_EDITORIAL = '"Cormorant Garamond", Georgia, serif' as const;
+
+/** Wordmark serif stack — identical to FONT_EDITORIAL but semantically
+ *  reserved for the brand mark and page-level display titles. */
+export const FONT_WORDMARK = '"Cormorant Garamond", "Cormorant", Georgia, serif' as const;
+
+/** Session-intensity color scale. Level 0 is the "rest / empty" swatch.
+ *  Indices 1-5 map to Drill → Light → Steady → Intense → Hard roll. */
+export const INT_COLORS = {
+  0: 'rgba(255,255,255,0.06)',
+  1: '#A8CB72',
+  2: '#7AC374',
+  3: '#52B56C',
+  4: '#D4A040',
+  5: '#DA7422',
+} as const;
+
+/** Human labels for the intensity scale, aligned with INT_COLORS indices. */
+export const INT_LABELS = ['', 'Drill', 'Light', 'Steady', 'Intense', 'Hard roll'] as const;
+
+/** Subtle glow used on mid-size section headings and champagne body text. */
+export const GLOW_SUBTLE = '0 0 8px rgba(242,228,168,0.22)' as const;
+
 // ─── Form inputs ──────────────────────────────────────────────────────────────
 
 /**

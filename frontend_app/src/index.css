@@ -52,6 +52,45 @@
     --sal: env(safe-area-inset-left, 0px);
   }
 
+  /* ─── Desktop design tokens (Phase 1) ────────────────────────────────────
+     Editorial fonts, intensity scale, rail/context widths, and glow shadows
+     used by the desktop layout. These extend (do not replace) the shadcn
+     HSL tokens above — mobile styling is unaffected. */
+  :root {
+    --font-ui:        "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+    --font-wordmark:  "Cormorant Garamond", "Cormorant", Georgia, serif;
+    --font-editorial: "Cormorant Garamond", Georgia, serif;
+
+    /* Layout — desktop rail + context column widths */
+    --rail-w:    220px;
+    --context-w: 320px;
+
+    /* Surface + border ladder used by desktop cards. Named with -2/-3 suffixes
+       to avoid clashing with shadcn's --border token above. */
+    --j2-surface-2:  rgba(255,255,255,0.035);
+    --j2-surface-3:  rgba(255,255,255,0.08);
+    --j2-border-1:   rgba(255,255,255,0.05);
+    --j2-border-2:   rgba(255,255,255,0.10);
+    --j2-border-3:   rgba(255,255,255,0.16);
+
+    /* Copper variants */
+    --copper:        #C4915F;
+    --copper-deep:   #8E6741;
+    --champagne:     #F2E4A8;
+
+    /* Intensity scale — 5 levels, used by session density + calendar cells */
+    --int-1: #A8CB72;   /* Drill */
+    --int-2: #7AC374;   /* Light */
+    --int-3: #52B56C;   /* Steady */
+    --int-4: #D4A040;   /* Intense */
+    --int-5: #DA7422;   /* Hard roll */
+
+    /* Glow shadows — applied via text-shadow on champagne headings */
+    --glow-title:  0 0 14px rgba(242,228,168,0.45), 0 0 32px rgba(242,228,168,0.20);
+    --glow-soft:   0 0 14px rgba(242,228,168,0.30), 0 0 30px rgba(242,228,168,0.14);
+    --glow-subtle: 0 0 8px  rgba(242,228,168,0.22);
+  }
+
   html, body {
     @apply bg-brand-dark;
     overflow-x: hidden;
@@ -150,5 +189,79 @@
 .j2-glass {
   backdrop-filter: blur(12px) saturate(1.2);
   background: rgba(21, 46, 34, 0.85);
+}
+
+/* ─── Desktop editorial utilities (Phase 1) ───────────────────────────────
+   Opt-in classes used only by desktop (≥1024px) layouts. Nothing in this
+   block is applied globally — mobile rendering is unchanged until a
+   component explicitly adopts one of these classes. */
+
+.j2-wordmark {
+  font-family: var(--font-wordmark);
+  font-weight: 600;
+  color: var(--champagne);
+  text-shadow: var(--glow-title);
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.j2-serif-display {
+  font-family: var(--font-editorial);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--champagne);
+}
+
+.j2-serif-italic {
+  font-family: var(--font-editorial);
+  font-style: italic;
+  font-weight: 500;
+  color: rgba(255,255,255,0.60);
+}
+
+.j2-heading-glow {
+  color: var(--champagne);
+  text-shadow: var(--glow-soft);
+}
+
+.j2-label-micro {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.40);
+}
+
+.j2-label-copper {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--copper);
+}
+
+/* Seigaiha (wave) ambient backdrop. Fixed, pointer-events:none, below
+   content. Drifts slowly. Intended as a <div class="j2-seigaiha-bg" />
+   sibling of page content on desktop. */
+.j2-seigaiha-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='40' viewBox='0 0 80 40'><g fill='none' stroke='%23C4915F' stroke-width='1' opacity='0.22'><circle cx='0' cy='40' r='36'/><circle cx='0' cy='40' r='26'/><circle cx='0' cy='40' r='16'/><circle cx='0' cy='40' r='6'/><circle cx='40' cy='40' r='36'/><circle cx='40' cy='40' r='26'/><circle cx='40' cy='40' r='16'/><circle cx='40' cy='40' r='6'/><circle cx='80' cy='40' r='36'/><circle cx='80' cy='40' r='26'/><circle cx='80' cy='40' r='16'/><circle cx='80' cy='40' r='6'/><circle cx='20' cy='20' r='36'/><circle cx='20' cy='20' r='26'/><circle cx='20' cy='20' r='16'/><circle cx='20' cy='20' r='6'/><circle cx='60' cy='20' r='36'/><circle cx='60' cy='20' r='26'/><circle cx='60' cy='20' r='16'/><circle cx='60' cy='20' r='6'/></g></svg>");
+  background-size: 80px 40px;
+  opacity: 0.28;
+  mask-image: radial-gradient(ellipse at top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.15) 60%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse at top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.15) 60%, transparent 100%);
+  animation: j2-seigaiha-drift 18s linear infinite;
+}
+
+@keyframes j2-seigaiha-drift {
+  0%   { background-position: 0 0; }
+  100% { background-position: 80px 40px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .j2-seigaiha-bg { animation: none !important; }
 }
 

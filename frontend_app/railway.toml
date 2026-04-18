@@ -1,7 +1,8 @@
 [build]
-# --include=dev forces devDependencies (vite, typescript, plugins) to install
-# even when Railway sets NODE_ENV=production during build.
-buildCommand = "npm install --include=dev && npm run build"
+# `npm ci` wipes node_modules for a clean install (bypasses Railway's cached
+# modules). `--include=dev` overrides NODE_ENV=production default to ensure
+# vite, typescript, and build plugins are installed.
+buildCommand = "npm ci --include=dev && npm run build"
 
 [deploy]
 startCommand = "npm run serve"

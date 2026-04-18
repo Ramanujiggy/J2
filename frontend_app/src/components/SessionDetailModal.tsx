@@ -362,6 +362,39 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                         </span>
                       )}
                     </div>
+
+                    {/* Distribution chips — only shown when session has multi-pillar IDW data */}
+                    {(() => {
+                      const dist = session.pillar_distribution;
+                      if (!dist) return null;
+                      const entries = Object.entries(dist).filter(([, v]) => typeof v === 'number' && v > 0.05);
+                      if (entries.length < 2) return null; // skip pure-snap sessions
+                      const sorted = entries.sort((a, b) => (b[1] as number) - (a[1] as number));
+                      return (
+                        <div className="mt-3 pt-3 flex flex-wrap items-center gap-1.5" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                          <span className="text-[10px] uppercase tracking-wider mr-1" style={{ color: 'rgba(255,255,255,0.30)' }}>
+                            Distribution
+                          </span>
+                          {sorted.map(([pillar, weight]) => {
+                            const label = SKILL_TAGS.find(s => s.value === pillar)?.label ?? pillar;
+                            const pct = Math.round((weight as number) * 100);
+                            const isPrimary = pillar === session.heading;
+                            return (
+                              <span
+                                key={pillar}
+                                className="px-2 py-0.5 rounded-md text-[10px] font-medium"
+                                style={{
+                                  backgroundColor: isPrimary ? 'rgba(196,145,95,0.20)' : 'rgba(255,255,255,0.06)',
+                                  color: isPrimary ? COPPER : 'rgba(255,255,255,0.45)',
+                                }}
+                              >
+                                {label} {pct}%
+                              </span>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
 
