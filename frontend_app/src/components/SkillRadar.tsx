@@ -3,7 +3,7 @@ import { Info, Triangle, Target, BarChart2, Layers, BookOpen, Activity, type Luc
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { SKILL_TAGS, MONTH_NAMES } from '../lib/constants.ts';
 import { CARD_BG, COPPER, CARD_GLOW, CARD_GLOW_BORDER, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3_BORDER } from '../lib/theme.ts';
-import { WINDOW_DAYS, type TimeWindow } from '../lib/analyticsUtils.ts';
+import { WINDOW_DAYS, type TimeWindow, sessionPillarHours } from '../lib/analyticsUtils.ts';
 import type { SessionSummary } from './TrainingHeatmap.tsx';
 import TimeRangeBar from './TimeRangeBar.tsx';
 import RadarChart, { SKILL_COLORS, DEFAULT_COLORS } from './charts/RadarChart.tsx';
@@ -145,10 +145,14 @@ export default function SkillRadar({ sessions, timeWindow, onWindowChange, custo
   }, [sessions, timeWindow]);
 
   // ── Prism data ──
+  // Uses pillar_distribution when present (proportional/zero-sum); falls back to
+  // even-split across tags for legacy sessions. Sum of hoursMap values now equals
+  // total mat hours, so rows can be displayed as honest percentages of total volume.
   const hoursMap: Record<string, number> = Object.fromEntries(SKILL_TAGS.map(({ value }) => [value, 0]));
   for (const s of filtered) {
-    for (const tag of s.tags ?? []) {
-      if (tag in hoursMap) hoursMap[tag] += s.duration / 60;
+    const ph = sessionPillarHours(s);
+    for (const [k, v] of Object.entries(ph)) {
+      if (k in hoursMap) hoursMap[k] += v;
     }
   }
   const hours            = SKILL_TAGS.map(({ value }) => hoursMap[value]);

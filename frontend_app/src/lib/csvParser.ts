@@ -182,7 +182,7 @@ export function parseCSV(
           if (key === 'sub_skill_tag') { const v = val.trim(); if (v) subSkillTagVal = v; }
           if (key === 'resonance') { const n = parseInt(val.trim()); if (!isNaN(n) && n >= 1 && n <= 10) resonanceVal = n; }
           if (key === 'tags') {
-            const validTagValues = new Set(SKILL_TAGS.map(t => t.value));
+            const validTagValues: Set<string> = new Set(SKILL_TAGS.map(t => t.value));
             tagsVal = val.split(/[;,|]/).map((t: string) => t.trim().toLowerCase()).filter((t: string) => validTagValues.has(t)) as SkillTagValue[];
           }
         }

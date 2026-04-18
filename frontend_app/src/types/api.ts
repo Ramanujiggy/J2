@@ -1,5 +1,10 @@
 // ── Domain types ──────────────────────────────────────────────────────────
 
+export type Pillar = 'standup' | 'passing' | 'pins' | 'submissions' | 'guard';
+
+/** Map of pillar → weight in [0, 1]. Weights sum to ~1.0 (server renormalizes). */
+export type PillarDistribution = Partial<Record<Pillar, number>>;
+
 export interface SessionSummary {
   id: string;
   date: string;
@@ -16,9 +21,8 @@ export interface SessionSummary {
   script_source?: 'directed' | 'organic' | null;
   resonance?: number | null;
   user_tag_ids?: string[] | null;
+  pillar_distribution?: PillarDistribution | null;
 }
-
-export type Pillar = 'standup' | 'passing' | 'pins' | 'submissions' | 'guard';
 
 export interface UserTag {
   id: string;

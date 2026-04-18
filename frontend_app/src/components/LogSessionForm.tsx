@@ -73,9 +73,9 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
   // resonance initialized to max when pre-filled from roulette (dot sits at the vertex)
   const [scriptSource, setScriptSource] = useState<ScriptSource | null>(null);
   const [resonance,    setResonance]    = useState<number | null>(defaultHeading ? 10 : null);
-  // Phase 1: weights computed and displayed by PillarPrism but not sent to API yet (Phase 2)
-  const [_pillarWeights, setPillarWeights] = useState<Record<string, number> | null>(null);
-  void _pillarWeights; // suppress unused warning — will be sent to API in Phase 2
+  // IDW weight distribution from PillarPrism — sent to API as pillar_distribution.
+  // Falls back to { heading: 1.0 } server-side if absent (e.g. snap-only intentions).
+  const [pillarWeights, setPillarWeights] = useState<Record<string, number> | null>(null);
 
   // Current intention hint
   const [currentIntention, setCurrentIntention] = useState<Intention | null>(null);
@@ -141,6 +141,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
         script_source: scriptSource  ?? undefined,
         resonance:     resonance     ?? undefined,
         user_tag_ids:  userTagIds.length > 0 ? userTagIds : undefined,
+        pillar_distribution: pillarWeights ?? undefined,
       };
 
       const data = await api.post<LogSessionResponse>('/api/sessions', {
@@ -157,6 +158,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
         script_source: sessionSnapshot.script_source,
         resonance:    sessionSnapshot.resonance,
         user_tag_ids: sessionSnapshot.user_tag_ids,
+        pillar_distribution: sessionSnapshot.pillar_distribution,
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

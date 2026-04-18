@@ -1,5 +1,7 @@
 [build]
-buildCommand = "npm install && npm run build"
+# --include=dev forces devDependencies (vite, typescript, plugins) to install
+# even when Railway sets NODE_ENV=production during build.
+buildCommand = "npm install --include=dev && npm run build"
 
 [deploy]
 startCommand = "npm run serve"

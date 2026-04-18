@@ -7,6 +7,7 @@
 
 import { SKILL_TAGS } from './constants.ts';
 import type { SessionSummary } from '../types/api.ts';
+import { sessionPillarHours } from './analyticsUtils.ts';
 
 // ── 1. Skill Entropy (Shannon Diversity Index) ───────────────────────────────
 //
@@ -74,13 +75,16 @@ export function computeDecay(
   const todayMs = today.getTime();
 
   return SKILL_TAGS.map(tag => {
-    // Find total hours and most recent session date for this tag
+    // Total hours = proportional contribution from every session that touched this pillar.
+    // Last date = most recent session with non-zero contribution to this pillar.
     let totalHours = 0;
     let lastDateMs = 0;
 
     for (const s of sessions) {
-      if (!s.tags?.includes(tag.value)) continue;
-      totalHours += (s.duration ?? 0) / 60;
+      const ph = sessionPillarHours(s);
+      const contribution = ph[tag.value];
+      if (!contribution || contribution <= 0) continue;
+      totalHours += contribution;
       const dateMs = new Date(
         (typeof s.date === 'string' ? s.date.slice(0, 10) : new Date(s.date).toISOString().slice(0, 10)) + 'T00:00:00'
       ).getTime();
@@ -171,4 +175,81 @@ export function computeACWR(
   else zone = 'danger';
 
   return { acute: Math.round(acuteLoad), chronic: Math.round(chronicWeekly), ratio, zone };
+}
+
+// ── 4. Per-Pillar ACWR ──────────────────────────────────────────────────────
+//
+// Same ACWR formula, but the load is partitioned across pillars using each
+// session's pillar_distribution (or even-split fallback).
+//
+//   per_pillar_load = duration × intensity × weight_pillar
+//
+// Surfaces injury risk that the global ACWR misses — e.g. total mat hours are
+// stable but standup volume tripled for a competition push, suggesting knee
+// strain risk even though overall load looks fine.
+
+export interface PillarACWRResult {
+  pillar: string;
+  label: string;
+  acute: number;
+  chronic: number;
+  ratio: number | null;
+  zone: ACWRResult['zone'];
+}
+
+export function computeACWRByPillar(
+  sessions: SessionSummary[],
+  today: Date = new Date(),
+): PillarACWRResult[] {
+  const todayMs = today.getTime();
+  const msPerDay = 86_400_000;
+  const acute7 = todayMs - 7 * msPerDay;
+  const chronic28 = todayMs - 28 * msPerDay;
+
+  // Initialize per-pillar buckets
+  const acute: Record<string, number> = {};
+  const chronic: Record<string, number> = {};
+  for (const tag of SKILL_TAGS) { acute[tag.value] = 0; chronic[tag.value] = 0; }
+
+  for (const s of sessions) {
+    const dateMs = new Date(
+      (typeof s.date === 'string' ? s.date.slice(0, 10) : new Date(s.date).toISOString().slice(0, 10)) + 'T00:00:00'
+    ).getTime();
+    if (dateMs > todayMs) continue;
+
+    const intensity = s.intensity ?? 3;
+    const ph = sessionPillarHours(s); // pillar → hours
+    const inAcute = dateMs >= acute7;
+    const inChronic = dateMs >= chronic28;
+    if (!inChronic) continue;
+
+    for (const [pillar, hours] of Object.entries(ph)) {
+      if (!(pillar in acute)) continue;
+      const load = hours * 60 * intensity; // back to minutes × intensity for parity with global ACWR
+      if (inAcute) acute[pillar] += load;
+      chronic[pillar] += load;
+    }
+  }
+
+  return SKILL_TAGS.map(tag => {
+    const a = acute[tag.value] ?? 0;
+    const cWeekly = (chronic[tag.value] ?? 0) / 4;
+    if (cWeekly < 1) {
+      return { pillar: tag.value, label: tag.label, acute: Math.round(a), chronic: Math.round(cWeekly), ratio: null, zone: 'no-data' as const };
+    }
+    const ratio = Math.round((a / cWeekly) * 100) / 100;
+    let zone: ACWRResult['zone'];
+    if (ratio < 0.8) zone = 'deload';
+    else if (ratio <= 1.3) zone = 'sweet-spot';
+    else if (ratio <= 1.5) zone = 'caution';
+    else zone = 'danger';
+    return { pillar: tag.value, label: tag.label, acute: Math.round(a), chronic: Math.round(cWeekly), ratio, zone };
+  });
+}
+
+/** Returns the pillar with the highest danger ratio, or null if all are no-data/safe. */
+export function spikiestPillar(perPillar: PillarACWRResult[]): PillarACWRResult | null {
+  const candidates = perPillar.filter(p => p.ratio != null && (p.zone === 'caution' || p.zone === 'danger'));
+  if (candidates.length === 0) return null;
+  return candidates.reduce((max, p) => (p.ratio ?? 0) > (max.ratio ?? 0) ? p : max);
 }

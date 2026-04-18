@@ -20,7 +20,8 @@ import StatStrip from '../components/StatStrip.tsx';
 import IntentionHeroCard from '../components/IntentionHeroCard.tsx';
 import WeekIndicators from '../components/WeekIndicators.tsx';
 import FirstVisitCard from '../components/FirstVisitCard.tsx';
-import { computeACWR, computeDecay, rustiest } from '../lib/analyticsModels.ts';
+import { computeACWR, computeDecay, rustiest, computeACWRByPillar, spikiestPillar } from '../lib/analyticsModels.ts';
+import { sessionPillarHours } from '../lib/analyticsUtils.ts';
 import RepRouletteFab from '../components/RepRouletteFab.tsx';
 import { toDateString, addDays, formatDuration, DAY_NAMES, INTENSITY_COLOR, SESSION_TYPE_LABELS } from '../lib/sessionUtils.ts';
 import { STATS_PARTICLES } from '../lib/particles.ts';
@@ -248,7 +249,10 @@ export default function PathAheadPage() {
     const totalMinutes = windowSessions.reduce((acc, s) => acc + s.duration, 0);
     // Top skill tag
     const tagCounts: Record<string, number> = {};
-    windowSessions.forEach(s => { const hrs = (s.duration ?? 0) / 60; s.tags?.forEach(t => { tagCounts[t] = (tagCounts[t] ?? 0) + hrs; }); });
+    windowSessions.forEach(s => {
+      const ph = sessionPillarHours(s);
+      for (const [k, v] of Object.entries(ph)) tagCounts[k] = (tagCounts[k] ?? 0) + v;
+    });
     const sorted = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]);
     const topTagEntry = sorted[0] ?? null;
     const topTag      = topTagEntry?.[0] ?? null;
@@ -274,6 +278,8 @@ export default function PathAheadPage() {
   const acwr = useMemo(() => computeACWR(allSessions), [allSessions]);
   const decay = useMemo(() => computeDecay(allSessions), [allSessions]);
   const rustiestPillar = useMemo(() => rustiest(decay), [decay]);
+  const acwrByPillar = useMemo(() => computeACWRByPillar(allSessions), [allSessions]);
+  const spikiest = useMemo(() => spikiestPillar(acwrByPillar), [acwrByPillar]);
 
   // ── Intent delete ──────────────────────────────────────────────────────
 
@@ -865,6 +871,7 @@ export default function PathAheadPage() {
                 consistentWeeks={consistentWeeks}
                 acwr={acwr}
                 rustiest={rustiestPillar}
+                spikiest={spikiest}
               />
 
               {/* Intention */}
@@ -919,6 +926,7 @@ export default function PathAheadPage() {
         consistentWeeks={consistentWeeks}
         acwr={acwr}
         rustiest={rustiestPillar}
+        spikiest={spikiest}
         onTap={() => setTelemetryOpen(prev => !prev)}
       />
 

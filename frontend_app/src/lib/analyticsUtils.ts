@@ -25,7 +25,45 @@ export function formatWeekLong(weekStart: string): string {
 
 // ── Training telemetry ───────────────────────────────────────────────────────
 
-/** Returns the most-trained skill tag and its count within an intention's date window. */
+/**
+ * Returns the per-pillar HOURS contribution of a single session, using:
+ *   1. `pillar_distribution` if present — proportional split (zero-sum, accurate)
+ *   2. else even split across `tags` — legacy fallback
+ *   3. else `{}` — session contributes nothing to pillar aggregates
+ *
+ * Sum of returned values always equals the session's total hours.
+ */
+export function sessionPillarHours(s: SessionSummary): Record<string, number> {
+  const totalHours = (s.duration ?? 0) / 60;
+  if (totalHours <= 0) return {};
+
+  // Preferred: persisted distribution (server renormalized; sums to ~1)
+  const dist = s.pillar_distribution;
+  if (dist && typeof dist === 'object') {
+    const out: Record<string, number> = {};
+    let sum = 0;
+    for (const [k, v] of Object.entries(dist)) {
+      const n = typeof v === 'number' ? v : Number(v);
+      if (Number.isFinite(n) && n > 0) { out[k] = n; sum += n; }
+    }
+    if (sum > 0) {
+      // Scale to actual hours (and re-normalize against drift defensively)
+      const scale = totalHours / sum;
+      for (const k of Object.keys(out)) out[k] = out[k]! * scale;
+      return out;
+    }
+  }
+
+  // Legacy fallback: even split across tags
+  const tags = s.tags?.filter(t => !!t) ?? [];
+  if (tags.length === 0) return {};
+  const per = totalHours / tags.length;
+  const out: Record<string, number> = {};
+  for (const t of tags) out[t] = (out[t] ?? 0) + per;
+  return out;
+}
+
+/** Returns the most-trained skill tag (by proportional hours) within an intention's date window. */
 export function topTagInRange(
   sessions: SessionSummary[],
   weekStart: string,
@@ -39,10 +77,9 @@ export function topTagInRange(
   const counts: Record<string, number> = {};
   sessions.forEach(s => {
     const d = typeof s.date === 'string' ? s.date.slice(0, 10) : new Date(s.date).toISOString().slice(0, 10);
-    if (d >= start && d <= endStr) {
-      const hours = (s.duration ?? 0) / 60;
-      s.tags?.forEach(t => { counts[t] = (counts[t] ?? 0) + hours; });
-    }
+    if (d < start || d > endStr) return;
+    const ph = sessionPillarHours(s);
+    for (const [k, v] of Object.entries(ph)) counts[k] = (counts[k] ?? 0) + v;
   });
 
   const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
@@ -94,8 +131,9 @@ export function computeAlignment(
 }
 
 /**
- * Builds hours-weighted tag counts for sessions within an intention's date window.
- * Used alongside topTagInRange to feed graduated alignment scoring.
+ * Builds proportional pillar hours for sessions within an intention's date window.
+ * Uses pillar_distribution when present; falls back to even-split across tags.
+ * Sum equals total hours trained in the window (zero-sum).
  */
 export function tagHoursInRange(
   sessions: SessionSummary[],
@@ -110,10 +148,9 @@ export function tagHoursInRange(
   const counts: Record<string, number> = {};
   sessions.forEach(s => {
     const d = typeof s.date === 'string' ? s.date.slice(0, 10) : new Date(s.date).toISOString().slice(0, 10);
-    if (d >= start && d <= endStr) {
-      const hours = (s.duration ?? 0) / 60;
-      s.tags?.forEach(t => { counts[t] = (counts[t] ?? 0) + hours; });
-    }
+    if (d < start || d > endStr) return;
+    const ph = sessionPillarHours(s);
+    for (const [k, v] of Object.entries(ph)) counts[k] = (counts[k] ?? 0) + v;
   });
   return counts;
 }

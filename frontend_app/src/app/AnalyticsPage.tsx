@@ -12,8 +12,8 @@ import type { SessionSummary, SessionsResponse, Intention } from '../types/api.t
 import PageContent from '../components/PageContent.tsx';
 import { SKILL_TAGS } from '../lib/constants.ts';
 import { addDays } from '../lib/sessionUtils.ts';
-import { type TimeWindow, WINDOW_DAYS, formatWeekShort, topTagInRange, computeAlignment, tagHoursInRange } from '../lib/analyticsUtils.ts';
-import { computeEntropy, computeACWR, computeDecay, rustiest } from '../lib/analyticsModels.ts';
+import { type TimeWindow, WINDOW_DAYS, formatWeekShort, topTagInRange, computeAlignment, tagHoursInRange, sessionPillarHours } from '../lib/analyticsUtils.ts';
+import { computeEntropy, computeACWR, computeDecay, rustiest, computeACWRByPillar, spikiestPillar } from '../lib/analyticsModels.ts';
 import { useCountUp } from '../hooks/useCountUp.ts';
 import { vibrate } from '../lib/haptics.ts';
 
@@ -101,7 +101,7 @@ function AlignmentTimeline({ intentions, allSessions, navigate }: {
         className="rounded-xl overflow-hidden"
         style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}
       >
-        {visibleRows.map(({ intention, top, alignment, headingLabel, endDate }, i) => (
+        {visibleRows.map(({ intention, alignment, headingLabel, endDate }, i) => (
           <button
             key={intention.id}
             onClick={() => { vibrate(8); navigate(`/intentions/${intention.id}/journal`); }}
@@ -269,8 +269,8 @@ export default function AnalyticsPage() {
   const hoursMap = useMemo(() => {
     const m: Record<string, number> = {};
     for (const s of filtered) {
-      const hrs = (s.duration ?? 0) / 60;
-      for (const t of s.tags ?? []) { m[t] = (m[t] ?? 0) + hrs; }
+      const ph = sessionPillarHours(s);
+      for (const [k, v] of Object.entries(ph)) m[k] = (m[k] ?? 0) + v;
     }
     return m;
   }, [filtered]);
@@ -284,6 +284,8 @@ export default function AnalyticsPage() {
   const acwr = useMemo(() => computeACWR(allSessions), [allSessions]);
   const decay = useMemo(() => computeDecay(allSessions), [allSessions]);
   const rustiestSkill = useMemo(() => rustiest(decay), [decay]);
+  const acwrByPillar = useMemo(() => computeACWRByPillar(allSessions), [allSessions]);
+  const spikiest = useMemo(() => spikiestPillar(acwrByPillar), [acwrByPillar]);
 
   // ── Insight sentence (enriched with new models) ──
   const insightSentence = useMemo(() => {
@@ -291,6 +293,11 @@ export default function AnalyticsPage() {
 
     const deltaNum = priorTotalHours != null && priorTotalHours >= 0.01
       ? Math.round(((totalHours - priorTotalHours) / priorTotalHours) * 100) : null;
+
+    // Priority 0: Per-pillar spike (more actionable than global — points to specific injury risk)
+    if (spikiest && spikiest.zone === 'danger' && spikiest.ratio != null) {
+      return `${spikiest.label} load is spiking (${spikiest.ratio.toFixed(1)}× your baseline). Mind your joints.`;
+    }
 
     // Priority 1: ACWR danger zone
     if (acwr.zone === 'danger') return `Your training load has spiked — ratio at ${acwr.ratio?.toFixed(1)}. Consider a lighter session.`;
@@ -312,7 +319,7 @@ export default function AnalyticsPage() {
     if (dominantSkill) return `Your training is gravitating toward ${dominantSkill}.`;
 
     return 'Keep showing up.';
-  }, [filtered, totalHours, priorTotalHours, dominantSkill, acwr, entropy, rustiestSkill]);
+  }, [filtered, totalHours, priorTotalHours, dominantSkill, acwr, entropy, rustiestSkill, spikiest]);
 
   // Animated stat values
   const animHours    = useCountUp(Math.round(totalHours * 10) / 10);

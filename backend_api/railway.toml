@@ -1,5 +1,8 @@
 [build]
-buildCommand = "npm install && npm run build"
+# --include=dev forces devDependencies (typescript, @types/*, etc.) to install
+# even when Railway sets NODE_ENV=production during build. The runtime start
+# command doesn't need dev deps since it just runs compiled dist/ output.
+buildCommand = "npm install --include=dev && npm run build"
 
 [deploy]
 startCommand = "npm run start"

@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { query } from '../config/db.js';
-import { createSession, getSessionsByUser, searchSessions, updateSession as updateSessionModel, deleteSession as deleteSessionModel, bulkInsertSessions, type SessionFilter, type BulkSessionInput } from '../models/sessionModel.js';
+import { createSession, getSessionsByUser, searchSessions, updateSession as updateSessionModel, deleteSession as deleteSessionModel, bulkInsertSessions, type SessionFilter, type BulkSessionInput, type PillarDistribution } from '../models/sessionModel.js';
 import { getUserTagsByIds } from '../models/userTagModel.js';
 
 const VALID_TAGS        = new Set(['standup', 'passing', 'pins', 'submissions', 'guard']);
@@ -33,6 +33,36 @@ async function sanitizeUserTagIds(userId: string, raw: unknown): Promise<string[
     return deduped.filter(id => ownedSet.has(id));
 }
 
+/**
+ * Sanitize a pillar_distribution input from the client:
+ * - must be a plain object
+ * - keys must be valid pillars (unknown keys dropped)
+ * - values must be finite numbers in [0, 1] (others dropped)
+ * - if any kept entries, weights are renormalized so they sum to exactly 1.0
+ *   (handles client-side floating-point drift cleanly)
+ *
+ * Returns null if input is missing/invalid/empty after filtering.
+ */
+function sanitizePillarDistribution(raw: unknown): PillarDistribution | null {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+    const cleaned: Record<string, number> = {};
+    let sum = 0;
+    for (const [key, val] of Object.entries(raw as Record<string, unknown>)) {
+        if (!VALID_TAGS.has(key)) continue;
+        const n = Number(val);
+        if (!Number.isFinite(n) || n < 0 || n > 1) continue;
+        if (n === 0) continue; // skip zero-weight pillars to keep the JSON minimal
+        cleaned[key] = n;
+        sum += n;
+    }
+    if (sum <= 0) return null;
+    // Renormalize so weights sum to exactly 1.0 — fixes float drift from client
+    for (const k of Object.keys(cleaned)) {
+        cleaned[k] = Math.round((cleaned[k]! / sum) * 10000) / 10000;
+    }
+    return cleaned as PillarDistribution;
+}
+
 export const logSession = async (req: Request, res: Response): Promise<void> => {
     try {
         const userId = req.user?.id;
@@ -42,7 +72,7 @@ export const logSession = async (req: Request, res: Response): Promise<void> => 
         }
 
         const { date, duration, notes, gi_nogi, intensity, session_type, tags,
-                heading, polarity, sub_skill_tag, script_source, resonance, user_tag_ids } = req.body;
+                heading, polarity, sub_skill_tag, script_source, resonance, user_tag_ids, pillar_distribution } = req.body;
 
         if (!date || duration === undefined || !gi_nogi || intensity === undefined || !session_type) {
             res.status(400).json({ message: 'Date, duration, gi/no-gi, intensity, and session type are required.' });
@@ -111,10 +141,14 @@ export const logSession = async (req: Request, res: Response): Promise<void> => 
         // Sanitize user_tag_ids: validate UUID format, deduplicate, verify ownership
         const userTagIds = await sanitizeUserTagIds(userId, user_tag_ids);
 
+        // Sanitize pillar_distribution; fall back to { heading: 1.0 } if not supplied
+        let dist = sanitizePillarDistribution(pillar_distribution);
+        if (!dist && heading) dist = { [heading as 'guard']: 1.0 } as PillarDistribution;
+
         const session = await createSession(
             userId, date, durationNum, notes ?? '', gi_nogi, intensityNum, session_type, finalTags,
             heading ?? null, polarity ?? null, sub_skill_tag ?? null, script_source ?? null, resonanceNum,
-            userTagIds,
+            userTagIds, dist,
         );
         res.status(201).json({ message: 'Session logged.', session, session_count: session.session_count });
     } catch (err) {
@@ -353,7 +387,7 @@ export const updateSession = async (req: Request, res: Response): Promise<void> 
 
         const { id } = req.params;
         const { duration, gi_nogi, intensity, session_type, notes, tags,
-                heading, polarity, sub_skill_tag, script_source, resonance, user_tag_ids } = req.body;
+                heading, polarity, sub_skill_tag, script_source, resonance, user_tag_ids, pillar_distribution } = req.body;
 
         if (duration === undefined || !gi_nogi || intensity === undefined || !session_type) {
             res.status(400).json({ message: 'Duration, gi/no-gi, intensity, and session type are required.' });
@@ -410,12 +444,15 @@ export const updateSession = async (req: Request, res: Response): Promise<void> 
 
         const userTagIds = await sanitizeUserTagIds(userId, user_tag_ids);
 
+        let dist = sanitizePillarDistribution(pillar_distribution);
+        if (!dist && heading) dist = { [heading as 'guard']: 1.0 } as PillarDistribution;
+
         const session = await updateSessionModel(
             id as string, userId,
             durationNum, gi_nogi, intensityNum, session_type, notes ?? '',
             finalTags,
             heading ?? null, polarity ?? null, sub_skill_tag ?? null, script_source ?? null, resonanceNum,
-            userTagIds,
+            userTagIds, dist,
         );
 
         if (!session) {

@@ -35,15 +35,6 @@ function AnalyticsIcon({ active }: { active: boolean }) {
     </svg>
   );
 }
-function IntentionsIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.7} strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="9" />
-      <circle cx="12" cy="12" r="3" />
-      <path d="M12 3v2M12 19v2M3 12h2M19 12h2" />
-    </svg>
-  );
-}
 function ProfileIcon({ active }: { active: boolean }) {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.7} strokeLinecap="round" strokeLinejoin="round">
@@ -53,12 +44,13 @@ function ProfileIcon({ active }: { active: boolean }) {
   );
 }
 
+// Bottom nav: 4 real tabs + center + FAB = 5 slots (iOS convention).
+// Intentions data now lives as a section inside Analytics.
 const ALL_TABS = [
   { path: '/home',        label: 'Home',       Icon: HomeIcon,       intentionsGated: false },
-  { path: '/calendar',   label: 'Calendar',   Icon: CalendarIcon,   intentionsGated: false },
-  { path: '/analytics',  label: 'Analytics',  Icon: AnalyticsIcon,  intentionsGated: false },
-  { path: '/intentions', label: 'Intentions', Icon: IntentionsIcon, intentionsGated: true  },
-  { path: '/profile',    label: 'Profile',    Icon: ProfileIcon,    intentionsGated: false },
+  { path: '/calendar',    label: 'Calendar',   Icon: CalendarIcon,   intentionsGated: false },
+  { path: '/analytics',   label: 'Analytics',  Icon: AnalyticsIcon,  intentionsGated: false },
+  { path: '/profile',     label: 'Profile',    Icon: ProfileIcon,    intentionsGated: false },
 ] as const;
 
 function beltThumbGradient(beltColor: string, patchColor: string, stripes: number): string {
