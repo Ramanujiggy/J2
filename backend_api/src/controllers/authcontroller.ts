@@ -53,6 +53,9 @@ export const register = async (req: Request, res: Response) => {
 
     } catch (error){
         console.error("❌ Error during user registration:", error);
+        if (error instanceof Error && error.message.includes('unique')) {
+            return res.status(409).json({ message: 'User already exists' });
+        }
         res.status(500).json({ message: 'Server error' });
     }
 };
