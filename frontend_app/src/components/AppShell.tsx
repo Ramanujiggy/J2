@@ -274,22 +274,30 @@ export default function AppShell({ children }: Props) {
           boxShadow: '0 -8px 24px -12px rgba(0,0,0,0.5)',
         }}
       >
-        {/* Sliding top-bar indicator (only over nav tabs, excluding FAB slot) */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: `${(activeIdx / (TABS.length + 1)) * 100 + 50 / (TABS.length + 1) - 2}%`,
-            width: '4%',
-            minWidth: 28,
-            height: 2,
-            borderRadius: 1,
-            backgroundColor: PALE_YELLOW,
-            boxShadow: '0 0 8px rgba(242,228,168,0.5)',
-            transition: 'left 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
-            pointerEvents: 'none',
-          }}
-        />
+        {/* Sliding top-bar indicator (visual index accounts for the inserted FAB slot) */}
+        {(() => {
+          const midIdx = Math.floor(TABS.length / 2);
+          // If activeTab is at/after the midpoint, its visual slot shifts by 1 (FAB takes midIdx)
+          const visualIdx = activeIdx < midIdx ? activeIdx : activeIdx + 1;
+          const totalSlots = TABS.length + 1;
+          return (
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: `${(visualIdx / totalSlots) * 100 + 50 / totalSlots - 2}%`,
+                width: '4%',
+                minWidth: 28,
+                height: 2,
+                borderRadius: 1,
+                backgroundColor: PALE_YELLOW,
+                boxShadow: '0 0 8px rgba(242,228,168,0.5)',
+                transition: 'left 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                pointerEvents: 'none',
+              }}
+            />
+          );
+        })()}
         {/* Render tabs with + Log FAB inserted at middle index */}
         {(() => {
           const midIdx = Math.floor(TABS.length / 2);

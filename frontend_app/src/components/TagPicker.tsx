@@ -29,7 +29,7 @@ const PILLAR_LABELS: Record<Pillar, string> = {
 };
 
 export default function TagPicker({ selectedIds, onChange, currentPillar, maxSelected = 5 }: Props) {
-  const { tags, loading, createTag } = useUserTags();
+  const { tags, loading, error, createTag } = useUserTags();
   const [query, setQuery] = useState('');
   const [creating, setCreating] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -69,6 +69,7 @@ export default function TagPicker({ selectedIds, onChange, currentPillar, maxSel
   const remove = (id: string) => {
     vibrate(6);
     onChange(selectedIds.filter(x => x !== id));
+    inputRef.current?.focus();
   };
 
   const create = async () => {
@@ -180,6 +181,13 @@ export default function TagPicker({ selectedIds, onChange, currentPillar, maxSel
       {trimmed && !currentPillar && filtered.length === 0 && (
         <p className="text-xs mt-1.5" style={{ color: 'rgba(255,255,255,0.30)' }}>
           Tap a vertex on the Prism so we know where to file this tag.
+        </p>
+      )}
+
+      {/* Error from create or fetch */}
+      {error && (
+        <p className="text-xs mt-1.5" style={{ color: 'rgba(218,90,70,0.85)' }}>
+          {error}
         </p>
       )}
     </div>

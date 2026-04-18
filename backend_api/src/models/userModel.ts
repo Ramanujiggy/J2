@@ -1,7 +1,14 @@
 //model - talks to the database
 
 
+import type { PoolClient } from 'pg';
 import { query } from '../config/db.js';
+
+// Executor interface — either the shared pool (via `query`) or a transaction client.
+interface Executor {
+    query: (text: string, params?: unknown[]) => Promise<{ rows: unknown[]; rowCount: number | null }>;
+}
+const defaultExec: Executor = { query };
 
 
 export interface User { 
@@ -27,7 +34,9 @@ export const createUser = async (email: string, passwordHash: string): Promise<U
     return result.rows[0];
 };
 
-// update a user's password hash — used during password reset
-export const updatePasswordHash = async (id: string, passwordHash: string): Promise<void> => {
-    await query('UPDATE users SET password_hash = $1 WHERE id = $2', [passwordHash, id]);
+// update a user's password hash — used during password reset.
+// Accepts an optional transaction client so the password update + token-marked-used
+// can run atomically in a single transaction.
+export const updatePasswordHash = async (id: string, passwordHash: string, exec: Executor | PoolClient = defaultExec): Promise<void> => {
+    await exec.query('UPDATE users SET password_hash = $1 WHERE id = $2', [passwordHash, id]);
 };

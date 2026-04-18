@@ -22,7 +22,9 @@ export const getUserTags = async (req: Request, res: Response) => {
   }
 };
 
-// POST /api/user-tags — create a new tag, or return existing on name conflict
+// POST /api/user-tags — create a new tag, or return existing on name conflict.
+// Idempotent and atomic: concurrent calls with the same name resolve to the
+// same row (no race condition between exists-check and insert).
 // Body: { name: string, parent_pillar: string }
 export const createUserTag = async (req: Request, res: Response) => {
   try {
@@ -37,14 +39,8 @@ export const createUserTag = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'parent_pillar must be a valid pillar.' });
     }
 
-    // Idempotent: if a tag with this name already exists for this user, return it
-    const existing = await userTagModel.findUserTagByName(userId, cleanName);
-    if (existing) {
-      return res.status(200).json({ tag: existing });
-    }
-
-    const tag = await userTagModel.createUserTag(userId, cleanName, parent_pillar);
-    res.status(201).json({ tag });
+    const { tag, created } = await userTagModel.upsertUserTag(userId, cleanName, parent_pillar);
+    res.status(created ? 201 : 200).json({ tag });
   } catch (error) {
     console.error('❌ Error creating user tag:', error);
     res.status(500).json({ message: 'Server error' });

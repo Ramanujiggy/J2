@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import pool from '../config/db.js';
 import * as intentionModel from '../models/intentionModel.js';
 
 const VALID_CATEGORIES = new Set([
@@ -51,25 +52,40 @@ export const createIntention = async (req: Request, res: Response) => {
     const todayStr = new Date().toISOString().slice(0, 10);
     const startDate = week_start ?? todayStr;
 
-    // Mid-week pivot: if an active intention exists, shorten it to end yesterday
-    const active = await intentionModel.getActiveIntention(userId, todayStr);
-    if (active && active.week_start.slice(0, 10) !== startDate) {
-      const activeStart = new Date(active.week_start.slice(0, 10) + 'T00:00:00');
-      const today = new Date(todayStr + 'T00:00:00');
-      const daysSinceStart = Math.max(1, Math.round((today.getTime() - activeStart.getTime()) / 86_400_000));
-      await intentionModel.shortenIntention(userId, active.id, daysSinceStart);
+    // Transaction: locks the active intention row (if any) with FOR UPDATE so that
+    // concurrent POSTs serialise. Without this, two requests could both see the same
+    // active intention, both try to shorten it, and both insert new rows — leaving
+    // overlapping intentions in the database.
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const active = await intentionModel.getActiveIntention(userId, todayStr, client, true);
+      if (active && active.week_start.slice(0, 10) !== startDate) {
+        const activeStart = new Date(active.week_start.slice(0, 10) + 'T00:00:00');
+        const today = new Date(todayStr + 'T00:00:00');
+        const daysSinceStart = Math.max(1, Math.round((today.getTime() - activeStart.getTime()) / 86_400_000));
+        await intentionModel.shortenIntention(userId, active.id, daysSinceStart, client);
+      }
+
+      const intention = await intentionModel.createIntention(
+        userId,
+        startDate,
+        label || (heading ?? 'Focus'),
+        intent_category ?? null,
+        heading ?? null,
+        durationDays,
+        client,
+      );
+
+      await client.query('COMMIT');
+      res.status(201).json({ message: 'Intention set.', intention });
+    } catch (txErr) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw txErr;
+    } finally {
+      client.release();
     }
-
-    const intention = await intentionModel.createIntention(
-      userId,
-      startDate,
-      label || (heading ?? 'Focus'),
-      intent_category ?? null,
-      heading ?? null,
-      durationDays,
-    );
-
-    res.status(201).json({ message: 'Intention set.', intention });
   } catch (error) {
     console.error('❌ Error creating intention:', error);
     res.status(500).json({ message: 'Server error' });

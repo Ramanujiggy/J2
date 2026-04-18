@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { query } from '../config/db.js';
 import { createSession, getSessionsByUser, searchSessions, updateSession as updateSessionModel, deleteSession as deleteSessionModel, bulkInsertSessions, type SessionFilter, type BulkSessionInput } from '../models/sessionModel.js';
+import { getUserTagsByIds } from '../models/userTagModel.js';
 
 const VALID_TAGS        = new Set(['standup', 'passing', 'pins', 'submissions', 'guard']);
 const VALID_GI_NOGI     = new Set(['gi', 'no_gi']);
@@ -8,9 +9,28 @@ const VALID_SESSION_TYPES = new Set(['class', 'drilling', 'competition_training'
 const VALID_POLARITIES  = new Set(['offense', 'defense', 'neutral']);
 const VALID_SOURCES     = new Set(['directed', 'organic']);
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function isValidTagArray(v: unknown): v is string[] {
     return Array.isArray(v) && v.length > 0 && v.every(t => VALID_TAGS.has(t as string));
+}
+
+/**
+ * Sanitize a user_tag_ids input from the client:
+ * - filter to non-empty strings matching UUID format
+ * - deduplicate
+ * - verify each ID belongs to the authenticated user (drops orphans/foreign IDs)
+ *
+ * Returns null if input wasn't an array; returns [] if input was empty/all-invalid.
+ */
+async function sanitizeUserTagIds(userId: string, raw: unknown): Promise<string[] | null> {
+    if (!Array.isArray(raw)) return null;
+    const wellFormed = raw.filter((s: unknown): s is string => typeof s === 'string' && UUID_RE.test(s));
+    const deduped = [...new Set(wellFormed)];
+    if (deduped.length === 0) return [];
+    const owned = await getUserTagsByIds(userId, deduped);
+    const ownedSet = new Set(owned.map(t => t.id));
+    return deduped.filter(id => ownedSet.has(id));
 }
 
 export const logSession = async (req: Request, res: Response): Promise<void> => {
@@ -88,10 +108,8 @@ export const logSession = async (req: Request, res: Response): Promise<void> => 
             return;
         }
 
-        // Validate user_tag_ids: optional array of UUID strings
-        const userTagIds = Array.isArray(user_tag_ids)
-            ? user_tag_ids.filter((s: unknown): s is string => typeof s === 'string' && s.length > 0)
-            : null;
+        // Sanitize user_tag_ids: validate UUID format, deduplicate, verify ownership
+        const userTagIds = await sanitizeUserTagIds(userId, user_tag_ids);
 
         const session = await createSession(
             userId, date, durationNum, notes ?? '', gi_nogi, intensityNum, session_type, finalTags,
@@ -390,9 +408,7 @@ export const updateSession = async (req: Request, res: Response): Promise<void> 
 
         const finalTags = isValidTagArray(tags) ? tags : (heading ? [heading] : []);
 
-        const userTagIds = Array.isArray(user_tag_ids)
-            ? user_tag_ids.filter((s: unknown): s is string => typeof s === 'string' && s.length > 0)
-            : null;
+        const userTagIds = await sanitizeUserTagIds(userId, user_tag_ids);
 
         const session = await updateSessionModel(
             id as string, userId,

@@ -41,6 +41,7 @@ export function useUserTags() {
         const without = prev.filter(t => t.id !== res.tag.id);
         return [...without, res.tag].sort((a, b) => a.name.localeCompare(b.name));
       });
+      setError(null);
       return res.tag;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create tag');

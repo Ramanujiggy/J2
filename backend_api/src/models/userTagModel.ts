@@ -33,18 +33,33 @@ export const findUserTagByName = async (userId: string, name: string): Promise<U
   return result.rows[0] ?? null;
 };
 
-export const createUserTag = async (
+/**
+ * Idempotent create: if a tag with this (user_id, name) already exists,
+ * returns the existing row unchanged. Atomic — safe under concurrent calls.
+ *
+ * The dummy `DO UPDATE SET name = EXCLUDED.name` is a no-op that exists only
+ * to make ON CONFLICT return the existing row via RETURNING. PG's ON CONFLICT
+ * DO NOTHING does NOT return rows, which is why we need the no-op update.
+ *
+ * Returns the row + a `created` boolean indicating whether it was newly inserted.
+ */
+export const upsertUserTag = async (
   userId: string,
   name: string,
   parentPillar: string,
-): Promise<UserTag> => {
+): Promise<{ tag: UserTag; created: boolean }> => {
   const result = await query(
     `INSERT INTO user_tags (user_id, name, parent_pillar)
      VALUES ($1, $2, $3)
-     RETURNING *`,
+     ON CONFLICT (user_id, name) DO UPDATE SET name = EXCLUDED.name
+     RETURNING *, (xmax = 0) AS created`,
     [userId, name, parentPillar],
   );
-  return result.rows[0];
+  const row = result.rows[0];
+  // Postgres exposes xmax as 0 on freshly-inserted rows and the txn id of the
+  // updating txn on conflicts. Pulling it via `(xmax = 0)` lets us distinguish
+  // create from no-op upsert without a second query.
+  return { tag: row, created: row.created === true };
 };
 
 export const updateUserTag = async (
