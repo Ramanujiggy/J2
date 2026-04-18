@@ -1,7 +1,10 @@
 import { useRef, useEffect } from 'react';
 import gsap from 'gsap';
 import { SKILL_TAGS } from '../../lib/constants.ts';
-import { PALE_YELLOW, CARD_BG } from '../../lib/theme.ts';
+import { COPPER, PALE_YELLOW, CARD_BG } from '../../lib/theme.ts';
+
+// Grid and spokes use COPPER (structural element color), not PALE_YELLOW (text color).
+// This matches PillarPrism's spoke color: rgba(196,145,95,...) — same object, different context.
 
 // ─── Pentagon math ────────────────────────────────────────────────────────────
 
@@ -76,39 +79,39 @@ export default function RadarChart({ normalized, polygonColors }: RadarChartProp
     const tl = gsap.timeline();
     tlRef.current = tl;
 
-    // Grid rings pulse outward
+    // Grid rings — slow ambient arrival, copper warmth
     ringRefs.current.forEach((ring, i) => {
       if (!ring) return;
       tl.fromTo(ring,
-        { opacity: 0, scale: 0.7, transformOrigin: `${CX}px ${CY}px` },
-        { opacity: i === 3 ? 0.25 : 0.12, scale: 1, duration: 0.4, ease: 'power2.out' },
-        i * 0.06,
+        { opacity: 0, scale: 0.6, transformOrigin: `${CX}px ${CY}px` },
+        { opacity: i === 3 ? 0.22 : 0.10, scale: 1, duration: 0.7, ease: 'power2.out' },
+        i * 0.08,
       );
     });
 
-    // Polygon draws from center
+    // Polygon draws from center — heavy spring feel (elastic overshoot, then settle)
     if (strokeRef.current) {
       tl.fromTo(strokeRef.current,
         { attr: { points: centerPoints } },
-        { attr: { points: targetPoints }, duration: 0.8, ease: 'power3.out' },
-        0.15,
+        { attr: { points: targetPoints }, duration: 1.1, ease: 'elastic.out(1, 0.75)' },
+        0.2,
       );
     }
     if (fillRef.current) {
       tl.fromTo(fillRef.current,
         { attr: { points: centerPoints }, opacity: 0 },
-        { attr: { points: targetPoints }, opacity: 1, duration: 0.8, ease: 'power3.out' },
-        0.15,
+        { attr: { points: targetPoints }, opacity: 1, duration: 1.1, ease: 'elastic.out(1, 0.75)' },
+        0.2,
       );
     }
 
-    // Vertex dots pop in with stagger
+    // Vertex dots pop in with stagger — back.out matches PillarPrism dot feel
     dotRefs.current.forEach((dot, i) => {
       if (!dot) return;
       tl.fromTo(dot,
         { scale: 0, transformOrigin: 'center center' },
-        { scale: 1, duration: 0.35, ease: 'back.out(2.5)' },
-        0.55 + i * 0.07,
+        { scale: 1, duration: 0.45, ease: 'back.out(2)' },
+        0.75 + i * 0.08,
       );
     });
 
@@ -124,11 +127,17 @@ export default function RadarChart({ normalized, polygonColors }: RadarChartProp
           <stop offset="100%" stopColor={polygonColors.stroke} stopOpacity="0.06" />
         </radialGradient>
 
-        {/* Glow filter for polygon stroke */}
-        <filter id="prism-glow" x="-25%" y="-25%" width="150%" height="150%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="blur" />
+        {/* Glow filter — warm copper undertone beneath stroke color glow */}
+        <filter id="prism-glow" x="-30%" y="-30%" width="160%" height="160%">
+          {/* Layer 1: warm copper ambient glow */}
+          <feFlood floodColor="rgba(196,145,95,0.15)" result="warmFlood" />
+          <feComposite in="warmFlood" in2="SourceGraphic" operator="in" result="warmShape" />
+          <feGaussianBlur in="warmShape" stdDeviation="3" result="warmBlur" />
+          {/* Layer 2: stroke color glow */}
+          <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="colorBlur" />
           <feMerge>
-            <feMergeNode in="blur" />
+            <feMergeNode in="warmBlur" />
+            <feMergeNode in="colorBlur" />
             <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
@@ -143,8 +152,8 @@ export default function RadarChart({ normalized, polygonColors }: RadarChartProp
           ref={el => { ringRefs.current[ri] = el; }}
           points={toPoints(pts)}
           fill="none"
-          stroke={PALE_YELLOW}
-          strokeOpacity={ri === 3 ? 0.25 : 0.12}
+          stroke={COPPER}
+          strokeOpacity={ri === 3 ? 0.22 : 0.10}
           strokeWidth="0.5"
         />
       ))}
@@ -153,7 +162,7 @@ export default function RadarChart({ normalized, polygonColors }: RadarChartProp
       {SKILL_TAGS.map((_, i) => {
         const [x, y] = vertex(i, 1);
         return <line key={i} x1={CX} y1={CY} x2={x} y2={y}
-          stroke={PALE_YELLOW} strokeOpacity="0.18" strokeWidth="0.5" />;
+          stroke={COPPER} strokeOpacity="0.15" strokeWidth="0.5" />;
       })}
 
       {/* Fill polygon — radial gradient, animates from center */}

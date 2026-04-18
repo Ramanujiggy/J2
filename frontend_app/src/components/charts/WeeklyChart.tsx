@@ -27,7 +27,7 @@ export default function WeeklyChart({ weeks }: { weeks: WeekEntry[] }) {
       gsap.fromTo(bar,
         { attr: { height: 1, y: baseY - 1 } },
         { attr: { height: targetH, y: baseY - targetH },
-          duration: 0.4, delay: i * 0.015, ease: 'power2.out' },
+          duration: 0.55, delay: i * 0.018, ease: 'elastic.out(1, 0.85)' },
       );
     });
   }, [weeks.length, maxH]);

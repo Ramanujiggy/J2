@@ -36,7 +36,7 @@ export default function VolumeChart({ sessions }: { sessions: SessionSummary[] }
       gsap.fromTo(bar,
         { attr: { height: 0, y: baseY } },
         { attr: { height: targetH, y: baseY - targetH },
-          duration: 0.5, delay: i * 0.04, ease: 'power2.out' },
+          duration: 0.65, delay: i * 0.05, ease: 'elastic.out(1, 0.85)' },
       );
     });
   }, [sessions.length, maxH]);

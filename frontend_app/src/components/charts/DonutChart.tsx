@@ -34,7 +34,7 @@ export default function DonutChart({ segments, centerLabel, centerSub }: {
       gsap.fromTo(arc,
         { strokeDasharray: len, strokeDashoffset: len, fillOpacity: 0 },
         { strokeDashoffset: 0, fillOpacity: 0.88,
-          duration: 0.6, delay: i * 0.12, ease: 'power2.inOut' },
+          duration: 0.85, delay: i * 0.15, ease: 'power2.inOut' },
       );
     });
   }, [total, nonZero.length]);
