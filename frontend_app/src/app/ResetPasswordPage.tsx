@@ -46,7 +46,7 @@ export default function ResetPasswordPage() {
       <WaveBackground />
 
       <div className="mb-10 text-center relative z-10">
-        <h1 className="text-5xl font-bold tracking-tight" style={{ color: PALE_YELLOW, textShadow: GLOW_TITLE }}>
+        <h1 className="text-5xl font-wordmark tracking-tight" style={{ color: PALE_YELLOW, textShadow: GLOW_TITLE }}>
           Journada
         </h1>
         <p className="mt-3 text-lg" style={{ color: PALE_YELLOW, textShadow: GLOW_NAV }}>

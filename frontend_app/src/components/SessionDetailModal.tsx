@@ -154,47 +154,36 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
 
   // ── Shared intensity bar (used in both view & edit) ─────────────────────
   const IntensityBar = ({ value, interactive }: { value: number; interactive?: boolean }) => (
-    <div className="space-y-1.5">
-      <div className="flex rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.05)' }}>
-        {[1, 2, 3, 4, 5].map(n => {
-          const active = value === n;
-          const color = INTENSITY_COLOR[n] ?? '#A8CB72';
-          return (
-            <button
-              key={n}
-              type="button"
-              disabled={!interactive}
-              onClick={interactive ? () => { vibrate(10); setForm(f => ({ ...f, intensity: n })); } : undefined}
-              className="flex-1 flex items-center justify-center font-semibold transition-all"
-              style={{
-                height: active ? 44 : 40,
-                backgroundColor: active ? color : `${color}33`,
-                color: active ? '#152E22' : `${color}88`,
-                fontSize: active ? 16 : 14,
-                cursor: interactive ? 'pointer' : 'default',
-                transition: 'height 200ms ease, background-color 200ms ease, color 200ms ease',
-              }}
-            >
-              {n}
-            </button>
-          );
-        })}
-      </div>
-      <div className="flex">
-        {Object.values(INTENSITY_LABEL).map((label, i) => (
-          <span
-            key={label}
-            className="flex-1 text-center"
+    <div className="flex items-center gap-1.5">
+      {[1, 2, 3, 4, 5].map(n => {
+        const active = value === n;
+        const color = INTENSITY_COLOR[n] ?? '#A8CB72';
+        const label = INTENSITY_LABEL[n] ?? '';
+        return (
+          <button
+            key={n}
+            type="button"
+            disabled={!interactive}
+            onClick={interactive ? () => { vibrate(10); setForm(f => ({ ...f, intensity: n })); } : undefined}
+            className="flex-1 flex items-center justify-center font-semibold"
             style={{
-              fontSize: 9,
-              color: value === i + 1 ? 'rgba(255,255,255,0.50)' : 'rgba(255,255,255,0.22)',
-              fontWeight: value === i + 1 ? 600 : 400,
+              height: active ? 44 : 36,
+              borderRadius: 10,
+              backgroundColor: active ? color : 'rgba(255,255,255,0.05)',
+              border: `1px solid ${active ? color : 'rgba(255,255,255,0.08)'}`,
+              color: active ? 'rgba(13,26,20,0.9)' : 'rgba(255,255,255,0.55)',
+              fontSize: 12,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              cursor: interactive ? 'pointer' : 'default',
+              transition: 'all 280ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+              boxShadow: active ? `0 0 0 1px ${color}40, 0 8px 20px -8px ${color}80` : 'none',
             }}
           >
-            {label}
-          </span>
-        ))}
-      </div>
+            {active ? label : ''}
+          </button>
+        );
+      })}
     </div>
   );
 

@@ -7,7 +7,8 @@ import { INTENSITY_COLOR } from '../lib/sessionUtils.ts';
 import BeltDateBanner from './BeltDateBanner.tsx';
 import PillarPrism from './PillarPrism.tsx';
 import SegmentedToggle from './SegmentedToggle.tsx';
-import type { Intention, SessionSummary } from '../types/api.ts';
+import TagPicker from './TagPicker.tsx';
+import type { Intention, Pillar } from '../types/api.ts';
 
 interface LogSessionResponse {
   message: string;
@@ -68,6 +69,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
   const [heading,      setHeading]      = useState<string | null>(defaultHeading ?? null);
   const [polarity,     setPolarity]     = useState<Polarity | null>(null);
   const [subSkillTag,  setSubSkillTag]  = useState(defaultSubSkillTag ?? '');
+  const [userTagIds,   setUserTagIds]   = useState<string[]>([]);
   // resonance initialized to max when pre-filled from roulette (dot sits at the vertex)
   const [scriptSource, setScriptSource] = useState<ScriptSource | null>(null);
   const [resonance,    setResonance]    = useState<number | null>(defaultHeading ? 10 : null);
@@ -90,21 +92,6 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
       .catch(() => {});
   }, []);
 
-  // Recent sub-skill tags for chip suggestions
-  const [recentTags, setRecentTags] = useState<string[]>([]);
-  useEffect(() => {
-    const from = new Date(Date.now() - 90 * 86_400_000).toISOString().slice(0, 10);
-    api.get<{ sessions: SessionSummary[] }>(`/api/sessions?from=${from}`)
-      .then(r => {
-        const tags = (r.sessions ?? [])
-          .map(s => s.sub_skill_tag)
-          .filter((t): t is string => !!t && t.trim().length > 0);
-        const unique = [...new Set(tags)].slice(0, 6);
-        setRecentTags(unique);
-      })
-      .catch(() => {});
-  }, []);
-
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
 
@@ -118,6 +105,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
     setHeading(null);
     setPolarity(null);
     setSubSkillTag('');
+    setUserTagIds([]);
     setScriptSource(null);
     setResonance(null);
     setPillarWeights(null);
@@ -152,6 +140,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
         sub_skill_tag: subSkillTag   || undefined,
         script_source: scriptSource  ?? undefined,
         resonance:     resonance     ?? undefined,
+        user_tag_ids:  userTagIds.length > 0 ? userTagIds : undefined,
       };
 
       const data = await api.post<LogSessionResponse>('/api/sessions', {
@@ -167,6 +156,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
         sub_skill_tag: sessionSnapshot.sub_skill_tag,
         script_source: sessionSnapshot.script_source,
         resonance:    sessionSnapshot.resonance,
+        user_tag_ids: sessionSnapshot.user_tag_ids,
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -293,47 +283,34 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
             </div>
           </div>
 
-          {/* Intensity — color-gradient segmented bar */}
-          <div className="space-y-1.5">
-            <div className="flex rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.05)' }}>
-              {[1, 2, 3, 4, 5].map(n => {
-                const active = form.intensity === n;
-                const color = INTENSITY_COLOR[n] ?? '#A8CB72';
-                return (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => { vibrate(10); setForm(prev => ({ ...prev, intensity: n })); }}
-                    className="flex-1 flex items-center justify-center font-semibold transition-all touch-manipulation"
-                    style={{
-                      height: active ? 44 : 40,
-                      backgroundColor: active ? color : `${color}33`,
-                      color: active ? '#152E22' : `${color}88`,
-                      fontSize: active ? 16 : 14,
-                      transition: 'height 200ms ease, background-color 200ms ease, color 200ms ease, font-size 200ms ease',
-                    }}
-                  >
-                    {n}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="flex">
-              {INTENSITY_LABELS.map((label, i) => (
-                <span
-                  key={label}
-                  className="flex-1 text-center"
+          {/* Intensity — color-gradient segmented bar, active shows label */}
+          <div className="flex items-center gap-1.5">
+            {[1, 2, 3, 4, 5].map(n => {
+              const active = form.intensity === n;
+              const color = INTENSITY_COLOR[n] ?? '#A8CB72';
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => { vibrate(10); setForm(prev => ({ ...prev, intensity: n })); }}
+                  className="flex-1 flex items-center justify-center font-semibold touch-manipulation"
                   style={{
-                    fontSize: 11,
-                    color: form.intensity === i + 1 ? 'rgba(255,255,255,0.50)' : 'rgba(255,255,255,0.22)',
-                    fontWeight: form.intensity === i + 1 ? 600 : 400,
-                    transition: 'color 200ms ease',
+                    height: active ? 44 : 36,
+                    borderRadius: 10,
+                    backgroundColor: active ? color : 'rgba(255,255,255,0.05)',
+                    border: `1px solid ${active ? color : 'rgba(255,255,255,0.08)'}`,
+                    color: active ? 'rgba(13,26,20,0.9)' : 'rgba(255,255,255,0.55)',
+                    fontSize: 12,
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    transition: 'all 280ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+                    boxShadow: active ? `0 0 0 1px ${color}40, 0 8px 20px -8px ${color}80` : 'none',
                   }}
                 >
-                  {label}
-                </span>
-              ))}
-            </div>
+                  {active ? INTENSITY_LABELS[n - 1] : ''}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -404,50 +381,17 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
             Details
           </span>
 
-          {/* Sub-skill tag */}
+          {/* Tags — user's personal vocabulary, each linked to a pillar */}
           <div>
             <label className="block text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.40)' }}>
-              Sub-skill <span style={{ color: 'rgba(255,255,255,0.20)' }}>(optional)</span>
+              Tags <span style={{ color: 'rgba(255,255,255,0.20)' }}>(optional, max 5)</span>
             </label>
-            <input
-              type="text"
-              maxLength={50}
-              value={subSkillTag}
-              onChange={e => setSubSkillTag(e.target.value)}
-              placeholder="e.g. K-Guard, Single Leg, Guillotine"
-              className="w-full border rounded-xl px-4 py-2.5 text-white text-sm outline-none transition-colors"
-              style={{
-                backgroundColor: SURFACE_3,
-                borderColor: 'rgba(255,255,255,0.08)',
-                ...(subSkillTag ? {} : {}),
-              }}
+            <TagPicker
+              selectedIds={userTagIds}
+              onChange={setUserTagIds}
+              currentPillar={(heading as Pillar | null) ?? null}
+              maxSelected={5}
             />
-            {/* Recent tag chips */}
-            {recentTags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {recentTags.map(tag => {
-                  const active = subSkillTag === tag;
-                  return (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => {
-                        vibrate(6);
-                        setSubSkillTag(prev => prev === tag ? '' : tag);
-                      }}
-                      className="rounded-lg px-3 py-2 text-xs font-medium transition-all touch-manipulation j2-press"
-                      style={{
-                        backgroundColor: active ? COPPER : SURFACE_3,
-                        color: active ? '#fff' : 'rgba(255,255,255,0.40)',
-                        transition: 'background-color 200ms ease, color 200ms ease',
-                      }}
-                    >
-                      {tag}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
           </div>
 
           {/* Notes */}

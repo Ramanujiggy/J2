@@ -15,6 +15,21 @@ export interface SessionSummary {
   sub_skill_tag?: string | null;
   script_source?: 'directed' | 'organic' | null;
   resonance?: number | null;
+  user_tag_ids?: string[] | null;
+}
+
+export type Pillar = 'standup' | 'passing' | 'pins' | 'submissions' | 'guard';
+
+export interface UserTag {
+  id: string;
+  user_id: string;
+  name: string;
+  parent_pillar: Pillar;
+  created_at: string;
+}
+
+export interface UserTagsResponse {
+  tags: UserTag[];
 }
 
 export interface Intention {

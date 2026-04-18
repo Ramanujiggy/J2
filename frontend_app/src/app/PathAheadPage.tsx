@@ -9,7 +9,7 @@ import type { SessionSummary, Intention, IntentionsResponse, SessionsResponse } 
 import LogSessionForm from '../components/LogSessionForm.tsx';
 import SessionDetailModal from '../components/SessionDetailModal.tsx';
 import SetIntentionModal from '../components/SetIntentionModal.tsx';
-import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER, COPPER_BORDER, SURFACE_2, SURFACE_2_BORDER, WHISPER_BORDER } from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER, COPPER_BORDER, SURFACE_2, SURFACE_2_BORDER, SURFACE_3, WHISPER_BORDER } from '../lib/theme.ts';
 import { CalendarDays, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from '../hooks/use-toast.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
@@ -65,6 +65,16 @@ export default function PathAheadPage() {
   // Modals
   const [logOpen,             setLogOpen]             = useState(false);
   const [logDate,             setLogDate]             = useState<string | null>(null);
+
+  // Listen for global "open log form" event dispatched from the bottom-nav FAB
+  useEffect(() => {
+    const handler = () => {
+      setLogDate(toDateString(new Date()));
+      setLogOpen(true);
+    };
+    window.addEventListener('journada:open-log-form', handler);
+    return () => window.removeEventListener('journada:open-log-form', handler);
+  }, []);
   const [logPreset,           setLogPreset]           = useState<{ heading?: string; sessionType?: 'drilling'; subSkillTag?: string } | null>(null);
   const [setIntentOpen,       setSetIntentOpen]       = useState(false);
   const [editIntention,       setEditIntention]       = useState<Intention | null>(null);
@@ -661,6 +671,57 @@ export default function PathAheadPage() {
     </div>
   );
 
+  // ── Reflection prompt — rotating meditative question ──
+  const REFLECTION_PROMPTS = [
+    "What moment from yesterday's roll still teaches you?",
+    "Which opponent's pressure changed how you move?",
+    "What's the smallest detail you're drilling this week?",
+    "Where did your breath leave you last session?",
+    "What technique are you quietly getting better at?",
+    "When did the mat last surprise you?",
+  ];
+  // Stable per-day prompt
+  const todayIdx = Math.floor(today.getTime() / 86400000);
+  const reflectionPrompt = REFLECTION_PROMPTS[todayIdx % REFLECTION_PROMPTS.length];
+
+  const reflectionCard = (
+    <div
+      className="rounded-xl px-4 py-4"
+      style={{ backgroundColor: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}` }}
+    >
+      <p
+        className="text-[10px] font-semibold uppercase tracking-widest mb-2"
+        style={{ color: COPPER }}
+      >
+        ◇ Reflection
+      </p>
+      <p
+        className="text-sm italic leading-relaxed"
+        style={{ color: 'rgba(255,255,255,0.75)' }}
+      >
+        &ldquo;{reflectionPrompt}&rdquo;
+      </p>
+      <button
+        onClick={() => {
+          if (activeIntention) {
+            navigate(`/intentions/${activeIntention.id}/journal`);
+          } else {
+            setLogDate(toDateString(today));
+            setLogOpen(true);
+          }
+        }}
+        className="mt-3 w-full rounded-xl px-4 py-2.5 text-xs font-medium transition-colors touch-manipulation"
+        style={{
+          backgroundColor: SURFACE_3,
+          border: '1px solid rgba(255,255,255,0.08)',
+          color: 'rgba(255,255,255,0.75)',
+        }}
+      >
+        Write an entry
+      </button>
+    </div>
+  );
+
   const modals = (
     <>
       {logOpen && (
@@ -820,6 +881,9 @@ export default function PathAheadPage() {
 
               {/* Heatmap */}
               {heatmapSection}
+
+              {/* Reflection prompt */}
+              {allSessions.length > 0 && reflectionCard}
             </div>
           </div>
         )}
@@ -889,6 +953,7 @@ export default function PathAheadPage() {
         {weekViewContent}
         {primaryCta}
         {heatmapSection}
+        {reflectionCard}
       </>
       )}
 

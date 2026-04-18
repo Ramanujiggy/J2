@@ -142,10 +142,13 @@ export default function IntentionHeroCard({ intention, weekSessionCount = 0, onS
                   className="h-full rounded-full"
                   style={{
                     width: '100%',
-                    backgroundColor: weekSessionCount >= 3 ? 'rgba(82,181,108,0.70)' : COPPER,
+                    background: weekSessionCount >= 3
+                      ? 'linear-gradient(90deg, #A8CB72, #C4915F 70%, #F2E4A8)'
+                      : COPPER,
                     transform: `scaleX(${Math.min(1, weekSessionCount / 3)})`,
                     transformOrigin: 'left center',
-                    transition: 'transform 600ms cubic-bezier(0.16, 1, 0.3, 1), background-color 400ms ease',
+                    transition: 'transform 600ms cubic-bezier(0.16, 1, 0.3, 1), background 400ms ease',
+                    boxShadow: weekSessionCount >= 3 ? '0 0 14px rgba(242,228,168,0.25)' : 'none',
                   }}
                 />
               </div>

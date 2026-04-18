@@ -5,7 +5,7 @@ import { useProfile } from '../context/ProfileContext.tsx';
 import WaveBackground from './WaveBackground.tsx';
 import RiveBeltBar from './RiveBeltBar.tsx';
 import { type BeltRank, BELT_COLORS, PATCH_COLORS } from './BeltBar.tsx';
-import { PAGE_BG, PALE_YELLOW, GLOW_TITLE, GLOW_NAV, COPPER_BORDER } from '../lib/theme.ts';
+import { PAGE_BG, PALE_YELLOW, GLOW_TITLE, GLOW_NAV, COPPER_BORDER, CARD_BG } from '../lib/theme.ts';
 import PageTransition from './PageTransition.tsx';
 import OfflineBanner from './OfflineBanner.tsx';
 import { useOnlineSync } from '../hooks/useOnlineSync.ts';
@@ -198,7 +198,7 @@ export default function AppShell({ children }: Props) {
               pointerEvents: 'none',
             }} />
             <h1
-              className="text-xl font-display tracking-tight"
+              className="text-xl font-wordmark tracking-tight"
               style={{ position: 'relative', color: PALE_YELLOW, textShadow: GLOW_TITLE }}
             >
               Journada
@@ -264,23 +264,22 @@ export default function AppShell({ children }: Props) {
         <PageTransition direction={navDirection}>{children}</PageTransition>
       </main>
 
-      {/* ── Mobile bottom nav — hidden on sm+ — with sliding dot ── */}
+      {/* ── Mobile bottom nav — hidden on sm+ — solid bg, floating + Log FAB ── */}
       <nav
         className="sm:hidden fixed bottom-0 left-0 right-0 flex border-t z-40"
         style={{
-          backgroundColor: 'rgba(13,26,20,0.82)',
-          backdropFilter: 'saturate(180%) blur(20px)',
-          WebkitBackdropFilter: 'saturate(180%) blur(20px)',
+          backgroundColor: CARD_BG,
           borderTopColor: COPPER_BORDER,
           paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
+          boxShadow: '0 -8px 24px -12px rgba(0,0,0,0.5)',
         }}
       >
-        {/* Sliding top-bar indicator */}
+        {/* Sliding top-bar indicator (only over nav tabs, excluding FAB slot) */}
         <div
           style={{
             position: 'absolute',
             top: 0,
-            left: `${(activeIdx / TABS.length) * 100 + 50 / TABS.length - 2}%`,
+            left: `${(activeIdx / (TABS.length + 1)) * 100 + 50 / (TABS.length + 1) - 2}%`,
             width: '4%',
             minWidth: 28,
             height: 2,
@@ -291,23 +290,62 @@ export default function AppShell({ children }: Props) {
             pointerEvents: 'none',
           }}
         />
-        {TABS.map(({ path, label, Icon }) => {
-          const isActive = activeTab === path;
-          return (
-            <button
-              key={path}
-              onClick={() => navigate(path)}
-              className="flex-1 relative flex flex-col items-center justify-center py-2.5 gap-0.5"
-              style={{
-                color: isActive ? PALE_YELLOW : 'rgba(255,255,255,0.35)',
-                transition: 'color 0.3s ease',
-              }}
-            >
-              <Icon active={isActive} />
-              <span className="text-[10px] font-medium leading-none">{label}</span>
-            </button>
-          );
-        })}
+        {/* Render tabs with + Log FAB inserted at middle index */}
+        {(() => {
+          const midIdx = Math.floor(TABS.length / 2);
+          const elements: React.ReactNode[] = [];
+          TABS.forEach((tab, i) => {
+            if (i === midIdx) {
+              elements.push(
+                <button
+                  key="fab-log"
+                  onClick={() => {
+                    if (location.pathname !== '/home') navigate('/home');
+                    // Dispatch after navigation so PathAheadPage is mounted
+                    setTimeout(() => window.dispatchEvent(new CustomEvent('journada:open-log-form')), 40);
+                  }}
+                  className="flex-1 flex items-center justify-center"
+                  aria-label="Log a training session"
+                  style={{ padding: '6px 0' }}
+                >
+                  <span
+                    style={{
+                      width: 52, height: 52, borderRadius: '50%',
+                      backgroundColor: '#DA7422',
+                      color: '#fff',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      boxShadow: '0 10px 24px -8px rgba(218,116,34,0.6), 0 0 0 1px rgba(218,116,34,0.3)',
+                      border: '2px solid rgba(242,228,168,0.2)',
+                      marginTop: -18,
+                      fontSize: 26,
+                      fontWeight: 300,
+                      lineHeight: 1,
+                    }}
+                  >
+                    +
+                  </span>
+                </button>
+              );
+            }
+            const { path, label, Icon } = tab;
+            const isActive = activeTab === path;
+            elements.push(
+              <button
+                key={path}
+                onClick={() => navigate(path)}
+                className="flex-1 relative flex flex-col items-center justify-center py-2.5 gap-0.5"
+                style={{
+                  color: isActive ? PALE_YELLOW : 'rgba(255,255,255,0.35)',
+                  transition: 'color 0.3s ease',
+                }}
+              >
+                <Icon active={isActive} />
+                <span className="text-[10px] font-medium leading-none">{label}</span>
+              </button>
+            );
+          });
+          return elements;
+        })()}
       </nav>
 
     </div>

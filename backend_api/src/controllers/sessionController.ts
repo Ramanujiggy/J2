@@ -22,7 +22,7 @@ export const logSession = async (req: Request, res: Response): Promise<void> => 
         }
 
         const { date, duration, notes, gi_nogi, intensity, session_type, tags,
-                heading, polarity, sub_skill_tag, script_source, resonance } = req.body;
+                heading, polarity, sub_skill_tag, script_source, resonance, user_tag_ids } = req.body;
 
         if (!date || duration === undefined || !gi_nogi || intensity === undefined || !session_type) {
             res.status(400).json({ message: 'Date, duration, gi/no-gi, intensity, and session type are required.' });
@@ -88,9 +88,15 @@ export const logSession = async (req: Request, res: Response): Promise<void> => 
             return;
         }
 
+        // Validate user_tag_ids: optional array of UUID strings
+        const userTagIds = Array.isArray(user_tag_ids)
+            ? user_tag_ids.filter((s: unknown): s is string => typeof s === 'string' && s.length > 0)
+            : null;
+
         const session = await createSession(
             userId, date, durationNum, notes ?? '', gi_nogi, intensityNum, session_type, finalTags,
             heading ?? null, polarity ?? null, sub_skill_tag ?? null, script_source ?? null, resonanceNum,
+            userTagIds,
         );
         res.status(201).json({ message: 'Session logged.', session, session_count: session.session_count });
     } catch (err) {
@@ -134,7 +140,7 @@ export const searchSessionsHandler = async (req: Request, res: Response): Promis
         }
 
         const { from, to, q, gi_nogi, session_type, heading, polarity,
-                intensity_min, intensity_max, limit, offset } = req.query as Record<string, string | undefined>;
+                intensity_min, intensity_max, user_tag_id, limit, offset } = req.query as Record<string, string | undefined>;
 
         if (from && !DATE_RE.test(from)) { res.status(400).json({ message: 'from must be YYYY-MM-DD.' }); return; }
         if (to && !DATE_RE.test(to)) { res.status(400).json({ message: 'to must be YYYY-MM-DD.' }); return; }
@@ -156,6 +162,7 @@ export const searchSessionsHandler = async (req: Request, res: Response): Promis
         if (polarity) filters.polarity = polarity;
         if (intensity_min) filters.intensity_min = Number(intensity_min);
         if (intensity_max) filters.intensity_max = Number(intensity_max);
+        if (user_tag_id) filters.user_tag_id = user_tag_id;
 
         const result = await searchSessions(userId, filters);
         res.json({ sessions: result.sessions, total: result.total });
@@ -328,7 +335,7 @@ export const updateSession = async (req: Request, res: Response): Promise<void> 
 
         const { id } = req.params;
         const { duration, gi_nogi, intensity, session_type, notes, tags,
-                heading, polarity, sub_skill_tag, script_source, resonance } = req.body;
+                heading, polarity, sub_skill_tag, script_source, resonance, user_tag_ids } = req.body;
 
         if (duration === undefined || !gi_nogi || intensity === undefined || !session_type) {
             res.status(400).json({ message: 'Duration, gi/no-gi, intensity, and session type are required.' });
@@ -383,11 +390,16 @@ export const updateSession = async (req: Request, res: Response): Promise<void> 
 
         const finalTags = isValidTagArray(tags) ? tags : (heading ? [heading] : []);
 
+        const userTagIds = Array.isArray(user_tag_ids)
+            ? user_tag_ids.filter((s: unknown): s is string => typeof s === 'string' && s.length > 0)
+            : null;
+
         const session = await updateSessionModel(
             id as string, userId,
             durationNum, gi_nogi, intensityNum, session_type, notes ?? '',
             finalTags,
             heading ?? null, polarity ?? null, sub_skill_tag ?? null, script_source ?? null, resonanceNum,
+            userTagIds,
         );
 
         if (!session) {

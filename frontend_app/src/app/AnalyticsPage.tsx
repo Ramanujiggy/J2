@@ -86,8 +86,10 @@ function AlignmentTimeline({ intentions, allSessions, navigate }: {
               className="h-full rounded-full"
               style={{
                 width: `${alignPct}%`,
-                backgroundColor: 'rgba(82,181,108,0.70)',
-                transition: 'width 600ms ease-out',
+                background: 'linear-gradient(90deg, #A8CB72, #C4915F 70%, #F2E4A8)',
+                borderRadius: 3,
+                transition: 'width 700ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+                boxShadow: '0 0 14px rgba(242,228,168,0.25)',
               }}
             />
           </div>

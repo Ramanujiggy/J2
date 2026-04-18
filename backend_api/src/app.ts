@@ -9,6 +9,7 @@ import authRoutes from './routes/authRoutes.js';
 import sessionRoutes from './routes/sessionRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 import intentionRoutes from './routes/intentionRoutes.js';
+import userTagRoutes from './routes/userTagRoutes.js';
 // db import triggers pool connection test on startup
 import { query } from './config/db.js';
 
@@ -149,6 +150,7 @@ app.use('/api', profileRoutes);
 
 // intention routes: POST/GET /api/intentions, GET /api/intentions/current, DELETE /api/intentions/:id
 app.use('/api/intentions', intentionRoutes);
+app.use('/api/user-tags', userTagRoutes);
 
 
 // Catch-all JSON error handler — must be registered after all routes.

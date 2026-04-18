@@ -88,7 +88,7 @@ export default function HomePage() {
         className="mb-10 text-center relative z-10 px-8 py-5 rounded-2xl"
         style={{ backgroundColor: 'rgba(13, 26, 20, 0.45)', backdropFilter: 'blur(4px)' }}
       >
-        <h1 className="text-3xl sm:text-5xl font-display tracking-tight" style={{ color: PALE_YELLOW, textShadow: GLOW_TITLE }}>
+        <h1 className="text-3xl sm:text-5xl font-wordmark tracking-tight" style={{ color: PALE_YELLOW, textShadow: GLOW_TITLE }}>
           Journada
         </h1>
         <p className="mt-3 text-lg" style={{ color: PALE_YELLOW, textShadow: GLOW_NAV }}>
