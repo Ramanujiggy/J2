@@ -9,6 +9,8 @@ import { PAGE_BG, PALE_YELLOW, GLOW_TITLE, GLOW_NAV, COPPER_BORDER, CARD_BG } fr
 import PageTransition from './PageTransition.tsx';
 import OfflineBanner from './OfflineBanner.tsx';
 import { useOnlineSync } from '../hooks/useOnlineSync.ts';
+import { useIsDesktop } from '../hooks/useIsDesktop.ts';
+import DesktopAppShell from './DesktopAppShell.tsx';
 
 // Lucide-style inline SVG icons — no extra dep needed
 function HomeIcon({ active }: { active: boolean }) {
@@ -68,7 +70,18 @@ interface Props {
   children: React.ReactNode;
 }
 
+// Top-level switcher: rail shell on desktop (≥1024px), existing mobile/tablet
+// shell otherwise. Keeping the two as separate components keeps their hooks
+// isolated — rules-of-hooks disallows a conditional early-return inside a
+// single component that calls different hook sets on each branch.
 export default function AppShell({ children }: Props) {
+  const isDesktop = useIsDesktop();
+  return isDesktop
+    ? <DesktopAppShell>{children}</DesktopAppShell>
+    : <MobileAppShell>{children}</MobileAppShell>;
+}
+
+function MobileAppShell({ children }: Props) {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();

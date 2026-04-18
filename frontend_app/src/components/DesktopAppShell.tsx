@@ -1,0 +1,319 @@
+// Desktop app shell — rail nav layout, rendered at >= 1024px only.
+// Replaces the header + horizontal tabs + mobile bottom nav with a single
+// sticky left rail (wordmark, nav, focus card, practitioner pill) beside a
+// flex-1 content canvas. See desktop redesign plan, Phase 2.
+
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useProfile } from '../context/ProfileContext.tsx';
+import { type BeltRank, BELT_COLORS } from './BeltBar.tsx';
+import OfflineBanner from './OfflineBanner.tsx';
+import PageTransition from './PageTransition.tsx';
+import { useOnlineSync } from '../hooks/useOnlineSync.ts';
+import { PAGE_BG, PALE_YELLOW, COPPER } from '../lib/theme.ts';
+
+// ─── Icons (inline SVG, matches AppShell style) ──────────────────────────────
+
+type IconProps = { active: boolean };
+const iconAttrs = (active: boolean) => ({
+  width: 18, height: 18, viewBox: '0 0 24 24',
+  fill: 'none' as const, stroke: 'currentColor',
+  strokeWidth: active ? 2 : 1.6,
+  strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const,
+});
+
+function CompassIcon({ active }: IconProps) {
+  return (
+    <svg {...iconAttrs(active)}>
+      <circle cx="12" cy="12" r="9" />
+      <polygon points="16,8 10,10 8,16 14,14" />
+    </svg>
+  );
+}
+function MapIcon({ active }: IconProps) {
+  return (
+    <svg {...iconAttrs(active)}>
+      <polygon points="3,7 9,4 15,7 21,4 21,17 15,20 9,17 3,20" />
+      <line x1="9" y1="4" x2="9" y2="17" />
+      <line x1="15" y1="7" x2="15" y2="20" />
+    </svg>
+  );
+}
+function ChartIcon({ active }: IconProps) {
+  return (
+    <svg {...iconAttrs(active)}>
+      <path d="M4 20L8 14l4 3 4-7 4 5" />
+      <path d="M4 4v16h16" />
+    </svg>
+  );
+}
+function DiamondIcon({ active }: IconProps) {
+  return (
+    <svg {...iconAttrs(active)}>
+      <polygon points="12,3 21,12 12,21 3,12" />
+      <line x1="12" y1="3" x2="12" y2="21" />
+      <line x1="3" y1="12" x2="21" y2="12" />
+    </svg>
+  );
+}
+function UserIcon({ active }: IconProps) {
+  return (
+    <svg {...iconAttrs(active)}>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+    </svg>
+  );
+}
+
+// ─── Nav definition ──────────────────────────────────────────────────────────
+// Labels here are the Phase 2 starting set. Rename lands in later phases
+// (Calendar → Atlas in Phase 4, Analytics folds into Atlas at the same time).
+
+type NavItem = {
+  path: string;
+  label: string;
+  Icon: (p: IconProps) => JSX.Element;
+  gated?: 'intentions';
+};
+
+const NAV_ITEMS: readonly NavItem[] = [
+  { path: '/home',       label: 'Path Ahead', Icon: CompassIcon },
+  { path: '/calendar',   label: 'Calendar',   Icon: MapIcon },
+  { path: '/analytics',  label: 'Analytics',  Icon: ChartIcon },
+  { path: '/intentions', label: 'Intentions', Icon: DiamondIcon, gated: 'intentions' },
+  { path: '/profile',    label: 'Profile',    Icon: UserIcon },
+] as const;
+
+// ─── Shell ───────────────────────────────────────────────────────────────────
+
+interface Props { children: React.ReactNode; }
+
+export default function DesktopAppShell({ children }: Props) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { name, beltRank, stripes, intentionsEnabled } = useProfile();
+
+  useOnlineSync();
+
+  const items = useMemo(
+    () => NAV_ITEMS.filter(it => it.gated !== 'intentions' || intentionsEnabled),
+    [intentionsEnabled],
+  );
+  const activeTab = items.find(it => location.pathname.startsWith(it.path))?.path ?? '/home';
+  const activeIdx = items.findIndex(it => it.path === activeTab);
+
+  // Directional page transitions, matching mobile behaviour
+  const [navDirection, setNavDirection] = useState<'forward' | 'back' | null>(null);
+  const prevIdxRef = useRef(activeIdx);
+
+  const go = useCallback((path: string) => {
+    const fromIdx = prevIdxRef.current;
+    const toIdx   = items.findIndex(it => it.path === path);
+    setNavDirection(toIdx > fromIdx ? 'forward' : 'back');
+    prevIdxRef.current = toIdx;
+    navigate(path);
+  }, [items, navigate]);
+
+  const beltColor = beltRank ? BELT_COLORS[beltRank as BeltRank] ?? '#3A5A7A' : '#3A5A7A';
+  const initials = (name ?? '').split(' ').map(s => s[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'J';
+
+  return (
+    <div
+      className="min-h-screen"
+      style={{
+        backgroundColor: PAGE_BG,
+        display: 'grid',
+        gridTemplateColumns: 'var(--rail-w) 1fr',
+        position: 'relative',
+      }}
+    >
+      {/* Ambient seigaiha wave background, behind everything */}
+      <div className="j2-seigaiha-bg" aria-hidden />
+
+      {/* ── Rail ─────────────────────────────────────────────────── */}
+      <aside
+        style={{
+          position: 'sticky',
+          top: 0,
+          height: '100vh',
+          padding: '28px 20px 20px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 20,
+          borderRight: '1px solid var(--j2-border-2)',
+          background: 'rgba(10,21,16,0.7)',
+          backdropFilter: 'blur(6px)',
+          WebkitBackdropFilter: 'blur(6px)',
+          zIndex: 1,
+        }}
+      >
+        {/* Wordmark + tagline */}
+        <div>
+          <div
+            className="j2-wordmark"
+            style={{ fontSize: 28, lineHeight: 1 }}
+          >
+            Journada
+          </div>
+          <div
+            className="j2-label-micro"
+            style={{ marginTop: 8, fontSize: 10, letterSpacing: '0.14em' }}
+          >
+            For intentional grappling
+          </div>
+        </div>
+
+        {/* Nav */}
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 4 }}>
+          {items.map(({ path, label, Icon }) => {
+            const isActive = activeTab === path;
+            return (
+              <button
+                key={path}
+                onClick={() => go(path)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '10px 12px',
+                  borderRadius: 10,
+                  background: isActive ? 'rgba(242,228,168,0.06)' : 'transparent',
+                  color: isActive ? PALE_YELLOW : 'rgba(255,255,255,0.60)',
+                  fontWeight: 500, fontSize: 14,
+                  textAlign: 'left',
+                  transition: 'color 160ms ease, background-color 160ms ease',
+                  position: 'relative',
+                  cursor: 'pointer',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.color = 'rgba(255,255,255,0.90)';
+                    e.currentTarget.style.background = 'var(--j2-surface-2)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.color = 'rgba(255,255,255,0.60)';
+                    e.currentTarget.style.background = 'transparent';
+                  }
+                }}
+              >
+                {isActive && (
+                  <span
+                    aria-hidden
+                    style={{
+                      position: 'absolute', left: -3, top: 9, bottom: 9,
+                      width: 3, borderRadius: 2,
+                      background: COPPER,
+                      boxShadow: '0 0 8px rgba(196,145,95,0.5)',
+                    }}
+                  />
+                )}
+                <Icon active={isActive} />
+                <span>{label}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Focus placeholder — wired to real intention data in Phase 3.
+            Hidden when intentions feature is gated off so the rail doesn't
+            advertise a destination the user can't reach. */}
+        {intentionsEnabled && (
+        <div
+          style={{
+            marginTop: 'auto',
+            padding: 14,
+            border: '1px solid rgba(196,145,95,0.22)',
+            borderRadius: 12,
+            background: 'rgba(196,145,95,0.04)',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            aria-hidden
+            style={{
+              position: 'absolute', inset: 0,
+              background: 'radial-gradient(circle at 100% 0%, rgba(242,228,168,0.08), transparent 60%)',
+              pointerEvents: 'none',
+            }}
+          />
+          <div className="j2-label-copper" style={{ marginBottom: 6 }}>◇ This week</div>
+          <div
+            className="j2-serif-display"
+            style={{ fontSize: 18, lineHeight: 1.1 }}
+          >
+            Set your focus
+          </div>
+          <button
+            onClick={() => go('/intentions')}
+            style={{
+              marginTop: 10, fontSize: 12, fontWeight: 600,
+              color: COPPER, borderBottom: `1px solid ${COPPER}40`,
+              cursor: 'pointer', background: 'transparent',
+              padding: 0,
+            }}
+          >
+            Open Intentions →
+          </button>
+        </div>
+
+        {/* Practitioner pill — avatar + name + belt */}
+        <button
+          onClick={() => go('/profile')}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            paddingTop: 14,
+            borderTop: '1px solid var(--j2-border-1)',
+            background: 'transparent',
+            cursor: 'pointer',
+            textAlign: 'left',
+          }}
+        >
+          <div
+            style={{
+              width: 32, height: 32, borderRadius: '50%',
+              background: 'linear-gradient(135deg, #244A37, #152E22)',
+              border: '1px solid var(--j2-border-2)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: 'var(--font-wordmark)', fontSize: 14,
+              color: PALE_YELLOW,
+            }}
+          >
+            {initials}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                fontSize: 13, fontWeight: 600,
+                color: 'rgba(255,255,255,0.90)',
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              }}
+            >
+              {name ?? 'Practitioner'}
+            </div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)' }}>
+              <span style={{ color: beltColor }}>●</span>{' '}
+              {beltRank ?? 'White'}
+              {stripes ? ` · ${stripes} stripe${stripes > 1 ? 's' : ''}` : ''}
+            </div>
+          </div>
+        </button>
+      </aside>
+
+      {/* ── Main canvas ──────────────────────────────────────────── */}
+      <main
+        className="j2-app-scroll"
+        style={{
+          minWidth: 0,
+          position: 'relative',
+          overflow: 'auto',
+          height: '100vh',
+          zIndex: 1,
+        }}
+      >
+        <OfflineBanner />
+        <PageTransition direction={navDirection}>{children}</PageTransition>
+      </main>
+    </div>
+  );
+}
