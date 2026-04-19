@@ -44,7 +44,12 @@ const W = 280;
 const H = 1000;
 const CX = 140;
 const CY = 500;
-const R = 230;
+// A regular pentagon's horizontal extent is R × cos(18°) ≈ R × 0.951. With a
+// 280-wide rail (±140 from center) and the halo stroke adding ~6 units to
+// the visual edge, R=125 lands the widest vertices at x≈21 / x≈259 with ~15
+// units of margin — pentagon reads clearly as a 5-pointed shape, not a
+// triangle-shaped fragment. Earlier R=230 had two vertices clipped off-rail.
+const R = 125;
 
 // Pentagon vertices (top vertex first, clockwise).
 const VERTS: [number, number][] = Array.from({ length: 5 }).map((_, i) => {
@@ -60,15 +65,21 @@ const PERIM = Math.round(
   }, 0),
 );
 
-// Resting positions for the five vertex motes — hand-placed corners where
-// formation visibly "gathers" from. Positions recomputed for R=230 so the
-// rest-to-vertex travel distance is meaningful (~100–200 units).
+// Resting positions for the five vertex motes — each rest sits in the same
+// quadrant as its target vertex, well outside the pentagon, so formation
+// reads as "crystallizing inward from all directions" with clear travel
+// distance (~230–340 units each) and no crossed paths.
+//   VERTS[0] top            (140, 375) — rests above pentagon, top-center
+//   VERTS[1] upper-right    (259, 461) — rests above-right
+//   VERTS[2] lower-right    (214, 601) — rests below-right
+//   VERTS[3] lower-left     ( 66, 601) — rests below-left
+//   VERTS[4] upper-left     ( 21, 461) — rests above-left
 const VERT_RESTS: [number, number][] = [
-  [ 40,  70],   // upper-left
-  [250, 150],   // upper-right
-  [ 20, 580],   // mid-left
-  [260, 700],   // mid-right
-  [120, 920],   // bottom
+  [140,  50],
+  [258, 190],
+  [258, 870],
+  [ 22, 870],
+  [ 22, 190],
 ];
 
 // ── Deterministic scatter ──────────────────────────────────────────────────
