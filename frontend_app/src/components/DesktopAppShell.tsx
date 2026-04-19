@@ -220,7 +220,6 @@ export default function DesktopAppShell({ children }: Props) {
         {intentionsEnabled && (
         <div
           style={{
-            marginTop: 'auto',
             padding: 14,
             border: '1px solid rgba(196,145,95,0.22)',
             borderRadius: 12,
@@ -256,11 +255,15 @@ export default function DesktopAppShell({ children }: Props) {
             Open Intentions →
           </button>
         </div>
+        )}
 
-        {/* Practitioner pill — avatar + name + belt */}
+        {/* Practitioner pill — avatar + name + belt. marginTop:auto pins it
+            to the bottom of the rail regardless of whether the focus card
+            above is rendered. */}
         <button
           onClick={() => go('/profile')}
           style={{
+            marginTop: 'auto',
             display: 'flex', alignItems: 'center', gap: 10,
             paddingTop: 14,
             borderTop: '1px solid var(--j2-border-1)',
