@@ -1,8 +1,9 @@
 [build]
-# `npm ci` wipes node_modules for a clean install (bypasses Railway's cached
-# modules). `--include=dev` overrides NODE_ENV=production default to ensure
-# vite, typescript, and build plugins are installed.
-buildCommand = "npm ci --include=dev && npm run build"
+# `rm -rf node_modules/.vite` first clears Vite's build cache, which Railway's
+# layer caching sometimes holds a file lock on (EBUSY error on npm ci).
+# `npm ci` then wipes and reinstalls cleanly. `--include=dev` overrides
+# Railway's NODE_ENV=production default so vite/typescript/plugins install.
+buildCommand = "rm -rf node_modules/.vite && npm ci --include=dev && npm run build"
 
 [deploy]
 startCommand = "npm run serve"

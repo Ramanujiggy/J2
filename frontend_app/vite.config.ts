@@ -4,6 +4,9 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
+  // Move Vite's cache out of node_modules — prevents EBUSY errors on Railway
+  // where the node_modules/.vite path can be held by a layer cache lock.
+  cacheDir: '.vite-cache',
   plugins: [
     react(),
     VitePWA({

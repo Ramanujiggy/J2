@@ -9,7 +9,9 @@ import type { SessionSummary, Intention, IntentionsResponse, SessionsResponse } 
 import LogSessionForm from '../components/LogSessionForm.tsx';
 import SessionDetailModal from '../components/SessionDetailModal.tsx';
 import SetIntentionModal from '../components/SetIntentionModal.tsx';
-import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER, COPPER_BORDER, SURFACE_2, SURFACE_2_BORDER, SURFACE_3, WHISPER_BORDER } from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER, COPPER_BORDER, SURFACE_2, SURFACE_2_BORDER, SURFACE_3, WHISPER_BORDER, CARD_GLOW, CARD_GLOW_BORDER, FONT_EDITORIAL, INT_COLORS } from '../lib/theme.ts';
+import AnnualRadial from '../components/charts/AnnualRadial.tsx';
+import { SKILL_COLORS } from '../components/charts/RadarChart.tsx';
 import { CalendarDays, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from '../hooks/use-toast.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
@@ -796,103 +798,426 @@ export default function PathAheadPage() {
 
   if (isDesktop) {
     /* ═══════════════════════════════════════════════════════════════════
-       DESKTOP LAYOUT — two-column dashboard
+       DESKTOP LAYOUT — editorial dashboard (Phase 3 of desktop redesign)
+       Rail shell wraps this page; we own everything right of the rail.
+
+       Structure, top → bottom:
+         • Editorial header (serif hero + date label + streak subtitle + CTAs)
+         • 4-stat strip (always visible, inline)
+         • 2-col main: AnnualRadial + week section (left) · sidebar cards (right)
+         • Recent intentions row (full-width)
        ═══════════════════════════════════════════════════════════════════ */
+
+    const year = today.getFullYear();
+    const todayLabel = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).format(today).toUpperCase();
+
+    // Streak subtitle — tiered copy based on consistent weeks
+    const streakSubtitle =
+      consistentWeeks >= 26 ? `${consistentWeeks} weeks logged. Consistency is showing.` :
+      consistentWeeks >= 12 ? `${consistentWeeks} weeks in a row. Nice rhythm.` :
+      consistentWeeks >= 1  ? `${consistentWeeks} week${consistentWeeks === 1 ? '' : 's'} in. Building the habit.` :
+      `Welcome back${name ? `, ${name}` : ''}.`;
+
+    // Alignment — sessions this week whose primary tag matches the active intention heading
+    const weekDateStrings = new Set(weekDays.map(toDateString));
+    const weekSessions = allSessions.filter(s => {
+      const key = typeof s.date === 'string' ? s.date.slice(0, 10) : toDateString(new Date(s.date));
+      return weekDateStrings.has(key);
+    });
+    const alignedCount = activeIntention
+      ? weekSessions.filter(s => s.tags?.[0] === activeIntention.heading).length
+      : 0;
+    const alignmentPct = weekStats.count > 0 && activeIntention
+      ? Math.round((alignedCount / weekStats.count) * 100)
+      : 0;
+
+    // Most recent session — for the sidebar widget
+    const mostRecent = allSessions.length > 0
+      ? [...allSessions].sort((a, b) => {
+          const da = typeof a.date === 'string' ? a.date.slice(0, 10) : toDateString(new Date(a.date));
+          const db = typeof b.date === 'string' ? b.date.slice(0, 10) : toDateString(new Date(b.date));
+          return db.localeCompare(da);
+        })[0]
+      : null;
+
+    // Last 30 days intensity distribution — 5 buckets
+    const thirtyMs = 30 * 86_400_000;
+    const last30 = allSessions.filter(s => {
+      const key = typeof s.date === 'string' ? s.date.slice(0, 10) : toDateString(new Date(s.date));
+      return today.getTime() - new Date(key + 'T00:00:00').getTime() < thirtyMs;
+    });
+    const intensityDist = [1, 2, 3, 4, 5].map(i => last30.filter(s => (s.intensity ?? 3) === i).length);
+    const intensityMax = Math.max(1, ...intensityDist);
+
+    // Recent intentions — latest 6 (already sorted newest-first from API)
+    const recentIntentions = intentions.slice(0, 6);
+
+    const heroCardStyle: React.CSSProperties = {
+      backgroundColor: CARD_BG,
+      border: `1px solid ${CARD_GLOW_BORDER}`,
+      boxShadow: CARD_GLOW,
+      borderRadius: 16,
+    };
+    const softCardStyle: React.CSSProperties = {
+      backgroundColor: CARD_BG,
+      border: '1px solid var(--j2-border-2)',
+      borderRadius: 16,
+    };
+
     return (
       <PageContent ready={!loading} loadingMessages={['Shrimping down the mat...', 'Doing mat swims...', 'Pulling up gi pants...']}>
-      <div className="max-w-6xl mx-auto px-8 py-5">
+      <div style={{ maxWidth: 1240, margin: '0 auto', padding: '40px 48px 80px' }}>
         {styleBlock}
 
-        {/* ── Header row ──────────────────────────────────────────── */}
-        <div className="flex items-end justify-between mb-6">
+        {/* ── Header ──────────────────────────────────────────────── */}
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 36 }}>
           <div>
-            <h2
-              className="text-2xl font-display font-bold tracking-tight"
-              style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}
+            <div className="j2-label-micro" style={{ marginBottom: 10 }}>{todayLabel}</div>
+            <h1
+              className="j2-serif-display j2-heading-glow"
+              style={{ fontSize: 56, margin: 0, lineHeight: 1 }}
             >
-              The Path Ahead
-            </h2>
-            <p className="text-sm mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
-              {new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date())}
-              {name && <span style={{ color: 'rgba(255,255,255,0.25)' }}> — {name}</span>}
-            </p>
+              This week
+            </h1>
+            <div
+              className="j2-serif-italic"
+              style={{ marginTop: 8, fontSize: 18 }}
+            >
+              {streakSubtitle}
+            </div>
           </div>
-          {primaryCta && (
+          <div style={{ display: 'flex', gap: 10 }}>
+            {intentionsEnabled && (
+              <button
+                onClick={() => setSetIntentOpen(true)}
+                style={{
+                  height: 38, padding: '0 14px',
+                  background: 'var(--j2-surface-3)',
+                  color: 'rgba(255,255,255,0.90)',
+                  border: '1px solid var(--j2-border-2)',
+                  borderRadius: 10,
+                  fontWeight: 500, fontSize: 13,
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  cursor: 'pointer',
+                  transition: 'background 180ms ease',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'var(--j2-surface-3)'; }}
+              >
+                ◇ {activeIntention ? 'Adjust focus' : 'Set focus'}
+              </button>
+            )}
             <button
               onClick={() => { setLogDate(toDateString(today)); setLogOpen(true); }}
-              className="rounded-xl px-6 py-2.5 text-sm font-semibold text-white"
               style={{
-                backgroundColor: '#DA7422',
-                boxShadow: '0 2px 12px rgba(218,116,34,0.3)',
-                transition: 'transform 150ms ease, box-shadow 150ms ease',
+                height: 42, padding: '0 20px',
+                background: '#DA7422', color: '#fff',
+                fontWeight: 600, borderRadius: 10,
+                boxShadow: '0 0 0 1px rgba(218,116,34,0.3), 0 10px 24px -12px rgba(218,116,34,0.6)',
+                transition: 'background 180ms ease, transform 180ms ease',
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                fontSize: 14,
+                cursor: 'pointer',
               }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(218,116,34,0.4)'; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(218,116,34,0.3)'; }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#E8823A'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#DA7422'; }}
             >
-              + Log Session
+              + Log session
             </button>
-          )}
+          </div>
         </div>
 
-        {/* Subtle divider */}
-        <div style={{
-          height: 1,
-          background: 'linear-gradient(to right, transparent 0%, rgba(196,145,95,0.25) 20%, rgba(196,145,95,0.25) 80%, transparent 100%)',
-          marginBottom: 24,
-        }} />
-
         {allSessions.length === 0 ? (
-          /* ── Empty state ── */
-          <div className="max-w-md mx-auto">
+          <div style={{ maxWidth: 480, margin: '0 auto' }}>
             <FirstVisitCard onLogFirst={() => { setLogDate(toDateString(today)); setLogOpen(true); }} />
           </div>
         ) : (
-          /* ── Two-column grid ────────────────────────────────────── */
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 28, alignItems: 'start' }}>
+        <>
 
-            {/* ── LEFT: Main content ──────────────────────────────── */}
-            <div className="space-y-5">
-              {/* Week section */}
-              {weekSectionHeader}
-              {weekViewContent}
+        {/* ── 4-stat strip ────────────────────────────────────────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 28 }}>
+          {([
+            {
+              label: 'Practice streak',
+              value: streak > 0 ? `${streak}d` : '—',
+              unit: longestStreak > 0 ? `best: ${longestStreak}d` : 'build the habit',
+            },
+            {
+              label: 'This week',
+              value: weekStats.totalMinutes > 0 ? formatDuration(weekStats.totalMinutes) : '0h',
+              unit: `${weekStats.count} session${weekStats.count === 1 ? '' : 's'}`,
+            },
+            {
+              label: 'Alignment',
+              value: activeIntention ? `${alignmentPct}%` : '—',
+              unit: activeIntention
+                ? `${alignedCount} of ${weekStats.count} on focus`
+                : 'set a focus to track',
+            },
+            {
+              label: 'Consistent weeks',
+              value: consistentWeeks > 0 ? String(consistentWeeks) : '—',
+              unit: consistentWeeks >= 1 ? 'weeks without a break' : 'log a session to start',
+            },
+          ]).map((s, i) => (
+            <div
+              key={i}
+              style={{
+                padding: '16px 18px',
+                background: 'var(--j2-surface-2)',
+                border: '1px solid var(--j2-border-1)',
+                borderRadius: 12,
+                position: 'relative',
+              }}
+            >
+              <div className="j2-label-micro" style={{ marginBottom: 8 }}>{s.label}</div>
+              <div
+                style={{
+                  fontSize: 30, fontFamily: FONT_EDITORIAL, fontWeight: 600,
+                  color: PALE_YELLOW, lineHeight: 1.05,
+                }}
+              >
+                {s.value}
+              </div>
+              <div
+                style={{
+                  fontSize: 11.5, color: 'rgba(255,255,255,0.40)',
+                  marginTop: 4, letterSpacing: '0.1em', textTransform: 'uppercase',
+                }}
+              >
+                {s.unit}
+              </div>
+            </div>
+          ))}
+        </div>
 
-              {/* Training Telemetry — always visible on desktop */}
-              {telemetryContent}
+        {/* ── 2-col main ──────────────────────────────────────────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 28, alignItems: 'flex-start', marginBottom: 28 }}>
+
+          {/* LEFT column ─────────────────────────────────── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20, minWidth: 0 }}>
+            {/* Annual radial — hero */}
+            <div style={{ ...heroCardStyle, padding: 28, position: 'relative' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
+                <div>
+                  <div className="j2-label-copper">◈ The Path · {year}</div>
+                  <div className="j2-serif-display" style={{ fontSize: 22, marginTop: 4 }}>
+                    A year of training at a glance
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 20px' }}>
+                <AnnualRadial
+                  sessions={allSessions}
+                  intentions={intentions}
+                  year={year}
+                  size={480}
+                />
+              </div>
+              {/* Pillar legend */}
+              <div
+                style={{
+                  display: 'flex', justifyContent: 'space-between', gap: 10,
+                  paddingTop: 14, borderTop: '1px solid var(--j2-border-2)',
+                }}
+              >
+                {SKILL_TAGS.map(tag => {
+                  const count = allSessions.filter(s =>
+                    new Date((typeof s.date === 'string' ? s.date : toDateString(new Date(s.date))) + 'T00:00:00').getFullYear() === year
+                    && s.tags?.[0] === tag.value
+                  ).length;
+                  const color = SKILL_COLORS[tag.value]?.stroke ?? COPPER;
+                  return (
+                    <div key={tag.value} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                      <span
+                        style={{
+                          width: 10, height: 10, borderRadius: '50%',
+                          background: color,
+                          boxShadow: `0 0 8px ${color}80`,
+                        }}
+                      />
+                      <div className="j2-label-micro" style={{ fontSize: 10 }}>{tag.label}</div>
+                      <div style={{ fontSize: 13, color: PALE_YELLOW, fontFamily: FONT_EDITORIAL }}>{count}</div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* ── RIGHT: Sidebar ──────────────────────────────────── */}
-            <div className="space-y-4">
-              {/* Stats */}
-              <StatStrip
-                streak={streak}
-                longestStreak={longestStreak}
+            {/* Week section + telemetry — our existing week navigation preserved */}
+            <div style={{ ...softCardStyle, padding: 24 }}>
+              {weekSectionHeader}
+              <div style={{ marginTop: 12 }}>{weekViewContent}</div>
+            </div>
+
+            {telemetryContent}
+          </div>
+
+          {/* RIGHT sidebar ─────────────────────────────── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+
+            {/* Intention hero card */}
+            {intentionsEnabled && (
+              <IntentionHeroCard
+                intention={activeIntention}
                 weekSessionCount={weekStats.count}
-                weekTotalMinutes={weekStats.totalMinutes}
-                consistentWeeks={consistentWeeks}
-                acwr={acwr}
-                rustiest={rustiestPillar}
-                spikiest={spikiest}
+                onSetIntent={() => setSetIntentOpen(true)}
+                onEditIntent={activeIntention ? () => setEditIntention(activeIntention) : undefined}
+                onViewJournal={activeIntention ? () => navigate(`/intentions/${activeIntention.id}/journal`) : undefined}
+                onDeleteIntent={handleDeleteIntention}
               />
+            )}
 
-              {/* Intention */}
+            {/* Most recent session */}
+            {mostRecent && (() => {
+              const dateStr = typeof mostRecent.date === 'string' ? mostRecent.date.slice(0, 10) : toDateString(new Date(mostRecent.date));
+              const dateObj = new Date(dateStr + 'T00:00:00');
+              const giLabel = mostRecent.gi_nogi === 'gi' ? 'Gi' : 'No-Gi';
+              const typeLabel = SESSION_TYPE_LABELS[mostRecent.session_type] ?? mostRecent.session_type;
+              const primaryTag = mostRecent.tags?.[0]
+                ? (SKILL_TAGS.find(s => s.value === mostRecent.tags[0])?.label ?? mostRecent.tags[0])
+                : null;
+              const intColor = INTENSITY_COLOR[mostRecent.intensity ?? 3] ?? '#A8CB72';
+              return (
+                <div style={{ ...softCardStyle, padding: 24 }}>
+                  <div className="j2-label-copper" style={{ marginBottom: 12 }}>◈ Most recent session</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                    <span
+                      style={{
+                        width: 12, height: 12, borderRadius: '50%',
+                        background: intColor,
+                        boxShadow: `0 0 10px ${intColor}80`,
+                      }}
+                    />
+                    <div className="j2-serif-display" style={{ fontSize: 22 }}>
+                      {primaryTag ?? 'Free rolling'}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.60)' }}>
+                    {formatDuration(mostRecent.duration ?? 0)} · {typeLabel} · {giLabel}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.40)', marginTop: 4 }}>
+                    {DAY_NAMES[dateObj.getDay()]}, {MONTH_NAMES[dateObj.getMonth()]} {dateObj.getDate()}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Last 30 days intensity */}
+            <div style={{ ...softCardStyle, padding: 24 }}>
+              <div className="j2-label-copper" style={{ marginBottom: 12 }}>◈ Last 30 days · intensity</div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 64 }}>
+                {intensityDist.map((n, i) => {
+                  const h = intensityMax ? (n / intensityMax) * 54 + 6 : 4;
+                  const c = INT_COLORS[(i + 1) as 1 | 2 | 3 | 4 | 5];
+                  return (
+                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                      <div
+                        style={{
+                          width: '100%', height: h, background: c, borderRadius: 3,
+                          boxShadow: `0 0 8px ${c}60`,
+                        }}
+                      />
+                      <div
+                        style={{
+                          fontSize: 10.5, color: 'rgba(255,255,255,0.40)',
+                          letterSpacing: '0.1em',
+                        }}
+                      >
+                        {n}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div
+                style={{
+                  display: 'flex', justifyContent: 'space-between',
+                  fontSize: 10, color: 'rgba(255,255,255,0.40)',
+                  letterSpacing: '0.14em', textTransform: 'uppercase', marginTop: 4,
+                }}
+              >
+                <span>Drill</span><span>Steady</span><span>Hard roll</span>
+              </div>
+            </div>
+
+            {/* Heatmap */}
+            {heatmapSection}
+
+            {/* Reflection */}
+            {reflectionCard}
+          </div>
+        </div>
+
+        {/* ── Recent intentions row ───────────────────────────────── */}
+        {recentIntentions.length > 0 && (
+          <div style={{ ...softCardStyle, padding: 24, marginBottom: 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
+              <div className="j2-label-copper">◈ Recent intentions</div>
               {intentionsEnabled && (
-                <IntentionHeroCard
-                  intention={activeIntention}
-                  weekSessionCount={weekStats.count}
-                  onSetIntent={() => setSetIntentOpen(true)}
-                  onEditIntent={activeIntention ? () => setEditIntention(activeIntention) : undefined}
-                  onViewJournal={activeIntention ? () => navigate(`/intentions/${activeIntention.id}/journal`) : undefined}
-                  onDeleteIntent={handleDeleteIntention}
-                />
+                <button
+                  onClick={() => navigate('/intentions')}
+                  style={{
+                    fontSize: 12, fontWeight: 600,
+                    color: COPPER, borderBottom: `1px solid ${COPPER}40`,
+                    background: 'transparent', padding: 0, cursor: 'pointer',
+                  }}
+                >
+                  See all →
+                </button>
               )}
-
-              {/* Heatmap */}
-              {heatmapSection}
-
-              {/* Reflection prompt */}
-              {allSessions.length > 0 && reflectionCard}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(6, recentIntentions.length)}, 1fr)`, gap: 12 }}>
+              {recentIntentions.map(i => {
+                const color = i.heading ? (SKILL_COLORS[i.heading]?.stroke ?? COPPER) : COPPER;
+                const weekStart = new Date(i.week_start.slice(0, 10) + 'T00:00:00');
+                const label = i.heading
+                  ? (SKILL_TAGS.find(s => s.value === i.heading)?.label ?? i.heading)
+                  : (i.intent_label ?? 'Focus');
+                return (
+                  <div
+                    key={i.id}
+                    style={{
+                      padding: '12px 14px',
+                      background: 'var(--j2-surface-2)',
+                      border: '1px solid var(--j2-border-1)',
+                      borderRadius: 10,
+                      position: 'relative',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <div
+                      aria-hidden
+                      style={{
+                        position: 'absolute', top: 0, right: 0, width: 60, height: 60,
+                        background: `radial-gradient(circle at 100% 0%, ${color}30, transparent 70%)`,
+                        pointerEvents: 'none',
+                      }}
+                    />
+                    <div
+                      style={{
+                        fontSize: 10, color: 'rgba(255,255,255,0.40)',
+                        letterSpacing: '0.14em', textTransform: 'uppercase',
+                      }}
+                    >
+                      Wk of {MONTH_NAMES[weekStart.getMonth()]} {weekStart.getDate()}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 15, fontFamily: FONT_EDITORIAL, fontWeight: 600,
+                        color: PALE_YELLOW, marginTop: 6,
+                      }}
+                    >
+                      {label}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
+        )}
+
+        </>
         )}
 
         {modals}
