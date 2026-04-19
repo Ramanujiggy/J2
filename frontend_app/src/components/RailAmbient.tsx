@@ -223,78 +223,122 @@ export default function RailAmbient() {
         <circle cx={CX} cy={CY} r={R * 1.2} fill="url(#rail-amb-wash)" />
 
         {/* ── Prism group ───────────────────────────────────────── */}
-
-        {/* HALO layer — strokeWidth 6, blurred, copper-hued. This is the
-            primary visible glow. Continuous 5s breath on opacity so the rail
-            always has perceptible motion underneath whatever the master
-            form/dissolve cycle is doing. */}
-        <path
-          d={pathD}
-          fill="none"
-          stroke={COPPER}
-          strokeWidth={6}
-          strokeLinejoin="round"
-          filter="url(#rail-amb-halo-blur)"
-          opacity={reduced ? 0.45 : 0.35}
-        >
-          {!reduced && (
-            <animate
-              attributeName="opacity"
-              values="0.35;0.65;0.35"
-              dur="5s"
-              repeatCount="indefinite"
-            />
-          )}
-        </path>
-
-        {/* Ghost stroke — thin, always-on reference line so stills read. */}
-        <path
-          d={pathD}
-          fill="none"
-          stroke={PALE_YELLOW}
-          strokeOpacity={0.10}
-          strokeWidth={0.7}
-          strokeLinejoin="round"
-        />
-
-        {/* Active crisp stroke — draws in during form, holds, fades on
-            dissolve via opacity (not stroke-reverse, which reads as glitch). */}
-        <path
-          d={pathD}
-          fill="none"
-          stroke={PALE_YELLOW}
-          strokeWidth={1.6}
-          strokeLinejoin="round"
-          strokeDasharray={PERIM}
-          strokeOpacity={reduced ? 0.55 : 0}
-          strokeDashoffset={reduced ? 0 : PERIM}
-        >
-          {!reduced && (
-            <>
-              {/* Dashoffset: full → 0 by form-end, stays 0 through hold and
-                  dissolve, resets to full during rest. */}
-              <animate
-                attributeName="stroke-dashoffset"
-                dur={MASTER}
-                keyTimes={`0;${KT.formEnd};${KT.holdEnd};${KT.dissolveEnd};1`}
-                values={`${PERIM};0;0;0;${PERIM}`}
-                calcMode="spline"
-                keySplines={`${EASE};0 0 1 1;0 0 1 1;0 0 1 1`}
+        {/* Nested-group SMIL scale pattern: outer translate moves the origin
+            to the pentagon center, middle group animates scale (which is
+            origin-relative in SVG), inner translate undoes the offset so the
+            paths stay in their original coord system. Net effect: scale
+            centered at (CX, CY). 7s period — intentionally different from
+            the 5s halo-opacity breath so the two rhythms don't lock. */}
+        <g transform={`translate(${CX} ${CY})`}>
+          <g>
+            {!reduced && (
+              <animateTransform
+                attributeName="transform"
+                type="scale"
+                values="1;1.04;1"
+                keyTimes="0;0.5;1"
+                dur="7s"
                 repeatCount="indefinite"
               />
-              {/* Opacity: 0 → 0.55 at form-end, hold, fade during dissolve. */}
-              <animate
-                attributeName="stroke-opacity"
-                dur={MASTER}
-                keyTimes={`0;${KT.formEnd};${KT.holdEnd};${KT.dissolveEnd};1`}
-                values="0;0.55;0.55;0;0"
-                calcMode="spline"
-                keySplines={`${EASE};0 0 1 1;${EASE};0 0 1 1`}
-                repeatCount="indefinite"
+            )}
+            <g transform={`translate(${-CX} ${-CY})`}>
+              {/* HALO layer — strokeWidth 6, blurred, copper-hued. Primary
+                  visible glow. 5s opacity breath underneath the scale breath. */}
+              <path
+                d={pathD}
+                fill="none"
+                stroke={COPPER}
+                strokeWidth={6}
+                strokeLinejoin="round"
+                filter="url(#rail-amb-halo-blur)"
+                opacity={reduced ? 0.45 : 0.35}
+              >
+                {!reduced && (
+                  <animate
+                    attributeName="opacity"
+                    values="0.35;0.65;0.35"
+                    dur="5s"
+                    repeatCount="indefinite"
+                  />
+                )}
+              </path>
+
+              {/* Ghost stroke — thin, always-on reference line. */}
+              <path
+                d={pathD}
+                fill="none"
+                stroke={PALE_YELLOW}
+                strokeOpacity={0.10}
+                strokeWidth={0.7}
+                strokeLinejoin="round"
               />
-            </>
-          )}
-        </path>
+
+              {/* Active crisp stroke — draws in during form, holds, fades on
+                  dissolve via opacity (not stroke-reverse, reads as glitch). */}
+              <path
+                d={pathD}
+                fill="none"
+                stroke={PALE_YELLOW}
+                strokeWidth={1.6}
+                strokeLinejoin="round"
+                strokeDasharray={PERIM}
+                strokeOpacity={reduced ? 0.55 : 0}
+                strokeDashoffset={reduced ? 0 : PERIM}
+              >
+                {!reduced && (
+                  <>
+                    <animate
+                      attributeName="stroke-dashoffset"
+                      dur={MASTER}
+                      keyTimes={`0;${KT.formEnd};${KT.holdEnd};${KT.dissolveEnd};1`}
+                      values={`${PERIM};0;0;0;${PERIM}`}
+                      calcMode="spline"
+                      keySplines={`${EASE};0 0 1 1;0 0 1 1;0 0 1 1`}
+                      repeatCount="indefinite"
+                    />
+                    <animate
+                      attributeName="stroke-opacity"
+                      dur={MASTER}
+                      keyTimes={`0;${KT.formEnd};${KT.holdEnd};${KT.dissolveEnd};1`}
+                      values="0;0.55;0.55;0;0"
+                      calcMode="spline"
+                      keySplines={`${EASE};0 0 1 1;${EASE};0 0 1 1`}
+                      repeatCount="indefinite"
+                    />
+                  </>
+                )}
+              </path>
+            </g>
+          </g>
+        </g>
+
+        {/* ── Orbital light satellites ──────────────────────────────
+            Two dots travel the pentagon perimeter continuously via
+            animateMotion along pathD. The primary (champagne) has a blurred
+            comet head bonded to it; the secondary (copper) is phase-offset
+            by half the loop so the two satellites are always 180° apart,
+            chasing each other around the prism. This is the "circling"
+            the user asked for — the pentagon itself now has continuous,
+            clearly kinetic motion on-screen at all times (not gated by
+            the 14s form cycle). */}
+        {!reduced && (
+          <>
+            {/* Primary comet head — soft blurred glow, travels with the primary dot. */}
+            <circle r={5.5} fill={PALE_YELLOW} opacity={0.22} filter="url(#rail-amb-halo-blur)">
+              <animateMotion dur="16s" repeatCount="indefinite" path={pathD} />
+            </circle>
+            {/* Primary satellite — bright champagne pinpoint. */}
+            <circle r={2.5} fill={PALE_YELLOW} opacity={0.85}>
+              <animateMotion dur="16s" repeatCount="indefinite" rotate="auto" path={pathD} />
+            </circle>
+            {/* Secondary satellite — dimmer copper, 180° out of phase.
+                begin="-8s" starts the animation 8s in the past, so at t=0
+                it is already halfway along the 16s path. */}
+            <circle r={2} fill={COPPER} opacity={0.55}>
+              <animateMotion dur="16s" begin="-8s" repeatCount="indefinite" rotate="auto" path={pathD} />
+            </circle>
+          </>
+        )}
 
         {/* ── Ambient drifters — 6 twinkling motes around the prism ─── */}
         {DRIFTERS.map((p, i) => {

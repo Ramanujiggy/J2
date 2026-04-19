@@ -215,31 +215,41 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
           strokeWidth={1.5}
         />
 
-        {/* Vertex glow rings — pulsing on active vertex */}
-        {VERTICES.map(v => (
-          <circle
-            key={v.value + '-ring'}
-            cx={v.cx}
-            cy={v.cy}
-            r={heading === v.value ? 13 : 6}
-            fill={heading === v.value ? 'rgba(196,145,95,0.18)' : 'rgba(255,255,255,0.04)'}
-            stroke={heading === v.value ? COPPER : 'rgba(196,145,95,0.2)'}
-            strokeWidth={heading === v.value ? 1.5 : 1}
-            style={heading === v.value ? {
-              animation: 'j2IntentCopperPulse 4.5s ease-in-out infinite',
-            } : undefined}
-          />
-        ))}
+        {/* Dashed connections — dot to every vertex. Primary is brightest,
+            others glow softly to signal they're live (future: tap to mute). */}
+        {dotPos && VERTICES.map(v => {
+          const isPrimary = heading === v.value;
+          const primaryOpacity = resonance ? resonanceToOpacity(resonance) : 0.3;
+          return (
+            <line
+              key={v.value + '-dash'}
+              x1={dotPos.x} y1={dotPos.y}
+              x2={v.cx} y2={v.cy}
+              stroke={COPPER}
+              strokeWidth={isPrimary ? 1.2 : 0.8}
+              strokeDasharray={isPrimary ? '3 3' : '2 3'}
+              opacity={isPrimary ? primaryOpacity : 0.28}
+              style={{
+                filter: isPrimary
+                  ? 'drop-shadow(0 0 2.5px rgba(196,145,95,0.45))'
+                  : 'drop-shadow(0 0 2px rgba(196,145,95,0.25))',
+                transition: 'opacity 0.25s ease, stroke-width 0.25s ease',
+              }}
+            />
+          );
+        })}
 
-        {/* Dashed line from dot to active vertex */}
-        {dotPos && activeVertex && (
-          <line
-            x1={dotPos.x} y1={dotPos.y}
-            x2={activeVertex.cx} y2={activeVertex.cy}
+        {/* Vertex glow ring — pulsing copper halo only on the primary vertex */}
+        {activeVertex && (
+          <circle
+            key={activeVertex.value + '-ring'}
+            cx={activeVertex.cx}
+            cy={activeVertex.cy}
+            r={13}
+            fill="rgba(196,145,95,0.18)"
             stroke={COPPER}
-            strokeWidth={1}
-            strokeDasharray="3 3"
-            opacity={resonance ? resonanceToOpacity(resonance) : 0.3}
+            strokeWidth={1.5}
+            style={{ animation: 'j2IntentCopperPulse 4.5s ease-in-out infinite' }}
           />
         )}
 
