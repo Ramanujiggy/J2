@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, COPPER } from '../lib/theme.ts';
+import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, COPPER, PRESTIGE_TEAL, PRESTIGE_TEAL_GLOW } from '../lib/theme.ts';
 import { formatDuration } from '../lib/sessionUtils.ts';
 import { EIGHT_GATES } from '../lib/constants.ts';
 import { generateBurstParticles } from '../lib/particles.ts';
@@ -38,6 +38,7 @@ export default function StatStrip({ streak, longestStreak, weekSessionCount, wee
 
   const isPersonalBest = streak > 0 && streak >= longestStreak;
   const gate = getActiveGate(consistentWeeks);
+  const isPrestige = consistentWeeks >= 26;
 
   const handleStreakTap = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -64,7 +65,7 @@ export default function StatStrip({ streak, longestStreak, weekSessionCount, wee
     'rgba(255,255,255,0.88)';
 
   const valueColor =
-    view === 'weekly'    ? (gate ? gate.color : 'rgba(255,255,255,0.88)') :
+    view === 'weekly'    ? (isPrestige ? PRESTIGE_TEAL : gate ? gate.color : 'rgba(255,255,255,0.88)') :
     view === 'daily'     ? (streak > 0 ? COPPER : 'rgba(255,255,255,0.88)') :
     view === 'readiness' ? acwrColor :
     view === 'rustiest'  ? 'rgba(218,116,34,0.85)' :
@@ -93,8 +94,12 @@ export default function StatStrip({ streak, longestStreak, weekSessionCount, wee
     view === 'rustiest' && rustiestPillar && rustiestPillar.daysSince < Infinity ? `${rustiestPillar.daysSince}d since last session` :
     null;
 
-  const cellGlow = view === 'weekly' && gate ? `0 0 10px 2px ${gate.glow}` : undefined;
+  const cellGlow =
+    view === 'weekly' && isPrestige ? `0 0 14px 3px ${PRESTIGE_TEAL_GLOW}` :
+    view === 'weekly' && gate        ? `0 0 10px 2px ${gate.glow}` :
+    undefined;
   const showBurst = view === 'weekly' && consistentWeeks >= 26;
+  const showPrestigeAura = view === 'weekly' && isPrestige;
 
   return (
     <button
@@ -117,6 +122,19 @@ export default function StatStrip({ streak, longestStreak, weekSessionCount, wee
           transition: 'box-shadow 0.4s ease',
         }}
       >
+        {/* Ethereal prestige aura — breathes behind the number */}
+        {showPrestigeAura && (
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: `radial-gradient(ellipse 65% 75% at center, ${PRESTIGE_TEAL_GLOW} 0%, rgba(0,212,170,0.18) 35%, transparent 75%)`,
+              animation: 'j2PrestigeBreathe 4.2s ease-in-out infinite',
+              mixBlendMode: 'screen',
+            }}
+          />
+        )}
+
         {/* Burst particles — 26-week milestone, one-shot */}
         {showBurst && (
           <div key={consistentWeeks} className="absolute inset-0 pointer-events-none overflow-hidden">

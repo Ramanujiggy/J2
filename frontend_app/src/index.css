@@ -272,3 +272,15 @@
   .j2-seigaiha-bg { animation: none !important; }
 }
 
+/* Prestige breathe — slow ethereal aura behind the consistency stat
+   when a practitioner reaches the 26-week 8th Gate. Breathes at ~14 BPM
+   to feel alive without being distracting. */
+@keyframes j2PrestigeBreathe {
+  0%, 100% { opacity: 0.35; transform: scale(0.96); }
+  50%      { opacity: 0.72; transform: scale(1.04); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [style*="j2PrestigeBreathe"] { animation: none !important; opacity: 0.5 !important; }
+}
+

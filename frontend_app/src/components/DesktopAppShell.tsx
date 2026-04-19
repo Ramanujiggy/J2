@@ -8,6 +8,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext.tsx';
 import { useActiveIntention } from '../context/ActiveIntentionContext.tsx';
 import RiveBeltBar from './RiveBeltBar.tsx';
+import RailAmbient from './RailAmbient.tsx';
 import OfflineBanner from './OfflineBanner.tsx';
 import PageTransition from './PageTransition.tsx';
 import { useOnlineSync } from '../hooks/useOnlineSync.ts';
@@ -171,8 +172,15 @@ export default function DesktopAppShell({ children }: Props) {
           backdropFilter: 'blur(6px)',
           WebkitBackdropFilter: 'blur(6px)',
           zIndex: 1,
+          isolation: 'isolate',
         }}
       >
+        {/* Ambient layer — subdued onboarding animations behind everything.
+            Pentagon-forming motes up top, drifting signature line near the
+            bottom. Absolute + pointer-events: none; stacks below all content
+            without interfering with nav or focus card interaction. */}
+        <RailAmbient />
+
         {/* Wordmark + tagline */}
         <div>
           <div

@@ -9,7 +9,7 @@ import type { SessionSummary, Intention, IntentionsResponse, SessionsResponse } 
 import LogSessionForm from '../components/LogSessionForm.tsx';
 import SessionDetailModal from '../components/SessionDetailModal.tsx';
 import SetIntentionModal from '../components/SetIntentionModal.tsx';
-import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER, COPPER_BORDER, SURFACE_2, SURFACE_2_BORDER, SURFACE_3, WHISPER_BORDER, CARD_GLOW, CARD_GLOW_BORDER, FONT_EDITORIAL, INT_COLORS } from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER, COPPER_BORDER, SURFACE_2, SURFACE_2_BORDER, SURFACE_3, WHISPER_BORDER, CARD_GLOW, CARD_GLOW_BORDER, FONT_EDITORIAL, INT_COLORS, PRESTIGE_TEAL, PRESTIGE_TEAL_GLOW } from '../lib/theme.ts';
 import AnnualRadial from '../components/charts/AnnualRadial.tsx';
 import { SKILL_COLORS } from '../components/charts/RadarChart.tsx';
 import { CalendarDays, List, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -964,6 +964,7 @@ export default function PathAheadPage() {
               label: 'Consistent weeks',
               value: consistentWeeks > 0 ? String(consistentWeeks) : '—',
               unit: consistentWeeks >= 1 ? 'weeks without a break' : 'log a session to start',
+              prestige: consistentWeeks >= 26,
             },
           ]).map((s, i) => (
             <div
@@ -971,16 +972,35 @@ export default function PathAheadPage() {
               style={{
                 padding: '28px 30px',
                 background: 'var(--j2-surface-2)',
-                border: '1px solid var(--j2-border-1)',
+                border: s.prestige ? `1px solid ${PRESTIGE_TEAL_GLOW}` : '1px solid var(--j2-border-1)',
                 borderRadius: 16,
                 position: 'relative',
+                overflow: 'hidden',
+                boxShadow: s.prestige ? `0 0 24px ${PRESTIGE_TEAL_GLOW}, inset 0 0 32px rgba(0,212,170,0.08)` : undefined,
+                transition: 'box-shadow 400ms ease, border-color 400ms ease',
               }}
             >
-              <div className="j2-label-micro" style={{ marginBottom: 14 }}>{s.label}</div>
+              {s.prestige && (
+                <div
+                  aria-hidden="true"
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    pointerEvents: 'none',
+                    background: `radial-gradient(ellipse 80% 90% at 50% 55%, ${PRESTIGE_TEAL_GLOW} 0%, rgba(0,212,170,0.14) 40%, transparent 78%)`,
+                    animation: 'j2PrestigeBreathe 4.6s ease-in-out infinite',
+                    mixBlendMode: 'screen',
+                  }}
+                />
+              )}
+              <div className="j2-label-micro" style={{ marginBottom: 14, position: 'relative' }}>{s.label}</div>
               <div
                 style={{
                   fontSize: 52, fontFamily: FONT_EDITORIAL, fontWeight: 600,
-                  color: PALE_YELLOW, lineHeight: 1.05,
+                  color: s.prestige ? PRESTIGE_TEAL : PALE_YELLOW, lineHeight: 1.05,
+                  textShadow: s.prestige ? `0 0 18px ${PRESTIGE_TEAL_GLOW}` : undefined,
+                  position: 'relative',
+                  transition: 'color 400ms ease, text-shadow 400ms ease',
                 }}
               >
                 {s.value}
@@ -989,6 +1009,7 @@ export default function PathAheadPage() {
                 style={{
                   fontSize: 13, color: 'rgba(255,255,255,0.40)',
                   marginTop: 8, letterSpacing: '0.1em', textTransform: 'uppercase',
+                  position: 'relative',
                 }}
               >
                 {s.unit}

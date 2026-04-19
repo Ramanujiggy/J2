@@ -6,8 +6,6 @@ import { api } from '../lib/api.ts';
 import { useAuth } from '../hooks/useAuth.ts';
 import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, SURFACE_2, SURFACE_2_BORDER } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
-import { EIGHT_GATES } from '../lib/constants.ts';
-import { computeStats } from '../components/TrainingHeatmap.tsx';
 import CsvImportModal from '../components/CsvImportModal.tsx';
 import { exportSessionsCsv, exportIntentionsCsv } from '../lib/csvExport.ts';
 import type { SessionSummary, Intention } from '../types/api.ts';
@@ -84,22 +82,10 @@ export default function ProfilePage() {
   const [importOpen, setImportOpen] = useState(false);
   const [existingDates, setExistingDates] = useState<Set<string>>(new Set());
   const [exporting, setExporting] = useState(false);
-  const [consistentWeeks, setConsistentWeeks] = useState(0);
   const [storage, setStorage] = useState<StorageEstimate | null>(null);
 
   useEffect(() => {
     void getStorageEstimate().then(setStorage);
-  }, []);
-
-  // Fetch session history once on mount → compute Eight Gates progress
-  useEffect(() => {
-    api.get<{ sessions: SessionSummary[] }>('/api/sessions')
-      .then(data => {
-        const sessions = data.sessions ?? [];
-        const stats = computeStats(sessions, new Date().getFullYear());
-        setConsistentWeeks(stats.consistentWeeks);
-      })
-      .catch(() => {});
   }, []);
 
   // Load existing profile
@@ -337,61 +323,8 @@ export default function ProfilePage() {
           </form>
             </div>
 
-            {/* Sidebar column — Eight Gates, Library, Import, Export */}
+            {/* Sidebar column — Library, Import, Export */}
             <div className={isDesktop ? 'col-span-5 space-y-4' : 'contents'}>
-
-        {/* Eight Gates — consistency milestones */}
-        <div
-          className={`rounded-2xl ${isDesktop ? 'p-7' : 'mt-4 p-5'}`}
-          style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}
-        >
-          <div className="flex items-baseline justify-between mb-3">
-            <p className="j2-label-copper">
-              ◇ Eight Gates · Consistency
-            </p>
-            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
-              {consistentWeeks} {consistentWeeks === 1 ? 'week' : 'weeks'}
-            </span>
-          </div>
-          <div className={`grid ${isDesktop ? 'grid-cols-4' : 'grid-cols-4'} gap-2`}>
-            {EIGHT_GATES.map(gate => {
-              const earned = consistentWeeks >= gate.weeks;
-              return (
-                <div
-                  key={gate.weeks}
-                  style={{
-                    aspectRatio: '1',
-                    borderRadius: 10,
-                    background: earned ? `${gate.color}1F` : 'rgba(255,255,255,0.025)',
-                    border: earned ? `1px solid ${gate.color}66` : '1px dashed rgba(255,255,255,0.08)',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: earned ? `0 0 16px ${gate.glow}` : 'none',
-                    transition: 'all 280ms cubic-bezier(0.2, 0.8, 0.2, 1)',
-                  }}
-                >
-                  <span
-                    className="font-wordmark"
-                    style={{
-                      fontSize: isDesktop ? 24 : 20,
-                      fontWeight: 600,
-                      color: earned ? gate.color : 'rgba(255,255,255,0.22)',
-                      textShadow: earned ? `0 0 10px ${gate.glow}` : 'none',
-                      lineHeight: 1,
-                    }}
-                  >
-                    {gate.weeks}
-                  </span>
-                  <span
-                    className="text-[8px] font-semibold uppercase tracking-widest mt-1"
-                    style={{ color: earned ? gate.color : 'rgba(255,255,255,0.22)', opacity: earned ? 0.8 : 1 }}
-                  >
-                    wk
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
 
         {/* Move Library section */}
         <div
