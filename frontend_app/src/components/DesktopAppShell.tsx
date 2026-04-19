@@ -6,10 +6,13 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext.tsx';
+import { useActiveIntention } from '../context/ActiveIntentionContext.tsx';
 import { type BeltRank, BELT_COLORS } from './BeltBar.tsx';
 import OfflineBanner from './OfflineBanner.tsx';
 import PageTransition from './PageTransition.tsx';
 import { useOnlineSync } from '../hooks/useOnlineSync.ts';
+import { SKILL_TAGS } from '../lib/constants.ts';
+import { toDateString, addDays } from '../lib/sessionUtils.ts';
 import { PAGE_BG, PALE_YELLOW, COPPER } from '../lib/theme.ts';
 
 // ─── Icons (inline SVG, matches AppShell style) ──────────────────────────────
@@ -27,6 +30,14 @@ function CompassIcon({ active }: IconProps) {
     <svg {...iconAttrs(active)}>
       <circle cx="12" cy="12" r="9" />
       <polygon points="16,8 10,10 8,16 14,14" />
+    </svg>
+  );
+}
+function BookIcon({ active }: IconProps) {
+  return (
+    <svg {...iconAttrs(active)}>
+      <path d="M4 4h7a3 3 0 013 3v13a3 3 0 00-3-3H4z" />
+      <path d="M20 4h-7a3 3 0 00-3 3v13a3 3 0 013-3h7z" />
     </svg>
   );
 }
@@ -73,6 +84,7 @@ type NavItem = {
 // continue to work, but the desktop rail is a single Atlas entry.
 const NAV_ITEMS: readonly NavItem[] = [
   { path: '/home',       label: 'Path Ahead', Icon: CompassIcon },
+  { path: '/journal',    label: 'Journal',    Icon: BookIcon },
   { path: '/atlas',      label: 'Atlas',      Icon: MapIcon },
   { path: '/intentions', label: 'Intentions', Icon: DiamondIcon, gated: 'intentions' },
   { path: '/profile',    label: 'Profile',    Icon: UserIcon },
@@ -86,8 +98,29 @@ export default function DesktopAppShell({ children }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
   const { name, beltRank, stripes, intentionsEnabled } = useProfile();
+  const { activeIntention } = useActiveIntention();
 
   useOnlineSync();
+
+  // Days remaining on the active intention (inclusive). Null when no intention.
+  const daysRemaining = useMemo(() => {
+    if (!activeIntention) return null;
+    const start = activeIntention.week_start.slice(0, 10);
+    const end = addDays(start, (activeIntention.duration_days ?? 7) - 1);
+    const todayStr = toDateString(new Date());
+    const diff = Math.max(0, Math.round(
+      (new Date(end + 'T00:00:00').getTime() - new Date(todayStr + 'T00:00:00').getTime()) / 86_400_000
+    ));
+    return diff; // 0 means "ends today"
+  }, [activeIntention]);
+
+  const focusLabel = useMemo(() => {
+    if (!activeIntention) return null;
+    if (activeIntention.heading) {
+      return SKILL_TAGS.find(t => t.value === activeIntention.heading)?.label ?? activeIntention.heading;
+    }
+    return activeIntention.intent_label || 'Focus';
+  }, [activeIntention]);
 
   const items = useMemo(
     () => NAV_ITEMS.filter(it => it.gated !== 'intentions' || intentionsEnabled),
@@ -208,7 +241,7 @@ export default function DesktopAppShell({ children }: Props) {
           })}
         </nav>
 
-        {/* Focus placeholder — wired to real intention data in Phase 3.
+        {/* Focus card — reads activeIntention from ActiveIntentionContext.
             Hidden when intentions feature is gated off so the rail doesn't
             advertise a destination the user can't reach. */}
         {intentionsEnabled && (
@@ -231,23 +264,67 @@ export default function DesktopAppShell({ children }: Props) {
             }}
           />
           <div className="j2-label-copper" style={{ marginBottom: 6 }}>◇ This week</div>
-          <div
-            className="j2-serif-display"
-            style={{ fontSize: 18, lineHeight: 1.1 }}
-          >
-            Set your focus
-          </div>
-          <button
-            onClick={() => go('/intentions')}
-            style={{
-              marginTop: 10, fontSize: 12, fontWeight: 600,
-              color: COPPER, borderBottom: `1px solid ${COPPER}40`,
-              cursor: 'pointer', background: 'transparent',
-              padding: 0,
-            }}
-          >
-            Open Intentions →
-          </button>
+          {activeIntention && focusLabel ? (
+            <>
+              <div className="j2-serif-display" style={{ fontSize: 20, lineHeight: 1.1 }}>
+                {focusLabel}
+              </div>
+              {activeIntention.intent_label
+                && activeIntention.intent_label.trim().toLowerCase() !== focusLabel.toLowerCase() && (
+                <div
+                  style={{
+                    marginTop: 2,
+                    fontSize: 12,
+                    color: 'rgba(255,255,255,0.60)',
+                    fontStyle: 'italic',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}
+                >
+                  {activeIntention.intent_label}
+                </div>
+              )}
+              {daysRemaining !== null && (
+                <div
+                  style={{
+                    marginTop: 10,
+                    fontSize: 10.5, letterSpacing: '0.14em',
+                    textTransform: 'uppercase', fontWeight: 700,
+                    color: 'rgba(255,255,255,0.40)',
+                  }}
+                >
+                  {daysRemaining === 0 ? 'Ends today' : `${daysRemaining} day${daysRemaining === 1 ? '' : 's'} left`}
+                </div>
+              )}
+              <button
+                onClick={() => go('/intentions')}
+                style={{
+                  marginTop: 10, fontSize: 12, fontWeight: 600,
+                  color: COPPER, borderBottom: `1px solid ${COPPER}40`,
+                  cursor: 'pointer', background: 'transparent',
+                  padding: 0,
+                }}
+              >
+                View Intentions →
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="j2-serif-display" style={{ fontSize: 18, lineHeight: 1.1 }}>
+                Set your focus
+              </div>
+              <button
+                onClick={() => go('/intentions')}
+                style={{
+                  marginTop: 10, fontSize: 12, fontWeight: 600,
+                  color: COPPER, borderBottom: `1px solid ${COPPER}40`,
+                  cursor: 'pointer', background: 'transparent',
+                  padding: 0,
+                }}
+              >
+                Open Intentions →
+              </button>
+            </>
+          )}
         </div>
         )}
 

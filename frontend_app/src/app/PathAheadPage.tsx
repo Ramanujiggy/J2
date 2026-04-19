@@ -15,6 +15,7 @@ import { SKILL_COLORS } from '../components/charts/RadarChart.tsx';
 import { CalendarDays, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from '../hooks/use-toast.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
+import { useActiveIntention } from '../context/ActiveIntentionContext.tsx';
 import PageContent from '../components/PageContent.tsx';
 import HeatmapPreviewWidget from '../components/HeatmapPreviewWidget.tsx';
 import HomeHeader from '../components/HomeHeader.tsx';
@@ -39,6 +40,7 @@ interface DeleteResponse      { message: string }
 export default function PathAheadPage() {
   const navigate = useNavigate();
   const { name, intentionsEnabled } = useProfile();
+  const { refresh: refreshRailIntention } = useActiveIntention();
   const isDesktop = useIsDesktop();
   const [sessions,   setSessions]   = useState<SessionSummary[]>([]);
   const [intentions, setIntentions] = useState<Intention[]>([]);
@@ -290,6 +292,7 @@ export default function PathAheadPage() {
     try {
       await api.delete<DeleteResponse>(`/api/intentions/${activeIntention.id}`);
       setIntentions(prev => prev.filter(i => i.id !== activeIntention.id));
+      refreshRailIntention();
     } catch {
       // silent — user can retry
     }
@@ -787,7 +790,7 @@ export default function PathAheadPage() {
       {(setIntentOpen || editIntention) && (
         <SetIntentionModal
           editIntention={editIntention ?? undefined}
-          onSaved={() => { fetchAll(); setEditIntention(null); }}
+          onSaved={() => { fetchAll(); refreshRailIntention(); setEditIntention(null); }}
           onClose={() => { setSetIntentOpen(false); setEditIntention(null); }}
         />
       )}

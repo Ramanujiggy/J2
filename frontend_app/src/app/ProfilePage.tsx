@@ -23,6 +23,9 @@ import {
   SelectValue,
 } from '../components/ui/select.tsx';
 import { toast } from '../hooks/use-toast.ts';
+import { getStorageEstimate, type StorageEstimate } from '../lib/videoStore.ts';
+import { formatBytes } from '../lib/videoUtils.ts';
+import { Library, ChevronRight } from 'lucide-react';
 
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
 
@@ -82,6 +85,11 @@ export default function ProfilePage() {
   const [existingDates, setExistingDates] = useState<Set<string>>(new Set());
   const [exporting, setExporting] = useState(false);
   const [consistentWeeks, setConsistentWeeks] = useState(0);
+  const [storage, setStorage] = useState<StorageEstimate | null>(null);
+
+  useEffect(() => {
+    void getStorageEstimate().then(setStorage);
+  }, []);
 
   // Fetch session history once on mount → compute Eight Gates progress
   useEffect(() => {
@@ -357,6 +365,57 @@ export default function ProfilePage() {
               );
             })}
           </div>
+        </div>
+
+        {/* Move Library section */}
+        <div
+          className="mt-4 rounded-2xl p-5"
+          style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}
+        >
+          <button
+            type="button"
+            onClick={() => navigate('/library')}
+            className="w-full flex items-center justify-between gap-3 touch-manipulation j2-press"
+          >
+            <div className="flex items-center gap-3 text-left">
+              <Library size={22} strokeWidth={1.5} style={{ color: 'rgba(196,145,95,0.85)', flexShrink: 0 }} />
+              <div>
+                <p className="text-sm font-semibold text-white">Move Library</p>
+                <p className="text-xs text-white/40">
+                  Personal video clips of your techniques.
+                </p>
+              </div>
+            </div>
+            <ChevronRight size={18} strokeWidth={2} style={{ color: 'rgba(255,255,255,0.30)', flexShrink: 0 }} />
+          </button>
+
+          {storage?.supported && storage.quotaBytes > 0 && (
+            <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+              <div className="flex items-baseline justify-between mb-1.5">
+                <span className="text-[10px] uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.30)' }}>
+                  Local storage
+                </span>
+                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                  {formatBytes(storage.usageBytes)} of {formatBytes(storage.quotaBytes)}
+                </span>
+              </div>
+              <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${Math.min(100, storage.usagePercent)}%`,
+                    backgroundColor: storage.usagePercent > 80 ? 'rgba(218,90,70,0.75)' : 'rgba(196,145,95,0.70)',
+                    transition: 'width 600ms ease-out',
+                  }}
+                />
+              </div>
+              {storage.usagePercent > 80 && (
+                <p className="text-[10px] mt-1.5" style={{ color: 'rgba(218,180,60,0.85)' }}>
+                  Storage is filling up. Consider removing older clips.
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Import section */}

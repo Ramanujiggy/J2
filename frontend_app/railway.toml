@@ -1,9 +1,12 @@
 [build]
-# `rm -rf node_modules/.vite` first clears Vite's build cache, which Railway's
-# layer caching sometimes holds a file lock on (EBUSY error on npm ci).
-# `npm ci` then wipes and reinstalls cleanly. `--include=dev` overrides
-# Railway's NODE_ENV=production default so vite/typescript/plugins install.
-buildCommand = "rm -rf node_modules/.vite && npm ci --include=dev && npm run build"
+# Railway mounts a persistent cache volume at node_modules/.vite, which blocks
+# `npm ci` (can't rmdir a mount point — EBUSY). We use `npm install --force`
+# instead: it updates deps in place without trying to wipe node_modules, and
+# --force bypasses the "up to date" cache check so devDependencies actually
+# install when Railway's NODE_ENV=production caused a prior prod-only install.
+# Vite's cacheDir is set to `.vite-cache` in vite.config.ts, so the mounted
+# node_modules/.vite path is ignored by the build entirely.
+buildCommand = "npm install --force --include=dev && npm run build"
 
 [deploy]
 startCommand = "npm run serve"

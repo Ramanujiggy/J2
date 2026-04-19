@@ -30,6 +30,18 @@ export interface UserTag {
   name: string;
   parent_pillar: Pillar;
   created_at: string;
+  // Move Library (migration 010) — video lives client-side; only metadata syncs
+  has_video?: boolean;
+  video_thumbnail?: string | null;
+  video_duration_seconds?: number | null;
+  video_notes?: string | null;
+}
+
+export interface UserTagVideoUpdate {
+  has_video?: boolean;
+  video_thumbnail?: string | null;
+  video_duration_seconds?: number | null;
+  video_notes?: string | null;
 }
 
 export interface UserTagsResponse {
