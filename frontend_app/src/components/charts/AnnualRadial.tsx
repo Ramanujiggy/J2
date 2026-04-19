@@ -221,7 +221,7 @@ export default function AnnualRadial({
       {/* Month labels — outer */}
       {months.map((m, i) => {
         const a = ((i / 12) * 360 - 90 - 3) * Math.PI / 180;
-        const r = rOuter + 30;
+        const r = rOuter + 34;
         return (
           <text
             key={m}
@@ -229,10 +229,10 @@ export default function AnnualRadial({
             y={cy + r * Math.sin(a)}
             textAnchor="middle"
             dominantBaseline="middle"
-            fontSize={9.5}
+            fontSize={13}
             fontWeight={600}
-            letterSpacing={2}
-            fill="rgba(255,255,255,0.40)"
+            letterSpacing={2.2}
+            fill="rgba(255,255,255,0.58)"
           >
             {m}
           </text>
