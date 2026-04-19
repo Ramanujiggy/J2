@@ -4,7 +4,7 @@ import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 
 import { api } from '../lib/api.ts';
 import { useAuth } from '../hooks/useAuth.ts';
-import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, SURFACE_2, SURFACE_2_BORDER } from '../lib/theme.ts';
+import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, SURFACE_2, SURFACE_2_BORDER, SURFACE_3, COPPER } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import CsvImportModal from '../components/CsvImportModal.tsx';
 import { exportSessionsCsv, exportIntentionsCsv } from '../lib/csvExport.ts';
@@ -56,8 +56,25 @@ interface ProfileResponse {
   } | null;
 }
 
-const inputCls =
+const inputClsMobile =
   'w-full bg-white/10 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-orange';
+
+const inputClsDesktop =
+  'w-full rounded-xl px-4 py-3.5 text-[15px] text-white placeholder-white/25 outline-none transition-colors';
+
+const inputStyleDesktop: React.CSSProperties = {
+  backgroundColor: SURFACE_3,
+  border: '1px solid rgba(255,255,255,0.08)',
+};
+
+function focusCopper(el: HTMLInputElement) {
+  el.style.borderColor = 'rgba(196,145,95,0.55)';
+  el.style.backgroundColor = 'rgba(255,255,255,0.10)';
+}
+function blurCopper(el: HTMLInputElement) {
+  el.style.borderColor = 'rgba(255,255,255,0.08)';
+  el.style.backgroundColor = SURFACE_3;
+}
 
 export default function ProfilePage() {
   const isDesktop = useIsDesktop();
@@ -195,23 +212,41 @@ export default function ProfilePage() {
         <PageContent ready={!loading} loadingMessages={['Taping fingers...']}>
           <div className={isDesktop ? 'grid grid-cols-12 gap-8 items-start' : 'space-y-4'}>
             <div className={isDesktop ? 'col-span-7 space-y-4' : 'contents'}>
+          {(() => {
+            const labelCls = isDesktop
+              ? 'block mb-2 text-[11px] font-bold uppercase tracking-[0.16em]'
+              : 'block text-sm text-white/70 mb-1';
+            const labelStyle: React.CSSProperties | undefined = isDesktop
+              ? { color: 'rgba(255,255,255,0.40)' }
+              : undefined;
+            const inputCls = isDesktop ? inputClsDesktop : inputClsMobile;
+            const inputStyle = isDesktop ? inputStyleDesktop : undefined;
+            const inputFocusProps = isDesktop
+              ? {
+                  onFocus: (e: React.FocusEvent<HTMLInputElement>) => focusCopper(e.currentTarget),
+                  onBlur:  (e: React.FocusEvent<HTMLInputElement>) => blurCopper(e.currentTarget),
+                }
+              : {};
+            return (
           <form onSubmit={handleSubmit} className={`space-y-6 rounded-2xl ${isDesktop ? 'p-10' : 'p-6'}`} style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}>
 
             {/* Name */}
             <div>
-              <label className="block text-sm text-white/70 mb-1">Name</label>
+              <label className={labelCls} style={labelStyle}>Name</label>
               <input
                 type="text"
                 value={form.name}
                 onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="Your name"
                 className={inputCls}
+                style={inputStyle}
+                {...inputFocusProps}
               />
             </div>
 
             {/* Belt rank */}
             <div>
-              <label className="block text-sm text-white/70 mb-1">Belt Rank</label>
+              <label className={labelCls} style={labelStyle}>Belt Rank</label>
               <Select
                 value={form.belt_rank ?? ''}
                 onValueChange={val => setForm(prev => ({
@@ -220,7 +255,14 @@ export default function ProfilePage() {
                   stripes: val ? prev.stripes : 0,
                 }))}
               >
-                <SelectTrigger className="w-full bg-white/10 border-white/10 text-white focus:ring-brand-orange">
+                <SelectTrigger
+                  className={
+                    isDesktop
+                      ? 'w-full text-[15px] text-white rounded-xl h-[52px] px-4'
+                      : 'w-full bg-white/10 border-white/10 text-white focus:ring-brand-orange'
+                  }
+                  style={isDesktop ? inputStyleDesktop : undefined}
+                >
                   <SelectValue placeholder="— Select belt rank —" />
                 </SelectTrigger>
                 <SelectContent>
@@ -234,29 +276,51 @@ export default function ProfilePage() {
             {/* Stripes */}
             {form.belt_rank && (
               <div>
-                <label className="block text-sm text-white/70 mb-2">Stripes</label>
-                <div className="flex gap-2">
-                  {[0, 1, 2, 3, 4].map(n => (
-                    <button
-                      key={n}
-                      type="button"
-                      onClick={() => setForm(prev => ({ ...prev, stripes: n }))}
-                      className={`w-10 h-10 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
-                        form.stripes === n
-                          ? 'bg-brand-orange text-white'
-                          : 'bg-white/10 text-white/60 hover:bg-white/20'
-                      }`}
-                    >
-                      {n}
-                    </button>
-                  ))}
+                <label className={labelCls} style={labelStyle}>Stripes</label>
+                <div className={`flex ${isDesktop ? 'gap-3' : 'gap-2'}`}>
+                  {[0, 1, 2, 3, 4].map(n => {
+                    const active = form.stripes === n;
+                    if (isDesktop) {
+                      return (
+                        <button
+                          key={n}
+                          type="button"
+                          onClick={() => setForm(prev => ({ ...prev, stripes: n }))}
+                          className="rounded-xl text-[15px] font-semibold transition-all cursor-pointer flex-1"
+                          style={{
+                            height: 52,
+                            backgroundColor: active ? 'rgba(218,116,34,0.18)' : SURFACE_3,
+                            border: active ? `1px solid ${COPPER}` : '1px solid rgba(255,255,255,0.08)',
+                            color: active ? COPPER : 'rgba(255,255,255,0.55)',
+                            boxShadow: active ? `0 0 14px rgba(218,116,34,0.22)` : 'none',
+                          }}
+                        >
+                          {n}
+                        </button>
+                      );
+                    }
+                    return (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setForm(prev => ({ ...prev, stripes: n }))}
+                        className={`w-10 h-10 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
+                          active
+                            ? 'bg-brand-orange text-white'
+                            : 'bg-white/10 text-white/60 hover:bg-white/20'
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
             {/* Home gym */}
             <div>
-              <label className="block text-sm text-white/70 mb-1">Home Gym</label>
+              <label className={labelCls} style={labelStyle}>Home Gym</label>
               {MAPS_KEY ? (
                 <>
                   <input
@@ -265,6 +329,8 @@ export default function ProfilePage() {
                     defaultValue={form.home_gym_name}
                     placeholder="Search for your gym…"
                     className={inputCls}
+                    style={inputStyle}
+                    {...inputFocusProps}
                   />
                   {form.home_gym_address && (
                     <p className="mt-1.5 text-xs text-white/40">{form.home_gym_address}</p>
@@ -278,6 +344,8 @@ export default function ProfilePage() {
                     onChange={e => setForm(prev => ({ ...prev, home_gym_name: e.target.value }))}
                     placeholder="Gym name"
                     className={inputCls}
+                    style={inputStyle}
+                    {...inputFocusProps}
                   />
                   <p className="mt-1 text-xs text-white/30">
                     Add <code className="text-white/40">VITE_GOOGLE_MAPS_API_KEY</code> to .env for address autocomplete.
@@ -288,23 +356,35 @@ export default function ProfilePage() {
 
             {/* Features */}
             <div
-              className="rounded-xl px-4 py-3 space-y-3"
+              className={`rounded-xl ${isDesktop ? 'px-5 py-4 space-y-4' : 'px-4 py-3 space-y-3'}`}
               style={{ backgroundColor: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}` }}
             >
-              <p className="text-xs text-white/30 uppercase tracking-wide">Features</p>
+              <p
+                className={isDesktop ? 'j2-label-copper' : 'text-xs text-white/30 uppercase tracking-wide'}
+              >
+                {isDesktop ? '◇ Features' : 'Features'}
+              </p>
               <label className="flex items-center justify-between gap-4 cursor-pointer group">
                 <div>
-                  <p className="text-sm text-white/80 font-medium">Training Intentions</p>
-                  <p className="text-xs text-white/35 mt-0.5">Track weekly focus and journal your intentions</p>
+                  <p className={isDesktop ? 'text-[15px] text-white/85 font-medium' : 'text-sm text-white/80 font-medium'}>
+                    Training Intentions
+                  </p>
+                  <p className={isDesktop ? 'text-[13px] text-white/40 mt-1' : 'text-xs text-white/35 mt-0.5'}>
+                    Track weekly focus and journal your intentions
+                  </p>
                 </div>
                 <div
                   onClick={() => setIntentionsEnabled(v => !v)}
-                  className="w-10 h-5 rounded-full relative transition-colors flex-shrink-0"
-                  style={{ backgroundColor: intentionsEnabled ? 'rgba(218,116,34,0.8)' : 'rgba(255,255,255,0.1)' }}
+                  className={`rounded-full relative transition-colors flex-shrink-0 ${isDesktop ? 'w-12 h-6' : 'w-10 h-5'}`}
+                  style={{ backgroundColor: intentionsEnabled ? 'rgba(218,116,34,0.85)' : 'rgba(255,255,255,0.10)' }}
                 >
                   <span
-                    className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform"
-                    style={{ transform: intentionsEnabled ? 'translateX(22px)' : 'translateX(2px)' }}
+                    className={`absolute top-0.5 rounded-full bg-white transition-transform ${isDesktop ? 'w-5 h-5' : 'w-4 h-4'}`}
+                    style={{
+                      transform: intentionsEnabled
+                        ? (isDesktop ? 'translateX(26px)' : 'translateX(22px)')
+                        : 'translateX(2px)',
+                    }}
                   />
                 </div>
               </label>
@@ -312,15 +392,34 @@ export default function ProfilePage() {
 
             {error && <p className="text-red-400 text-sm">{error}</p>}
 
-            <button
-              type="submit"
-              disabled={saving}
-              className="bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold px-6 py-2.5 rounded-full transition-colors disabled:opacity-50"
-            >
-              {saving ? 'Saving…' : 'Save Profile'}
-            </button>
+            {isDesktop ? (
+              <button
+                type="submit"
+                disabled={saving}
+                className="w-full text-white font-semibold rounded-xl transition-all touch-manipulation disabled:opacity-50 j2-press"
+                style={{
+                  height: 52,
+                  backgroundColor: '#DA7422',
+                  boxShadow: '0 2px 12px rgba(218,116,34,0.25)',
+                  fontSize: 15,
+                  marginTop: 8,
+                }}
+              >
+                {saving ? 'Saving…' : 'Save Profile'}
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={saving}
+                className="bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold px-6 py-2.5 rounded-full transition-colors disabled:opacity-50"
+              >
+                {saving ? 'Saving…' : 'Save Profile'}
+              </button>
+            )}
 
           </form>
+            );
+          })()}
             </div>
 
             {/* Sidebar column — Library, Import, Export */}
@@ -382,14 +481,17 @@ export default function ProfilePage() {
           className={`rounded-2xl ${isDesktop ? 'p-7' : 'mt-4 p-5'}`}
           style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}
         >
-          <p className="text-sm font-semibold text-white mb-1">Import Training History</p>
-          <p className="text-xs text-white/40 mb-4">
+          {isDesktop ? (
+            <p className="j2-label-copper" style={{ marginBottom: 10 }}>◇ Import Training History</p>
+          ) : (
+            <p className="text-sm font-semibold text-white mb-1">Import Training History</p>
+          )}
+          <p className={isDesktop ? 'text-[13px] text-white/45 mb-5 leading-relaxed' : 'text-xs text-white/40 mb-4'}>
             Upload a CSV spreadsheet to import your historical sessions.
             Duplicates are flagged so you can review before committing.
           </p>
           <button
             onClick={async () => {
-              // Load existing session dates for duplicate detection
               try {
                 const data = await api.get<{ sessions: { date: string }[] }>('/api/sessions');
                 setExistingDates(new Set(data.sessions.map((s: { date: string }) => s.date)));
@@ -398,8 +500,18 @@ export default function ProfilePage() {
               }
               setImportOpen(true);
             }}
-            className="text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-            style={{ backgroundColor: 'rgba(196,145,95,0.15)', color: 'rgba(196,145,95,0.85)' }}
+            className={
+              isDesktop
+                ? 'text-[14px] font-semibold rounded-xl transition-all w-full'
+                : 'text-sm font-medium px-4 py-2 rounded-lg transition-colors'
+            }
+            style={
+              isDesktop
+                ? { height: 48, backgroundColor: 'rgba(196,145,95,0.12)', color: COPPER, border: `1px solid rgba(196,145,95,0.30)` }
+                : { backgroundColor: 'rgba(196,145,95,0.15)', color: 'rgba(196,145,95,0.85)' }
+            }
+            onMouseEnter={isDesktop ? (e => { e.currentTarget.style.backgroundColor = 'rgba(196,145,95,0.20)'; e.currentTarget.style.borderColor = 'rgba(196,145,95,0.55)'; }) : undefined}
+            onMouseLeave={isDesktop ? (e => { e.currentTarget.style.backgroundColor = 'rgba(196,145,95,0.12)'; e.currentTarget.style.borderColor = 'rgba(196,145,95,0.30)'; }) : undefined}
           >
             ↑ Upload CSV
           </button>
@@ -410,11 +522,15 @@ export default function ProfilePage() {
           className={`rounded-2xl ${isDesktop ? 'p-7' : 'mt-4 p-5'}`}
           style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}
         >
-          <p className="text-sm font-semibold text-white mb-1">Export Your Data</p>
-          <p className="text-xs text-white/40 mb-4">
+          {isDesktop ? (
+            <p className="j2-label-copper" style={{ marginBottom: 10 }}>◇ Export Your Data</p>
+          ) : (
+            <p className="text-sm font-semibold text-white mb-1">Export Your Data</p>
+          )}
+          <p className={isDesktop ? 'text-[13px] text-white/45 mb-5 leading-relaxed' : 'text-xs text-white/40 mb-4'}>
             Download your training data as CSV files you can open in any spreadsheet app.
           </p>
-          <div className="flex flex-wrap gap-3">
+          <div className={`flex ${isDesktop ? 'flex-col gap-2.5' : 'flex-wrap gap-3'}`}>
             <button
               onClick={async () => {
                 setExporting(true);
@@ -429,8 +545,18 @@ export default function ProfilePage() {
                 }
               }}
               disabled={exporting}
-              className="text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
-              style={{ backgroundColor: 'rgba(196,145,95,0.15)', color: 'rgba(196,145,95,0.85)' }}
+              className={
+                isDesktop
+                  ? 'text-[14px] font-semibold rounded-xl transition-all w-full disabled:opacity-50'
+                  : 'text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50'
+              }
+              style={
+                isDesktop
+                  ? { height: 48, backgroundColor: 'rgba(196,145,95,0.12)', color: COPPER, border: `1px solid rgba(196,145,95,0.30)` }
+                  : { backgroundColor: 'rgba(196,145,95,0.15)', color: 'rgba(196,145,95,0.85)' }
+              }
+              onMouseEnter={isDesktop ? (e => { e.currentTarget.style.backgroundColor = 'rgba(196,145,95,0.20)'; e.currentTarget.style.borderColor = 'rgba(196,145,95,0.55)'; }) : undefined}
+              onMouseLeave={isDesktop ? (e => { e.currentTarget.style.backgroundColor = 'rgba(196,145,95,0.12)'; e.currentTarget.style.borderColor = 'rgba(196,145,95,0.30)'; }) : undefined}
             >
               ↓ Export Sessions
             </button>
@@ -449,8 +575,18 @@ export default function ProfilePage() {
                   }
                 }}
                 disabled={exporting}
-                className="text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
-                style={{ backgroundColor: 'rgba(196,145,95,0.15)', color: 'rgba(196,145,95,0.85)' }}
+                className={
+                  isDesktop
+                    ? 'text-[14px] font-semibold rounded-xl transition-all w-full disabled:opacity-50'
+                    : 'text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50'
+                }
+                style={
+                  isDesktop
+                    ? { height: 48, backgroundColor: 'rgba(196,145,95,0.12)', color: COPPER, border: `1px solid rgba(196,145,95,0.30)` }
+                    : { backgroundColor: 'rgba(196,145,95,0.15)', color: 'rgba(196,145,95,0.85)' }
+                }
+                onMouseEnter={isDesktop ? (e => { e.currentTarget.style.backgroundColor = 'rgba(196,145,95,0.20)'; e.currentTarget.style.borderColor = 'rgba(196,145,95,0.55)'; }) : undefined}
+                onMouseLeave={isDesktop ? (e => { e.currentTarget.style.backgroundColor = 'rgba(196,145,95,0.12)'; e.currentTarget.style.borderColor = 'rgba(196,145,95,0.30)'; }) : undefined}
               >
                 ↓ Export Intentions
               </button>
@@ -462,16 +598,41 @@ export default function ProfilePage() {
           </div>
         </PageContent>
 
-        <div className="mt-8 flex justify-center">
-          <button
-            onClick={() => { logout(); navigate('/login'); }}
-            className="text-sm transition-colors"
-            style={{ color: 'rgba(255,255,255,0.3)' }}
-            onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.6)')}
-            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.3)')}
-          >
-            Log out
-          </button>
+        <div className={`flex justify-center ${isDesktop ? 'mt-12' : 'mt-8'}`}>
+          {isDesktop ? (
+            <button
+              onClick={() => { logout(); navigate('/login'); }}
+              className="text-sm font-semibold uppercase tracking-[0.14em] rounded-xl transition-all"
+              style={{
+                padding: '14px 32px',
+                color: 'rgba(248,113,113,0.85)',
+                backgroundColor: 'rgba(248,113,113,0.06)',
+                border: '1px solid rgba(248,113,113,0.25)',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.backgroundColor = 'rgba(248,113,113,0.12)';
+                e.currentTarget.style.borderColor = 'rgba(248,113,113,0.45)';
+                e.currentTarget.style.color = 'rgba(248,113,113,1)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.backgroundColor = 'rgba(248,113,113,0.06)';
+                e.currentTarget.style.borderColor = 'rgba(248,113,113,0.25)';
+                e.currentTarget.style.color = 'rgba(248,113,113,0.85)';
+              }}
+            >
+              Log out
+            </button>
+          ) : (
+            <button
+              onClick={() => { logout(); navigate('/login'); }}
+              className="text-sm transition-colors"
+              style={{ color: 'rgba(255,255,255,0.3)' }}
+              onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.6)')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.3)')}
+            >
+              Log out
+            </button>
+          )}
         </div>
       </main>
 
