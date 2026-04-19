@@ -872,38 +872,38 @@ export default function PathAheadPage() {
 
     return (
       <PageContent ready={!loading} loadingMessages={['Shrimping down the mat...', 'Doing mat swims...', 'Pulling up gi pants...']}>
-      <div style={{ maxWidth: 1240, margin: '0 auto', padding: '40px 48px 80px' }}>
+      <div style={{ maxWidth: 1360, margin: '0 auto', padding: '56px 64px 96px' }}>
         {styleBlock}
 
         {/* ── Header ──────────────────────────────────────────────── */}
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 36 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 44 }}>
           <div>
-            <div className="j2-label-micro" style={{ marginBottom: 10 }}>{todayLabel}</div>
+            <div className="j2-label-micro" style={{ marginBottom: 14 }}>{todayLabel}</div>
             <h1
               className="j2-serif-display j2-heading-glow"
-              style={{ fontSize: 56, margin: 0, lineHeight: 1 }}
+              style={{ fontSize: 72, margin: 0, lineHeight: 1 }}
             >
               This week
             </h1>
             <div
               className="j2-serif-italic"
-              style={{ marginTop: 8, fontSize: 18 }}
+              style={{ marginTop: 12, fontSize: 20 }}
             >
               {streakSubtitle}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 12 }}>
             {intentionsEnabled && (
               <button
                 onClick={() => setSetIntentOpen(true)}
                 style={{
-                  height: 38, padding: '0 14px',
+                  height: 44, padding: '0 18px',
                   background: 'var(--j2-surface-3)',
                   color: 'rgba(255,255,255,0.90)',
                   border: '1px solid var(--j2-border-2)',
                   borderRadius: 10,
-                  fontWeight: 500, fontSize: 13,
-                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  fontWeight: 500, fontSize: 14,
+                  display: 'inline-flex', alignItems: 'center', gap: 8,
                   cursor: 'pointer',
                   transition: 'background 180ms ease',
                 }}
@@ -916,13 +916,13 @@ export default function PathAheadPage() {
             <button
               onClick={() => { setLogDate(toDateString(today)); setLogOpen(true); }}
               style={{
-                height: 42, padding: '0 20px',
+                height: 48, padding: '0 24px',
                 background: '#DA7422', color: '#fff',
                 fontWeight: 600, borderRadius: 10,
                 boxShadow: '0 0 0 1px rgba(218,116,34,0.3), 0 10px 24px -12px rgba(218,116,34,0.6)',
                 transition: 'background 180ms ease, transform 180ms ease',
                 display: 'inline-flex', alignItems: 'center', gap: 8,
-                fontSize: 14,
+                fontSize: 15,
                 cursor: 'pointer',
               }}
               onMouseEnter={e => { e.currentTarget.style.background = '#E8823A'; }}
@@ -941,7 +941,7 @@ export default function PathAheadPage() {
         <>
 
         {/* ── 4-stat strip ────────────────────────────────────────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 28 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 18, marginBottom: 36 }}>
           {([
             {
               label: 'Practice streak',
@@ -969,17 +969,17 @@ export default function PathAheadPage() {
             <div
               key={i}
               style={{
-                padding: '16px 18px',
+                padding: '22px 24px',
                 background: 'var(--j2-surface-2)',
                 border: '1px solid var(--j2-border-1)',
-                borderRadius: 12,
+                borderRadius: 14,
                 position: 'relative',
               }}
             >
-              <div className="j2-label-micro" style={{ marginBottom: 8 }}>{s.label}</div>
+              <div className="j2-label-micro" style={{ marginBottom: 12 }}>{s.label}</div>
               <div
                 style={{
-                  fontSize: 30, fontFamily: FONT_EDITORIAL, fontWeight: 600,
+                  fontSize: 42, fontFamily: FONT_EDITORIAL, fontWeight: 600,
                   color: PALE_YELLOW, lineHeight: 1.05,
                 }}
               >
@@ -987,8 +987,8 @@ export default function PathAheadPage() {
               </div>
               <div
                 style={{
-                  fontSize: 11.5, color: 'rgba(255,255,255,0.40)',
-                  marginTop: 4, letterSpacing: '0.1em', textTransform: 'uppercase',
+                  fontSize: 12, color: 'rgba(255,255,255,0.40)',
+                  marginTop: 6, letterSpacing: '0.1em', textTransform: 'uppercase',
                 }}
               >
                 {s.unit}
@@ -998,33 +998,33 @@ export default function PathAheadPage() {
         </div>
 
         {/* ── 2-col main ──────────────────────────────────────────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 28, alignItems: 'flex-start', marginBottom: 28 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: 32, alignItems: 'flex-start', marginBottom: 36 }}>
 
           {/* LEFT column ─────────────────────────────────── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20, minWidth: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24, minWidth: 0 }}>
             {/* Annual radial — hero */}
-            <div style={{ ...heroCardStyle, padding: 28, position: 'relative' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
+            <div style={{ ...heroCardStyle, padding: 32, position: 'relative' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 20 }}>
                 <div>
                   <div className="j2-label-copper">◈ The Path · {year}</div>
-                  <div className="j2-serif-display" style={{ fontSize: 22, marginTop: 4 }}>
+                  <div className="j2-serif-display" style={{ fontSize: 26, marginTop: 6 }}>
                     A year of training at a glance
                   </div>
                 </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 24px' }}>
                 <AnnualRadial
                   sessions={allSessions}
                   intentions={intentions}
                   year={year}
-                  size={480}
+                  size={540}
                 />
               </div>
               {/* Pillar legend */}
               <div
                 style={{
-                  display: 'flex', justifyContent: 'space-between', gap: 10,
-                  paddingTop: 14, borderTop: '1px solid var(--j2-border-2)',
+                  display: 'flex', justifyContent: 'space-between', gap: 12,
+                  paddingTop: 18, borderTop: '1px solid var(--j2-border-2)',
                 }}
               >
                 {SKILL_TAGS.map(tag => {
@@ -1034,16 +1034,16 @@ export default function PathAheadPage() {
                   ).length;
                   const color = SKILL_COLORS[tag.value]?.stroke ?? COPPER;
                   return (
-                    <div key={tag.value} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                    <div key={tag.value} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
                       <span
                         style={{
-                          width: 10, height: 10, borderRadius: '50%',
+                          width: 12, height: 12, borderRadius: '50%',
                           background: color,
-                          boxShadow: `0 0 8px ${color}80`,
+                          boxShadow: `0 0 10px ${color}80`,
                         }}
                       />
-                      <div className="j2-label-micro" style={{ fontSize: 10 }}>{tag.label}</div>
-                      <div style={{ fontSize: 13, color: PALE_YELLOW, fontFamily: FONT_EDITORIAL }}>{count}</div>
+                      <div className="j2-label-micro" style={{ fontSize: 11 }}>{tag.label}</div>
+                      <div style={{ fontSize: 16, color: PALE_YELLOW, fontFamily: FONT_EDITORIAL }}>{count}</div>
                     </div>
                   );
                 })}
@@ -1051,16 +1051,16 @@ export default function PathAheadPage() {
             </div>
 
             {/* Week section + telemetry — our existing week navigation preserved */}
-            <div style={{ ...softCardStyle, padding: 24 }}>
+            <div style={{ ...softCardStyle, padding: 28 }}>
               {weekSectionHeader}
-              <div style={{ marginTop: 12 }}>{weekViewContent}</div>
+              <div style={{ marginTop: 14 }}>{weekViewContent}</div>
             </div>
 
             {telemetryContent}
           </div>
 
           {/* RIGHT sidebar ─────────────────────────────── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
 
             {/* Intention hero card */}
             {intentionsEnabled && (
@@ -1085,24 +1085,24 @@ export default function PathAheadPage() {
                 : null;
               const intColor = INTENSITY_COLOR[mostRecent.intensity ?? 3] ?? '#A8CB72';
               return (
-                <div style={{ ...softCardStyle, padding: 24 }}>
-                  <div className="j2-label-copper" style={{ marginBottom: 12 }}>◈ Most recent session</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                <div style={{ ...softCardStyle, padding: 28 }}>
+                  <div className="j2-label-copper" style={{ marginBottom: 14 }}>◈ Most recent session</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
                     <span
                       style={{
-                        width: 12, height: 12, borderRadius: '50%',
+                        width: 14, height: 14, borderRadius: '50%',
                         background: intColor,
-                        boxShadow: `0 0 10px ${intColor}80`,
+                        boxShadow: `0 0 12px ${intColor}80`,
                       }}
                     />
-                    <div className="j2-serif-display" style={{ fontSize: 22 }}>
+                    <div className="j2-serif-display" style={{ fontSize: 26 }}>
                       {primaryTag ?? 'Free rolling'}
                     </div>
                   </div>
-                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.60)' }}>
+                  <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.60)' }}>
                     {formatDuration(mostRecent.duration ?? 0)} · {typeLabel} · {giLabel}
                   </div>
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.40)', marginTop: 4 }}>
+                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.40)', marginTop: 6 }}>
                     {DAY_NAMES[dateObj.getDay()]}, {MONTH_NAMES[dateObj.getMonth()]} {dateObj.getDate()}
                   </div>
                 </div>
@@ -1110,23 +1110,23 @@ export default function PathAheadPage() {
             })()}
 
             {/* Last 30 days intensity */}
-            <div style={{ ...softCardStyle, padding: 24 }}>
-              <div className="j2-label-copper" style={{ marginBottom: 12 }}>◈ Last 30 days · intensity</div>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 64 }}>
+            <div style={{ ...softCardStyle, padding: 28 }}>
+              <div className="j2-label-copper" style={{ marginBottom: 14 }}>◈ Last 30 days · intensity</div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 80 }}>
                 {intensityDist.map((n, i) => {
-                  const h = intensityMax ? (n / intensityMax) * 54 + 6 : 4;
+                  const h = intensityMax ? (n / intensityMax) * 66 + 8 : 5;
                   const c = INT_COLORS[(i + 1) as 1 | 2 | 3 | 4 | 5];
                   return (
-                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
                       <div
                         style={{
-                          width: '100%', height: h, background: c, borderRadius: 3,
-                          boxShadow: `0 0 8px ${c}60`,
+                          width: '100%', height: h, background: c, borderRadius: 4,
+                          boxShadow: `0 0 10px ${c}60`,
                         }}
                       />
                       <div
                         style={{
-                          fontSize: 10.5, color: 'rgba(255,255,255,0.40)',
+                          fontSize: 12, color: 'rgba(255,255,255,0.40)',
                           letterSpacing: '0.1em',
                         }}
                       >
@@ -1139,8 +1139,8 @@ export default function PathAheadPage() {
               <div
                 style={{
                   display: 'flex', justifyContent: 'space-between',
-                  fontSize: 10, color: 'rgba(255,255,255,0.40)',
-                  letterSpacing: '0.14em', textTransform: 'uppercase', marginTop: 4,
+                  fontSize: 11, color: 'rgba(255,255,255,0.40)',
+                  letterSpacing: '0.14em', textTransform: 'uppercase', marginTop: 6,
                 }}
               >
                 <span>Drill</span><span>Steady</span><span>Hard roll</span>
@@ -1157,14 +1157,14 @@ export default function PathAheadPage() {
 
         {/* ── Recent intentions row ───────────────────────────────── */}
         {recentIntentions.length > 0 && (
-          <div style={{ ...softCardStyle, padding: 24, marginBottom: 24 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
+          <div style={{ ...softCardStyle, padding: 28, marginBottom: 28 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 18 }}>
               <div className="j2-label-copper">◈ Recent intentions</div>
               {intentionsEnabled && (
                 <button
                   onClick={() => navigate('/intentions')}
                   style={{
-                    fontSize: 12, fontWeight: 600,
+                    fontSize: 13, fontWeight: 600,
                     color: COPPER, borderBottom: `1px solid ${COPPER}40`,
                     background: 'transparent', padding: 0, cursor: 'pointer',
                   }}
@@ -1173,7 +1173,7 @@ export default function PathAheadPage() {
                 </button>
               )}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(6, recentIntentions.length)}, 1fr)`, gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(6, recentIntentions.length)}, 1fr)`, gap: 14 }}>
               {recentIntentions.map(i => {
                 const color = i.heading ? (SKILL_COLORS[i.heading]?.stroke ?? COPPER) : COPPER;
                 const weekStart = new Date(i.week_start.slice(0, 10) + 'T00:00:00');
@@ -1184,10 +1184,10 @@ export default function PathAheadPage() {
                   <div
                     key={i.id}
                     style={{
-                      padding: '12px 14px',
+                      padding: '16px 18px',
                       background: 'var(--j2-surface-2)',
                       border: '1px solid var(--j2-border-1)',
-                      borderRadius: 10,
+                      borderRadius: 12,
                       position: 'relative',
                       overflow: 'hidden',
                     }}
@@ -1195,14 +1195,14 @@ export default function PathAheadPage() {
                     <div
                       aria-hidden
                       style={{
-                        position: 'absolute', top: 0, right: 0, width: 60, height: 60,
+                        position: 'absolute', top: 0, right: 0, width: 72, height: 72,
                         background: `radial-gradient(circle at 100% 0%, ${color}30, transparent 70%)`,
                         pointerEvents: 'none',
                       }}
                     />
                     <div
                       style={{
-                        fontSize: 10, color: 'rgba(255,255,255,0.40)',
+                        fontSize: 11, color: 'rgba(255,255,255,0.40)',
                         letterSpacing: '0.14em', textTransform: 'uppercase',
                       }}
                     >
@@ -1210,8 +1210,8 @@ export default function PathAheadPage() {
                     </div>
                     <div
                       style={{
-                        fontSize: 15, fontFamily: FONT_EDITORIAL, fontWeight: 600,
-                        color: PALE_YELLOW, marginTop: 6,
+                        fontSize: 18, fontFamily: FONT_EDITORIAL, fontWeight: 600,
+                        color: PALE_YELLOW, marginTop: 8,
                       }}
                     >
                       {label}

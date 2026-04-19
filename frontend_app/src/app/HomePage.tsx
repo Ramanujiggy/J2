@@ -2,22 +2,19 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.ts';
 import { api, ApiError } from '../lib/api.ts';
-import WaveBackground from '../components/WaveBackground.tsx';
-import { CARD_BG, COPPER_BORDER, CARD_SHADOW, PALE_YELLOW, GLOW_TITLE, GLOW_NAV, SURFACE_2 } from '../lib/theme.ts';
+import {
+  CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, PALE_YELLOW, COPPER, SURFACE_3,
+} from '../lib/theme.ts';
+import { useIsDesktop } from '../hooks/useIsDesktop.ts';
+import SegmentedToggle from '../components/SegmentedToggle.tsx';
 
 type Mode = 'login' | 'register' | 'forgot';
 
-interface RegisterResponse {
-  message: string;
-}
-
-interface LoginResponse {
-  message: string;
-  token?: string;
-  user?: { id: string; email: string };
-}
+interface RegisterResponse { message: string }
+interface LoginResponse   { message: string; token?: string; user?: { id: string; email: string } }
 
 export default function HomePage() {
+  const isDesktop = useIsDesktop();
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -39,7 +36,6 @@ export default function HomePage() {
     }
 
     setLoading(true);
-
     try {
       if (mode === 'forgot') {
         await api.post('/auth/request-password-reset', { email });
@@ -53,7 +49,6 @@ export default function HomePage() {
           setError(registerData.message ?? 'Registration failed.');
           return;
         }
-        // auto-login after successful register
       }
 
       const loginData = await api.post<LoginResponse>('/auth/login', { email, password });
@@ -77,87 +72,141 @@ export default function HomePage() {
     setForgotSent(false);
   };
 
+  // Viewport-tuned sizing
+  const wordmarkSize = isDesktop ? 88 : 56;
+  const cardPadding = isDesktop ? 36 : 24;
+  const cardMaxWidth = isDesktop ? 460 : 400;
+
+  const inputClass = 'w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/25 outline-none transition-colors';
+  const inputStyle = {
+    backgroundColor: SURFACE_3,
+    border: '1px solid rgba(255,255,255,0.08)',
+  } as React.CSSProperties;
+
   return (
     <div
-      className="min-h-screen min-h-dvh flex flex-col items-center justify-center bg-brand-dark px-4 relative overflow-hidden"
+      className="min-h-screen min-h-dvh flex flex-col items-center justify-center px-4 relative overflow-hidden"
+      style={{ backgroundColor: '#0D1A14' }}
     >
-      <WaveBackground />
+      {/* Ambient seigaiha wave pattern — same as rest of app */}
+      <div className="j2-seigaiha-bg" />
 
-      {/* Logo / Title */}
-      <div
-        className="mb-10 text-center relative z-10 px-8 py-5 rounded-2xl"
-        style={{ backgroundColor: 'rgba(13, 26, 20, 0.45)', backdropFilter: 'blur(4px)' }}
-      >
-        <h1 className="text-3xl sm:text-5xl font-wordmark tracking-tight" style={{ color: PALE_YELLOW, textShadow: GLOW_TITLE }}>
+      {/* ── Editorial header ───────────────────────────────────────────── */}
+      <div className="relative z-10 text-center mb-8" style={{ maxWidth: cardMaxWidth, width: '100%' }}>
+        <p
+          className="j2-label-copper"
+          style={{ marginBottom: isDesktop ? 14 : 10 }}
+        >
+          ◇ For intentional grappling
+        </p>
+        <h1
+          className="j2-serif-display j2-heading-glow"
+          style={{
+            fontSize: wordmarkSize,
+            lineHeight: 1,
+            margin: 0,
+            letterSpacing: '-0.01em',
+          }}
+        >
           Journada
         </h1>
-        <p className="mt-3 text-lg" style={{ color: PALE_YELLOW, textShadow: GLOW_NAV }}>
-          For Intentional Grappling
+        <p
+          className="j2-serif-italic"
+          style={{
+            marginTop: isDesktop ? 18 : 12,
+            fontSize: isDesktop ? 18 : 15,
+            color: 'rgba(255,255,255,0.60)',
+            lineHeight: 1.4,
+          }}
+        >
+          The mat remembers every session.
         </p>
       </div>
 
-      {/* Card */}
-      <div className="w-[calc(100%-2rem)] max-w-sm rounded-2xl p-8 relative z-10" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
-
-        {/* Mode toggle — sliding pill, only show for login/register */}
+      {/* ── Auth card ──────────────────────────────────────────────────── */}
+      <div
+        className="relative z-10 rounded-2xl w-full"
+        style={{
+          maxWidth: cardMaxWidth,
+          padding: cardPadding,
+          backgroundColor: CARD_BG,
+          border: `1px solid ${CARD_GLOW_BORDER}`,
+          boxShadow: CARD_GLOW,
+        }}
+      >
+        {/* Mode toggle — animated slider shared with rest of app */}
         {mode !== 'forgot' && (
-          <div className="flex rounded-lg overflow-hidden mb-6 border border-white/10 relative" style={{ backgroundColor: SURFACE_2 }}>
-            {/* Sliding pill background */}
-            <div
-              className="absolute top-0 bottom-0 rounded-lg"
-              style={{
-                width: '50%',
-                backgroundColor: '#DA7422',
-                transform: mode === 'register' ? 'translateX(100%)' : 'translateX(0)',
-                transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-              }}
+          <div className="mb-5">
+            <SegmentedToggle
+              options={[
+                { value: 'login' as const, label: 'Log In' },
+                { value: 'register' as const, label: 'Register' },
+              ]}
+              value={mode === 'register' ? 'register' : 'login'}
+              onChange={v => v && switchMode(v as Mode)}
             />
-            <button
-              onClick={() => switchMode('login')}
-              className="flex-1 py-2 text-sm font-medium relative z-10 transition-colors"
-              style={{ color: mode === 'login' ? 'white' : 'rgba(255,255,255,0.5)' }}
-            >
-              Log In
-            </button>
-            <button
-              onClick={() => switchMode('register')}
-              className="flex-1 py-2 text-sm font-medium relative z-10 transition-colors"
-              style={{ color: mode === 'register' ? 'white' : 'rgba(255,255,255,0.5)' }}
-            >
-              Register
-            </button>
           </div>
         )}
 
-        {/* Forgot password header */}
+        {/* Forgot password header — editorial treatment */}
         {mode === 'forgot' && (
-          <div className="mb-6">
-            <h2 className="text-white font-semibold text-lg">Reset your password</h2>
-            <p className="text-white/50 text-sm mt-1">
+          <div className="mb-5">
+            <p
+              className="j2-label-copper"
+              style={{ marginBottom: 6 }}
+            >
+              ◇ Reset your password
+            </p>
+            <p
+              className="j2-serif-italic"
+              style={{ fontSize: 15, color: 'rgba(255,255,255,0.60)', lineHeight: 1.5 }}
+            >
               Enter your email and we'll send you a reset link.
             </p>
           </div>
         )}
 
-        {/* Confirmation message after reset email sent */}
         {forgotSent ? (
-          <div className="space-y-4">
-            <p className="text-sm text-green-400">
-              If that email is registered, a reset link has been sent. Check your inbox.
-            </p>
+          /* ── Post-reset confirmation ─────────────────────────── */
+          <div className="space-y-5">
+            <div
+              className="rounded-xl px-4 py-3"
+              style={{
+                backgroundColor: 'rgba(168,203,114,0.08)',
+                border: '1px solid rgba(168,203,114,0.25)',
+              }}
+            >
+              <p className="text-sm leading-relaxed" style={{ color: 'rgba(168,203,114,0.90)' }}>
+                If that email is registered, a reset link is on its way. Check your inbox.
+              </p>
+            </div>
             <button
               onClick={() => switchMode('login')}
-              className="w-full text-sm text-white/50 hover:text-white transition-colors"
+              className="w-full text-sm font-medium transition-colors"
+              style={{ color: 'rgba(255,255,255,0.45)' }}
+              onMouseEnter={e => (e.currentTarget.style.color = PALE_YELLOW)}
+              onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}
             >
-              Back to Log In
+              ← Back to Log In
             </button>
           </div>
         ) : (
           <>
-            {/* Form */}
             <form onSubmit={handleSubmit} noValidate className="space-y-4">
+              {/* Email */}
               <div>
-                <label className="block text-sm text-white/70 mb-1">Email</label>
+                <label
+                  className="block mb-1.5"
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    letterSpacing: '0.16em',
+                    textTransform: 'uppercase',
+                    color: 'rgba(255,255,255,0.40)',
+                  }}
+                >
+                  Email
+                </label>
                 <input
                   type="text"
                   inputMode="email"
@@ -165,65 +214,118 @@ export default function HomePage() {
                   required
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  className="w-full bg-white/10 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-orange"
+                  className={inputClass}
+                  style={inputStyle}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(196,145,95,0.55)'; e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.10)'; }}
+                  onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.backgroundColor = SURFACE_3; }}
                   placeholder="you@example.com"
                 />
               </div>
 
+              {/* Password */}
               {mode !== 'forgot' && (
                 <div>
-                  <label className="block text-sm text-white/70 mb-1">Password</label>
+                  <label
+                    className="block mb-1.5"
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: '0.16em',
+                      textTransform: 'uppercase',
+                      color: 'rgba(255,255,255,0.40)',
+                    }}
+                  >
+                    Password
+                  </label>
                   <input
                     type="password"
                     required
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    className="w-full bg-white/10 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-orange"
+                    className={inputClass}
+                    style={inputStyle}
+                    onFocus={e => { e.currentTarget.style.borderColor = 'rgba(196,145,95,0.55)'; e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.10)'; }}
+                    onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.backgroundColor = SURFACE_3; }}
                     placeholder="••••••••"
                   />
                 </div>
               )}
 
               {error && (
-                <p className="text-sm text-red-400">{error}</p>
+                <p
+                  className="text-sm px-3 py-2 rounded-lg"
+                  style={{
+                    color: 'rgba(248,113,113,0.9)',
+                    backgroundColor: 'rgba(248,113,113,0.08)',
+                    border: '1px solid rgba(248,113,113,0.2)',
+                  }}
+                >
+                  {error}
+                </p>
               )}
 
+              {/* Flagship 52px CTA — matches rest of app */}
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-brand-orange hover:bg-brand-orange/90 text-white font-semibold py-2.5 rounded-full transition-colors disabled:opacity-50 j2-press"
+                className="w-full text-white font-semibold rounded-xl transition-all touch-manipulation disabled:opacity-50 j2-press"
+                style={{
+                  height: 52,
+                  backgroundColor: '#DA7422',
+                  boxShadow: '0 2px 12px rgba(218,116,34,0.25)',
+                  fontSize: 15,
+                  marginTop: 8,
+                }}
               >
                 {loading
                   ? 'Please wait...'
                   : mode === 'login'
-                  ? 'Log In'
-                  : mode === 'register'
-                  ? 'Create Account'
-                  : 'Send Reset Link'}
+                    ? 'Log In'
+                    : mode === 'register'
+                      ? 'Create Account'
+                      : 'Send Reset Link'}
               </button>
             </form>
 
-            {/* Forgot password link — only shown in login mode */}
+            {/* Secondary link */}
             {mode === 'login' && (
               <button
                 onClick={() => switchMode('forgot')}
-                className="mt-4 w-full text-sm text-white/40 hover:text-white/70 transition-colors"
+                className="mt-5 w-full text-xs transition-colors"
+                style={{ color: 'rgba(255,255,255,0.35)' }}
+                onMouseEnter={e => (e.currentTarget.style.color = COPPER)}
+                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.35)')}
               >
                 Forgot your password?
               </button>
             )}
 
-            {/* Back to login — shown in forgot mode */}
             {mode === 'forgot' && (
               <button
                 onClick={() => switchMode('login')}
-                className="mt-4 w-full text-sm text-white/40 hover:text-white/70 transition-colors"
+                className="mt-5 w-full text-xs transition-colors"
+                style={{ color: 'rgba(255,255,255,0.35)' }}
+                onMouseEnter={e => (e.currentTarget.style.color = COPPER)}
+                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.35)')}
               >
-                Back to Log In
+                ← Back to Log In
               </button>
             )}
           </>
         )}
+      </div>
+
+      {/* ── Footer meditation ──────────────────────────────────────────── */}
+      <div
+        className="relative z-10 text-center mt-8"
+        style={{ maxWidth: cardMaxWidth, width: '100%' }}
+      >
+        <p
+          className="j2-label-micro"
+          style={{ color: 'rgba(255,255,255,0.22)' }}
+        >
+          ·   ·   ·
+        </p>
       </div>
     </div>
   );

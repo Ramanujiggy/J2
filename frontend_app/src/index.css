@@ -62,8 +62,8 @@
     --font-editorial: "Cormorant Garamond", Georgia, serif;
 
     /* Layout — desktop rail + context column widths */
-    --rail-w:    220px;
-    --context-w: 320px;
+    --rail-w:    260px;
+    --context-w: 340px;
 
     /* Surface + border ladder used by desktop cards. Named with -2/-3 suffixes
        to avoid clashing with shadcn's --border token above. */
@@ -225,7 +225,7 @@
 }
 
 .j2-label-micro {
-  font-size: 10.5px;
+  font-size: 11.5px;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -233,11 +233,18 @@
 }
 
 .j2-label-copper {
-  font-size: 10.5px;
+  font-size: 11.5px;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--copper);
+}
+
+/* Desktop: bump defaults so inherited text doesn't feel tiny.
+   Most explicit px sizes are also scaled up in components. */
+@media (min-width: 1024px) {
+  body { font-size: 15px; }
+  .j2-label-micro, .j2-label-copper { font-size: 12px; letter-spacing: 0.16em; }
 }
 
 /* Seigaiha (wave) ambient backdrop. Fixed, pointer-events:none, below

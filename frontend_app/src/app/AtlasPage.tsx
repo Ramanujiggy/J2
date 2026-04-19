@@ -101,16 +101,16 @@ export default function AtlasPage() {
 
   return (
     <PageContent ready={!loading} loadingMessages={['Charting the year...', 'Measuring the ring...', 'Lacing up for the long look...']}>
-    <div style={{ maxWidth: 1240, margin: '0 auto', padding: '40px 48px 80px' }}>
+    <div style={{ maxWidth: 1360, margin: '0 auto', padding: '56px 64px 96px' }}>
 
       {/* ── Header ───────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 28 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 36 }}>
         <div>
-          <div className="j2-label-micro" style={{ marginBottom: 10 }}>Atlas</div>
-          <h1 className="j2-serif-display j2-heading-glow" style={{ fontSize: 48, margin: 0 }}>
+          <div className="j2-label-micro" style={{ marginBottom: 14 }}>Atlas</div>
+          <h1 className="j2-serif-display j2-heading-glow" style={{ fontSize: 60, margin: 0 }}>
             Look back at your training.
           </h1>
-          <div className="j2-serif-italic" style={{ marginTop: 8, fontSize: 16 }}>
+          <div className="j2-serif-italic" style={{ marginTop: 12, fontSize: 19 }}>
             Where the patterns show up — across weeks, months, and years.
           </div>
         </div>
@@ -179,7 +179,7 @@ function SegmentedToggle<T extends string>({
     if (!el) return;
     const child = el.children[idx] as HTMLElement | undefined;
     if (!child) return;
-    const next = { w: child.offsetWidth, x: child.offsetLeft - 2 };
+    const next = { w: child.offsetWidth, x: child.offsetLeft - 3 };
     if (next.w !== geom.w || next.x !== geom.x) setGeom(next);
   };
   return (
@@ -190,9 +190,9 @@ function SegmentedToggle<T extends string>({
         position: 'relative',
         background: 'var(--j2-surface-2)',
         border: '1px solid var(--j2-border-1)',
-        borderRadius: 10,
-        padding: 2,
-        height: 36,
+        borderRadius: 12,
+        padding: 3,
+        height: 44,
       }}
     >
       {tabs.map(t => {
@@ -204,14 +204,14 @@ function SegmentedToggle<T extends string>({
             style={{
               position: 'relative',
               zIndex: 1,
-              padding: '0 14px',
+              padding: '0 18px',
               height: '100%',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              borderRadius: 8,
+              borderRadius: 9,
               color: isActive ? '#fff' : 'rgba(255,255,255,0.40)',
-              fontWeight: 600, fontSize: 12.5,
+              fontWeight: 600, fontSize: 14,
               background: 'transparent',
               cursor: 'pointer',
               transition: 'color 180ms ease',
@@ -226,11 +226,11 @@ function SegmentedToggle<T extends string>({
         aria-hidden
         style={{
           position: 'absolute',
-          top: 2, left: 2,
+          top: 3, left: 3,
           width: geom.w,
-          height: 'calc(100% - 4px)',
+          height: 'calc(100% - 6px)',
           background: COPPER,
-          borderRadius: 8,
+          borderRadius: 9,
           transform: `translateX(${geom.x}px)`,
           transition: 'transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1), width 280ms cubic-bezier(0.2, 0.8, 0.2, 1)',
           zIndex: 0,
@@ -327,17 +327,17 @@ function YearCard({ year, sessions, intentions }: { year: number; sessions: Sess
       style={{
         background: CARD_BG,
         border: '1px solid var(--j2-border-2)',
-        borderRadius: 16,
-        padding: 28,
+        borderRadius: 18,
+        padding: 32,
       }}
     >
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 18 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 22 }}>
         <div>
-          <div className="j2-serif-display" style={{ fontSize: 42, lineHeight: 1 }}>{year}</div>
+          <div className="j2-serif-display" style={{ fontSize: 52, lineHeight: 1 }}>{year}</div>
           <div
             className="j2-serif-italic"
-            style={{ fontSize: 14, color: 'rgba(255,255,255,0.60)', marginTop: 4 }}
+            style={{ fontSize: 16, color: 'rgba(255,255,255,0.60)', marginTop: 6 }}
           >
             {yearSessions.length} session{yearSessions.length === 1 ? '' : 's'} · {totalHours} hour{totalHours === 1 ? '' : 's'}
             {topTag ? <> · mostly <span style={{ color: PALE_YELLOW }}>{topTag}</span></> : null}
@@ -351,11 +351,11 @@ function YearCard({ year, sessions, intentions }: { year: number; sessions: Sess
       {/* Focus ribbon (52 bars) */}
       <div
         style={{
-          marginTop: 14,
+          marginTop: 18,
           display: 'flex',
           gap: 2,
-          height: 10,
-          borderRadius: 5,
+          height: 12,
+          borderRadius: 6,
           overflow: 'hidden',
           border: '1px solid var(--j2-border-1)',
         }}
@@ -375,21 +375,21 @@ function YearCard({ year, sessions, intentions }: { year: number; sessions: Sess
       {/* Legend */}
       <div
         style={{
-          display: 'flex', gap: 16, marginTop: 12,
-          fontSize: 11, color: 'rgba(255,255,255,0.40)',
+          display: 'flex', gap: 20, marginTop: 14,
+          fontSize: 12, color: 'rgba(255,255,255,0.40)',
         }}
       >
         {SKILL_TAGS.map(tag => (
           <div
             key={tag.value}
             style={{
-              display: 'flex', alignItems: 'center', gap: 6,
+              display: 'flex', alignItems: 'center', gap: 8,
               letterSpacing: '0.14em', textTransform: 'uppercase',
             }}
           >
             <span
               style={{
-                width: 10, height: 10,
+                width: 12, height: 12,
                 background: SKILL_COLORS[tag.value]?.stroke ?? COPPER,
                 borderRadius: 2,
               }}
@@ -462,10 +462,10 @@ function LibraryComingSoon() {
         background: CARD_BG,
         border: `1px solid ${CARD_GLOW_BORDER}`,
         boxShadow: CARD_GLOW,
-        borderRadius: 16,
-        padding: '80px 40px',
+        borderRadius: 18,
+        padding: '100px 48px',
         overflow: 'hidden',
-        minHeight: 420,
+        minHeight: 500,
       }}
     >
       {/* Local seigaiha backdrop inside the card only */}
@@ -479,19 +479,19 @@ function LibraryComingSoon() {
           position: 'relative', zIndex: 1,
           display: 'flex', flexDirection: 'column',
           alignItems: 'center', textAlign: 'center',
-          gap: 14, maxWidth: 520, margin: '0 auto',
+          gap: 18, maxWidth: 620, margin: '0 auto',
         }}
       >
         <div className="j2-label-copper">◇ Library</div>
-        <h2 className="j2-serif-display j2-heading-glow" style={{ fontSize: 44, margin: 0, lineHeight: 1.1 }}>
+        <h2 className="j2-serif-display j2-heading-glow" style={{ fontSize: 56, margin: 0, lineHeight: 1.1 }}>
           A technique catalog,<br />
           <span className="j2-serif-italic" style={{ color: COPPER, fontStyle: 'italic' }}>coming soon.</span>
         </h2>
         <p
           style={{
-            fontSize: 15, lineHeight: 1.65,
+            fontSize: 17, lineHeight: 1.65,
             color: 'rgba(255,255,255,0.60)',
-            marginTop: 4,
+            marginTop: 6,
           }}
         >
           Journada&rsquo;s Library will give each technique its own page — videos, drill notes,
@@ -500,8 +500,8 @@ function LibraryComingSoon() {
         </p>
         <div
           style={{
-            marginTop: 8,
-            fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase',
+            marginTop: 10,
+            fontSize: 12, letterSpacing: '0.18em', textTransform: 'uppercase',
             color: 'rgba(255,255,255,0.30)',
           }}
         >
