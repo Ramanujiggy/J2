@@ -686,15 +686,24 @@ function BigPrism({
 
   const vs = SKILL_TAGS.map((tag, i) => {
     const angle = (2 * Math.PI / N) * i - Math.PI / 2;
+    const count = pillarStats[tag.value]?.count ?? 0;
+    // Data radius: normalize against the top pillar, floor at 0.08 so empty
+    // pillars still read as a tiny-but-present point rather than collapsing
+    // onto the center and distorting the polygon.
+    const norm = maxCount > 0 ? Math.max(0.08, count / maxCount) : 0.08;
     return {
       value: tag.value,
       label: tag.label,
       x: cx + R * Math.cos(angle),
       y: cy + R * Math.sin(angle),
+      dx: cx + R * norm * Math.cos(angle),
+      dy: cy + R * norm * Math.sin(angle),
       angle,
+      norm,
     };
   });
   const polyPoints = vs.map(v => `${v.x},${v.y}`).join(' ');
+  const dataPoints = vs.map(v => `${v.dx},${v.dy}`).join(' ');
 
   return (
     <svg
@@ -708,6 +717,11 @@ function BigPrism({
           <stop offset="0%"   stopColor={PALE_YELLOW} stopOpacity="0.30" />
           <stop offset="50%"  stopColor={COPPER}      stopOpacity="0.06" />
           <stop offset="100%" stopColor="#000"        stopOpacity="0" />
+        </radialGradient>
+        <radialGradient id={`prism-lab-data-${size}`} cx="50%" cy="50%" r="65%">
+          <stop offset="0%"   stopColor={PALE_YELLOW} stopOpacity="0.38" />
+          <stop offset="60%"  stopColor={COPPER}      stopOpacity="0.18" />
+          <stop offset="100%" stopColor={COPPER}      stopOpacity="0.06" />
         </radialGradient>
       </defs>
 
@@ -735,13 +749,40 @@ function BigPrism({
         />
       ))}
 
-      {/* Main pentagon */}
+      {/* Outer reference pentagon — dashed, the "max" ring */}
       <polygon
         points={polyPoints}
-        fill="rgba(196,145,95,0.04)"
-        stroke="rgba(196,145,95,0.35)"
+        fill="none"
+        stroke="rgba(196,145,95,0.30)"
         strokeWidth={1.2}
+        strokeDasharray="3 4"
       />
+
+      {/* DATA polygon — each vertex pulled toward center proportional to
+          its session count. This is the degree-of-alignment shape the old
+          radar showed, reborn inside the Prism Lab aesthetic. */}
+      <polygon
+        points={dataPoints}
+        fill={`url(#prism-lab-data-${size})`}
+        stroke={PALE_YELLOW}
+        strokeOpacity={0.7}
+        strokeWidth={1.5}
+        strokeLinejoin="round"
+        style={{ filter: `drop-shadow(0 0 10px rgba(242,228,168,0.22))` }}
+      />
+
+      {/* Small champagne markers at each data vertex */}
+      {vs.map(v => (
+        <circle
+          key={`data-dot-${v.value}`}
+          cx={v.dx}
+          cy={v.dy}
+          r={3.5}
+          fill={PALE_YELLOW}
+          opacity={0.85}
+          style={{ pointerEvents: 'none' }}
+        />
+      ))}
 
       {/* Per-vertex session-count halos — sized proportionally */}
       {vs.map(v => {
