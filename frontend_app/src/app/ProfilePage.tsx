@@ -182,11 +182,34 @@ export default function ProfilePage() {
   return (
     <div className="flex flex-col">
 
-      <main className={`flex-1 w-full mx-auto ${isDesktop ? 'max-w-6xl px-12 py-16' : 'max-w-xl px-4 sm:px-6 py-6'}`}>
-        <h2 className="text-lg font-display font-semibold text-white mb-6">Your Profile</h2>
+      <main className={`flex-1 w-full mx-auto ${isDesktop ? 'max-w-5xl px-10 py-12' : 'max-w-xl px-4 sm:px-6 py-6'}`}>
+        {/* Editorial header — desktop */}
+        {isDesktop ? (
+          <div className="mb-8">
+            <p className="j2-label-copper" style={{ marginBottom: 10 }}>
+              ◇ Your practice
+            </p>
+            <h1
+              className="j2-serif-display j2-heading-glow"
+              style={{ fontSize: 56, lineHeight: 1, margin: 0, letterSpacing: '-0.01em' }}
+            >
+              Profile
+            </h1>
+            <p
+              className="j2-serif-italic"
+              style={{ marginTop: 14, fontSize: 16, color: 'rgba(255,255,255,0.55)', lineHeight: 1.4 }}
+            >
+              Identity, rank, and the data behind your journey.
+            </p>
+          </div>
+        ) : (
+          <h2 className="text-lg font-display font-semibold text-white mb-6">Your Profile</h2>
+        )}
 
         <PageContent ready={!loading} loadingMessages={['Taping fingers...']}>
-          <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl p-6" style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}>
+          <div className={isDesktop ? 'grid grid-cols-12 gap-6 items-start' : 'space-y-4'}>
+            <div className={isDesktop ? 'col-span-7 space-y-4' : 'contents'}>
+          <form onSubmit={handleSubmit} className={`space-y-6 rounded-2xl ${isDesktop ? 'p-8' : 'p-6'}`} style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}>
 
             {/* Name */}
             <div>
@@ -312,22 +335,25 @@ export default function ProfilePage() {
             </button>
 
           </form>
-        </PageContent>
+            </div>
+
+            {/* Sidebar column — Eight Gates, Library, Import, Export */}
+            <div className={isDesktop ? 'col-span-5 space-y-4' : 'contents'}>
 
         {/* Eight Gates — consistency milestones */}
         <div
-          className="mt-4 rounded-2xl p-5"
+          className={`rounded-2xl ${isDesktop ? 'p-6' : 'mt-4 p-5'}`}
           style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}
         >
           <div className="flex items-baseline justify-between mb-3">
-            <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#C4915F' }}>
-              Eight Gates · Consistency
+            <p className="j2-label-copper">
+              ◇ Eight Gates · Consistency
             </p>
             <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
               {consistentWeeks} {consistentWeeks === 1 ? 'week' : 'weeks'}
             </span>
           </div>
-          <div className="grid grid-cols-4 gap-2">
+          <div className={`grid ${isDesktop ? 'grid-cols-4' : 'grid-cols-4'} gap-2`}>
             {EIGHT_GATES.map(gate => {
               const earned = consistentWeeks >= gate.weeks;
               return (
@@ -369,7 +395,7 @@ export default function ProfilePage() {
 
         {/* Move Library section */}
         <div
-          className="mt-4 rounded-2xl p-5"
+          className={`rounded-2xl ${isDesktop ? 'p-6' : 'mt-4 p-5'}`}
           style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}
         >
           <button
@@ -420,7 +446,7 @@ export default function ProfilePage() {
 
         {/* Import section */}
         <div
-          className="mt-4 rounded-2xl p-5"
+          className={`rounded-2xl ${isDesktop ? 'p-6' : 'mt-4 p-5'}`}
           style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}
         >
           <p className="text-sm font-semibold text-white mb-1">Import Training History</p>
@@ -448,7 +474,7 @@ export default function ProfilePage() {
 
         {/* Export section */}
         <div
-          className="mt-4 rounded-2xl p-5"
+          className={`rounded-2xl ${isDesktop ? 'p-6' : 'mt-4 p-5'}`}
           style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}
         >
           <p className="text-sm font-semibold text-white mb-1">Export Your Data</p>
@@ -499,7 +525,11 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div className="mt-6 flex justify-center">
+            </div>
+          </div>
+        </PageContent>
+
+        <div className="mt-8 flex justify-center">
           <button
             onClick={() => { logout(); navigate('/login'); }}
             className="text-sm transition-colors"
