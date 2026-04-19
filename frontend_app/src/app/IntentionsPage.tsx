@@ -301,16 +301,16 @@ function DesktopIntentionsView({
 
   return (
     <PageContent ready={!loading} loadingMessages={['Loading your intentions...']}>
-    <div style={{ maxWidth: 1360, margin: '0 auto', padding: '56px 64px 96px' }}>
+    <div style={{ maxWidth: 1480, margin: '0 auto', padding: '64px 80px 104px' }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 44 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 52 }}>
         <div>
-          <div className="j2-label-micro" style={{ marginBottom: 14 }}>Intentions</div>
-          <h1 className="j2-serif-display j2-heading-glow" style={{ fontSize: 60, margin: 0 }}>
+          <div className="j2-label-micro" style={{ marginBottom: 16 }}>Intentions</div>
+          <h1 className="j2-serif-display j2-heading-glow" style={{ fontSize: 72, margin: 0 }}>
             Your focus, week by week.
           </h1>
-          <div className="j2-serif-italic" style={{ marginTop: 12, fontSize: 19 }}>
+          <div className="j2-serif-italic" style={{ marginTop: 14, fontSize: 22 }}>
             Every week since you started — what you chose to work on.
           </div>
         </div>
@@ -318,13 +318,13 @@ function DesktopIntentionsView({
           <button
             onClick={onOpenCreate}
             style={{
-              height: 48, padding: '0 24px',
+              height: 54, padding: '0 28px',
               background: '#DA7422', color: '#fff',
-              fontWeight: 600, borderRadius: 10,
+              fontWeight: 600, borderRadius: 12,
               boxShadow: '0 0 0 1px rgba(218,116,34,0.3), 0 10px 24px -12px rgba(218,116,34,0.6)',
               transition: 'background 180ms ease',
-              display: 'inline-flex', alignItems: 'center', gap: 10,
-              fontSize: 15, cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: 12,
+              fontSize: 16, cursor: 'pointer',
             }}
             onMouseEnter={e => { e.currentTarget.style.background = '#E8823A'; }}
             onMouseLeave={e => { e.currentTarget.style.background = '#DA7422'; }}
@@ -366,9 +366,9 @@ function DesktopIntentionsView({
 
           {/* ── History grouped by year ─────────────────────── */}
           {byYear.map(([year, items]) => (
-            <div key={year} style={{ marginBottom: 44 }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 18, marginBottom: 18 }}>
-                <div className="j2-serif-display" style={{ fontSize: 40 }}>{year}</div>
+            <div key={year} style={{ marginBottom: 52 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 22, marginBottom: 22 }}>
+                <div className="j2-serif-display" style={{ fontSize: 48 }}>{year}</div>
                 <div className="j2-label-micro">
                   {items.length} {items.length === 1 ? 'week' : 'weeks'}
                 </div>
@@ -377,7 +377,7 @@ function DesktopIntentionsView({
                 style={{
                   display: 'grid',
                   gridTemplateColumns: `repeat(${Math.min(4, items.length)}, 1fr)`,
-                  gap: 14,
+                  gap: 16,
                 }}
               >
                 {items.map(i => (
@@ -437,36 +437,36 @@ function CurrentIntentionHero({
         backgroundColor: CARD_BG,
         border: `1px solid ${CARD_GLOW_BORDER}`,
         boxShadow: CARD_GLOW,
-        borderRadius: 18,
-        padding: 40,
+        borderRadius: 20,
+        padding: 48,
         display: 'grid',
-        gridTemplateColumns: '1fr 420px',
-        gap: 44,
+        gridTemplateColumns: '1fr 460px',
+        gap: 52,
         alignItems: 'center',
-        marginBottom: 44,
+        marginBottom: 52,
       }}
     >
       <div>
-        <div className="j2-label-copper" style={{ marginBottom: 12 }}>◇ This week</div>
-        <div className="j2-serif-display" style={{ fontSize: 80, lineHeight: 1 }}>
+        <div className="j2-label-copper" style={{ marginBottom: 14 }}>◇ This week</div>
+        <div className="j2-serif-display" style={{ fontSize: 96, lineHeight: 1 }}>
           {heading ?? 'Focus'}
         </div>
         {subtitle && (
           <div
             className="j2-serif-italic"
-            style={{ fontSize: 20, color: 'rgba(255,255,255,0.60)', marginTop: 10 }}
+            style={{ fontSize: 22, color: 'rgba(255,255,255,0.60)', marginTop: 12 }}
           >
             {subtitle}
           </div>
         )}
 
         {/* Alignment bar */}
-        <div style={{ marginTop: 32, maxWidth: 460 }}>
+        <div style={{ marginTop: 40, maxWidth: 520 }}>
           <div
             style={{
               display: 'flex', justifyContent: 'space-between',
-              fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase',
-              color: 'rgba(255,255,255,0.40)', marginBottom: 8,
+              fontSize: 13, letterSpacing: '0.14em', textTransform: 'uppercase',
+              color: 'rgba(255,255,255,0.40)', marginBottom: 10,
             }}
           >
             <span>Alignment so far</span>
@@ -476,9 +476,9 @@ function CurrentIntentionHero({
           </div>
           <div
             style={{
-              height: 8,
+              height: 10,
               background: 'rgba(255,255,255,0.08)',
-              borderRadius: 4,
+              borderRadius: 5,
               overflow: 'hidden',
             }}
           >
@@ -490,7 +490,7 @@ function CurrentIntentionHero({
                   alignment.status === 'aligned'  ? 'linear-gradient(90deg, #A8CB72, #F2E4A8 60%, #C4915F)' :
                   alignment.status === 'diverged' ? 'linear-gradient(90deg, #DA7422, #C4915F)' :
                                                     'rgba(255,255,255,0.12)',
-                boxShadow: alignment.status === 'aligned' ? '0 0 12px rgba(242,228,168,0.4)' : 'none',
+                boxShadow: alignment.status === 'aligned' ? '0 0 14px rgba(242,228,168,0.4)' : 'none',
                 transition: 'width 700ms cubic-bezier(0.2, 0.8, 0.2, 1)',
               }}
             />
@@ -498,16 +498,16 @@ function CurrentIntentionHero({
         </div>
 
         {/* Actions */}
-        <div style={{ display: 'flex', gap: 12, marginTop: 32 }}>
+        <div style={{ display: 'flex', gap: 14, marginTop: 40 }}>
           <button
             onClick={onOpenJournal}
             style={{
-              height: 44, padding: '0 18px',
+              height: 50, padding: '0 22px',
               background: 'var(--j2-surface-3)',
               color: 'rgba(255,255,255,0.90)',
               border: '1px solid var(--j2-border-2)',
-              borderRadius: 10,
-              fontWeight: 500, fontSize: 14,
+              borderRadius: 12,
+              fontWeight: 500, fontSize: 15,
               cursor: 'pointer',
             }}
           >
@@ -516,12 +516,12 @@ function CurrentIntentionHero({
           <button
             onClick={onEdit}
             style={{
-              height: 44, padding: '0 18px',
+              height: 50, padding: '0 22px',
               background: 'transparent',
               color: COPPER,
               border: '1px solid rgba(196,145,95,0.35)',
-              borderRadius: 10,
-              fontWeight: 500, fontSize: 14,
+              borderRadius: 12,
+              fontWeight: 500, fontSize: 15,
               cursor: 'pointer',
             }}
           >
@@ -531,7 +531,7 @@ function CurrentIntentionHero({
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <MiniPrism activeTag={intention.heading ?? null} size={320} />
+        <MiniPrism activeTag={intention.heading ?? null} size={380} />
       </div>
     </div>
   );
@@ -563,10 +563,10 @@ function HistoryCard({
   return (
     <div
       style={{
-        padding: 18,
+        padding: 22,
         background: 'var(--j2-surface-2)',
         border: '1px solid var(--j2-border-1)',
-        borderRadius: 12,
+        borderRadius: 14,
         position: 'relative',
         overflow: 'hidden',
       }}
@@ -575,7 +575,7 @@ function HistoryCard({
       <div
         aria-hidden
         style={{
-          position: 'absolute', top: 0, right: 0, width: 72, height: 72,
+          position: 'absolute', top: 0, right: 0, width: 84, height: 84,
           background: `radial-gradient(circle at 100% 0%, ${accentColor}30, transparent 70%)`,
           pointerEvents: 'none',
         }}
@@ -583,7 +583,7 @@ function HistoryCard({
 
       <div
         style={{
-          fontSize: 11,
+          fontSize: 12,
           color: 'rgba(255,255,255,0.40)',
           letterSpacing: '0.14em',
           textTransform: 'uppercase',
@@ -593,11 +593,11 @@ function HistoryCard({
       </div>
       <div
         style={{
-          fontSize: 20,
+          fontSize: 23,
           fontFamily: FONT_EDITORIAL,
           fontWeight: 600,
           color: PALE_YELLOW,
-          marginTop: 8,
+          marginTop: 10,
         }}
       >
         {heading}
@@ -608,16 +608,16 @@ function HistoryCard({
         style={{
           display: 'flex', alignItems: 'center',
           justifyContent: 'space-between',
-          marginTop: 14,
+          marginTop: 18,
         }}
       >
         <div
           style={{
             flex: 1,
-            height: 4,
+            height: 5,
             background: 'rgba(255,255,255,0.08)',
-            borderRadius: 2,
-            marginRight: 12,
+            borderRadius: 3,
+            marginRight: 14,
             overflow: 'hidden',
           }}
         >
@@ -626,16 +626,16 @@ function HistoryCard({
               width: `${alignment.status === 'no-data' ? 0 : alignmentScore}%`,
               height: '100%',
               background: accentColor,
-              borderRadius: 2,
+              borderRadius: 3,
             }}
           />
         </div>
         <div
           style={{
-            fontSize: 12,
+            fontSize: 13,
             color: 'rgba(255,255,255,0.40)',
             letterSpacing: '0.1em',
-            minWidth: 40,
+            minWidth: 44,
             textAlign: 'right',
           }}
         >
@@ -647,14 +647,14 @@ function HistoryCard({
       <div
         style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          marginTop: 16, paddingTop: 12,
+          marginTop: 20, paddingTop: 14,
           borderTop: '1px solid rgba(255,255,255,0.04)',
         }}
       >
         <button
           onClick={onOpenJournal}
           style={{
-            fontSize: 12, fontWeight: 600,
+            fontSize: 13, fontWeight: 600,
             color: intention.journal_entry ? 'rgba(242,228,168,0.45)' : COPPER,
             background: 'transparent', padding: 0, cursor: 'pointer',
           }}
@@ -670,7 +670,7 @@ function HistoryCard({
           }}
           title="Edit intention"
         >
-          <Pencil size={14} />
+          <Pencil size={15} />
         </button>
       </div>
     </div>

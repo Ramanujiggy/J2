@@ -95,7 +95,7 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
       onClick={onClose}
     >
       <div
-        className="w-full sm:max-w-sm lg:max-w-lg rounded-2xl overflow-hidden animate-j2-modal-in"
+        className="w-full sm:max-w-sm lg:max-w-2xl rounded-2xl overflow-hidden animate-j2-modal-in"
         style={{
           backgroundColor: '#152E22',
           border: '1px solid rgba(255,255,255,0.10)',
@@ -104,15 +104,15 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
         }}
         onClick={e => e.stopPropagation()}
       >
-        <div className={isDesktop ? 'p-8 space-y-4' : 'p-5 space-y-4'}>
+        <div className={isDesktop ? 'p-10 space-y-5' : 'p-5 space-y-4'}>
           {isDesktop ? (
             <div>
-              <div className="j2-label-copper" style={{ marginBottom: 6 }}>
+              <div className="j2-label-copper" style={{ marginBottom: 8 }}>
                 ◇ {isEdit ? 'Edit your focus' : "Set this week's focus"}
               </div>
               <h2
                 className="j2-serif-display"
-                style={{ fontSize: 28, margin: 0, lineHeight: 1.1 }}
+                style={{ fontSize: 34, margin: 0, lineHeight: 1.1 }}
               >
                 What do you want to work on this week?
               </h2>

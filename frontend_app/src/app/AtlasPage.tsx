@@ -101,16 +101,16 @@ export default function AtlasPage() {
 
   return (
     <PageContent ready={!loading} loadingMessages={['Charting the year...', 'Measuring the ring...', 'Lacing up for the long look...']}>
-    <div style={{ maxWidth: 1360, margin: '0 auto', padding: '56px 64px 96px' }}>
+    <div style={{ maxWidth: 1480, margin: '0 auto', padding: '64px 80px 104px' }}>
 
       {/* ── Header ───────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 36 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 44 }}>
         <div>
-          <div className="j2-label-micro" style={{ marginBottom: 14 }}>Atlas</div>
-          <h1 className="j2-serif-display j2-heading-glow" style={{ fontSize: 60, margin: 0 }}>
+          <div className="j2-label-micro" style={{ marginBottom: 16 }}>Atlas</div>
+          <h1 className="j2-serif-display j2-heading-glow" style={{ fontSize: 72, margin: 0 }}>
             Look back at your training.
           </h1>
-          <div className="j2-serif-italic" style={{ marginTop: 12, fontSize: 19 }}>
+          <div className="j2-serif-italic" style={{ marginTop: 14, fontSize: 22 }}>
             Where the patterns show up — across weeks, months, and years.
           </div>
         </div>
@@ -192,7 +192,7 @@ function SegmentedToggle<T extends string>({
         border: '1px solid var(--j2-border-1)',
         borderRadius: 12,
         padding: 3,
-        height: 44,
+        height: 50,
       }}
     >
       {tabs.map(t => {
@@ -204,14 +204,14 @@ function SegmentedToggle<T extends string>({
             style={{
               position: 'relative',
               zIndex: 1,
-              padding: '0 18px',
+              padding: '0 22px',
               height: '100%',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
               borderRadius: 9,
               color: isActive ? '#fff' : 'rgba(255,255,255,0.40)',
-              fontWeight: 600, fontSize: 14,
+              fontWeight: 600, fontSize: 15,
               background: 'transparent',
               cursor: 'pointer',
               transition: 'color 180ms ease',
@@ -327,17 +327,17 @@ function YearCard({ year, sessions, intentions }: { year: number; sessions: Sess
       style={{
         background: CARD_BG,
         border: '1px solid var(--j2-border-2)',
-        borderRadius: 18,
-        padding: 32,
+        borderRadius: 20,
+        padding: 40,
       }}
     >
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 22 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 26 }}>
         <div>
-          <div className="j2-serif-display" style={{ fontSize: 52, lineHeight: 1 }}>{year}</div>
+          <div className="j2-serif-display" style={{ fontSize: 60, lineHeight: 1 }}>{year}</div>
           <div
             className="j2-serif-italic"
-            style={{ fontSize: 16, color: 'rgba(255,255,255,0.60)', marginTop: 6 }}
+            style={{ fontSize: 18, color: 'rgba(255,255,255,0.60)', marginTop: 8 }}
           >
             {yearSessions.length} session{yearSessions.length === 1 ? '' : 's'} · {totalHours} hour{totalHours === 1 ? '' : 's'}
             {topTag ? <> · mostly <span style={{ color: PALE_YELLOW }}>{topTag}</span></> : null}
@@ -351,11 +351,11 @@ function YearCard({ year, sessions, intentions }: { year: number; sessions: Sess
       {/* Focus ribbon (52 bars) */}
       <div
         style={{
-          marginTop: 18,
+          marginTop: 22,
           display: 'flex',
           gap: 2,
-          height: 12,
-          borderRadius: 6,
+          height: 14,
+          borderRadius: 7,
           overflow: 'hidden',
           border: '1px solid var(--j2-border-1)',
         }}
@@ -375,21 +375,21 @@ function YearCard({ year, sessions, intentions }: { year: number; sessions: Sess
       {/* Legend */}
       <div
         style={{
-          display: 'flex', gap: 20, marginTop: 14,
-          fontSize: 12, color: 'rgba(255,255,255,0.40)',
+          display: 'flex', gap: 24, marginTop: 18,
+          fontSize: 13, color: 'rgba(255,255,255,0.40)',
         }}
       >
         {SKILL_TAGS.map(tag => (
           <div
             key={tag.value}
             style={{
-              display: 'flex', alignItems: 'center', gap: 8,
+              display: 'flex', alignItems: 'center', gap: 10,
               letterSpacing: '0.14em', textTransform: 'uppercase',
             }}
           >
             <span
               style={{
-                width: 12, height: 12,
+                width: 14, height: 14,
                 background: SKILL_COLORS[tag.value]?.stroke ?? COPPER,
                 borderRadius: 2,
               }}
@@ -462,10 +462,10 @@ function LibraryComingSoon() {
         background: CARD_BG,
         border: `1px solid ${CARD_GLOW_BORDER}`,
         boxShadow: CARD_GLOW,
-        borderRadius: 18,
-        padding: '100px 48px',
+        borderRadius: 20,
+        padding: '120px 56px',
         overflow: 'hidden',
-        minHeight: 500,
+        minHeight: 580,
       }}
     >
       {/* Local seigaiha backdrop inside the card only */}
@@ -479,19 +479,19 @@ function LibraryComingSoon() {
           position: 'relative', zIndex: 1,
           display: 'flex', flexDirection: 'column',
           alignItems: 'center', textAlign: 'center',
-          gap: 18, maxWidth: 620, margin: '0 auto',
+          gap: 22, maxWidth: 720, margin: '0 auto',
         }}
       >
         <div className="j2-label-copper">◇ Library</div>
-        <h2 className="j2-serif-display j2-heading-glow" style={{ fontSize: 56, margin: 0, lineHeight: 1.1 }}>
+        <h2 className="j2-serif-display j2-heading-glow" style={{ fontSize: 68, margin: 0, lineHeight: 1.1 }}>
           A technique catalog,<br />
           <span className="j2-serif-italic" style={{ color: COPPER, fontStyle: 'italic' }}>coming soon.</span>
         </h2>
         <p
           style={{
-            fontSize: 17, lineHeight: 1.65,
+            fontSize: 19, lineHeight: 1.65,
             color: 'rgba(255,255,255,0.60)',
-            marginTop: 6,
+            marginTop: 8,
           }}
         >
           Journada&rsquo;s Library will give each technique its own page — videos, drill notes,
@@ -500,8 +500,8 @@ function LibraryComingSoon() {
         </p>
         <div
           style={{
-            marginTop: 10,
-            fontSize: 12, letterSpacing: '0.18em', textTransform: 'uppercase',
+            marginTop: 12,
+            fontSize: 13, letterSpacing: '0.18em', textTransform: 'uppercase',
             color: 'rgba(255,255,255,0.30)',
           }}
         >

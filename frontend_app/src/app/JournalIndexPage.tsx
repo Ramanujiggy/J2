@@ -98,26 +98,26 @@ export default function JournalIndexPage() {
 
   return (
     <PageContent ready={!loading} loadingMessages={['Pulling entries...', 'Dusting the pages...', 'Finding the margin notes...']}>
-    <div style={{ maxWidth: 1000, margin: '0 auto', padding: '56px 64px 96px' }}>
+    <div style={{ maxWidth: 1120, margin: '0 auto', padding: '64px 80px 104px' }}>
 
       {/* ── Header ─────────────────────────────────────────── */}
-      <div style={{ marginBottom: 40 }}>
-        <div className="j2-label-micro" style={{ marginBottom: 14 }}>Journal</div>
-        <h1 className="j2-serif-display j2-heading-glow" style={{ fontSize: 68, margin: 0, lineHeight: 1 }}>
+      <div style={{ marginBottom: 48 }}>
+        <div className="j2-label-micro" style={{ marginBottom: 16 }}>Journal</div>
+        <h1 className="j2-serif-display j2-heading-glow" style={{ fontSize: 84, margin: 0, lineHeight: 1 }}>
           Your training log.
         </h1>
         <div
           className="j2-serif-italic"
-          style={{ marginTop: 14, fontSize: 19, color: 'rgba(255,255,255,0.60)' }}
+          style={{ marginTop: 16, fontSize: 22, color: 'rgba(255,255,255,0.60)' }}
         >
           {allSessions.length} {allSessions.length === 1 ? 'entry' : 'entries'} · {totalHours} hour{totalHours === 1 ? '' : 's'} logged.
         </div>
       </div>
 
-      {fetchError && <p style={{ fontSize: 14, color: '#F87171', marginBottom: 18 }}>{fetchError}</p>}
+      {fetchError && <p style={{ fontSize: 15, color: '#F87171', marginBottom: 20 }}>{fetchError}</p>}
 
       {/* ── Search + filter chips ──────────────────────────── */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 32, alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: 14, marginBottom: 40, alignItems: 'center' }}>
         <input
           placeholder="Search positions, focus, notes…"
           value={query}
@@ -127,16 +127,16 @@ export default function JournalIndexPage() {
             background: 'var(--j2-surface-3)',
             border: '1px solid var(--j2-border-2)',
             borderRadius: 12,
-            padding: '14px 18px',
+            padding: '16px 20px',
             color: 'rgba(255,255,255,0.90)',
-            fontSize: 15,
+            fontSize: 16,
             outline: 'none',
             transition: 'border-color 180ms ease, background 180ms ease',
           }}
           onFocus={e => { e.currentTarget.style.borderColor = 'rgba(196,145,95,0.5)'; e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; }}
           onBlur={e => { e.currentTarget.style.borderColor = 'var(--j2-border-2)'; e.currentTarget.style.background = 'var(--j2-surface-3)'; }}
         />
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           {(['All', ...SKILL_TAGS.map(t => t.value)] as Filter[]).map(v => {
             const label = v === 'All' ? 'All' : (SKILL_TAGS.find(t => t.value === v)?.label ?? v);
             const active = filter === v;
@@ -145,12 +145,12 @@ export default function JournalIndexPage() {
                 key={v}
                 onClick={() => setFilter(v)}
                 style={{
-                  height: 36, padding: '0 16px',
+                  height: 42, padding: '0 20px',
                   display: 'inline-flex', alignItems: 'center',
-                  fontSize: 13, fontWeight: 600,
+                  fontSize: 14, fontWeight: 600,
                   background: active ? 'rgba(196,145,95,0.16)' : 'var(--j2-surface-2)',
                   border: `1px solid ${active ? COPPER : 'var(--j2-border-2)'}`,
-                  borderRadius: 18,
+                  borderRadius: 21,
                   color: active ? PALE_YELLOW : 'rgba(255,255,255,0.60)',
                   cursor: 'pointer',
                   transition: 'all 160ms ease',
@@ -169,15 +169,15 @@ export default function JournalIndexPage() {
         <EmptyState hasAny={allSessions.length > 0} />
       ) : (
         groups.map(([month, items]) => (
-          <div key={month} style={{ marginBottom: 44 }}>
+          <div key={month} style={{ marginBottom: 52 }}>
             <div
               style={{
-                display: 'flex', alignItems: 'baseline', gap: 16,
-                marginBottom: 14, paddingBottom: 10,
+                display: 'flex', alignItems: 'baseline', gap: 20,
+                marginBottom: 18, paddingBottom: 12,
                 borderBottom: '1px solid var(--j2-border-2)',
               }}
             >
-              <div className="j2-serif-display" style={{ fontSize: 32 }}>
+              <div className="j2-serif-display" style={{ fontSize: 38 }}>
                 {new Date(month + '-01T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
               </div>
               <div className="j2-label-micro">{items.length} {items.length === 1 ? 'entry' : 'entries'}</div>
@@ -211,11 +211,11 @@ function JournalRow({ session, onOpen }: { session: SessionSummary; onOpen: () =
       onClick={onOpen}
       style={{
         display: 'grid',
-        gridTemplateColumns: '64px 1fr auto',
-        gap: 22,
+        gridTemplateColumns: '76px 1fr auto',
+        gap: 26,
         alignItems: 'center',
         width: '100%',
-        padding: '22px 6px',
+        padding: '26px 8px',
         borderBottom: '1px solid var(--j2-border-1)',
         background: 'transparent',
         textAlign: 'left',
@@ -227,53 +227,53 @@ function JournalRow({ session, onOpen }: { session: SessionSummary; onOpen: () =
     >
       {/* Date column — large serif day + weekday */}
       <div style={{ textAlign: 'center' }}>
-        <div className="j2-serif-display" style={{ fontSize: 34, lineHeight: 1 }}>
+        <div className="j2-serif-display" style={{ fontSize: 40, lineHeight: 1 }}>
           {d.getDate()}
         </div>
-        <div className="j2-label-micro" style={{ fontSize: 10.5, marginTop: 4 }}>
+        <div className="j2-label-micro" style={{ fontSize: 11.5, marginTop: 6 }}>
           {DAY_NAMES[d.getDay()]}
         </div>
       </div>
 
       {/* Middle column */}
       <div style={{ minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 8, flexWrap: 'wrap' }}>
           <span
             aria-hidden
             style={{
-              width: 12, height: 12, borderRadius: '50%',
+              width: 14, height: 14, borderRadius: '50%',
               background: intColor,
-              boxShadow: `0 0 10px ${intColor}60`,
+              boxShadow: `0 0 12px ${intColor}60`,
               flexShrink: 0,
             }}
           />
-          <div style={{ fontSize: 19, fontWeight: 600, color: PALE_YELLOW, fontFamily: FONT_EDITORIAL }}>
+          <div style={{ fontSize: 22, fontWeight: 600, color: PALE_YELLOW, fontFamily: FONT_EDITORIAL }}>
             {focusLabel}
           </div>
           <span className="j2-label-micro" style={{ marginLeft: 2 }}>·</span>
           <div
             style={{
-              fontSize: 13, color: 'rgba(255,255,255,0.40)',
+              fontSize: 14, color: 'rgba(255,255,255,0.40)',
               textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 600,
             }}
           >
             {classLabel}
           </div>
         </div>
-        <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.60)' }}>
+        <div style={{ fontSize: 15, color: 'rgba(255,255,255,0.60)' }}>
           {secondaryLabels.length > 0 ? secondaryLabels.join(' · ') : 'Open rolling'}
         </div>
       </div>
 
       {/* Right column — duration + style */}
       <div style={{ textAlign: 'right' }}>
-        <div style={{ fontSize: 17, fontFamily: FONT_EDITORIAL, color: 'rgba(255,255,255,0.90)' }}>
+        <div style={{ fontSize: 19, fontFamily: FONT_EDITORIAL, color: 'rgba(255,255,255,0.90)' }}>
           {formatDuration(session.duration ?? 0)}
         </div>
         <div
           style={{
-            fontSize: 12, color: 'rgba(255,255,255,0.40)',
-            letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 4,
+            fontSize: 13, color: 'rgba(255,255,255,0.40)',
+            letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 6,
           }}
         >
           {giLabel}

@@ -19,7 +19,7 @@ import { PAGE_BG, PALE_YELLOW, COPPER } from '../lib/theme.ts';
 
 type IconProps = { active: boolean };
 const iconAttrs = (active: boolean) => ({
-  width: 20, height: 20, viewBox: '0 0 24 24',
+  width: 22, height: 22, viewBox: '0 0 24 24',
   fill: 'none' as const, stroke: 'currentColor',
   strokeWidth: active ? 2 : 1.6,
   strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const,
@@ -163,10 +163,10 @@ export default function DesktopAppShell({ children }: Props) {
           position: 'sticky',
           top: 0,
           height: '100vh',
-          padding: '32px 24px 24px',
+          padding: '40px 28px 28px',
           display: 'flex',
           flexDirection: 'column',
-          gap: 24,
+          gap: 28,
           borderRight: '1px solid var(--j2-border-2)',
           background: 'rgba(10,21,16,0.7)',
           backdropFilter: 'blur(6px)',
@@ -178,20 +178,20 @@ export default function DesktopAppShell({ children }: Props) {
         <div>
           <div
             className="j2-wordmark"
-            style={{ fontSize: 34, lineHeight: 1 }}
+            style={{ fontSize: 38, lineHeight: 1 }}
           >
             Journada
           </div>
           <div
             className="j2-label-micro"
-            style={{ marginTop: 10, fontSize: 11, letterSpacing: '0.14em' }}
+            style={{ marginTop: 12, fontSize: 12, letterSpacing: '0.14em' }}
           >
             For intentional grappling
           </div>
         </div>
 
         {/* Nav */}
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 4 }}>
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
           {items.map(({ path, label, Icon }) => {
             const isActive = activeTab === path;
             return (
@@ -199,12 +199,12 @@ export default function DesktopAppShell({ children }: Props) {
                 key={path}
                 onClick={() => go(path)}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 14,
-                  padding: '12px 14px',
-                  borderRadius: 10,
+                  display: 'flex', alignItems: 'center', gap: 16,
+                  padding: '14px 16px',
+                  borderRadius: 12,
                   background: isActive ? 'rgba(242,228,168,0.06)' : 'transparent',
                   color: isActive ? PALE_YELLOW : 'rgba(255,255,255,0.60)',
-                  fontWeight: 500, fontSize: 15,
+                  fontWeight: 500, fontSize: 16,
                   textAlign: 'left',
                   transition: 'color 160ms ease, background-color 160ms ease',
                   position: 'relative',
@@ -247,9 +247,9 @@ export default function DesktopAppShell({ children }: Props) {
         {intentionsEnabled && (
         <div
           style={{
-            padding: 16,
+            padding: 20,
             border: '1px solid rgba(196,145,95,0.22)',
-            borderRadius: 12,
+            borderRadius: 14,
             background: 'rgba(196,145,95,0.04)',
             position: 'relative',
             overflow: 'hidden',
@@ -263,18 +263,18 @@ export default function DesktopAppShell({ children }: Props) {
               pointerEvents: 'none',
             }}
           />
-          <div className="j2-label-copper" style={{ marginBottom: 8 }}>◇ This week</div>
+          <div className="j2-label-copper" style={{ marginBottom: 10 }}>◇ This week</div>
           {activeIntention && focusLabel ? (
             <>
-              <div className="j2-serif-display" style={{ fontSize: 24, lineHeight: 1.1 }}>
+              <div className="j2-serif-display" style={{ fontSize: 28, lineHeight: 1.1 }}>
                 {focusLabel}
               </div>
               {activeIntention.intent_label
                 && activeIntention.intent_label.trim().toLowerCase() !== focusLabel.toLowerCase() && (
                 <div
                   style={{
-                    marginTop: 4,
-                    fontSize: 13,
+                    marginTop: 6,
+                    fontSize: 14,
                     color: 'rgba(255,255,255,0.60)',
                     fontStyle: 'italic',
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -286,8 +286,8 @@ export default function DesktopAppShell({ children }: Props) {
               {daysRemaining !== null && (
                 <div
                   style={{
-                    marginTop: 12,
-                    fontSize: 11.5, letterSpacing: '0.14em',
+                    marginTop: 14,
+                    fontSize: 12.5, letterSpacing: '0.14em',
                     textTransform: 'uppercase', fontWeight: 700,
                     color: 'rgba(255,255,255,0.40)',
                   }}
@@ -298,7 +298,7 @@ export default function DesktopAppShell({ children }: Props) {
               <button
                 onClick={() => go('/intentions')}
                 style={{
-                  marginTop: 12, fontSize: 13, fontWeight: 600,
+                  marginTop: 14, fontSize: 14, fontWeight: 600,
                   color: COPPER, borderBottom: `1px solid ${COPPER}40`,
                   cursor: 'pointer', background: 'transparent',
                   padding: 0,
@@ -309,13 +309,13 @@ export default function DesktopAppShell({ children }: Props) {
             </>
           ) : (
             <>
-              <div className="j2-serif-display" style={{ fontSize: 22, lineHeight: 1.1 }}>
+              <div className="j2-serif-display" style={{ fontSize: 26, lineHeight: 1.1 }}>
                 Set your focus
               </div>
               <button
                 onClick={() => go('/intentions')}
                 style={{
-                  marginTop: 12, fontSize: 13, fontWeight: 600,
+                  marginTop: 14, fontSize: 14, fontWeight: 600,
                   color: COPPER, borderBottom: `1px solid ${COPPER}40`,
                   cursor: 'pointer', background: 'transparent',
                   padding: 0,
@@ -335,8 +335,8 @@ export default function DesktopAppShell({ children }: Props) {
           onClick={() => go('/profile')}
           style={{
             marginTop: 'auto',
-            display: 'flex', alignItems: 'center', gap: 12,
-            paddingTop: 16,
+            display: 'flex', alignItems: 'center', gap: 14,
+            paddingTop: 20,
             borderTop: '1px solid var(--j2-border-1)',
             background: 'transparent',
             cursor: 'pointer',
@@ -345,11 +345,11 @@ export default function DesktopAppShell({ children }: Props) {
         >
           <div
             style={{
-              width: 38, height: 38, borderRadius: '50%',
+              width: 44, height: 44, borderRadius: '50%',
               background: 'linear-gradient(135deg, #244A37, #152E22)',
               border: '1px solid var(--j2-border-2)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontFamily: 'var(--font-wordmark)', fontSize: 16,
+              fontFamily: 'var(--font-wordmark)', fontSize: 18,
               color: PALE_YELLOW,
             }}
           >
@@ -358,14 +358,14 @@ export default function DesktopAppShell({ children }: Props) {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div
               style={{
-                fontSize: 14, fontWeight: 600,
+                fontSize: 15, fontWeight: 600,
                 color: 'rgba(255,255,255,0.90)',
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
               }}
             >
               {name ?? 'Practitioner'}
             </div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.40)' }}>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.40)' }}>
               <span style={{ color: beltColor }}>●</span>{' '}
               {beltRank ?? 'White'}
               {stripes ? ` · ${stripes} stripe${stripes > 1 ? 's' : ''}` : ''}

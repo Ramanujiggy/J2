@@ -80,16 +80,16 @@ export default function SessionDetailPage() {
 
   return (
     <PageContent ready={!loading} loadingMessages={['Opening the entry...', 'Smoothing the page...']}>
-    <div style={{ maxWidth: 840, margin: '0 auto', padding: '40px 64px 96px' }}>
+    <div style={{ maxWidth: 960, margin: '0 auto', padding: '48px 80px 104px' }}>
 
       {/* Back link */}
       <button
         onClick={() => navigate('/journal')}
         style={{
-          fontSize: 14, fontWeight: 600,
+          fontSize: 15, fontWeight: 600,
           color: COPPER, borderBottom: `1px solid ${COPPER}40`,
           background: 'transparent', padding: 0,
-          cursor: 'pointer', marginBottom: 40,
+          cursor: 'pointer', marginBottom: 48,
           display: 'inline-block',
         }}
       >
@@ -138,14 +138,14 @@ function DetailHeader({ session }: { session: SessionSummary }) {
                                                       `${typeLabel} session.`;
 
   return (
-    <div style={{ marginBottom: 48, paddingBottom: 40, borderBottom: '1px solid var(--j2-border-2)' }}>
-      <div className="j2-label-copper" style={{ marginBottom: 18 }}>{dateLabel}</div>
-      <h1 className="j2-serif-display j2-heading-glow" style={{ fontSize: 80, margin: 0, lineHeight: 1 }}>
+    <div style={{ marginBottom: 56, paddingBottom: 48, borderBottom: '1px solid var(--j2-border-2)' }}>
+      <div className="j2-label-copper" style={{ marginBottom: 22 }}>{dateLabel}</div>
+      <h1 className="j2-serif-display j2-heading-glow" style={{ fontSize: 96, margin: 0, lineHeight: 1 }}>
         {focusLabel}
       </h1>
       <div
         className="j2-serif-italic"
-        style={{ marginTop: 14, fontSize: 20, color: 'rgba(255,255,255,0.60)' }}
+        style={{ marginTop: 18, fontSize: 22, color: 'rgba(255,255,255,0.60)' }}
       >
         {subtitle}
       </div>
@@ -182,15 +182,15 @@ function StatsRow({ session }: { session: SessionSummary }) {
     { k: 'Class', v: typeLabel },
   ];
   return (
-    <div style={{ display: 'flex', gap: 32, marginBottom: 48, flexWrap: 'wrap' }}>
+    <div style={{ display: 'flex', gap: 40, marginBottom: 56, flexWrap: 'wrap' }}>
       {stats.map((s, i) => (
         <div key={i}>
-          <div className="j2-label-micro" style={{ marginBottom: 6 }}>{s.k}</div>
+          <div className="j2-label-micro" style={{ marginBottom: 8 }}>{s.k}</div>
           <div
             style={{
-              fontSize: 19, fontFamily: FONT_EDITORIAL,
+              fontSize: 22, fontFamily: FONT_EDITORIAL,
               color: PALE_YELLOW,
-              display: 'flex', alignItems: 'center', gap: 10,
+              display: 'flex', alignItems: 'center', gap: 12,
             }}
           >
             {s.v}
@@ -207,29 +207,29 @@ function PrismAndTags({ session }: { session: SessionSummary }) {
   const primary = session.tags?.[0] ?? null;
   const tagChips = (session.tags ?? []).map(t => SKILL_TAGS.find(x => x.value === t)?.label ?? t);
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, marginBottom: 48 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, marginBottom: 56 }}>
       {/* LEFT — Prism */}
       <div>
-        <div className="j2-label-copper" style={{ marginBottom: 14 }}>◇ Focus area</div>
+        <div className="j2-label-copper" style={{ marginBottom: 18 }}>◇ Focus area</div>
         <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <MiniPrism activeTag={primary} size={320} />
+          <MiniPrism activeTag={primary} size={360} />
         </div>
       </div>
       {/* RIGHT — positions / tags */}
       <div>
-        <div className="j2-label-copper" style={{ marginBottom: 16 }}>◈ Positions worked</div>
+        <div className="j2-label-copper" style={{ marginBottom: 20 }}>◈ Positions worked</div>
         {tagChips.length > 0 ? (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
             {tagChips.map((t, i) => (
               <span
                 key={`${t}-${i}`}
                 style={{
-                  height: 36, padding: '0 16px',
+                  height: 42, padding: '0 20px',
                   display: 'inline-flex', alignItems: 'center',
-                  fontSize: 13, fontWeight: 600,
+                  fontSize: 14, fontWeight: 600,
                   background: 'rgba(196,145,95,0.16)',
                   border: `1px solid ${COPPER}`,
-                  borderRadius: 18,
+                  borderRadius: 21,
                   color: PALE_YELLOW,
                   whiteSpace: 'nowrap',
                 }}
@@ -239,7 +239,7 @@ function PrismAndTags({ session }: { session: SessionSummary }) {
             ))}
           </div>
         ) : (
-          <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.40)', fontStyle: 'italic' }}>
+          <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.40)', fontStyle: 'italic' }}>
             Free rolling. No positions tagged.
           </p>
         )}
@@ -252,15 +252,15 @@ function PrismAndTags({ session }: { session: SessionSummary }) {
 
 function ReflectionBlock({ notes }: { notes: string }) {
   return (
-    <div style={{ marginBottom: 48 }}>
-      <div className="j2-label-copper" style={{ marginBottom: 14 }}>◈ Reflection</div>
+    <div style={{ marginBottom: 56 }}>
+      <div className="j2-label-copper" style={{ marginBottom: 18 }}>◈ Reflection</div>
       <div
         className="j2-serif-italic"
         style={{
-          fontSize: 22, lineHeight: 1.7,
+          fontSize: 25, lineHeight: 1.7,
           color: 'rgba(255,255,255,0.90)',
           whiteSpace: 'pre-wrap',
-          paddingLeft: 24,
+          paddingLeft: 28,
           borderLeft: `2px solid ${COPPER}`,
         }}
       >
@@ -274,9 +274,9 @@ function ReflectionBlock({ notes }: { notes: string }) {
 
 function RelatedRow({ sessions, onOpen }: { sessions: SessionSummary[]; onOpen: (id: string) => void }) {
   return (
-    <div style={{ marginBottom: 48 }}>
-      <div className="j2-label-copper" style={{ marginBottom: 18 }}>◈ Similar sessions</div>
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${sessions.length}, 1fr)`, gap: 14 }}>
+    <div style={{ marginBottom: 56 }}>
+      <div className="j2-label-copper" style={{ marginBottom: 22 }}>◈ Similar sessions</div>
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${sessions.length}, 1fr)`, gap: 16 }}>
         {sessions.map(r => {
           const dateStr = typeof r.date === 'string' ? r.date.slice(0, 10) : toDateString(new Date(r.date));
           const d = new Date(dateStr + 'T00:00:00');
@@ -287,10 +287,10 @@ function RelatedRow({ sessions, onOpen }: { sessions: SessionSummary[]; onOpen: 
               key={r.id}
               onClick={() => onOpen(r.id)}
               style={{
-                padding: 18,
+                padding: 22,
                 background: 'var(--j2-surface-2)',
                 border: '1px solid var(--j2-border-1)',
-                borderRadius: 12,
+                borderRadius: 14,
                 textAlign: 'left',
                 cursor: 'pointer',
                 transition: 'background 160ms ease, transform 160ms ease',
@@ -300,7 +300,7 @@ function RelatedRow({ sessions, onOpen }: { sessions: SessionSummary[]; onOpen: 
             >
               <div
                 style={{
-                  fontSize: 12, color: 'rgba(255,255,255,0.40)',
+                  fontSize: 13, color: 'rgba(255,255,255,0.40)',
                   letterSpacing: '0.14em', textTransform: 'uppercase',
                 }}
               >
@@ -308,13 +308,13 @@ function RelatedRow({ sessions, onOpen }: { sessions: SessionSummary[]; onOpen: 
               </div>
               <div
                 style={{
-                  fontSize: 16, fontWeight: 600, marginTop: 6,
+                  fontSize: 19, fontWeight: 600, marginTop: 8,
                   color: 'rgba(255,255,255,0.90)', fontFamily: FONT_EDITORIAL,
                 }}
               >
                 {focusLabel}
               </div>
-              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.40)', marginTop: 4 }}>
+              <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.40)', marginTop: 6 }}>
                 {DAY_NAMES[d.getDay()]} · {formatDuration(r.duration ?? 0)}
               </div>
             </button>

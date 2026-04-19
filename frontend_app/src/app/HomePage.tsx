@@ -7,6 +7,7 @@ import {
 } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import SegmentedToggle from '../components/SegmentedToggle.tsx';
+import WaveBackground from '../components/WaveBackground.tsx';
 
 type Mode = 'login' | 'register' | 'forgot';
 
@@ -88,8 +89,34 @@ export default function HomePage() {
       className="min-h-screen min-h-dvh flex flex-col items-center justify-center px-4 relative overflow-hidden"
       style={{ backgroundColor: '#0D1A14' }}
     >
-      {/* Ambient seigaiha wave pattern — same as rest of app */}
-      <div className="j2-seigaiha-bg" />
+      {/* Animated seigaiha waves — denser SVG pattern with diagonal drift.
+          On desktop a soft radial vignette dims the waves toward center so the
+          card isn't fighting motion directly behind it; waves stay lively
+          at the edges. Mobile sees the full pattern since the card fills
+          more of the viewport naturally. */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          opacity: isDesktop ? 0.6 : 1,
+          pointerEvents: 'none',
+        }}
+      >
+        <WaveBackground />
+      </div>
+      {isDesktop && (
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            background:
+              'radial-gradient(ellipse 520px 620px at center, rgba(13,26,20,0.92) 0%, rgba(13,26,20,0.75) 35%, rgba(13,26,20,0.35) 65%, transparent 100%)',
+          }}
+        />
+      )}
 
       {/* ── Editorial header ───────────────────────────────────────────── */}
       <div className="relative z-10 text-center mb-8" style={{ maxWidth: cardMaxWidth, width: '100%' }}>

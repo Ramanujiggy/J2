@@ -210,18 +210,18 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
         />
 
         <div
-          className={isDesktop ? 'px-5 pb-5 pt-4' : 'px-5 pb-5 pt-4 space-y-4'}
+          className={isDesktop ? 'px-8 pb-8 pt-6' : 'px-5 pb-5 pt-4 space-y-4'}
           style={isDesktop ? {
             display: 'grid',
-            gridTemplateColumns: '1fr 360px',
+            gridTemplateColumns: '1fr 420px',
             gridTemplateRows: 'auto auto auto',
-            columnGap: 20,
-            rowGap: 16,
+            columnGap: 24,
+            rowGap: 20,
             alignItems: 'start',
           } : undefined}
         >
         <h2
-          className={isDesktop ? 'text-xl font-display font-semibold' : 'text-lg font-display font-semibold'}
+          className={isDesktop ? 'text-2xl font-display font-semibold' : 'text-lg font-display font-semibold'}
           style={isDesktop
             ? { color: PALE_YELLOW, gridColumn: '1 / -1', marginBottom: 0 }
             : { color: PALE_YELLOW }}
