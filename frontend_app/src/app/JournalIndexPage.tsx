@@ -38,9 +38,8 @@ export default function JournalIndexPage() {
   const fetchAll = useCallback(async () => {
     try {
       setFetchError(null);
-      // Wide window — Journal needs deep history, not just the last 6mo.
-      const from = new Date(Date.now() - 730 * 86_400_000).toISOString().slice(0, 10);
-      const res = await api.get<SessionsResponse>(`/api/sessions?from=${from}`);
+      // Journal is the "every entry you've ever logged" surface — fetch all.
+      const res = await api.get<SessionsResponse>('/api/sessions');
       setSessions(res.sessions ?? []);
     } catch (err) {
       if (!(err instanceof ApiError && err.status === 401)) {

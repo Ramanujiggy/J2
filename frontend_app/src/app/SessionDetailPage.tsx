@@ -33,8 +33,9 @@ export default function SessionDetailPage() {
   const fetchAll = useCallback(async () => {
     try {
       setFetchError(null);
-      const from = new Date(Date.now() - 730 * 86_400_000).toISOString().slice(0, 10);
-      const res = await api.get<SessionsResponse>(`/api/sessions?from=${from}`);
+      // Pull all sessions so prev/next navigation reaches the oldest entries
+      // and "similar sessions" can surface old ones with matching focus.
+      const res = await api.get<SessionsResponse>('/api/sessions');
       setSessions(res.sessions ?? []);
     } catch (err) {
       if (!(err instanceof ApiError && err.status === 401)) {

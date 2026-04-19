@@ -70,14 +70,14 @@ export default function AtlasPage() {
   useEffect(() => { localStorage.setItem('j2-analytics-timeWindow', timeWindow); }, [timeWindow]);
   const [customRange, setCustomRange] = useState<{ start: string; end: string } | null>(null);
 
-  // ── Fetch: pull a wide window (all-time would be ideal but we fetch 2y to bound payload) ──
+  // ── Fetch: Atlas is THE surface for looking back across years, so we pull
+  //          the full session history (no `from` filter). Backend has no
+  //          row cap — user sees every year they've logged, correctly. ──
   const fetchAll = useCallback(async () => {
     try {
       setFetchError(null);
-      // Atlas needs multi-year data for Timeline. Fetch 2 full years back.
-      const from = new Date(Date.now() - 730 * 86_400_000).toISOString().slice(0, 10);
       const [sesRes, intRes] = await Promise.all([
-        api.get<SessionsResponse>(`/api/sessions?from=${from}`),
+        api.get<SessionsResponse>('/api/sessions'),
         api.get<IntentionsResponse>('/api/intentions'),
       ]);
       setSessions(sesRes.sessions ?? []);

@@ -93,11 +93,14 @@ export default function PathAheadPage() {
 
   const fetchAll = useCallback(async () => {
     try {
-      // Fetch 168 days back (covers the 24-week heatmap widget) through 5 days ahead
-      // (covers the day-card carousel). The week carousel filters via sessionsByDate
-      // so extra historical sessions don't affect it.
-      const from = new Date(Date.now() - 168 * 86_400_000).toISOString().slice(0, 10);
-      const to   = new Date(Date.now() +  5 * 86_400_000).toISOString().slice(0, 10);
+      // Desktop surfaces an AnnualRadial + full-year heatmap + all-time
+      // consistent-weeks / longest-streak stats — all of which need the full
+      // current year plus prior-year continuity. Fetch from the start of the
+      // previous calendar year through 5 days ahead (future-dated sessions).
+      // This covers mobile's 24-week heatmap too with plenty of headroom.
+      const fromDate = new Date(new Date().getFullYear() - 1, 0, 1);
+      const from = fromDate.toISOString().slice(0, 10);
+      const to   = new Date(Date.now() + 5 * 86_400_000).toISOString().slice(0, 10);
       const [sessRes, intRes] = await Promise.all([
         api.get<SessionsResponse>(`/api/sessions?from=${from}&to=${to}`),
         api.get<IntentionsResponse>('/api/intentions'),
