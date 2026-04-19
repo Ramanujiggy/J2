@@ -4,6 +4,7 @@ import { toast } from '../hooks/use-toast.ts';
 import { CARD_BG, COPPER, SURFACE_2, SURFACE_3, PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
 import { vibrate } from '../lib/haptics.ts';
 import { INTENSITY_COLOR } from '../lib/sessionUtils.ts';
+import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import BeltDateBanner from './BeltDateBanner.tsx';
 import PillarPrism from './PillarPrism.tsx';
 import SegmentedToggle from './SegmentedToggle.tsx';
@@ -43,6 +44,7 @@ const INTENSITY_LABELS = ['Light', 'Easy', 'Moderate', 'Hard', 'Max'];
 const DURATION_PRESETS = [30, 60, 90, 120];
 
 export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defaultHeading, defaultSessionType, defaultSubSkillTag }: { onSuccess?: (sessionCount?: number) => void; onCancel?: () => void; defaultDate?: string; defaultHeading?: string; defaultSessionType?: SessionType; defaultSubSkillTag?: string }) {
+  const isDesktop = useIsDesktop();
   const [form, setForm] = useState<SessionFormData>({
     date:         defaultDate ?? today,
     notes:        '',
@@ -207,13 +209,37 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
           onChange={date => setForm(prev => ({ ...prev, date }))}
         />
 
-        <div className="px-5 pb-5 pt-4 space-y-4">
-        <h2 className="text-lg font-display font-semibold" style={{ color: PALE_YELLOW }}>Log a Training Session</h2>
+        <div
+          className={isDesktop ? 'px-5 pb-5 pt-4' : 'px-5 pb-5 pt-4 space-y-4'}
+          style={isDesktop ? {
+            display: 'grid',
+            gridTemplateColumns: '1fr 360px',
+            gridTemplateRows: 'auto auto auto',
+            columnGap: 20,
+            rowGap: 16,
+            alignItems: 'start',
+          } : undefined}
+        >
+        <h2
+          className={isDesktop ? 'text-xl font-display font-semibold' : 'text-lg font-display font-semibold'}
+          style={isDesktop
+            ? { color: PALE_YELLOW, gridColumn: '1 / -1', marginBottom: 0 }
+            : { color: PALE_YELLOW }}
+        >
+          Log a Training Session
+        </h2>
 
         {/* ══════════════════════════════════════════════════════════════
             SECTION 1: The Basics
             ══════════════════════════════════════════════════════════════ */}
-        <div className="rounded-xl px-4 py-4 space-y-4" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
+        <div
+          className="rounded-xl px-4 py-4 space-y-4"
+          style={{
+            backgroundColor: SURFACE_2,
+            border: '1px solid rgba(255,255,255,0.05)',
+            ...(isDesktop ? { gridColumn: '1', gridRow: '2' } : {}),
+          }}
+        >
           <span className="text-xs font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.40)' }}>
             The Basics
           </span>
@@ -317,9 +343,17 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
         </div>
 
         {/* ══════════════════════════════════════════════════════════════
-            SECTION 2: Your Focus
+            SECTION 2: Your Focus — on desktop this sits in the right column,
+            spanning rows 2-3 so it stays alongside both Basics and Details.
             ══════════════════════════════════════════════════════════════ */}
-        <div className="rounded-xl px-4 py-4 space-y-4" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
+        <div
+          className="rounded-xl px-4 py-4 space-y-4"
+          style={{
+            backgroundColor: SURFACE_2,
+            border: '1px solid rgba(255,255,255,0.05)',
+            ...(isDesktop ? { gridColumn: '2', gridRow: '2 / span 2' } : {}),
+          }}
+        >
           <div>
             <h3 className="text-sm font-semibold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
               What did you work on?
@@ -378,7 +412,14 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
         {/* ══════════════════════════════════════════════════════════════
             SECTION 3: Details (optional)
             ══════════════════════════════════════════════════════════════ */}
-        <div className="rounded-xl px-4 py-4 space-y-3" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
+        <div
+          className="rounded-xl px-4 py-4 space-y-3"
+          style={{
+            backgroundColor: SURFACE_2,
+            border: '1px solid rgba(255,255,255,0.05)',
+            ...(isDesktop ? { gridColumn: '1', gridRow: '3' } : {}),
+          }}
+        >
           <span className="text-xs font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.40)' }}>
             Details
           </span>
@@ -416,12 +457,21 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
           </div>
         </div>
 
-        {/* ── Error + CTA ─────────────────────────────────────────── */}
-        {error && <p className="text-red-400 text-sm">{error}</p>}
+        {/* ── Error + CTA — full-width on desktop ─────────────────── */}
+        {error && (
+          <p
+            className="text-red-400 text-sm"
+            style={isDesktop ? { gridColumn: '1 / -1', margin: 0 } : undefined}
+          >
+            {error}
+          </p>
+        )}
 
         <div
           className="flex items-center gap-3 pt-2"
-          style={{ borderTop: '1px solid rgba(196,145,95,0.12)' }}
+          style={isDesktop
+            ? { borderTop: '1px solid rgba(196,145,95,0.12)', gridColumn: '1 / -1', marginTop: 4 }
+            : { borderTop: '1px solid rgba(196,145,95,0.12)' }}
         >
           {onCancel && (
             <button

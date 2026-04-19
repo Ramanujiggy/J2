@@ -86,7 +86,7 @@ export default function CalendarPage() {
       >
         <div
           onClick={e => e.stopPropagation()}
-          className="w-full sm:max-w-lg animate-j2-modal-in"
+          className="w-full sm:max-w-lg lg:max-w-4xl animate-j2-modal-in"
         >
           <LogSessionForm
             onSuccess={() => { fetchAll(); setLogDate(null); }}

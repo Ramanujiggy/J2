@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.ts';
 import { PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3, COPPER } from '../lib/theme.ts';
 import { vibrate } from '../lib/haptics.ts';
+import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import PillarPrism from './PillarPrism.tsx';
 import SegmentedToggle from './SegmentedToggle.tsx';
 import type { Intention } from '../types/api.ts';
@@ -32,6 +33,7 @@ interface IntentionResponse {
 
 export default function SetIntentionModal({ onSaved, onClose, editIntention }: Props) {
   const navigate = useNavigate();
+  const isDesktop = useIsDesktop();
   const isEdit = !!editIntention;
 
   const [heading,      setHeading]      = useState<string | null>(editIntention?.heading ?? null);
@@ -93,7 +95,7 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
       onClick={onClose}
     >
       <div
-        className="w-full sm:max-w-sm rounded-2xl overflow-hidden animate-j2-modal-in"
+        className="w-full sm:max-w-sm lg:max-w-lg rounded-2xl overflow-hidden animate-j2-modal-in"
         style={{
           backgroundColor: '#152E22',
           border: '1px solid rgba(255,255,255,0.10)',
@@ -102,10 +104,24 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
         }}
         onClick={e => e.stopPropagation()}
       >
-        <div className="p-5 space-y-4">
-          <h2 className="text-lg font-display font-semibold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
-            {isEdit ? 'Edit your focus' : 'Set your focus'}
-          </h2>
+        <div className={isDesktop ? 'p-8 space-y-4' : 'p-5 space-y-4'}>
+          {isDesktop ? (
+            <div>
+              <div className="j2-label-copper" style={{ marginBottom: 6 }}>
+                ◇ {isEdit ? 'Edit your focus' : "Set this week's focus"}
+              </div>
+              <h2
+                className="j2-serif-display"
+                style={{ fontSize: 28, margin: 0, lineHeight: 1.1 }}
+              >
+                What do you want to work on this week?
+              </h2>
+            </div>
+          ) : (
+            <h2 className="text-lg font-display font-semibold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
+              {isEdit ? 'Edit your focus' : 'Set your focus'}
+            </h2>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
 
