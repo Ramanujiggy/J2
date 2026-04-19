@@ -7,7 +7,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext.tsx';
 import { useActiveIntention } from '../context/ActiveIntentionContext.tsx';
-import { type BeltRank, BELT_COLORS } from './BeltBar.tsx';
+import RiveBeltBar from './RiveBeltBar.tsx';
 import OfflineBanner from './OfflineBanner.tsx';
 import PageTransition from './PageTransition.tsx';
 import { useOnlineSync } from '../hooks/useOnlineSync.ts';
@@ -141,7 +141,6 @@ export default function DesktopAppShell({ children }: Props) {
     navigate(path);
   }, [items, navigate]);
 
-  const beltColor = beltRank ? BELT_COLORS[beltRank as BeltRank] ?? '#3A5A7A' : '#3A5A7A';
   const initials = (name ?? '').split(' ').map(s => s[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'J';
 
   return (
@@ -328,50 +327,80 @@ export default function DesktopAppShell({ children }: Props) {
         </div>
         )}
 
-        {/* Practitioner pill — avatar + name + belt. marginTop:auto pins it
-            to the bottom of the rail regardless of whether the focus card
-            above is rendered. */}
-        <button
-          onClick={() => go('/profile')}
+        {/* Practitioner pill — avatar + name + animated belt identity.
+            The belt ties on mount (login/refresh), then sits as an ambient
+            rank marker. marginTop:auto pins the whole section to the bottom
+            of the rail regardless of whether the focus card above is rendered. */}
+        <div
           style={{
             marginTop: 'auto',
-            display: 'flex', alignItems: 'center', gap: 14,
-            paddingTop: 20,
+            paddingTop: 18,
             borderTop: '1px solid var(--j2-border-1)',
-            background: 'transparent',
-            cursor: 'pointer',
-            textAlign: 'left',
           }}
         >
+          {/* Belt ceremony — small, ambient, ties on page load */}
           <div
             style={{
-              width: 44, height: 44, borderRadius: '50%',
-              background: 'linear-gradient(135deg, #244A37, #152E22)',
-              border: '1px solid var(--j2-border-2)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontFamily: 'var(--font-wordmark)', fontSize: 18,
-              color: PALE_YELLOW,
+              width: '100%',
+              height: 32,
+              marginBottom: 14,
+              opacity: 0.88,
+            }}
+            aria-label={`${beltRank ?? 'White'} belt${stripes ? `, ${stripes} stripe${stripes > 1 ? 's' : ''}` : ''}`}
+          >
+            <RiveBeltBar rank={beltRank} stripes={stripes ?? 0} />
+          </div>
+
+          {/* Avatar + name — tappable, routes to profile */}
+          <button
+            onClick={() => go('/profile')}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              background: 'transparent',
+              cursor: 'pointer',
+              textAlign: 'left',
+              width: '100%',
+              padding: 0,
             }}
           >
-            {initials}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
             <div
               style={{
-                fontSize: 15, fontWeight: 600,
-                color: 'rgba(255,255,255,0.90)',
-                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                width: 40, height: 40, borderRadius: '50%',
+                background: 'linear-gradient(135deg, #244A37, #152E22)',
+                border: '1px solid var(--j2-border-2)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontFamily: 'var(--font-wordmark)', fontSize: 17,
+                color: PALE_YELLOW,
+                flexShrink: 0,
               }}
             >
-              {name ?? 'Practitioner'}
+              {initials}
             </div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.40)' }}>
-              <span style={{ color: beltColor }}>●</span>{' '}
-              {beltRank ?? 'White'}
-              {stripes ? ` · ${stripes} stripe${stripes > 1 ? 's' : ''}` : ''}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div
+                style={{
+                  fontSize: 14, fontWeight: 600,
+                  color: 'rgba(255,255,255,0.90)',
+                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                  lineHeight: 1.2,
+                }}
+              >
+                {name ?? 'Practitioner'}
+              </div>
+              <div
+                style={{
+                  fontSize: 11,
+                  color: 'rgba(255,255,255,0.38)',
+                  letterSpacing: '0.04em',
+                  marginTop: 2,
+                }}
+              >
+                {beltRank ? `${beltRank[0]!.toUpperCase()}${beltRank.slice(1)} belt` : 'White belt'}
+                {stripes ? ` · ${stripes}` : ''}
+              </div>
             </div>
-          </div>
-        </button>
+          </button>
+        </div>
       </aside>
 
       {/* ── Main canvas ──────────────────────────────────────────── */}

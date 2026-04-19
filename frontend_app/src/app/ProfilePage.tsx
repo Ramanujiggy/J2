@@ -182,7 +182,7 @@ export default function ProfilePage() {
   return (
     <div className="flex flex-col">
 
-      <main className={`flex-1 w-full mx-auto py-6 ${isDesktop ? 'max-w-2xl px-8' : 'max-w-xl px-4 sm:px-6'}`}>
+      <main className={`flex-1 w-full mx-auto ${isDesktop ? 'max-w-6xl px-12 py-16' : 'max-w-xl px-4 sm:px-6 py-6'}`}>
         <h2 className="text-lg font-display font-semibold text-white mb-6">Your Profile</h2>
 
         <PageContent ready={!loading} loadingMessages={['Taping fingers...']}>

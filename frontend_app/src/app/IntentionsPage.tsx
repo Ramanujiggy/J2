@@ -301,7 +301,7 @@ function DesktopIntentionsView({
 
   return (
     <PageContent ready={!loading} loadingMessages={['Loading your intentions...']}>
-    <div style={{ maxWidth: 1480, margin: '0 auto', padding: '64px 80px 104px' }}>
+    <div style={{ maxWidth: 1680, margin: '0 auto', padding: '64px 64px 104px' }}>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 52 }}>
