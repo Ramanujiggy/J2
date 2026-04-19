@@ -1,19 +1,25 @@
-// Ambient rail background — one composed piece, not two.
-// A huge "Grappling Prism" pentagon breathes in and out behind the rail while
-// motes scattered across the full rail height periodically gather to form it,
-// hold, then disperse. Slow 42s master cycle; meant to register peripherally,
-// never compete with content.
+// Ambient rail background — one composed piece, tuned from Refero flagship
+// research (TIDE, Endel, Headspace, Stardust). Prior revision was invisible
+// on dark theme: 0.9px strokes at 0.32 alpha sit below the dark-UI
+// perceptibility floor, and there was no blur/halo — which is what flagship
+// ambient motifs actually rely on to register peripherally.
 //
-// Design rules:
-//   • One SVG that fills the rail (viewBox 280×1000, xMidYMid slice).
-//   • Pentagon is a background element — R=260, bleeds near the rail edges.
-//   • 28 motes total in three classes: 5 vertex motes, 15 ambient drifters,
-//     8 travellers (independent short-path drift).
-//   • Content-aware scatter — low density behind wordmark/nav/pill, dense in
-//     the "dead zone" between focus card and practitioner pill.
-//   • Pure SMIL + CSS (no deps, no RAF); reduced-motion renders a static tableau.
-//   • pointer-events: none; z-index: -1 (paired with `isolation: isolate` on
-//     the rail <aside>) so it sits below wordmark, nav, focus card, belt bar.
+// Key moves in this revision:
+//   • BLUR HALO layer — a strokeWidth 6 pentagon behind the crisp stroke with
+//     feGaussianBlur stdDeviation 3.5. Breathes opacity 0.35↔0.65 on a
+//     continuous 5s loop. This is the primary visible "glow" — it's always
+//     on, so peripheral vision always has something to see.
+//   • Crisp pentagon stroke raised to 1.6px / 0.55 peak opacity (was 0.9px / 0.32).
+//   • R dropped 260 → 230 so the pentagon sits inside the rail as a closed
+//     emblem (parsable by the eye) rather than an edge-clipped texture.
+//   • Master form/dissolve cycle compressed 42s → 14s so the formation event
+//     lands within a typical attention fixation (~3–10s window).
+//   • Particle count cut: 15 drifters → 6, 8 travellers → 3, alpha ceiling
+//     lifted 0.28 → 0.40 and concentrated around the pentagon, not scattered
+//     to noise across the whole rail.
+//
+// Still respects: pointer-events none, z-index: -1 (with `isolation: isolate`
+// on the rail aside), reduced-motion static tableau.
 
 import { useSyncExternalStore } from 'react';
 import { COPPER, PALE_YELLOW } from '../lib/theme.ts';
@@ -38,7 +44,7 @@ const W = 280;
 const H = 1000;
 const CX = 140;
 const CY = 500;
-const R = 260;
+const R = 230;
 
 // Pentagon vertices (top vertex first, clockwise).
 const VERTS: [number, number][] = Array.from({ length: 5 }).map((_, i) => {
@@ -46,7 +52,7 @@ const VERTS: [number, number][] = Array.from({ length: 5 }).map((_, i) => {
   return [CX + R * Math.cos(a), CY + R * Math.sin(a)];
 });
 
-// Approximate pentagon perimeter for stroke-dasharray.
+// Pentagon perimeter for stroke-dasharray.
 const PERIM = Math.round(
   VERTS.reduce((sum, v, i) => {
     const n = VERTS[(i + 1) % VERTS.length]!;
@@ -54,20 +60,19 @@ const PERIM = Math.round(
   }, 0),
 );
 
-// Resting positions for the five vertex motes — hand-placed rather than
-// random, so the formation visibly "gathers" from expected corners of the
-// rail instead of seeming to teleport. Two rest in the upper half (above the
-// focus card), two rest in the lower-middle, one pokes out top-right.
+// Resting positions for the five vertex motes — hand-placed corners where
+// formation visibly "gathers" from. Positions recomputed for R=230 so the
+// rest-to-vertex travel distance is meaningful (~100–200 units).
 const VERT_RESTS: [number, number][] = [
-  [ 42,  80],   // upper-left — near wordmark line
-  [240, 160],   // upper-right — near nav top
-  [ 30, 560],   // mid-left — below focus card
-  [250, 680],   // mid-right — below focus card
-  [110, 920],   // bottom — above practitioner pill
+  [ 40,  70],   // upper-left
+  [250, 150],   // upper-right
+  [ 20, 580],   // mid-left
+  [260, 700],   // mid-right
+  [120, 920],   // bottom
 ];
 
-// ── Deterministic scatter for drifters + travellers ────────────────────────
-// Tiny seeded PRNG (same function used by the onboarding heroes).
+// ── Deterministic scatter ──────────────────────────────────────────────────
+
 function rng(seed: number): number {
   let t = seed + 0x6D2B79F5;
   t = Math.imul(t ^ (t >>> 15), t | 1);
@@ -75,115 +80,93 @@ function rng(seed: number): number {
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 }
 
-// Content-aware exclusion zones (viewBox y ranges). Scatter avoids the
-// densest content bands; positions are rejected and resampled if they land
-// inside one of these AND the proposed mote is above a "small radius" cap.
-const EXCLUDE_BANDS: Array<[number, number]> = [
-  [110, 340],   // nav — strict
-  [870, 1000],  // practitioner pill — near strict
-];
-const WORDMARK_BAND: [number, number] = [0, 90];
+// Content-aware exclusion — keep drifters out of the densest content bands.
+const NAV_BAND: [number, number]  = [110, 340];
+const PILL_BAND: [number, number] = [870, 1000];
 
 type Scatter = { x: number; y: number; r: number };
 
-/** Sample a deterministic scatter with min-distance + band-aware density. */
+/** Sample a small deterministic scatter concentrated around the pentagon
+ *  (Refero rec: "fewer, brighter, concentrated around the hero" vs
+ *  "many, dim, scattered to noise"). */
 function buildScatter(count: number, seedBase: number, opts: {
   minDist: number;
   sizeMin: number;
   sizeMax: number;
-  denseBand?: [number, number]; // oversample this y range
 }): Scatter[] {
-  const { minDist, sizeMin, sizeMax, denseBand } = opts;
+  const { minDist, sizeMin, sizeMax } = opts;
   const out: Scatter[] = [];
   let s = seedBase;
   let guard = 0;
-  while (out.length < count && guard < count * 40) {
+  while (out.length < count && guard < count * 60) {
     guard++;
     s++;
-    let x = rng(s) * W;
-    // Bias 60% of samples into the dense band (the open area below the
-    // focus card) so the rail's "dead zone" actually reads as alive.
+    const x = rng(s) * W;
+    // Biased sample: 75% within the pentagon vertical extent (y 270–730),
+    // 25% in the rail body so the whole rail still feels alive.
     let y: number;
-    if (denseBand && rng(s * 3 + 1) < 0.6) {
-      y = denseBand[0] + rng(s * 5 + 2) * (denseBand[1] - denseBand[0]);
+    if (rng(s * 3 + 1) < 0.75) {
+      y = 260 + rng(s * 5 + 2) * 480;
     } else {
       y = rng(s * 7 + 3) * H;
     }
     const r = sizeMin + rng(s * 11 + 5) * (sizeMax - sizeMin);
 
-    // Wordmark zone: only very small motes allowed, max 3.
-    if (y >= WORDMARK_BAND[0] && y <= WORDMARK_BAND[1]) {
-      if (r > 0.6) continue;
-      const countInBand = out.filter(p => p.y >= WORDMARK_BAND[0] && p.y <= WORDMARK_BAND[1]).length;
-      if (countInBand >= 3) continue;
+    // Reject motes in the nav band unless they're in the outer gutters.
+    if (y >= NAV_BAND[0] && y <= NAV_BAND[1]) {
+      if (x > 32 && x < W - 32) continue;
     }
+    // Reject motes in the practitioner pill band entirely — that zone is
+    // content-dense and a mote there looks like dirt on the screen.
+    if (y >= PILL_BAND[0] && y <= PILL_BAND[1]) continue;
 
-    // Nav band: reject unless in the outer 30px gutters.
-    if (y >= EXCLUDE_BANDS[0]![0] && y <= EXCLUDE_BANDS[0]![1]) {
-      if (x > 30 && x < W - 30) continue;
-    }
-
-    // Practitioner pill band: only tiny motes, max 2.
-    if (y >= EXCLUDE_BANDS[1]![0] && y <= EXCLUDE_BANDS[1]![1]) {
-      if (r > 0.5) continue;
-      const countInBand = out.filter(p => p.y >= EXCLUDE_BANDS[1]![0]).length;
-      if (countInBand >= 2) continue;
-    }
-
-    // Min-distance check against existing motes.
+    // Min-distance against existing motes.
     let ok = true;
     for (const p of out) {
       if (Math.hypot(p.x - x, p.y - y) < minDist) { ok = false; break; }
     }
     if (!ok) continue;
 
-    // Nudge x slightly away from dead-center (where the pentagon strokes
-    // live) so scatter doesn't clump on the vertical axis.
-    if (Math.abs(x - CX) < 14) x = x < CX ? x - 18 : x + 18;
-
     out.push({ x, y, r });
   }
   return out;
 }
 
-const DRIFTERS = buildScatter(15, 1000, {
-  minDist: 36, sizeMin: 0.5, sizeMax: 1.0,
-  denseBand: [520, 840],
+const DRIFTERS = buildScatter(6, 1000, {
+  minDist: 70, sizeMin: 0.9, sizeMax: 1.6,
 });
-const TRAVELLER_ANCHORS = buildScatter(8, 5000, {
-  minDist: 48, sizeMin: 0.6, sizeMax: 0.9,
-  denseBand: [520, 840],
+const TRAVELLER_ANCHORS = buildScatter(3, 5000, {
+  minDist: 90, sizeMin: 0.9, sizeMax: 1.3,
 });
 
-// Each traveller gets a partner anchor offset ~60px on a semi-random bearing.
-// That's the other end of its animateMotion path.
+// Each traveller drifts between its anchor and a bezier-offset partner.
 const TRAVELLERS = TRAVELLER_ANCHORS.map((a, i) => {
   const bearing = rng(9000 + i) * Math.PI * 2;
-  const dist = 40 + rng(9500 + i) * 40;
-  const bx = Math.max(8, Math.min(W - 8, a.x + Math.cos(bearing) * dist));
-  const by = Math.max(8, Math.min(H - 8, a.y + Math.sin(bearing) * dist));
+  const dist = 50 + rng(9500 + i) * 40;
+  const bx = Math.max(10, Math.min(W - 10, a.x + Math.cos(bearing) * dist));
+  const by = Math.max(10, Math.min(H - 10, a.y + Math.sin(bearing) * dist));
   return {
     from: [a.x, a.y] as const,
     to:   [bx, by] as const,
     r:    a.r,
-    dur:  18 + rng(9900 + i) * 6,
-    delay: rng(9750 + i) * 4,
+    dur:  14 + rng(9900 + i) * 6,
+    delay: rng(9750 + i) * 3,
   };
 });
 
-// ── Master-cycle keyTimes (all in fractions of a 42s loop) ──────────────────
+// ── Master-cycle keyTimes (fractions of a 14s loop) ─────────────────────────
+// 0–4s  form   (0.00 → 0.286)
+// 4–7s  hold   (0.286 → 0.500)
+// 7–11s dissolve (0.500 → 0.786)
+// 11–14s rest  (0.786 → 1.000)
 
-const MASTER = '42s';
+const MASTER = '14s';
 const KT = {
-  driftStart:  0.00,
-  gatherStart: 0.18,
-  gatherEnd:   0.40,
-  holdEnd:     0.58,
-  disformEnd:  0.78,
-  cycleEnd:    1.00,
+  formEnd:    0.286,
+  holdEnd:    0.500,
+  dissolveEnd: 0.786,
 } as const;
 
-// Ease spline for gather / disform (matches chatted-about cubic).
 const EASE = '0.4 0 0.2 1';
 
 // ── Component ───────────────────────────────────────────────────────────────
@@ -201,8 +184,6 @@ export default function RailAmbient() {
         inset: 0,
         pointerEvents: 'none',
         overflow: 'hidden',
-        // z-index: -1 + `isolation: isolate` on the rail <aside> keeps this
-        // underneath the wordmark / nav / focus card / belt / pill cleanly.
         zIndex: -1,
       }}
     >
@@ -214,83 +195,109 @@ export default function RailAmbient() {
         style={{ display: 'block' }}
       >
         <defs>
-          {/* Very soft center halo — gives the pentagon a faint presence even
-              during the drift phase when its strokes are invisible. */}
-          <radialGradient id="rail-amb-halo" cx="50%" cy="50%" r="50%">
-            <stop offset="0%"  stopColor={PALE_YELLOW} stopOpacity="0.05" />
+          {/* Core halo filter — this is what makes the ambient prism read as
+              intentional glow rather than a thin disappearing line. */}
+          <filter id="rail-amb-halo-blur" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="3.5" />
+          </filter>
+          {/* Soft center wash — gives the pentagon a faint presence even
+              during the rest phase when the crisp stroke is invisible. */}
+          <radialGradient id="rail-amb-wash" cx="50%" cy="50%" r="50%">
+            <stop offset="0%"  stopColor={PALE_YELLOW} stopOpacity="0.07" />
             <stop offset="70%" stopColor={PALE_YELLOW} stopOpacity="0" />
           </radialGradient>
         </defs>
 
-        {/* Ambient halo always present — survives reduced-motion. */}
-        <circle cx={CX} cy={CY} r={R * 1.1} fill="url(#rail-amb-halo)" />
+        {/* Ambient center wash — always on. */}
+        <circle cx={CX} cy={CY} r={R * 1.2} fill="url(#rail-amb-wash)" />
 
-        {/* ── Prism group — breathing + draw cycle ────────────────── */}
-        <g
-          style={{
-            transformOrigin: `${CX}px ${CY}px`,
-            transformBox: 'fill-box',
-            opacity: reduced ? 1 : undefined,
-          }}
+        {/* ── Prism group ───────────────────────────────────────── */}
+
+        {/* HALO layer — strokeWidth 6, blurred, copper-hued. This is the
+            primary visible glow. Continuous 5s breath on opacity so the rail
+            always has perceptible motion underneath whatever the master
+            form/dissolve cycle is doing. */}
+        <path
+          d={pathD}
+          fill="none"
+          stroke={COPPER}
+          strokeWidth={6}
+          strokeLinejoin="round"
+          filter="url(#rail-amb-halo-blur)"
+          opacity={reduced ? 0.45 : 0.35}
         >
-          {/* Ghost stroke — always visible so stills read. */}
-          <path
-            d={pathD}
-            fill="none"
-            stroke={PALE_YELLOW}
-            strokeOpacity={0.06}
-            strokeWidth={0.5}
-            strokeLinejoin="round"
-          />
+          {!reduced && (
+            <animate
+              attributeName="opacity"
+              values="0.35;0.65;0.35"
+              dur="5s"
+              repeatCount="indefinite"
+            />
+          )}
+        </path>
 
-          {/* Active stroke — draws in during gather, holds, fades out opacity
-              during disform (not stroke-reverse, which looks like a glitch). */}
-          <path
-            d={pathD}
-            fill="none"
-            stroke={PALE_YELLOW}
-            strokeWidth={0.9}
-            strokeLinejoin="round"
-            strokeDasharray={PERIM}
-            strokeOpacity={reduced ? 0.26 : 0}
-            strokeDashoffset={reduced ? 0 : PERIM}
-          >
-            {!reduced && (
-              <>
-                {/* Dashoffset: full at drift → 0 by gather end → stays 0 through hold → stays 0 through disform (opacity handles the fade). */}
-                <animate
-                  attributeName="stroke-dashoffset"
-                  dur={MASTER}
-                  keyTimes={`0;${KT.gatherStart};${KT.gatherEnd};${KT.holdEnd};${KT.disformEnd};1`}
-                  values={`${PERIM};${PERIM};0;0;0;${PERIM}`}
-                  calcMode="spline"
-                  keySplines={`0 0 1 1;${EASE};0 0 1 1;0 0 1 1;0 0 1 1`}
-                  repeatCount="indefinite"
-                />
-                {/* Opacity envelope — 0 → 0 → 0.32 → 0.32 → 0 → 0 */}
-                <animate
-                  attributeName="stroke-opacity"
-                  dur={MASTER}
-                  keyTimes={`0;${KT.gatherStart};${KT.gatherEnd};${KT.holdEnd};${KT.disformEnd};1`}
-                  values="0;0;0.32;0.32;0;0"
-                  calcMode="spline"
-                  keySplines={`0 0 1 1;${EASE};0 0 1 1;${EASE};0 0 1 1`}
-                  repeatCount="indefinite"
-                />
-              </>
-            )}
-          </path>
+        {/* Ghost stroke — thin, always-on reference line so stills read. */}
+        <path
+          d={pathD}
+          fill="none"
+          stroke={PALE_YELLOW}
+          strokeOpacity={0.10}
+          strokeWidth={0.7}
+          strokeLinejoin="round"
+        />
 
-        </g>
+        {/* Active crisp stroke — draws in during form, holds, fades on
+            dissolve via opacity (not stroke-reverse, which reads as glitch). */}
+        <path
+          d={pathD}
+          fill="none"
+          stroke={PALE_YELLOW}
+          strokeWidth={1.6}
+          strokeLinejoin="round"
+          strokeDasharray={PERIM}
+          strokeOpacity={reduced ? 0.55 : 0}
+          strokeDashoffset={reduced ? 0 : PERIM}
+        >
+          {!reduced && (
+            <>
+              {/* Dashoffset: full → 0 by form-end, stays 0 through hold and
+                  dissolve, resets to full during rest. */}
+              <animate
+                attributeName="stroke-dashoffset"
+                dur={MASTER}
+                keyTimes={`0;${KT.formEnd};${KT.holdEnd};${KT.dissolveEnd};1`}
+                values={`${PERIM};0;0;0;${PERIM}`}
+                calcMode="spline"
+                keySplines={`${EASE};0 0 1 1;0 0 1 1;0 0 1 1`}
+                repeatCount="indefinite"
+              />
+              {/* Opacity: 0 → 0.55 at form-end, hold, fade during dissolve. */}
+              <animate
+                attributeName="stroke-opacity"
+                dur={MASTER}
+                keyTimes={`0;${KT.formEnd};${KT.holdEnd};${KT.dissolveEnd};1`}
+                values="0;0.55;0.55;0;0"
+                calcMode="spline"
+                keySplines={`${EASE};0 0 1 1;${EASE};0 0 1 1`}
+                repeatCount="indefinite"
+              />
+            </>
+          )}
+        </path>
 
-        {/* ── Ambient drifters — stationary twinkle, no position motion ── */}
+        {/* ── Ambient drifters — 6 twinkling motes around the prism ─── */}
         {DRIFTERS.map((p, i) => {
-          const base = 0.08 + rng(2000 + i) * 0.05;
-          const peak = 0.18 + rng(2100 + i) * 0.10;
-          const dur = 7 + rng(2200 + i) * 6;
-          const delay = rng(2300 + i) * 5;
+          const base = 0.16 + rng(2000 + i) * 0.08;
+          const peak = 0.32 + rng(2100 + i) * 0.08;
+          const dur = 4 + rng(2200 + i) * 4;
+          const delay = rng(2300 + i) * 3;
           return (
-            <circle key={`dr-${i}`} cx={p.x} cy={p.y} r={p.r} fill={COPPER} opacity={reduced ? (base + peak) / 2 : base}>
+            <circle
+              key={`dr-${i}`}
+              cx={p.x} cy={p.y} r={p.r}
+              fill={COPPER}
+              opacity={reduced ? (base + peak) / 2 : base}
+            >
               {!reduced && (
                 <animate
                   attributeName="opacity"
@@ -304,14 +311,13 @@ export default function RailAmbient() {
           );
         })}
 
-        {/* ── Travellers — short bezier drift between two anchors ───── */}
+        {/* ── Travellers — 3 drifting motes on short bezier paths ─── */}
         {!reduced && TRAVELLERS.map((t, i) => {
-          // Mid-point curves the path gently.
-          const mx = (t.from[0] + t.to[0]) / 2 + (rng(3000 + i) - 0.5) * 22;
-          const my = (t.from[1] + t.to[1]) / 2 + (rng(3100 + i) - 0.5) * 22;
+          const mx = (t.from[0] + t.to[0]) / 2 + (rng(3000 + i) - 0.5) * 24;
+          const my = (t.from[1] + t.to[1]) / 2 + (rng(3100 + i) - 0.5) * 24;
           const d = `M ${t.from[0]} ${t.from[1]} Q ${mx} ${my} ${t.to[0]} ${t.to[1]}`;
           return (
-            <circle key={`tr-${i}`} r={t.r} fill={COPPER} opacity={0.22}>
+            <circle key={`tr-${i}`} r={t.r} fill={COPPER} opacity={0.32}>
               <animateMotion
                 dur={`${t.dur}s`}
                 begin={`${t.delay}s`}
@@ -324,7 +330,7 @@ export default function RailAmbient() {
               />
               <animate
                 attributeName="opacity"
-                values="0.08;0.28;0.08"
+                values="0.18;0.40;0.18"
                 dur={`${t.dur}s`}
                 begin={`${t.delay}s`}
                 repeatCount="indefinite"
@@ -332,44 +338,44 @@ export default function RailAmbient() {
             </circle>
           );
         })}
-        {/* Reduced-motion travellers — render as static points at their start anchor. */}
         {reduced && TRAVELLERS.map((t, i) => (
-          <circle key={`tr-static-${i}`} cx={t.from[0]} cy={t.from[1]} r={t.r} fill={COPPER} opacity={0.18} />
+          <circle key={`tr-static-${i}`} cx={t.from[0]} cy={t.from[1]} r={t.r} fill={COPPER} opacity={0.26} />
         ))}
 
-        {/* ── Vertex motes — the hero "form the prism" motes ───────── */}
+        {/* ── Vertex motes — the 5 hero "form the prism" motes ─────── */}
         {VERTS.map((v, i) => {
           const rest = VERT_RESTS[i]!;
-          const stagger = i * 0.3; // seconds
-          const kt = `0;${KT.gatherStart};${KT.gatherEnd};${KT.holdEnd};${KT.disformEnd};1`;
+          // 14s cycle is tight; stagger 0.12s each so formation isn't
+          // mechanical but still completes within the form phase.
+          const stagger = i * 0.12;
+          const kt = `0;${KT.formEnd};${KT.holdEnd};${KT.dissolveEnd};1`;
 
           if (reduced) {
-            // Static tableau — motes on vertices at gentle opacity.
             return (
               <circle
                 key={`vm-${i}`}
-                cx={v[0]} cy={v[1]} r={1.4}
+                cx={v[0]} cy={v[1]} r={1.8}
                 fill={PALE_YELLOW}
-                opacity={0.5}
+                opacity={0.7}
               />
             );
           }
 
-          // x: rest → rest → vertex → vertex → rest → rest
-          const xs = `${rest[0]};${rest[0]};${v[0]};${v[0]};${rest[0]};${rest[0]}`;
-          const ys = `${rest[1]};${rest[1]};${v[1]};${v[1]};${rest[1]};${rest[1]}`;
-          // opacity: 0.35 drift → 0.35 → 0.9 vertex → 0.9 → 0.35 drift → 0.35
-          const os = '0.35;0.35;0.9;0.9;0.35;0.35';
-          const splines = `0 0 1 1;${EASE};0 0 1 1;${EASE};0 0 1 1`;
+          // x/y: rest → vertex → vertex → rest → rest
+          const xs = `${rest[0]};${v[0]};${v[0]};${rest[0]};${rest[0]}`;
+          const ys = `${rest[1]};${v[1]};${v[1]};${rest[1]};${rest[1]}`;
+          // opacity: 0.4 drift → 0.95 vertex → 0.95 held → 0.4 drift → 0.4
+          const os = '0.40;0.95;0.95;0.40;0.40';
+          const splines = `${EASE};0 0 1 1;${EASE};0 0 1 1`;
 
           return (
             <circle
               key={`vm-${i}`}
               cx={rest[0]}
               cy={rest[1]}
-              r={1.4}
+              r={1.8}
               fill={PALE_YELLOW}
-              opacity={0.35}
+              opacity={0.4}
             >
               <animate
                 attributeName="cx"
