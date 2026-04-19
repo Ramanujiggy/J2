@@ -39,14 +39,6 @@ function MapIcon({ active }: IconProps) {
     </svg>
   );
 }
-function ChartIcon({ active }: IconProps) {
-  return (
-    <svg {...iconAttrs(active)}>
-      <path d="M4 20L8 14l4 3 4-7 4 5" />
-      <path d="M4 4v16h16" />
-    </svg>
-  );
-}
 function DiamondIcon({ active }: IconProps) {
   return (
     <svg {...iconAttrs(active)}>
@@ -76,10 +68,12 @@ type NavItem = {
   gated?: 'intentions';
 };
 
+// Atlas absorbs what used to be Calendar + Analytics on desktop. The old
+// /calendar and /analytics routes still exist so mobile nav + direct URLs
+// continue to work, but the desktop rail is a single Atlas entry.
 const NAV_ITEMS: readonly NavItem[] = [
   { path: '/home',       label: 'Path Ahead', Icon: CompassIcon },
-  { path: '/calendar',   label: 'Calendar',   Icon: MapIcon },
-  { path: '/analytics',  label: 'Analytics',  Icon: ChartIcon },
+  { path: '/atlas',      label: 'Atlas',      Icon: MapIcon },
   { path: '/intentions', label: 'Intentions', Icon: DiamondIcon, gated: 'intentions' },
   { path: '/profile',    label: 'Profile',    Icon: UserIcon },
 ] as const;

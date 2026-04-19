@@ -4,15 +4,17 @@ import {
   getUserTags,
   createUserTag,
   updateUserTag,
+  updateUserTagVideo,
   deleteUserTag,
 } from '../controllers/userTagController.js';
 
 const router = Router();
 router.use(verifyToken);
 
-router.get('/',       getUserTags);
-router.post('/',      createUserTag);
-router.patch('/:id',  updateUserTag);
-router.delete('/:id', deleteUserTag);
+router.get('/',             getUserTags);
+router.post('/',            createUserTag);
+router.patch('/:id',        updateUserTag);
+router.patch('/:id/video',  updateUserTagVideo);
+router.delete('/:id',       deleteUserTag);
 
 export default router;

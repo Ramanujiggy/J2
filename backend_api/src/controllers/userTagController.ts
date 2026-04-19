@@ -81,6 +81,84 @@ export const updateUserTag = async (req: Request, res: Response) => {
   }
 };
 
+// PATCH /api/user-tags/:id/video — update video metadata (Move Library, migration 010)
+// The actual video file is stored client-side (OPFS / IndexedDB) — this endpoint
+// only persists the small thumbnail + duration + notes that should sync.
+// Body: { has_video?, video_thumbnail?, video_duration_seconds?, video_notes? }
+//   - any field omitted is left unchanged
+//   - any field passed as null clears it (e.g. removing video clears thumbnail)
+const MAX_THUMBNAIL_BYTES = 32 * 1024; // ~32KB cap on data URL string
+const MAX_VIDEO_NOTES_LENGTH = 1000;
+const MAX_VIDEO_DURATION_SECONDS = 600;
+
+export const updateUserTagVideo = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ message: 'id is required.' });
+
+    const { has_video, video_thumbnail, video_duration_seconds, video_notes } = req.body;
+    const patch: Parameters<typeof userTagModel.updateUserTagVideo>[2] = {};
+
+    if (has_video !== undefined) {
+      if (typeof has_video !== 'boolean') {
+        return res.status(400).json({ message: 'has_video must be a boolean.' });
+      }
+      patch.has_video = has_video;
+    }
+
+    if (video_thumbnail !== undefined) {
+      if (video_thumbnail !== null) {
+        if (typeof video_thumbnail !== 'string') {
+          return res.status(400).json({ message: 'video_thumbnail must be a data URL string or null.' });
+        }
+        if (video_thumbnail.length > MAX_THUMBNAIL_BYTES) {
+          return res.status(400).json({ message: `video_thumbnail must be ≤ ${MAX_THUMBNAIL_BYTES} bytes (got ${video_thumbnail.length}).` });
+        }
+        if (!video_thumbnail.startsWith('data:image/')) {
+          return res.status(400).json({ message: 'video_thumbnail must be a data:image/* URL.' });
+        }
+      }
+      patch.video_thumbnail = video_thumbnail;
+    }
+
+    if (video_duration_seconds !== undefined) {
+      if (video_duration_seconds !== null) {
+        const n = Number(video_duration_seconds);
+        if (!Number.isFinite(n) || n < 0 || n > MAX_VIDEO_DURATION_SECONDS) {
+          return res.status(400).json({ message: `video_duration_seconds must be between 0 and ${MAX_VIDEO_DURATION_SECONDS}.` });
+        }
+        patch.video_duration_seconds = Math.round(n);
+      } else {
+        patch.video_duration_seconds = null;
+      }
+    }
+
+    if (video_notes !== undefined) {
+      if (video_notes !== null) {
+        if (typeof video_notes !== 'string') {
+          return res.status(400).json({ message: 'video_notes must be a string or null.' });
+        }
+        if (video_notes.length > MAX_VIDEO_NOTES_LENGTH) {
+          return res.status(400).json({ message: `video_notes must be ≤ ${MAX_VIDEO_NOTES_LENGTH} characters.` });
+        }
+      }
+      patch.video_notes = video_notes;
+    }
+
+    if (Object.keys(patch).length === 0) {
+      return res.status(400).json({ message: 'No video fields provided.' });
+    }
+
+    const tag = await userTagModel.updateUserTagVideo(userId, id, patch);
+    if (!tag) return res.status(404).json({ message: 'Tag not found.' });
+    res.status(200).json({ tag });
+  } catch (error) {
+    console.error('❌ Error updating user tag video:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 // DELETE /api/user-tags/:id
 export const deleteUserTag = async (req: Request, res: Response) => {
   try {
