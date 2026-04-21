@@ -155,6 +155,7 @@ export default function CalendarPage() {
           <div className="flex items-center p-0.5 rounded-lg" style={{ backgroundColor: SURFACE_2 }}>
             <button
               onClick={() => navigateYear(-1)}
+              aria-label="Previous year"
               className="p-1.5 rounded-md hover:bg-white/5 transition-colors touch-manipulation"
               style={{ color: 'rgba(242,228,168,0.45)' }}
             >
@@ -171,6 +172,7 @@ export default function CalendarPage() {
             <button
               onClick={() => navigateYear(1)}
               disabled={displayYear >= currentYear}
+              aria-label="Next year"
               className="p-1.5 rounded-md hover:bg-white/5 transition-colors disabled:opacity-20 disabled:cursor-not-allowed touch-manipulation"
               style={{ color: 'rgba(242,228,168,0.45)' }}
             >

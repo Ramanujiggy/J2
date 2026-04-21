@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { COPPER } from '../lib/theme.ts';
 import { vibrate } from '../lib/haptics.ts';
 
@@ -41,25 +41,40 @@ const GUIDE_RINGS = GUIDE_SCALES.map(s =>
   ).join(' ')
 );
 
+type Vertex = typeof VERTICES[number];
+
 // Snap threshold — within this distance of a vertex, snap to 100%
 const SNAP_THRESHOLD = R * 0.20;
 
-// IDW weight calculation — returns 5 floats summing to 1.0
-function calculateWeights(px: number, py: number): Record<string, number> {
+// Long-press mute tuning
+const LONG_PRESS_MS = 500;
+const LONG_PRESS_MOVE_CANCEL = 8;          // SVG-coord px
+const LONG_PRESS_VERTEX_RADIUS = R * 0.35; // long-press only fires this close to a vertex
+
+// IDW weight calculation — returns floats summing to 1.0 across only the active vertices.
+// Muted pillars are absent from the returned dict entirely (not zero-keyed).
+function calculateWeights(
+  px: number,
+  py: number,
+  active: readonly Vertex[],
+): Record<string, number> {
+  if (active.length === 0) return {};
+  if (active.length === 1) return { [active[0]!.value]: 1.0 };
+
   // Check for vertex snap — clean 100% selection
-  for (const v of VERTICES) {
+  for (const v of active) {
     if (Math.hypot(px - v.cx, py - v.cy) < SNAP_THRESHOLD) {
       const w: Record<string, number> = {};
-      VERTICES.forEach(vv => { w[vv.value] = vv.value === v.value ? 1.0 : 0.0; });
+      active.forEach(vv => { w[vv.value] = vv.value === v.value ? 1.0 : 0.0; });
       return w;
     }
   }
   // IDW distribution — p=2 sharpens focus near vertices
-  const distances = VERTICES.map(v => Math.max(Math.hypot(px - v.cx, py - v.cy), 0.01));
+  const distances = active.map(v => Math.max(Math.hypot(px - v.cx, py - v.cy), 0.01));
   const rawWeights = distances.map(d => 1 / (d * d));
   const total = rawWeights.reduce((a, b) => a + b, 0);
   const w: Record<string, number> = {};
-  VERTICES.forEach((v, i) => { w[v.value] = rawWeights[i] / total; });
+  active.forEach((v, i) => { w[v.value] = rawWeights[i] / total; });
   return w;
 }
 
@@ -94,11 +109,19 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
     return w;
   });
   const [isSnapped, setIsSnapped] = useState(!!defaultHeading);
+  const [mutedVertices, setMutedVertices] = useState<Set<string>>(new Set());
 
   const activeVertex = VERTICES.find(v => v.value === heading) ?? null;
+  const activeVertices = VERTICES.filter(v => !mutedVertices.has(v.value));
+
   const prevNearestRef = useRef<string | null>(heading);
   const prevResRef = useRef<number | null>(resonance);
   const [pressing, setPressing] = useState(false);
+
+  // Long-press mute plumbing
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pressStartPosRef = useRef<{ x: number; y: number } | null>(null);
+  const longPressFiredRef = useRef(false);
 
   function svgCoords(e: React.PointerEvent<SVGSVGElement>): { x: number; y: number } {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -108,14 +131,67 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
     };
   }
 
+  function clearLongPress() {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    pressStartPosRef.current = null;
+  }
+
+  function tryToggleMute(value: string) {
+    // Can't mute the currently active heading — user must reselect elsewhere first
+    if (heading === value) { vibrate(4); return; }
+    // Can't mute down to zero active vertices
+    const willBeMuted = !mutedVertices.has(value);
+    if (willBeMuted && activeVertices.length <= 1) { vibrate(4); return; }
+    vibrate(60); // distinct long pulse — categorically different from the 6/8/12ms ticks
+    setMutedVertices(prev => {
+      const next = new Set(prev);
+      if (next.has(value)) next.delete(value); else next.add(value);
+      return next;
+    });
+  }
+
   function handlePointer(e: React.PointerEvent<SVGSVGElement>) {
     if (e.type === 'pointermove' && e.buttons === 0) return;
     e.preventDefault();
     const { x, y } = svgCoords(e);
 
-    let nearest = VERTICES[0]!;
+    // Long-press arm/cancel
+    if (e.type === 'pointerdown') {
+      longPressFiredRef.current = false;
+      pressStartPosRef.current = { x, y };
+      const startX = x, startY = y;
+      longPressTimerRef.current = setTimeout(() => {
+        // Find nearest vertex to press position; only fire if close enough
+        let nearestV: Vertex | null = null;
+        let minD = Infinity;
+        for (const v of VERTICES) {
+          const d = Math.hypot(startX - v.cx, startY - v.cy);
+          if (d < minD) { minD = d; nearestV = v; }
+        }
+        if (nearestV && minD < LONG_PRESS_VERTEX_RADIUS) {
+          longPressFiredRef.current = true;
+          tryToggleMute(nearestV.value);
+        }
+      }, LONG_PRESS_MS);
+    } else if (e.type === 'pointermove' && pressStartPosRef.current) {
+      const dx = x - pressStartPosRef.current.x;
+      const dy = y - pressStartPosRef.current.y;
+      if (dx * dx + dy * dy > LONG_PRESS_MOVE_CANCEL * LONG_PRESS_MOVE_CANCEL) {
+        clearLongPress();
+      }
+    }
+
+    // If long-press already fired, suppress dot-placement for this gesture
+    if (longPressFiredRef.current) return;
+    // If every vertex is somehow muted, nothing to place against
+    if (activeVertices.length === 0) return;
+
+    let nearest = activeVertices[0]!;
     let minDist = Infinity;
-    for (const v of VERTICES) {
+    for (const v of activeVertices) {
       const d = Math.hypot(x - v.cx, y - v.cy);
       if (d < minDist) { minDist = d; nearest = v; }
     }
@@ -140,8 +216,8 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
     prevResRef.current = res;
 
     const w = snapOnly
-      ? (() => { const ww: Record<string, number> = {}; VERTICES.forEach(v => { ww[v.value] = v.value === nearest.value ? 1.0 : 0.0; }); return ww; })()
-      : calculateWeights(clampedX, clampedY);
+      ? (() => { const ww: Record<string, number> = {}; activeVertices.forEach(v => { ww[v.value] = v.value === nearest.value ? 1.0 : 0.0; }); return ww; })()
+      : calculateWeights(clampedX, clampedY, activeVertices);
     const snapped = snapOnly || Object.values(w).some(v => v === 1.0);
     setWeights(w);
     setIsSnapped(snapped);
@@ -149,9 +225,36 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
     onSelect(nearest.value, res, w);
   }
 
+  // When mute state changes, recompute weights using the existing dot position.
+  // Without this, a muted vertex would still contribute to the last-saved weights
+  // until the user gestures again.
+  useEffect(() => {
+    if (!dotPos) return;
+    if (activeVertices.length === 0) return;
+
+    let nearest = activeVertices[0]!;
+    let minDist = Infinity;
+    for (const v of activeVertices) {
+      const d = Math.hypot(dotPos.x - v.cx, dotPos.y - v.cy);
+      if (d < minDist) { minDist = d; nearest = v; }
+    }
+
+    const dNorm = Math.min(1, minDist / R);
+    const res = Math.max(2, 10 - Math.round(dNorm * 8));
+
+    const w = snapOnly
+      ? (() => { const ww: Record<string, number> = {}; activeVertices.forEach(v => { ww[v.value] = v.value === nearest.value ? 1.0 : 0.0; }); return ww; })()
+      : calculateWeights(dotPos.x, dotPos.y, activeVertices);
+    setWeights(w);
+    setIsSnapped(snapOnly || Object.values(w).some(v => v === 1.0));
+    onSelect(nearest.value, res, w);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mutedVertices]);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
       <svg
+        data-testid="pillar-prism"
         viewBox="0 0 240 230"
         style={{
           width: '100%',
@@ -162,19 +265,27 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
         }}
         onPointerDown={handlePointer}
         onPointerMove={handlePointer}
-        onPointerUp={() => setPressing(false)}
-        onPointerLeave={() => setPressing(false)}
+        onPointerUp={() => { clearLongPress(); setPressing(false); }}
+        onPointerLeave={() => { clearLongPress(); setPressing(false); }}
       >
         {/* Spoke lines — center to each vertex */}
-        {VERTICES.map(v => (
-          <line
-            key={v.value + '-spoke'}
-            x1={CX} y1={CY}
-            x2={v.cx} y2={v.cy}
-            stroke={heading === v.value ? 'rgba(196,145,95,0.22)' : 'rgba(196,145,95,0.09)'}
-            strokeWidth={1}
-          />
-        ))}
+        {VERTICES.map(v => {
+          const isMuted = mutedVertices.has(v.value);
+          const stroke = isMuted
+            ? 'rgba(196,145,95,0.03)'
+            : heading === v.value
+              ? 'rgba(196,145,95,0.22)'
+              : 'rgba(196,145,95,0.09)';
+          return (
+            <line
+              key={v.value + '-spoke'}
+              x1={CX} y1={CY}
+              x2={v.cx} y2={v.cy}
+              stroke={stroke}
+              strokeWidth={1}
+            />
+          );
+        })}
 
         {/* Concentric guide rings — resonance distance rulers */}
         {GUIDE_RINGS.map((pts, i) => (
@@ -216,10 +327,12 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
         />
 
         {/* Dashed connections — dot to every vertex. Primary is brightest,
-            others glow softly to signal they're live (future: tap to mute). */}
+            others glow softly. Muted vertices drop to a ghost line. */}
         {dotPos && VERTICES.map(v => {
           const isPrimary = heading === v.value;
+          const isMuted = mutedVertices.has(v.value);
           const primaryOpacity = resonance ? resonanceToOpacity(resonance) : 0.3;
+          const opacity = isMuted ? 0.08 : isPrimary ? primaryOpacity : 0.28;
           return (
             <line
               key={v.value + '-dash'}
@@ -228,11 +341,13 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
               stroke={COPPER}
               strokeWidth={isPrimary ? 1.2 : 0.8}
               strokeDasharray={isPrimary ? '3 3' : '2 3'}
-              opacity={isPrimary ? primaryOpacity : 0.28}
+              opacity={opacity}
               style={{
-                filter: isPrimary
-                  ? 'drop-shadow(0 0 2.5px rgba(196,145,95,0.45))'
-                  : 'drop-shadow(0 0 2px rgba(196,145,95,0.25))',
+                filter: isMuted
+                  ? 'none'
+                  : isPrimary
+                    ? 'drop-shadow(0 0 2.5px rgba(196,145,95,0.45))'
+                    : 'drop-shadow(0 0 2px rgba(196,145,95,0.25))',
                 transition: 'opacity 0.25s ease, stroke-width 0.25s ease',
               }}
             />
@@ -271,11 +386,17 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
           />
         )}
 
-        {/* Vertex labels */}
+        {/* Vertex labels — muted labels get a leading × and dim */}
         {VERTICES.map(v => {
           const isActive = heading === v.value;
+          const isMuted = mutedVertices.has(v.value);
           // Nudge top/bottom labels for readability
           const dyOffset = v.cy < CY - 20 ? -6 : v.cy > CY + 20 ? 14 : 4;
+          const fill = isMuted
+            ? 'rgba(255,255,255,0.22)'
+            : isActive
+              ? COPPER
+              : 'rgba(255,255,255,0.42)';
           return (
             <text
               key={v.value + '-label'}
@@ -284,16 +405,17 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
               textAnchor="middle"
               fontSize={isActive ? 10.5 : 9.5}
               fontWeight={isActive ? 600 : 400}
-              fill={isActive ? COPPER : 'rgba(255,255,255,0.42)'}
+              fill={fill}
               style={{ transition: 'fill 0.2s, font-size 0.2s', pointerEvents: 'none' }}
             >
-              {v.shortLabel}
+              {isMuted ? `× ${v.shortLabel}` : v.shortLabel}
             </text>
           );
         })}
 
         {/* Weight percentages — only shown in distribution mode (not snapped to vertex) */}
         {weights && !isSnapped && VERTICES.map(v => {
+          if (mutedVertices.has(v.value)) return null;
           const pct = Math.round((weights[v.value] ?? 0) * 100);
           if (pct < 3) return null;
           const above = v.cy < CY;

@@ -7,7 +7,9 @@ import { INTENSITY_COLOR } from '../lib/sessionUtils.ts';
 import { vibrate } from '../lib/haptics.ts';
 import SegmentedToggle from './SegmentedToggle.tsx';
 import PillarPrism from './PillarPrism.tsx';
+import TagPicker from './TagPicker.tsx';
 import type { SessionSummary } from './TrainingHeatmap.tsx';
+import type { Pillar } from '../types/api.ts';
 
 // ── Constants ─────────────────────────────────────────────────────────────
 
@@ -82,6 +84,10 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
     resonance:     session.resonance ?? null as number | null,
   });
 
+  // Tag selections — mirror the LogSessionForm contract so edits don't wipe them
+  const [userTagIds, setUserTagIds] = useState<string[]>(session.user_tag_ids ?? []);
+  const [canonicalPositionIds, setCanonicalPositionIds] = useState<string[]>(session.canonical_position_ids ?? []);
+
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -142,6 +148,8 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
         sub_skill_tag: form.sub_skill_tag || undefined,
         script_source: form.script_source,
         resonance:     form.resonance,
+        user_tag_ids:  userTagIds,
+        canonical_position_ids: canonicalPositionIds,
       });
       onSaved();
       onClose();
@@ -618,6 +626,20 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                         })}
                       </div>
                     )}
+                  </div>
+
+                  {/* Position tags — canonical + user vocabulary */}
+                  <div>
+                    <label className="block text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.40)' }}>
+                      Positions <span style={{ color: 'rgba(255,255,255,0.20)' }}>(optional, max 5)</span>
+                    </label>
+                    <TagPicker
+                      selectedUserTagIds={userTagIds}
+                      selectedCanonicalIds={canonicalPositionIds}
+                      onChange={(u, c) => { setUserTagIds(u); setCanonicalPositionIds(c); }}
+                      currentPillar={(form.heading as Pillar | null) ?? null}
+                      maxSelected={5}
+                    />
                   </div>
 
                   {/* Notes */}

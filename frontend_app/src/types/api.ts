@@ -21,6 +21,7 @@ export interface SessionSummary {
   script_source?: 'directed' | 'organic' | null;
   resonance?: number | null;
   user_tag_ids?: string[] | null;
+  canonical_position_ids?: string[] | null;
   pillar_distribution?: PillarDistribution | null;
 }
 
@@ -29,12 +30,25 @@ export interface UserTag {
   user_id: string;
   name: string;
   parent_pillar: Pillar;
+  aliases?: string[];                    // migration 012 — user-owned aliases for typeahead
   created_at: string;
   // Move Library (migration 010) — video lives client-side; only metadata syncs
   has_video?: boolean;
   video_thumbnail?: string | null;
   video_duration_seconds?: number | null;
   video_notes?: string | null;
+}
+
+export interface CanonicalPosition {
+  id: string;
+  name: string;
+  parent_pillar: Pillar;
+  aliases: string[];
+  created_at: string;
+}
+
+export interface CanonicalPositionsResponse {
+  positions: CanonicalPosition[];
 }
 
 export interface UserTagVideoUpdate {

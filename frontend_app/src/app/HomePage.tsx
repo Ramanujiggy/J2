@@ -74,8 +74,8 @@ export default function HomePage() {
   };
 
   // Viewport-tuned sizing
-  const wordmarkSize = isDesktop ? 88 : 56;
-  const cardPadding = isDesktop ? 36 : 24;
+  const wordmarkSize = isDesktop ? 88 : 72;
+  const cardPadding = isDesktop ? 36 : 28;
   const cardMaxWidth = isDesktop ? 460 : 400;
 
   const inputClass = 'w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/25 outline-none transition-colors';
@@ -99,30 +99,30 @@ export default function HomePage() {
         style={{
           position: 'absolute',
           inset: 0,
-          opacity: isDesktop ? 0.6 : 1,
+          opacity: isDesktop ? 0.6 : 0.8,
           pointerEvents: 'none',
         }}
       >
         <WaveBackground />
       </div>
-      {isDesktop && (
-        <div
-          aria-hidden="true"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            pointerEvents: 'none',
-            background:
-              'radial-gradient(ellipse 520px 620px at center, rgba(13,26,20,0.92) 0%, rgba(13,26,20,0.75) 35%, rgba(13,26,20,0.35) 65%, transparent 100%)',
-          }}
-        />
-      )}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'none',
+          background: isDesktop
+            ? 'radial-gradient(ellipse 520px 620px at center, rgba(13,26,20,0.92) 0%, rgba(13,26,20,0.75) 35%, rgba(13,26,20,0.35) 65%, transparent 100%)'
+            : 'radial-gradient(ellipse 380px 440px at center, rgba(13,26,20,0.88) 0%, rgba(13,26,20,0.60) 35%, rgba(13,26,20,0.22) 65%, transparent 100%)',
+        }}
+      />
+
 
       {/* ── Editorial header ───────────────────────────────────────────── */}
       <div className="relative z-10 text-center mb-8" style={{ maxWidth: cardMaxWidth, width: '100%' }}>
         <p
           className="j2-label-copper"
-          style={{ marginBottom: isDesktop ? 14 : 10 }}
+          style={{ marginBottom: isDesktop ? 14 : 12 }}
         >
           ◇ For intentional grappling
         </p>
@@ -140,8 +140,8 @@ export default function HomePage() {
         <p
           className="j2-serif-italic"
           style={{
-            marginTop: isDesktop ? 18 : 12,
-            fontSize: isDesktop ? 18 : 15,
+            marginTop: isDesktop ? 18 : 16,
+            fontSize: isDesktop ? 18 : 16.5,
             color: 'rgba(255,255,255,0.60)',
             lineHeight: 1.4,
           }}

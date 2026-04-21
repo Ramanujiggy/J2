@@ -20,6 +20,7 @@ export interface Session {
     script_source?: 'directed' | 'organic' | null;
     resonance?: number | null;
     user_tag_ids?: string[] | null;
+    canonical_position_ids?: string[] | null;  // migration 012 — shared library refs
     pillar_distribution?: PillarDistribution | null;
     created_at?: Date;
 }
@@ -40,19 +41,22 @@ export const createSession = async (
     resonance: number | null,
     user_tag_ids: string[] | null,
     pillar_distribution: PillarDistribution | null,
+    canonical_position_ids: string[] | null,
 ): Promise<Session & { session_count: number }> => {
     const result = await query(
         `WITH new_session AS (
            INSERT INTO training_sessions
            (user_id, date, duration, notes, gi_nogi, intensity, session_type, tags,
-            heading, polarity, sub_skill_tag, script_source, resonance, user_tag_ids, pillar_distribution)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+            heading, polarity, sub_skill_tag, script_source, resonance, user_tag_ids, pillar_distribution,
+            canonical_position_ids)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
            RETURNING *
          )
          SELECT ns.*, (SELECT COUNT(*)::int FROM training_sessions WHERE user_id = $1) AS session_count
          FROM new_session ns`,
         [userId, date, duration, notes || null, gi_nogi, intensity, session_type, tags,
-         heading, polarity, sub_skill_tag, script_source, resonance, user_tag_ids, pillar_distribution],
+         heading, polarity, sub_skill_tag, script_source, resonance, user_tag_ids, pillar_distribution,
+         canonical_position_ids],
     );
     return result.rows[0];
 };
@@ -204,16 +208,18 @@ export const updateSession = async (
     resonance: number | null,
     user_tag_ids: string[] | null,
     pillar_distribution: PillarDistribution | null,
+    canonical_position_ids: string[] | null,
 ): Promise<Session | null> => {
     const result = await query(
         `UPDATE training_sessions
          SET duration = $3, gi_nogi = $4, intensity = $5, session_type = $6, notes = $7, tags = $8,
              heading = $9, polarity = $10, sub_skill_tag = $11, script_source = $12, resonance = $13,
-             user_tag_ids = $14, pillar_distribution = $15
+             user_tag_ids = $14, pillar_distribution = $15, canonical_position_ids = $16
          WHERE id = $1 AND user_id = $2
          RETURNING *`,
         [id, userId, duration, gi_nogi, intensity, session_type, notes || null, tags,
-         heading, polarity, sub_skill_tag, script_source, resonance, user_tag_ids, pillar_distribution],
+         heading, polarity, sub_skill_tag, script_source, resonance, user_tag_ids, pillar_distribution,
+         canonical_position_ids],
     );
     return result.rows[0] ?? null;
 };

@@ -71,7 +71,8 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
   const [heading,      setHeading]      = useState<string | null>(defaultHeading ?? null);
   const [polarity,     setPolarity]     = useState<Polarity | null>(null);
   const [subSkillTag,  setSubSkillTag]  = useState(defaultSubSkillTag ?? '');
-  const [userTagIds,   setUserTagIds]   = useState<string[]>([]);
+  const [userTagIds,           setUserTagIds]           = useState<string[]>([]);
+  const [canonicalPositionIds, setCanonicalPositionIds] = useState<string[]>([]);
   // resonance initialized to max when pre-filled from roulette (dot sits at the vertex)
   const [scriptSource, setScriptSource] = useState<ScriptSource | null>(null);
   const [resonance,    setResonance]    = useState<number | null>(defaultHeading ? 10 : null);
@@ -143,6 +144,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
         script_source: scriptSource  ?? undefined,
         resonance:     resonance     ?? undefined,
         user_tag_ids:  userTagIds.length > 0 ? userTagIds : undefined,
+        canonical_position_ids: canonicalPositionIds.length > 0 ? canonicalPositionIds : undefined,
         pillar_distribution: pillarWeights ?? undefined,
       };
 
@@ -160,6 +162,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
         script_source: sessionSnapshot.script_source,
         resonance:    sessionSnapshot.resonance,
         user_tag_ids: sessionSnapshot.user_tag_ids,
+        canonical_position_ids: sessionSnapshot.canonical_position_ids,
         pillar_distribution: sessionSnapshot.pillar_distribution,
       });
 
@@ -430,8 +433,9 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
               Tags <span style={{ color: 'rgba(255,255,255,0.20)' }}>(optional, max 5)</span>
             </label>
             <TagPicker
-              selectedIds={userTagIds}
-              onChange={setUserTagIds}
+              selectedUserTagIds={userTagIds}
+              selectedCanonicalIds={canonicalPositionIds}
+              onChange={(u, c) => { setUserTagIds(u); setCanonicalPositionIds(c); }}
               currentPillar={(heading as Pillar | null) ?? null}
               maxSelected={5}
             />

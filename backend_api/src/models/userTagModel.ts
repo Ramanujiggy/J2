@@ -5,6 +5,7 @@ export interface UserTag {
   user_id: string;
   name: string;
   parent_pillar: 'standup' | 'passing' | 'pins' | 'submissions' | 'guard';
+  aliases: string[];                     // migration 012 — user-owned aliases for typeahead
   created_at: Date;
   // Move Library (migration 010) — video lives client-side; only metadata syncs
   has_video?: boolean;

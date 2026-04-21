@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { query } from '../config/db.js';
 import { createSession, getSessionsByUser, searchSessions, updateSession as updateSessionModel, deleteSession as deleteSessionModel, bulkInsertSessions, type SessionFilter, type BulkSessionInput, type PillarDistribution } from '../models/sessionModel.js';
 import { getUserTagsByIds } from '../models/userTagModel.js';
+import { filterExistingCanonicalIds } from '../models/canonicalPositionModel.js';
 
 const VALID_TAGS        = new Set(['standup', 'passing', 'pins', 'submissions', 'guard']);
 const VALID_GI_NOGI     = new Set(['gi', 'no_gi']);
@@ -31,6 +32,22 @@ async function sanitizeUserTagIds(userId: string, raw: unknown): Promise<string[
     const owned = await getUserTagsByIds(userId, deduped);
     const ownedSet = new Set(owned.map(t => t.id));
     return deduped.filter(id => ownedSet.has(id));
+}
+
+/**
+ * Sanitize a canonical_position_ids input from the client:
+ * - filter to UUID-shaped strings, dedupe
+ * - verify each ID exists in canonical_positions (unknown IDs dropped silently,
+ *   matching sanitizeUserTagIds — never 400 on orphaned refs)
+ *
+ * Returns null if input wasn't an array; returns [] if empty/all-invalid.
+ */
+async function sanitizeCanonicalPositionIds(raw: unknown): Promise<string[] | null> {
+    if (!Array.isArray(raw)) return null;
+    const wellFormed = raw.filter((s: unknown): s is string => typeof s === 'string' && UUID_RE.test(s));
+    const deduped = [...new Set(wellFormed)];
+    if (deduped.length === 0) return [];
+    return filterExistingCanonicalIds(deduped);
 }
 
 /**
@@ -72,7 +89,8 @@ export const logSession = async (req: Request, res: Response): Promise<void> => 
         }
 
         const { date, duration, notes, gi_nogi, intensity, session_type, tags,
-                heading, polarity, sub_skill_tag, script_source, resonance, user_tag_ids, pillar_distribution } = req.body;
+                heading, polarity, sub_skill_tag, script_source, resonance, user_tag_ids, pillar_distribution,
+                canonical_position_ids } = req.body;
 
         if (!date || duration === undefined || !gi_nogi || intensity === undefined || !session_type) {
             res.status(400).json({ message: 'Date, duration, gi/no-gi, intensity, and session type are required.' });
@@ -141,6 +159,9 @@ export const logSession = async (req: Request, res: Response): Promise<void> => 
         // Sanitize user_tag_ids: validate UUID format, deduplicate, verify ownership
         const userTagIds = await sanitizeUserTagIds(userId, user_tag_ids);
 
+        // Sanitize canonical_position_ids: UUID + dedupe + filter to existing rows
+        const canonicalIds = await sanitizeCanonicalPositionIds(canonical_position_ids);
+
         // Sanitize pillar_distribution; fall back to { heading: 1.0 } if not supplied
         let dist = sanitizePillarDistribution(pillar_distribution);
         if (!dist && heading) dist = { [heading as 'guard']: 1.0 } as PillarDistribution;
@@ -148,7 +169,7 @@ export const logSession = async (req: Request, res: Response): Promise<void> => 
         const session = await createSession(
             userId, date, durationNum, notes ?? '', gi_nogi, intensityNum, session_type, finalTags,
             heading ?? null, polarity ?? null, sub_skill_tag ?? null, script_source ?? null, resonanceNum,
-            userTagIds, dist,
+            userTagIds, dist, canonicalIds,
         );
         res.status(201).json({ message: 'Session logged.', session, session_count: session.session_count });
     } catch (err) {
@@ -387,7 +408,8 @@ export const updateSession = async (req: Request, res: Response): Promise<void> 
 
         const { id } = req.params;
         const { duration, gi_nogi, intensity, session_type, notes, tags,
-                heading, polarity, sub_skill_tag, script_source, resonance, user_tag_ids, pillar_distribution } = req.body;
+                heading, polarity, sub_skill_tag, script_source, resonance, user_tag_ids, pillar_distribution,
+                canonical_position_ids } = req.body;
 
         if (duration === undefined || !gi_nogi || intensity === undefined || !session_type) {
             res.status(400).json({ message: 'Duration, gi/no-gi, intensity, and session type are required.' });
@@ -443,6 +465,7 @@ export const updateSession = async (req: Request, res: Response): Promise<void> 
         const finalTags = isValidTagArray(tags) ? tags : (heading ? [heading] : []);
 
         const userTagIds = await sanitizeUserTagIds(userId, user_tag_ids);
+        const canonicalIds = await sanitizeCanonicalPositionIds(canonical_position_ids);
 
         let dist = sanitizePillarDistribution(pillar_distribution);
         if (!dist && heading) dist = { [heading as 'guard']: 1.0 } as PillarDistribution;
@@ -452,7 +475,7 @@ export const updateSession = async (req: Request, res: Response): Promise<void> 
             durationNum, gi_nogi, intensityNum, session_type, notes ?? '',
             finalTags,
             heading ?? null, polarity ?? null, sub_skill_tag ?? null, script_source ?? null, resonanceNum,
-            userTagIds, dist,
+            userTagIds, dist, canonicalIds,
         );
 
         if (!session) {
