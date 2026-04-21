@@ -498,7 +498,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
               fontSize: 16,
             }}
           >
-            {loading ? 'Saving...' : 'Log Session'}
+            {loading ? 'Saving...' : 'Save Session'}
           </button>
         </div>
 

@@ -206,7 +206,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
         aria-label={`Session details for ${dateLabel}`}
         className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto px-4 animate-j2-backdrop-in"
         style={{
-          backgroundColor: 'rgba(13, 26, 20, 0.97)',
+          backgroundColor: 'rgba(13, 26, 20, 1)',
           backdropFilter: 'blur(16px)',
           paddingTop: 'max(1rem, env(safe-area-inset-top))',
           paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',

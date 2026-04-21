@@ -87,7 +87,7 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
       data-no-page-swipe=""
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto px-4"
       style={{
-        backgroundColor: 'rgba(13, 26, 20, 0.97)',
+        backgroundColor: 'rgba(13, 26, 20, 1)',
         backdropFilter: 'blur(16px)',
         paddingTop: 'max(1rem, env(safe-area-inset-top))',
         paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',

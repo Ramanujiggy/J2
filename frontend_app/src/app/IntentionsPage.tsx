@@ -105,7 +105,7 @@ export default function IntentionsPage() {
             Declare what you're working on to track alignment.
           </p>
           <button
-            onClick={() => navigate('/home')}
+            onClick={() => setCreateOpen(true)}
             className="w-full max-w-xs mx-auto text-white font-semibold rounded-xl transition-all touch-manipulation"
             style={{
               height: 52,
@@ -243,12 +243,12 @@ export default function IntentionsPage() {
         </div>
       )}
 
-      {/* Edit modal */}
-      {editTarget && (
+      {/* Edit / create modal */}
+      {(editTarget || createOpen) && (
         <SetIntentionModal
-          editIntention={editTarget}
+          editIntention={editTarget ?? undefined}
           onSaved={() => { fetchAll(); refreshRailIntention(); }}
-          onClose={() => setEditTarget(null)}
+          onClose={() => { setEditTarget(null); setCreateOpen(false); }}
         />
       )}
     </div>

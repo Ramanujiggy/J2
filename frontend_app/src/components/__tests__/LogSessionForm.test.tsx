@@ -26,14 +26,14 @@ describe('LogSessionForm', () => {
     expect(screen.getByText('Duration')).toBeInTheDocument();
     expect(screen.getByText('Intensity')).toBeInTheDocument();
     expect(screen.getByText(/skills trained/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /log session/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /save session/i })).toBeInTheDocument();
   });
 
   it('shows error when no duration selected', async () => {
     const user = userEvent.setup();
     render(<LogSessionForm />);
     await user.click(screen.getByText('Stand-up'));
-    await user.click(screen.getByRole('button', { name: /log session/i }));
+    await user.click(screen.getByRole('button', { name: /save session/i }));
     expect(screen.getByText('Please select a duration.')).toBeInTheDocument();
     expect(mockPost).not.toHaveBeenCalled();
   });
@@ -43,7 +43,7 @@ describe('LogSessionForm', () => {
     render(<LogSessionForm />);
     // increment duration to 30m
     await user.click(screen.getByRole('button', { name: '+' }));
-    await user.click(screen.getByRole('button', { name: /log session/i }));
+    await user.click(screen.getByRole('button', { name: /save session/i }));
     expect(screen.getByText('Please select at least one skill area.')).toBeInTheDocument();
     expect(mockPost).not.toHaveBeenCalled();
   });
@@ -54,7 +54,7 @@ describe('LogSessionForm', () => {
     render(<LogSessionForm />);
     await user.click(screen.getByRole('button', { name: '+' })); // 30m
     await user.click(screen.getByText('Stand-up'));
-    await user.click(screen.getByRole('button', { name: /log session/i }));
+    await user.click(screen.getByRole('button', { name: /save session/i }));
     await waitFor(() =>
       expect(mockPost).toHaveBeenCalledWith(
         '/api/sessions',
@@ -76,7 +76,7 @@ describe('LogSessionForm', () => {
     render(<LogSessionForm />);
     await user.click(screen.getByRole('button', { name: '+' }));
     await user.click(screen.getByText('Stand-up'));
-    await user.click(screen.getByRole('button', { name: /log session/i }));
+    await user.click(screen.getByRole('button', { name: /save session/i }));
     await waitFor(() =>
       expect(screen.getByRole('button', { name: /saving/i })).toBeDisabled(),
     );
@@ -89,7 +89,7 @@ describe('LogSessionForm', () => {
     render(<LogSessionForm />);
     await user.click(screen.getByRole('button', { name: '+' }));
     await user.click(screen.getByText('Stand-up'));
-    await user.click(screen.getByRole('button', { name: /log session/i }));
+    await user.click(screen.getByRole('button', { name: /save session/i }));
     await waitFor(() =>
       expect(
         screen.getByText('Something went wrong. Please try again.'),
@@ -104,7 +104,7 @@ describe('LogSessionForm', () => {
     render(<LogSessionForm onSuccess={onSuccess} />);
     await user.click(screen.getByRole('button', { name: '+' }));
     await user.click(screen.getByText('Stand-up'));
-    await user.click(screen.getByRole('button', { name: /log session/i }));
+    await user.click(screen.getByRole('button', { name: /save session/i }));
     await waitFor(() => expect(onSuccess).toHaveBeenCalled());
   });
 });

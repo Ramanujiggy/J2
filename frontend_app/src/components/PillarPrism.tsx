@@ -46,10 +46,12 @@ type Vertex = typeof VERTICES[number];
 // Snap threshold — within this distance of a vertex, snap to 100%
 const SNAP_THRESHOLD = R * 0.20;
 
-// Long-press mute tuning
-const LONG_PRESS_MS = 500;
-const LONG_PRESS_MOVE_CANCEL = 8;          // SVG-coord px
-const LONG_PRESS_VERTEX_RADIUS = R * 0.35; // long-press only fires this close to a vertex
+// Tap-to-toggle tuning
+// Tapping within this radius of a vertex + releasing with little movement
+// toggles that vertex's muted state (no dot placement for that gesture).
+const VERTEX_TAP_RADIUS = 14;       // SVG-coord px (≈ finger-size at mobile scale)
+const TAP_MOVE_THRESHOLD = 4;       // movement above this commits to drag mode
+const TAP_MAX_DURATION_MS = 400;    // longer than this is a hold, not a tap
 
 // IDW weight calculation — returns floats summing to 1.0 across only the active vertices.
 // Muted pillars are absent from the returned dict entirely (not zero-keyed).
@@ -118,10 +120,14 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
   const prevResRef = useRef<number | null>(resonance);
   const [pressing, setPressing] = useState(false);
 
-  // Long-press mute plumbing
-  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pressStartPosRef = useRef<{ x: number; y: number } | null>(null);
-  const longPressFiredRef = useRef(false);
+  // Tap-to-toggle plumbing — tracks an in-flight gesture's origin so we can
+  // tell a quick vertex-tap (toggle mute) from a drag (place dot).
+  const gestureRef = useRef<{
+    startX: number;
+    startY: number;
+    startTime: number;
+    candidateVertex: Vertex | null;  // set iff pointerdown landed within VERTEX_TAP_RADIUS
+  } | null>(null);
 
   function svgCoords(e: React.PointerEvent<SVGSVGElement>): { x: number; y: number } {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -131,12 +137,11 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
     };
   }
 
-  function clearLongPress() {
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
+  function findTapVertex(x: number, y: number): Vertex | null {
+    for (const v of VERTICES) {
+      if (Math.hypot(x - v.cx, y - v.cy) < VERTEX_TAP_RADIUS) return v;
     }
-    pressStartPosRef.current = null;
+    return null;
   }
 
   function tryToggleMute(value: string) {
@@ -153,42 +158,10 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
     });
   }
 
-  function handlePointer(e: React.PointerEvent<SVGSVGElement>) {
-    if (e.type === 'pointermove' && e.buttons === 0) return;
-    e.preventDefault();
-    const { x, y } = svgCoords(e);
-
-    // Long-press arm/cancel
-    if (e.type === 'pointerdown') {
-      longPressFiredRef.current = false;
-      pressStartPosRef.current = { x, y };
-      const startX = x, startY = y;
-      longPressTimerRef.current = setTimeout(() => {
-        // Find nearest vertex to press position; only fire if close enough
-        let nearestV: Vertex | null = null;
-        let minD = Infinity;
-        for (const v of VERTICES) {
-          const d = Math.hypot(startX - v.cx, startY - v.cy);
-          if (d < minD) { minD = d; nearestV = v; }
-        }
-        if (nearestV && minD < LONG_PRESS_VERTEX_RADIUS) {
-          longPressFiredRef.current = true;
-          tryToggleMute(nearestV.value);
-        }
-      }, LONG_PRESS_MS);
-    } else if (e.type === 'pointermove' && pressStartPosRef.current) {
-      const dx = x - pressStartPosRef.current.x;
-      const dy = y - pressStartPosRef.current.y;
-      if (dx * dx + dy * dy > LONG_PRESS_MOVE_CANCEL * LONG_PRESS_MOVE_CANCEL) {
-        clearLongPress();
-      }
-    }
-
-    // If long-press already fired, suppress dot-placement for this gesture
-    if (longPressFiredRef.current) return;
-    // If every vertex is somehow muted, nothing to place against
+  function placeDot(x: number, y: number, isFirstEvent: boolean) {
     if (activeVertices.length === 0) return;
 
+    // Nearest active vertex — drives heading + resonance
     let nearest = activeVertices[0]!;
     let minDist = Infinity;
     for (const v of activeVertices) {
@@ -205,13 +178,12 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
     const dNorm = Math.min(1, minDist / R);
     const res = Math.max(2, 10 - Math.round(dNorm * 8));
 
-    // Haptic feedback + press state
-    if (e.type === 'pointerdown') { vibrate(8); setPressing(true); }
+    if (isFirstEvent) { vibrate(8); setPressing(true); }
     if (nearest.value !== prevNearestRef.current) {
-      vibrate(12); // vertex snap
+      vibrate(12);
       prevNearestRef.current = nearest.value;
     } else if (res !== prevResRef.current) {
-      vibrate(6);  // resonance tick
+      vibrate(6);
     }
     prevResRef.current = res;
 
@@ -223,6 +195,53 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
     setIsSnapped(snapped);
     setDotPos(snapOnly ? { x: nearest.cx, y: nearest.cy } : { x: clampedX, y: clampedY });
     onSelect(nearest.value, res, w);
+  }
+
+  function handlePointer(e: React.PointerEvent<SVGSVGElement>) {
+    if (e.type === 'pointermove' && e.buttons === 0) return;
+    e.preventDefault();
+    const { x, y } = svgCoords(e);
+
+    if (e.type === 'pointerdown') {
+      // Is this press landing on a vertex dot's hitbox? If so, defer placement —
+      // we'll decide tap-vs-drag on pointerup/move.
+      const candidate = findTapVertex(x, y);
+      gestureRef.current = { startX: x, startY: y, startTime: Date.now(), candidateVertex: candidate };
+      if (candidate) {
+        // Started on a vertex tap target — wait to see if they drag away
+        setPressing(true);
+        return;
+      }
+      // Not on a vertex — place dot immediately (existing behavior)
+      placeDot(x, y, true);
+      return;
+    }
+
+    if (e.type === 'pointermove') {
+      const g = gestureRef.current;
+      if (!g) return;
+      const dx = x - g.startX;
+      const dy = y - g.startY;
+      const moved = dx * dx + dy * dy > TAP_MOVE_THRESHOLD * TAP_MOVE_THRESHOLD;
+      if (g.candidateVertex && moved) {
+        // Committed to drag — revoke toggle candidacy, place dot from here on
+        g.candidateVertex = null;
+      }
+      if (!g.candidateVertex) placeDot(x, y, false);
+      return;
+    }
+
+    // pointerup / pointercancel: if still a tap candidate + quick, toggle mute
+    if (e.type === 'pointerup') {
+      const g = gestureRef.current;
+      if (g && g.candidateVertex) {
+        const duration = Date.now() - g.startTime;
+        if (duration < TAP_MAX_DURATION_MS) {
+          tryToggleMute(g.candidateVertex.value);
+        }
+      }
+      gestureRef.current = null;
+    }
   }
 
   // When mute state changes, recompute weights using the existing dot position.
@@ -255,18 +274,19 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
       <svg
         data-testid="pillar-prism"
-        viewBox="0 0 240 230"
+        viewBox="0 -16 240 246"
         style={{
           width: '100%',
           maxWidth: 280,
           touchAction: 'none',
           cursor: 'crosshair',
           userSelect: 'none',
+          overflow: 'visible',
         }}
         onPointerDown={handlePointer}
         onPointerMove={handlePointer}
-        onPointerUp={() => { clearLongPress(); setPressing(false); }}
-        onPointerLeave={() => { clearLongPress(); setPressing(false); }}
+        onPointerUp={(e) => { handlePointer(e); setPressing(false); }}
+        onPointerLeave={() => { gestureRef.current = null; setPressing(false); }}
       >
         {/* Spoke lines — center to each vertex */}
         {VERTICES.map(v => {
@@ -355,7 +375,7 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
         })}
 
         {/* Vertex glow ring — pulsing copper halo only on the primary vertex */}
-        {activeVertex && (
+        {activeVertex && !mutedVertices.has(activeVertex.value) && (
           <circle
             key={activeVertex.value + '-ring'}
             cx={activeVertex.cx}
@@ -365,6 +385,61 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
             stroke={COPPER}
             strokeWidth={1.5}
             style={{ animation: 'j2IntentCopperPulse 4.5s ease-in-out infinite' }}
+          />
+        )}
+
+        {/* Vertex dots — small tap targets on every vertex.
+            Active pillars render as filled copper. Muted pillars render
+            as a smaller hollow dot to keep the tap affordance visible. */}
+        {VERTICES.map(v => {
+          const isMuted = mutedVertices.has(v.value);
+          const isPrimary = heading === v.value && !isMuted;
+          const isSnappedHere = isSnapped && isPrimary;
+          if (isMuted) {
+            return (
+              <circle
+                key={v.value + '-dot'}
+                cx={v.cx}
+                cy={v.cy}
+                r={3.5}
+                fill="transparent"
+                stroke="rgba(196,145,95,0.35)"
+                strokeWidth={1}
+                strokeDasharray="1.5 1.5"
+                style={{ transition: 'all 0.25s ease', pointerEvents: 'none' }}
+              />
+            );
+          }
+          return (
+            <circle
+              key={v.value + '-dot'}
+              cx={v.cx}
+              cy={v.cy}
+              r={isSnappedHere ? 5.5 : isPrimary ? 5 : 4}
+              fill={isPrimary ? COPPER : 'rgba(196,145,95,0.55)'}
+              style={{
+                filter: isPrimary
+                  ? 'drop-shadow(0 0 4px rgba(196,145,95,0.65))'
+                  : 'drop-shadow(0 0 2px rgba(196,145,95,0.30))',
+                transition: 'r 0.25s ease, fill 0.25s ease, filter 0.25s ease',
+                pointerEvents: 'none',
+              }}
+            />
+          );
+        })}
+
+        {/* Snap-in inner ring — appears when the center dot is locked on a vertex.
+            Gives a clear "100% selected" affordance beyond the existing halo. */}
+        {activeVertex && isSnapped && !mutedVertices.has(activeVertex.value) && (
+          <circle
+            cx={activeVertex.cx}
+            cy={activeVertex.cy}
+            r={9}
+            fill="none"
+            stroke={COPPER}
+            strokeWidth={1.2}
+            opacity={0.85}
+            style={{ pointerEvents: 'none' }}
           />
         )}
 
@@ -461,6 +536,14 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
               })()
           : 'Tap or drag to mark your training focus'}
       </p>
+      {/* Secondary gesture hint — tap-to-toggle is the new muting gesture */}
+      {!snapOnly && (
+        <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.18)', textAlign: 'center', marginTop: 2, letterSpacing: '0.04em' }}>
+          {mutedVertices.size > 0
+            ? 'Tap a muted pillar to re-enable'
+            : 'Tap a pillar\u2019s dot to mute it'}
+        </p>
+      )}
     </div>
   );
 }
