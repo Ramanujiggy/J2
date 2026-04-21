@@ -51,11 +51,22 @@ try {
     for (const c of checks) {
       const clause = c.check_clause;
       // Heuristic: clause mentions the column AND has a literal IN (...) list
-      if (clause.includes(d.column_name) && /IN\s*\(/i.test(clause)) {
-        // Extract the allowed literals from IN (...)
-        const match = clause.match(/IN\s*\(([^)]+)\)/i);
-        if (!match) continue;
-        const allowed = match[1].split(',').map(s => s.trim().replace(/^['"]|['"]$/g, '').toLowerCase());
+      // Cover three patterns: `col IN (...)`, `col = ANY (ARRAY[...])`, and literal-only.
+      const looksLikeAllowlist = clause.includes(d.column_name) && (
+        /IN\s*\(/i.test(clause) || /ANY\s*\(\s*ARRAY\s*\[/i.test(clause)
+      );
+      if (looksLikeAllowlist) {
+        // Extract literals — match either IN (...) or ARRAY[...]
+        const inMatch = clause.match(/IN\s*\(([^)]+)\)/i);
+        const arrMatch = clause.match(/ARRAY\s*\[([^\]]+)\]/i);
+        const listBody = inMatch?.[1] ?? arrMatch?.[1];
+        if (!listBody) continue;
+        const allowed = listBody
+          .split(',')
+          .map(s => s.trim()
+            .replace(/::\w+(\s*\[\])?/g, '')      // strip ::text, ::character varying
+            .replace(/^['"]|['"]$/g, '')          // strip quotes
+            .toLowerCase());
 
         // Extract default literal
         const defLit = (d.column_default || '').replace(/::\w+(\[\])?$/, '').replace(/^'|'$/g, '').toLowerCase();
