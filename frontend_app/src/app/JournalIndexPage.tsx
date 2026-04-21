@@ -1,9 +1,9 @@
-// Journal — desktop-only editorial index of every logged session.
+// Journal — index of every logged session.
 //
-// Sessions reverse-chronological, grouped by month. Each entry opens the
-// routed single-session detail view at /journal/:id (no modal). Mobile
-// users are redirected back to /home where sessions are already reachable
-// via the existing modal flow.
+// Desktop: editorial layout, sessions reverse-chronological grouped by month,
+// each entry opens the routed single-session detail view at /journal/:id.
+// Mobile: narrower list layout, same data, taps open the SessionDetailModal
+// in-place (keeps mobile feeling native, no full-page route push).
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -12,6 +12,7 @@ import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import PageContent from '../components/PageContent.tsx';
+import SessionDetailModal from '../components/SessionDetailModal.tsx';
 import { SKILL_TAGS } from '../lib/constants.ts';
 import { toDateString, DAY_NAMES, SESSION_TYPE_LABELS, INTENSITY_COLOR, formatDuration } from '../lib/sessionUtils.ts';
 import {
@@ -25,9 +26,8 @@ export default function JournalIndexPage() {
   const navigate = useNavigate();
   const isDesktop = useIsDesktop();
 
-  useEffect(() => {
-    if (!isDesktop) navigate('/home', { replace: true });
-  }, [isDesktop, navigate]);
+  // Mobile detail modal state — set when a JournalRow is tapped on mobile.
+  const [mobileDetailSession, setMobileDetailSession] = useState<SessionSummary | null>(null);
 
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,7 +94,121 @@ export default function JournalIndexPage() {
     return Array.from(out.entries());
   }, [filtered]);
 
-  if (!isDesktop) return null;
+  if (!isDesktop) {
+    return (
+      <PageContent ready={!loading} loadingMessages={['Pulling entries...', 'Dusting the pages...']}>
+        <div className="px-4 pt-6 pb-24">
+          <h1
+            className="font-display font-bold"
+            style={{
+              color: PALE_YELLOW,
+              fontSize: 28,
+              marginBottom: 4,
+              letterSpacing: '-0.01em',
+            }}
+          >
+            Journal
+          </h1>
+          <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13, marginBottom: 20 }}>
+            {allSessions.length} {allSessions.length === 1 ? 'entry' : 'entries'} · {totalHours}h logged
+          </p>
+
+          {fetchError && (
+            <p style={{ fontSize: 13, color: '#F87171', marginBottom: 12 }}>{fetchError}</p>
+          )}
+
+          {/* Search */}
+          <input
+            placeholder="Search…"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            className="w-full rounded-xl mb-3"
+            style={{
+              background: 'var(--j2-surface-3)',
+              border: '1px solid var(--j2-border-1)',
+              padding: '11px 14px',
+              color: 'rgba(255,255,255,0.90)',
+              fontSize: 14,
+              outline: 'none',
+            }}
+          />
+
+          {/* Filter chips — horizontal scroll on mobile */}
+          <div
+            className="flex gap-2 overflow-x-auto pb-2"
+            style={{ marginBottom: 18, scrollbarWidth: 'none' }}
+          >
+            {(['All', ...SKILL_TAGS.map(t => t.value)] as Filter[]).map(v => {
+              const label = v === 'All' ? 'All' : (SKILL_TAGS.find(t => t.value === v)?.label ?? v);
+              const active = filter === v;
+              return (
+                <button
+                  key={v}
+                  onClick={() => setFilter(v)}
+                  className="touch-manipulation"
+                  style={{
+                    flexShrink: 0,
+                    height: 32, padding: '0 14px',
+                    fontSize: 12, fontWeight: 600,
+                    background: active ? 'rgba(196,145,95,0.16)' : 'var(--j2-surface-2)',
+                    border: `1px solid ${active ? COPPER : 'var(--j2-border-1)'}`,
+                    borderRadius: 16,
+                    color: active ? PALE_YELLOW : 'rgba(255,255,255,0.55)',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Entries */}
+          {filtered.length === 0 && !loading ? (
+            <EmptyState hasAny={allSessions.length > 0} />
+          ) : (
+            groups.map(([month, items]) => (
+              <div key={month} style={{ marginBottom: 28 }}>
+                <div
+                  className="j2-label-micro"
+                  style={{
+                    paddingBottom: 8, marginBottom: 8,
+                    borderBottom: '1px solid var(--j2-border-1)',
+                  }}
+                >
+                  {new Date(month + '-01T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} · {items.length}
+                </div>
+                {items.map(s => (
+                  <MobileJournalRow key={s.id} session={s} onOpen={() => setMobileDetailSession(s)} />
+                ))}
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Detail modal — mobile pattern. Uses the same SessionDetailModal
+            as PathAheadPage + CalendarPage so edit/delete/save flows match. */}
+        {mobileDetailSession && (
+          <SessionDetailModal
+            key={mobileDetailSession.id}
+            session={mobileDetailSession}
+            date={new Date(
+              (typeof mobileDetailSession.date === 'string'
+                ? mobileDetailSession.date.slice(0, 10)
+                : toDateString(new Date(mobileDetailSession.date))) + 'T00:00:00'
+            )}
+            intention={null}
+            sessionCount={1}
+            sessionIndex={0}
+            onNavigate={() => { /* single-session view — no navigation */ }}
+            onClose={() => setMobileDetailSession(null)}
+            onSaved={() => { fetchAll(); setMobileDetailSession(null); }}
+            onDeleted={() => { fetchAll(); setMobileDetailSession(null); }}
+          />
+        )}
+      </PageContent>
+    );
+  }
 
   return (
     <PageContent ready={!loading} loadingMessages={['Pulling entries...', 'Dusting the pages...', 'Finding the margin notes...']}>
@@ -278,6 +392,75 @@ function JournalRow({ session, onOpen }: { session: SessionSummary; onOpen: () =
         >
           {giLabel}
         </div>
+      </div>
+    </button>
+  );
+}
+
+/** Compact mobile journal row — single-line summary per session.
+ *  Taps open the SessionDetailModal via the parent's state. */
+function MobileJournalRow({ session, onOpen }: { session: SessionSummary; onOpen: () => void }) {
+  const dateStr = typeof session.date === 'string' ? session.date.slice(0, 10) : toDateString(new Date(session.date));
+  const d = new Date(dateStr + 'T00:00:00');
+  const intensity = Math.max(1, Math.min(5, session.intensity ?? 3));
+  const intColor = INTENSITY_COLOR[intensity] ?? '#A8CB72';
+  const primary = session.tags?.[0];
+  const focusLabel = primary ? (SKILL_TAGS.find(t => t.value === primary)?.label ?? primary) : 'Free rolling';
+  const classLabel = SESSION_TYPE_LABELS[session.session_type] ?? session.session_type;
+  const giLabel = session.gi_nogi === 'gi' ? 'Gi' : 'No-Gi';
+
+  return (
+    <button
+      onClick={onOpen}
+      className="w-full touch-manipulation"
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '44px 1fr auto',
+        gap: 14,
+        alignItems: 'center',
+        padding: '14px 4px',
+        borderBottom: '1px solid var(--j2-border-1)',
+        background: 'transparent',
+        textAlign: 'left',
+      }}
+    >
+      {/* Date column */}
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 22, fontFamily: FONT_EDITORIAL, lineHeight: 1, color: PALE_YELLOW }}>
+          {d.getDate()}
+        </div>
+        <div className="j2-label-micro" style={{ fontSize: 9.5, marginTop: 4 }}>
+          {DAY_NAMES[d.getDay()]}
+        </div>
+      </div>
+
+      {/* Middle: focus + meta */}
+      <div style={{ minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+          <span
+            aria-hidden
+            style={{
+              width: 9, height: 9, borderRadius: '50%', background: intColor,
+              boxShadow: `0 0 6px ${intColor}60`, flexShrink: 0,
+            }}
+          />
+          <div style={{ fontSize: 15, fontWeight: 600, color: 'rgba(255,255,255,0.92)' }}>
+            {focusLabel}
+          </div>
+        </div>
+        <div
+          style={{
+            fontSize: 11, color: 'rgba(255,255,255,0.45)',
+            letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600,
+          }}
+        >
+          {classLabel} · {giLabel}
+        </div>
+      </div>
+
+      {/* Duration */}
+      <div style={{ fontSize: 15, fontFamily: FONT_EDITORIAL, color: 'rgba(255,255,255,0.85)' }}>
+        {formatDuration(session.duration ?? 0)}
       </div>
     </button>
   );

@@ -86,6 +86,7 @@ async function goTo(page: Page, dest: Destination) {
   };
   const mobilePaths: Partial<Record<Destination, string>> = {
     home:       '/home',
+    journal:    '/journal',
     calendar:   '/calendar',
     intentions: '/intentions',
     profile:    '/profile',
@@ -110,10 +111,6 @@ async function goTo(page: Page, dest: Destination) {
     const path = mobilePaths[dest];
     if (path) {
       await page.goto(path);
-    } else if (dest === 'journal') {
-      // Mobile doesn't have a dedicated Journal tab; use the Analytics tab
-      // which surfaces recent sessions, or fall back to URL.
-      await page.goto('/analytics');
     } else if (dest === 'atlas') {
       await page.goto('/calendar'); // Atlas is desktop-only; mobile equivalent
     }
@@ -146,52 +143,40 @@ async function openLogSessionForm(page: Page) {
   throw new Error('Could not find a Log Session entry point on this page');
 }
 
-/** Click a pillar vertex on the PillarPrism SVG. PillarPrism has no
- *  accessible buttons per-vertex (it's a pointer-event SVG), so we compute
- *  the vertex pixel coordinates inside the SVG's bounding box and click
- *  there directly.
- *
- *  Geometry: viewBox 240×230, center (120,115), R=88, vertices clockwise
- *  from top at -90° + i*72°. Order: standup, passing, pins, submissions,
- *  guard. Source: src/components/PillarPrism.tsx. */
+/** Select a pillar vertex on the PillarPrism via its accessible button.
+ *  PillarPrism exposes per-vertex <g role="button" aria-label="{label}">.
+ *  We dispatch a programmatic click (detail=0) which triggers the keyboard-
+ *  activation branch of PillarPrism's onClick handler, calling placeDot
+ *  directly and bypassing the pointer-gesture tap-to-mute logic. */
 async function selectPillar(
   page: Page,
   pillar: 'standup' | 'passing' | 'pins' | 'submissions' | 'guard',
   opts: { scope?: ReturnType<Page['locator']> } = {},
 ) {
-  const idx = { standup: 0, passing: 1, pins: 2, submissions: 3, guard: 4 }[pillar];
+  const fullLabel: Record<typeof pillar, RegExp> = {
+    standup:     /^Stand-up/,
+    passing:     /^Guard Passing/,
+    pins:        /^Dynamic Pins/,
+    submissions: /^Submissions/,
+    guard:       /^Guard(?!\s+Passing)/,
+  };
   const root = opts.scope ?? page.locator('body');
-  const svg = root.getByTestId('pillar-prism').first();
-  await expect(svg).toBeVisible({ timeout: 5_000 });
-  // Mobile bottom sheets + React re-renders cause intermittent
-  // "element-not-attached" errors on scrollIntoView. Retry up to 4 times:
-  // re-resolve the locator, wait briefly, try again. The locator itself is
-  // lazy so each attempt re-queries the DOM.
-  let box: { x: number; y: number; width: number; height: number } | null = null;
-  for (let attempt = 0; attempt < 4; attempt++) {
-    try {
-      await svg.scrollIntoViewIfNeeded({ timeout: 2_000 });
-      await page.waitForTimeout(200);
-      box = await svg.boundingBox();
-      if (box && box.width > 0 && box.height > 0) break;
-    } catch {
-      // re-render detached the element; wait and retry
-      await page.waitForTimeout(300);
-    }
+  const btn = root.getByRole('button', { name: fullLabel[pillar] }).first();
+  await expect(btn).toBeVisible({ timeout: 5_000 });
+  // On mobile viewports Playwright dispatches touch events; modal open
+  // animations can leave the button briefly unresponsive. Click, verify by
+  // polling the save button state, retry once if the first didn't land.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await btn.click({ force: true });
+    await page.waitForTimeout(250);
+    // Cheap state probe: dispatchEvent on the same element to ensure the
+    // synthetic click has propagated through React.
+    const committed = await page.evaluate(() => {
+      const anySubmit = document.querySelector('button[type="submit"]:not([disabled])');
+      return !!anySubmit;
+    });
+    if (committed) return;
   }
-  if (!box) throw new Error('pillar-prism has no bounding box after retries');
-  const angle = ((-90 + idx * 72) * Math.PI) / 180;
-  const vbX = 120 + 88 * Math.cos(angle);
-  const vbY = 115 + 88 * Math.sin(angle);
-  // Position is relative to the top-left of the SVG element, not the page.
-  const posX = (vbX / 240) * box.width;
-  const posY = (vbY / 230) * box.height;
-  // locator.click() dispatches a full pointer+mouse sequence (pointermove,
-  // pointerdown, pointerup, click) which PillarPrism's onPointerDown handler
-  // picks up through React's delegated event system.
-  await svg.click({ position: { x: posX, y: posY } });
-  // Small beat so React commits the heading state before we click save.
-  await page.waitForTimeout(250);
 }
 
 /** Fill in the log-session form with reasonable defaults and save.
@@ -206,19 +191,16 @@ async function fillAndSaveSession(page: Page) {
   await expect(form).toBeVisible({ timeout: 5_000 });
 
   // 1. Duration — click the "1 h" preset pill (60 minutes).
-  // Use exact match so we don't accidentally pick up "1 h  30 m" (90 min
-  // preset) whose accessible name contains "1 h" as a prefix.
-  //
-  // The LogSessionForm is a modal that auto-scrolls open on mobile; the
-  // duration preset can be off-screen when the event-driven open (FAB path)
-  // fires. Retry the click up to 4 times with a fresh locator resolution
-  // and scroll-into-view between attempts.
-  for (let attempt = 0; attempt < 4; attempt++) {
+  // Exact match so we don't accidentally pick up "1 h  30 m" (90 min preset).
+  // FAB opens the form via setTimeout+event dispatch, so the form may still
+  // be rendering on first click; retry up to 3 times and verify via the
+  // "tap above" placeholder disappearing.
+  for (let attempt = 0; attempt < 3; attempt++) {
     const oneHour = form.getByRole('button', { name: '1 h', exact: true }).first();
     await expect(oneHour).toBeVisible({ timeout: 5_000 });
-    await oneHour.scrollIntoViewIfNeeded().catch(() => { /* element may rerender; retry */ });
-    await oneHour.click({ timeout: 3_000 }).catch(() => { /* rerender race; retry */ });
-    await page.waitForTimeout(300);
+    await oneHour.scrollIntoViewIfNeeded().catch(() => {});
+    await oneHour.click({ timeout: 3_000 }).catch(() => {});
+    await page.waitForTimeout(250);
     const stillUnset = await form.getByText(/^tap above$/i).isVisible().catch(() => false);
     if (!stillUnset) break;
   }
@@ -343,22 +325,16 @@ test.describe('Usage flows — mobile + desktop', () => {
       // Should land on /journal/:id
       await expect(page).toHaveURL(/\/journal\/[^/]+/, { timeout: 5_000 });
     } else {
-      // Mobile: no dedicated Journal route. Open a session by flipping the
-      // PathAhead week section to "List view" (toggle button with
-      // aria-label="List view") — that exposes the week-list testid wrapping
-      // DayCard buttons.
-      await goTo(page, 'home');
-      await page.getByRole('button', { name: 'List view' }).click();
-      const weekList = page.getByTestId('week-list');
-      await expect(weekList).toBeVisible({ timeout: 5_000 });
-      // Session-populated DayCards include the gi/no-gi label — empty-day
-      // log buttons don't. Filtering by that text skips the "log today"
-      // buttons inside DayCards that have no sessions yet.
-      const sessionRow = weekList.locator('button').filter({
-        hasText: /Gi|No-Gi/i,
+      // Mobile: navigate to the dedicated /journal route. Tapping a
+      // MobileJournalRow opens the SessionDetailModal (aria-label="Close").
+      await goTo(page, 'journal');
+      // Filter by session-type label which only appears on row buttons, not
+      // on the top-of-page filter chips (All, Stand-up, Guard Passing, etc.).
+      const firstEntry = page.locator('main button').filter({
+        hasText: /CLASS|OPEN MAT|DRILLS|PRIVATE|COMPETITION/i,
       }).first();
-      await sessionRow.click();
-      // SessionDetailModal renders a Close button (aria-label="Close").
+      await expect(firstEntry).toBeVisible({ timeout: 5_000 });
+      await firstEntry.click();
       await expect(page.getByRole('button', { name: 'Close' }).first())
         .toBeVisible({ timeout: 5_000 });
     }

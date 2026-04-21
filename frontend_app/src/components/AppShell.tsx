@@ -29,14 +29,6 @@ function CalendarIcon({ active }: { active: boolean }) {
     </svg>
   );
 }
-function AnalyticsIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.7} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 20L8 14l4 3 4-7 4 5" />
-      <path d="M4 4v16h16" />
-    </svg>
-  );
-}
 function ProfileIcon({ active }: { active: boolean }) {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.7} strokeLinecap="round" strokeLinejoin="round">
@@ -45,13 +37,23 @@ function ProfileIcon({ active }: { active: boolean }) {
     </svg>
   );
 }
+function JournalIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.7} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 4h7a3 3 0 013 3v13a3 3 0 00-3-3H4z" />
+      <path d="M20 4h-7a3 3 0 00-3 3v13a3 3 0 013-3h7z" />
+    </svg>
+  );
+}
 
-// Bottom nav: 4 real tabs + center + FAB = 5 slots (iOS convention).
-// Intentions data now lives as a section inside Analytics.
+// Bottom nav: 4 real tabs + center FAB. Journal replaced Analytics in the
+// nav because users reach their sessions much more often than aggregate
+// charts. /analytics route still exists and is reachable via direct URL or
+// (on desktop) by clicking through Atlas.
 const ALL_TABS = [
   { path: '/home',        label: 'Home',       Icon: HomeIcon,       intentionsGated: false },
+  { path: '/journal',     label: 'Journal',    Icon: JournalIcon,    intentionsGated: false },
   { path: '/calendar',    label: 'Calendar',   Icon: CalendarIcon,   intentionsGated: false },
-  { path: '/analytics',   label: 'Analytics',  Icon: AnalyticsIcon,  intentionsGated: false },
   { path: '/profile',     label: 'Profile',    Icon: ProfileIcon,    intentionsGated: false },
 ] as const;
 

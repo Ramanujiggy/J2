@@ -120,6 +120,12 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
   const prevResRef = useRef<number | null>(resonance);
   const [pressing, setPressing] = useState(false);
 
+  // Keyboard-navigation focus state. Tracks which vertex the user is currently
+  // focused on via Tab/Arrow keys, so we can render a visible focus ring and
+  // move focus between vertex buttons without fighting the browser's default.
+  const [focusedIdx, setFocusedIdx] = useState<number | null>(null);
+  const vertexRefs = useRef<(SVGGElement | null)[]>([]);
+
   // Tap-to-toggle plumbing — tracks an in-flight gesture's origin so we can
   // tell a quick vertex-tap (toggle mute) from a drag (place dot).
   const gestureRef = useRef<{
@@ -241,6 +247,30 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
         }
       }
       gestureRef.current = null;
+    }
+  }
+
+  // Keyboard navigation: Enter/Space selects, arrows cycle focus, M mutes.
+  // Keeps the Prism usable without a pointer (mouse, touch, or assistive tech).
+  function focusVertex(idx: number) {
+    const target = vertexRefs.current[idx];
+    if (target) target.focus();
+    setFocusedIdx(idx);
+  }
+
+  function handleVertexKey(e: React.KeyboardEvent<SVGGElement>, v: Vertex, idx: number) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (!mutedVertices.has(v.value)) placeDot(v.cx, v.cy, true);
+    } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      focusVertex((idx + 1) % VERTICES.length);
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      focusVertex((idx - 1 + VERTICES.length) % VERTICES.length);
+    } else if (e.key === 'm' || e.key === 'M') {
+      e.preventDefault();
+      tryToggleMute(v.value);
     }
   }
 
@@ -509,6 +539,63 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
             </text>
           );
         })}
+        {/* Accessible per-vertex buttons — keyboard + screen-reader access to
+            the Prism. Rendered last so focus rings paint above everything.
+            Each vertex is a focusable <g> with role=button and a rich label.
+            Enter/Space selects (via placeDot), arrows cycle focus, M mutes. */}
+        <g role="group" aria-label="Pillar focus selector">
+          {VERTICES.map((v, i) => {
+            const isActive = heading === v.value;
+            const isMuted = mutedVertices.has(v.value);
+            const isFocused = focusedIdx === i;
+            const stateTag = isMuted ? ', muted' : isActive ? ', currently selected' : '';
+            const label = `${v.label}${stateTag}`;
+            return (
+              <g
+                key={v.value + '-a11y'}
+                ref={el => { vertexRefs.current[i] = el; }}
+                role="button"
+                tabIndex={0}
+                aria-label={label}
+                aria-pressed={isActive}
+                aria-disabled={isMuted}
+                onKeyDown={e => handleVertexKey(e, v, i)}
+                onFocus={() => setFocusedIdx(i)}
+                onBlur={() => setFocusedIdx(null)}
+                // A click on the accessible vertex button places the dot
+                // directly. Mouse, keyboard, and assistive-tech activation
+                // all route here. stopPropagation on both pointerdown/up
+                // prevents the SVG's handlePointer from also processing the
+                // gesture (which would interpret a click-on-vertex as a
+                // tap-to-mute). Keyboard 'M' toggles mute (handleVertexKey).
+                onPointerDown={e => e.stopPropagation()}
+                onPointerUp={e => e.stopPropagation()}
+                onClick={e => {
+                  e.stopPropagation();
+                  if (!mutedVertices.has(v.value)) placeDot(v.cx, v.cy, true);
+                }}
+                style={{ outline: 'none', cursor: 'pointer' }}
+              >
+                {/* Hit area — focusable and clickable. Leaves pointerEvents
+                    on (the default) so keyboard + SR activation triggers
+                    onClick. Pointer/touch users normally hit the underlying
+                    SVG first (this circle sits last in source order, but
+                    SVG hit testing is z-order-based — so pointer events on
+                    the vertex still go through handlePointer's tap-to-mute
+                    path when coming from a real pointer gesture). */}
+                <circle
+                  cx={v.cx}
+                  cy={v.cy}
+                  r={18}
+                  fill="transparent"
+                  stroke={isFocused ? COPPER : 'none'}
+                  strokeWidth={isFocused ? 1.5 : 0}
+                  strokeDasharray={isFocused ? '3 2' : undefined}
+                />
+              </g>
+            );
+          })}
+        </g>
       </svg>
 
       {/* Hint */}

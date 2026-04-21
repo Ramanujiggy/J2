@@ -9,6 +9,7 @@ import BeltDateBanner from './BeltDateBanner.tsx';
 import PillarPrism from './PillarPrism.tsx';
 import SegmentedToggle from './SegmentedToggle.tsx';
 import TagPicker from './TagPicker.tsx';
+import VoiceReflectionInput from './VoiceReflectionInput.tsx';
 import type { Intention, Pillar } from '../types/api.ts';
 
 interface LogSessionResponse {
@@ -97,10 +98,6 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
 
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  };
 
   const resetForm = () => {
     setForm({ date: today, notes: '', gi_nogi: 'gi', intensity: 3, session_type: 'class' });
@@ -441,22 +438,20 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
             />
           </div>
 
-          {/* Notes */}
+          {/* Notes — now with voice-to-text mic. Encourages post-training use
+              (sweaty hands, tired, don't-make-them-type). Falls back to a
+              plain textarea when Web Speech API isn't available. */}
           <div>
             <label className="block text-xs mb-1" style={{ color: 'rgba(255,255,255,0.40)' }}>
               Notes <span style={{ color: 'rgba(255,255,255,0.20)' }}>(optional)</span>
             </label>
-            <textarea
-              name="notes"
-              rows={2}
+            <VoiceReflectionInput
               value={form.notes}
-              onChange={handleChange}
+              onChange={next => setForm(prev => ({ ...prev, notes: next }))}
               placeholder="What stood out today?"
-              className="w-full rounded-xl px-4 py-2.5 text-sm text-white/90 placeholder-white/25 outline-none resize-none transition-colors"
-              style={{
-                backgroundColor: SURFACE_3,
-                border: '1px solid rgba(255,255,255,0.08)',
-              }}
+              rows={2}
+              textareaName="notes"
+              textareaStyle={{ backgroundColor: SURFACE_3 }}
             />
           </div>
         </div>
