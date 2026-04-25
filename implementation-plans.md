@@ -411,6 +411,12 @@ Curated tools and repositories used for market research, competitive analysis, a
 |----------|-----|------------|---------------|
 | **SwiftUI-Animations** | [github.com/Shubham0812/SwiftUI-Animations](https://github.com/Shubham0812/SwiftUI-Animations) | 2.8k-star open-source collection of 20+ polished SwiftUI animation components — loaders, interactive buttons, toggles, card transitions, Metal shader effects. Each animation is self-contained and production-ready. iOS 17+, Swift 5+. Includes haptic feedback patterns. | Reference for native-feeling micro-interactions: button press states, loading indicators, toggle animations, card reveals. Even though J2 is a web PWA, iOS-native animation patterns set the bar for what users expect. Cross-reference when designing new interactions to ensure our CSS/JS animations match the timing, easing, and polish of native equivalents. Particularly useful for: submit button states, loader choreography, toggle switch physics. |
 
+### Performance & Layout Libraries
+
+| Resource | URL | What it is | How we use it |
+|----------|-----|------------|---------------|
+| **Pretext** | [github.com/chenglou/pretext](https://github.com/chenglou/pretext) | 45k-star pure TypeScript library for measuring and laying out multiline text without triggering DOM reflows. Implements its own text measurement using the browser font engine — avoids `getBoundingClientRect`/`offsetHeight` which cause expensive layout recalculation. Supports CJK, Arabic, emoji, mixed-script. Works across DOM, Canvas, SVG, and SSR. MIT license. | Relevant for any future text-heavy features (notes search result previews, journal entries, drill descriptions) where we need to measure/truncate text without causing reflow. Also a reference for the philosophy of separating one-time preparation from cheap layout calculations — the same pattern our animation system uses (prepare compositor layers once, animate only transform/opacity). Potential direct integration if we add virtualized session lists or text-wrapping-aware truncation. |
+
 ### Design Research & Competitive Analysis
 
 | Resource | URL | What it is | How we use it |
