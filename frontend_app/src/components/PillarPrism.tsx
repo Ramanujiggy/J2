@@ -113,6 +113,15 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
   const [isSnapped, setIsSnapped] = useState(!!defaultHeading);
   const [mutedVertices, setMutedVertices] = useState<Set<string>>(new Set());
 
+  // Animation triggers — drive single-shot keyframe replays via React `key` changes.
+  // `lastToggle` flags the most recently muted/unmuted vertex; cleared after the
+  // animation completes so we don't replay on unrelated re-renders.
+  const [lastToggle, setLastToggle] = useState<{ vertex: string; instance: number } | null>(null);
+  // `snapInstance` increments each time the center dot crosses into snapped state
+  // on any vertex, giving the dot-pump + inner-ring a fresh `key` to remount on.
+  const [snapInstance, setSnapInstance] = useState(0);
+  const isFirstSnapEffect = useRef(true);
+
   const activeVertex = VERTICES.find(v => v.value === heading) ?? null;
   const activeVertices = VERTICES.filter(v => !mutedVertices.has(v.value));
 
@@ -162,6 +171,8 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
       if (next.has(value)) next.delete(value); else next.add(value);
       return next;
     });
+    // Trigger the toggle pump animation — instance forces fresh remount on each toggle
+    setLastToggle({ vertex: value, instance: Date.now() });
   }
 
   function placeDot(x: number, y: number, isFirstEvent: boolean) {
@@ -300,6 +311,28 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mutedVertices]);
 
+  // Clear the toggle-animation flag once the keyframe has played, so unrelated
+  // re-renders don't re-mount with the animation again.
+  useEffect(() => {
+    if (!lastToggle) return;
+    const t = setTimeout(() => setLastToggle(null), 360);
+    return () => clearTimeout(t);
+  }, [lastToggle]);
+
+  // Bump snapInstance whenever the dot enters snapped state on a vertex —
+  // either initial entry or moving from one snapped vertex to another. The
+  // first-render guard prevents an auto-pump when defaultHeading pre-fills.
+  useEffect(() => {
+    if (isFirstSnapEffect.current) {
+      isFirstSnapEffect.current = false;
+      return;
+    }
+    if (isSnapped && activeVertex) {
+      setSnapInstance(s => s + 1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSnapped, activeVertex?.value]);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
       <svg
@@ -420,15 +453,23 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
 
         {/* Vertex dots — small tap targets on every vertex.
             Active pillars render as filled copper. Muted pillars render
-            as a smaller hollow dot to keep the tap affordance visible. */}
+            as a smaller hollow dot to keep the tap affordance visible.
+            Toggle pump (mute/unmute) and snap-in dot pump are driven by
+            React `key` changes that force a remount, replaying the keyframe. */}
         {VERTICES.map(v => {
           const isMuted = mutedVertices.has(v.value);
           const isPrimary = heading === v.value && !isMuted;
           const isSnappedHere = isSnapped && isPrimary;
+          const isToggled = lastToggle?.vertex === v.value;
+
           if (isMuted) {
+            const key = isToggled ? `${v.value}-dot-toggle-${lastToggle!.instance}` : `${v.value}-dot-muted`;
+            const animation = isToggled
+              ? 'j2VertexToggle 320ms cubic-bezier(0.34, 1.56, 0.64, 1)'
+              : undefined;
             return (
               <circle
-                key={v.value + '-dot'}
+                key={key}
                 cx={v.cx}
                 cy={v.cy}
                 r={3.5}
@@ -436,13 +477,35 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
                 stroke="rgba(196,145,95,0.35)"
                 strokeWidth={1}
                 strokeDasharray="1.5 1.5"
-                style={{ transition: 'all 0.25s ease', pointerEvents: 'none' }}
+                style={{
+                  transition: 'all 0.25s ease',
+                  pointerEvents: 'none',
+                  transformBox: 'fill-box',
+                  transformOrigin: 'center',
+                  animation,
+                }}
               />
             );
           }
+
+          // Determine which (if any) one-shot animation should play this render.
+          // Toggle pump wins over snap-pump — both could be true on the same vertex
+          // (you can't mute the heading, but you could unmute a vertex that's also
+          // snapped if heading hadn't been set yet, etc.). Toggle is the more
+          // categorical event so it takes precedence.
+          let animation: string | undefined;
+          let key = `${v.value}-dot`;
+          if (isToggled) {
+            animation = 'j2VertexToggle 320ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+            key = `${v.value}-dot-toggle-${lastToggle!.instance}`;
+          } else if (isSnappedHere) {
+            animation = 'j2VertexDotPump 240ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+            key = `${v.value}-dot-snap-${snapInstance}`;
+          }
+
           return (
             <circle
-              key={v.value + '-dot'}
+              key={key}
               cx={v.cx}
               cy={v.cy}
               r={isSnappedHere ? 5.5 : isPrimary ? 5 : 4}
@@ -453,15 +516,21 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
                   : 'drop-shadow(0 0 2px rgba(196,145,95,0.30))',
                 transition: 'r 0.25s ease, fill 0.25s ease, filter 0.25s ease',
                 pointerEvents: 'none',
+                transformBox: 'fill-box',
+                transformOrigin: 'center',
+                animation,
               }}
             />
           );
         })}
 
         {/* Snap-in inner ring — appears when the center dot is locked on a vertex.
-            Gives a clear "100% selected" affordance beyond the existing halo. */}
+            Gives a clear "100% selected" affordance beyond the existing halo.
+            The conditional render naturally gives us a fresh mount on each
+            snap entry, replaying the snap-in keyframe with a brief overshoot. */}
         {activeVertex && isSnapped && !mutedVertices.has(activeVertex.value) && (
           <circle
+            key={`snap-ring-${activeVertex.value}-${snapInstance}`}
             cx={activeVertex.cx}
             cy={activeVertex.cy}
             r={9}
@@ -469,7 +538,12 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
             stroke={COPPER}
             strokeWidth={1.2}
             opacity={0.85}
-            style={{ pointerEvents: 'none' }}
+            style={{
+              pointerEvents: 'none',
+              transformBox: 'fill-box',
+              transformOrigin: 'center',
+              animation: 'j2VertexSnapIn 280ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+            }}
           />
         )}
 
