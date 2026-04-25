@@ -400,3 +400,21 @@ function decodeJwtEmail(token: string): string | null {
 6. `cd backend_api && npm test` — all 42 pass + new tests for admin 403/200
 
 ---
+
+## Design & Animation Reference Resources
+
+Curated tools and repositories used for market research, competitive analysis, and animation pattern reference when making design decisions.
+
+### Animation Pattern Libraries
+
+| Resource | URL | What it is | How we use it |
+|----------|-----|------------|---------------|
+| **SwiftUI-Animations** | [github.com/Shubham0812/SwiftUI-Animations](https://github.com/Shubham0812/SwiftUI-Animations) | 2.8k-star open-source collection of 20+ polished SwiftUI animation components — loaders, interactive buttons, toggles, card transitions, Metal shader effects. Each animation is self-contained and production-ready. iOS 17+, Swift 5+. Includes haptic feedback patterns. | Reference for native-feeling micro-interactions: button press states, loading indicators, toggle animations, card reveals. Even though J2 is a web PWA, iOS-native animation patterns set the bar for what users expect. Cross-reference when designing new interactions to ensure our CSS/JS animations match the timing, easing, and polish of native equivalents. Particularly useful for: submit button states, loader choreography, toggle switch physics. |
+
+### Design Research & Competitive Analysis
+
+| Resource | URL | What it is | How we use it |
+|----------|-----|------------|---------------|
+| **Refero** | [refero.design](https://refero.design) | Curated library of real product screenshots and UI flows from shipping apps. Searchable by app, screen type, and pattern. | Competitive benchmarking — search for "fitness tracker", "training log", "dashboard" patterns to see how flagship apps handle specific flows. Used for homepage layout decisions, navigation patterns, and information architecture. |
+| **Mobbin** | [mobbin.com](https://mobbin.com) | Extensive mobile app design pattern library with screenshot flows from 300+ apps. Filterable by screen type, industry, and UI pattern. | Similar to Refero but with deeper flow-level analysis. Used for onboarding, settings, and data visualization pattern research. |
+| **Dribbble** | [dribbble.com](https://dribbble.com) | Design community with concept work and polished UI mockups. | Inspiration source, but with caution — Dribbble concepts often prioritize visual impact over usability. Our audit philosophy: "if it ships in a real product, study it; if it's Dribbble-only, question whether it works at scale." |
