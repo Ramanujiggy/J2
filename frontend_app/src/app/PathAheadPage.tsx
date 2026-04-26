@@ -1107,11 +1107,9 @@ export default function PathAheadPage() {
               </div>
             </div>
 
-            {/* Week section + telemetry — our existing week navigation preserved */}
-            <div style={{ ...softCardStyle, padding: 32 }}>
-              {weekSectionHeader}
-              <div style={{ marginTop: 16 }}>{weekViewContent}</div>
-            </div>
+            {/* Heatmap — moved here from the right sidebar so the full year
+                of training reads at a glance alongside the annual radial. */}
+            {heatmapSection}
 
             {telemetryContent}
           </div>
@@ -1204,8 +1202,12 @@ export default function PathAheadPage() {
               </div>
             </div>
 
-            {/* Heatmap */}
-            {heatmapSection}
+            {/* Week section — moved here from the left column.
+                The carousel + list view both fit comfortably at 440px. */}
+            <div style={{ ...softCardStyle, padding: 32 }}>
+              {weekSectionHeader}
+              <div style={{ marginTop: 16 }}>{weekViewContent}</div>
+            </div>
 
             {/* Reflection */}
             {reflectionCard}
