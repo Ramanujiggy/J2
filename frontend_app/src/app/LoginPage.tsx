@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.ts';
 import { api, ApiError } from '../lib/api.ts';
 import {
@@ -14,17 +14,27 @@ type Mode = 'login' | 'register' | 'forgot';
 interface RegisterResponse { message: string }
 interface LoginResponse   { message: string; token?: string; user?: { id: string; email: string } }
 
-export default function HomePage() {
+export default function LoginPage() {
+  const { login, isAuthenticated } = useAuth();
+  const [searchParams] = useSearchParams();
   const isDesktop = useIsDesktop();
-  const [mode, setMode] = useState<Mode>('login');
+
+  // Pre-select Register tab when arriving from a landing-page CTA: /login?mode=register
+  const initialMode: Mode =
+    searchParams.get('mode') === 'register' ? 'register'
+    : searchParams.get('mode') === 'forgot' ? 'forgot'
+    : 'login';
+
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
 
-  const { login } = useAuth();
   const navigate = useNavigate();
+
+  if (isAuthenticated) return <Navigate to="/home" replace />;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

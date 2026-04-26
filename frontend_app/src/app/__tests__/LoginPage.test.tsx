@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { api } from '@/lib/api';
-import HomePage from '../HomePage';
+import LoginPage from '../LoginPage';
 
 // The page has two "Log In" elements: the tab toggle and the submit button.
 // This helper returns the submit button (last in DOM order).
@@ -39,11 +39,11 @@ const mockPost = vi.mocked(api.post);
 const renderPage = () =>
   render(
     <MemoryRouter>
-      <HomePage />
+      <LoginPage />
     </MemoryRouter>,
   );
 
-describe('HomePage — auth flow', () => {
+describe('LoginPage — auth flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });

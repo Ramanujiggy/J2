@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import WaveBackground from './WaveBackground.tsx';
 import BeltBar, { type BeltRank, BELT_COLORS, PATCH_COLORS } from './BeltBar.tsx';
@@ -83,7 +82,6 @@ export default function AppShell({ children }: Props) {
 }
 
 function MobileAppShell({ children }: Props) {
-  const { logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { beltRank, stripes, intentionsEnabled } = useProfile();
@@ -93,11 +91,6 @@ function MobileAppShell({ children }: Props) {
   const thumbBg    = beltColor
     ? beltThumbGradient(beltColor, patchColor, stripes ?? 0)
     : 'rgba(255,255,255,0.15)';
-
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
 
   useOnlineSync();
 

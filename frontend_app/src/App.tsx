@@ -3,7 +3,8 @@ import { useAuth } from './hooks/useAuth.ts';
 import { ProfileProvider } from './context/ProfileContext.tsx';
 import { ActiveIntentionProvider } from './context/ActiveIntentionContext.tsx';
 import AppShell from './components/AppShell.tsx';
-import HomePage from './app/HomePage.tsx';
+import LandingPage from './app/LandingPage.tsx';
+import LoginPage from './app/LoginPage.tsx';
 import ResetPasswordPage from './app/ResetPasswordPage.tsx';
 import PathAheadPage from './app/PathAheadPage.tsx';
 import CalendarPage from './app/CalendarPage.tsx';
@@ -18,7 +19,7 @@ import MovesLibraryPage from './app/MovesLibraryPage.tsx';
 
 function ProtectedShell({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
-  if (!isAuthenticated) return <Navigate to="/" replace />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
   return (
     <ProfileProvider>
       <ActiveIntentionProvider>
@@ -31,7 +32,8 @@ function ProtectedShell({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<HomePage />} />
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/login" element={<LoginPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       <Route path="/home"        element={<ProtectedShell><PathAheadPage /></ProtectedShell>} />

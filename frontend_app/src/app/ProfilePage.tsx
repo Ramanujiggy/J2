@@ -608,7 +608,7 @@ export default function ProfilePage() {
         <div className={`flex justify-center ${isDesktop ? 'mt-12' : 'mt-8'}`}>
           {isDesktop ? (
             <button
-              onClick={() => { logout(); navigate('/login'); }}
+              onClick={() => { logout(); navigate('/'); }}
               className="text-sm font-semibold uppercase tracking-[0.14em] rounded-xl transition-all"
               style={{
                 padding: '14px 32px',
@@ -631,7 +631,7 @@ export default function ProfilePage() {
             </button>
           ) : (
             <button
-              onClick={() => { logout(); navigate('/login'); }}
+              onClick={() => { logout(); navigate('/'); }}
               className="text-sm transition-colors"
               style={{ color: 'rgba(255,255,255,0.3)' }}
               onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.6)')}
