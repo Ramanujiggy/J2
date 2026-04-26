@@ -94,9 +94,11 @@ interface Props {
   defaultHeading?: string;
   /** When true, always snap to nearest vertex (no distribution mode). Used for intention setting. */
   snapOnly?: boolean;
+  /** When true, all input is disabled — Prism renders as a visualization only. */
+  readOnly?: boolean;
 }
 
-export default function PillarPrism({ heading, resonance, onSelect, defaultHeading, snapOnly }: Props) {
+export default function PillarPrism({ heading, resonance, onSelect, defaultHeading, snapOnly, readOnly }: Props) {
   // Dot position in SVG coordinate space
   const [dotPos, setDotPos] = useState<{ x: number; y: number } | null>(() => {
     if (!defaultHeading) return null;
@@ -215,6 +217,7 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
   }
 
   function handlePointer(e: React.PointerEvent<SVGSVGElement>) {
+    if (readOnly) return;
     if (e.type === 'pointermove' && e.buttons === 0) return;
     e.preventDefault();
     const { x, y } = svgCoords(e);
@@ -270,6 +273,7 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
   }
 
   function handleVertexKey(e: React.KeyboardEvent<SVGGElement>, v: Vertex, idx: number) {
+    if (readOnly) return;
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       if (!mutedVertices.has(v.value)) placeDot(v.cx, v.cy, true);
@@ -341,10 +345,11 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
         style={{
           width: '100%',
           maxWidth: 280,
-          touchAction: 'none',
-          cursor: 'crosshair',
+          touchAction: readOnly ? 'auto' : 'none',
+          cursor: readOnly ? 'default' : 'crosshair',
           userSelect: 'none',
           overflow: 'visible',
+          pointerEvents: readOnly ? 'none' : 'auto',
         }}
         onPointerDown={handlePointer}
         onPointerMove={handlePointer}
@@ -629,10 +634,10 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
                 key={v.value + '-a11y'}
                 ref={el => { vertexRefs.current[i] = el; }}
                 role="button"
-                tabIndex={0}
+                tabIndex={readOnly ? -1 : 0}
                 aria-label={label}
                 aria-pressed={isActive}
-                aria-disabled={isMuted}
+                aria-disabled={isMuted || readOnly}
                 onKeyDown={e => handleVertexKey(e, v, i)}
                 onFocus={() => setFocusedIdx(i)}
                 onBlur={() => setFocusedIdx(null)}

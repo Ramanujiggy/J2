@@ -4,9 +4,11 @@ import { api } from '../lib/api.ts';
 import { PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3, COPPER } from '../lib/theme.ts';
 import { vibrate } from '../lib/haptics.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
-import PillarPrism from './PillarPrism.tsx';
+import FocusAreaChips from './FocusAreaChips.tsx';
+import PrismShape from './PrismShape.tsx';
 import SegmentedToggle from './SegmentedToggle.tsx';
-import type { Intention } from '../types/api.ts';
+import type { ChipSelection } from '../lib/selectionsToDistribution.ts';
+import type { Intention, Pillar } from '../types/api.ts';
 
 const DURATION_OPTIONS: { value: string; label: string }[] = [
   { value: '3',  label: '3d' },
@@ -36,7 +38,11 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
   const isDesktop = useIsDesktop();
   const isEdit = !!editIntention;
 
-  const [heading,      setHeading]      = useState<string | null>(editIntention?.heading ?? null);
+  const initialSelections: ChipSelection[] = editIntention?.heading
+    ? [{ pillar: editIntention.heading as Pillar, primary: true, deep_work: false }]
+    : [];
+  const [selections, setSelections] = useState<ChipSelection[]>(initialSelections);
+  const heading = selections.find(s => s.primary)?.pillar ?? null;
   const [label,        setLabel]        = useState(editIntention?.intent_label ?? '');
   const [durationDays, setDurationDays] = useState<number>(editIntention?.duration_days ?? 7);
   const [writeJournal, setWriteJournal] = useState(false);
@@ -48,7 +54,7 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!heading) {
-      setError('Tap a vertex on the Prism to set your focus.');
+      setError('Tap a focus area to set your intention.');
       return;
     }
     setSaving(true);
@@ -95,7 +101,7 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
       onClick={onClose}
     >
       <div
-        className="w-full sm:max-w-sm lg:max-w-2xl rounded-2xl overflow-hidden animate-j2-modal-in"
+        className="w-full sm:max-w-sm md:max-w-lg lg:max-w-2xl xl:max-w-3xl 2xl:max-w-4xl rounded-2xl overflow-hidden animate-j2-modal-in"
         style={{
           backgroundColor: '#152E22',
           border: '1px solid rgba(255,255,255,0.10)',
@@ -128,16 +134,22 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
             {/* ── Focus card ───────────────────────────────── */}
             <div className="rounded-xl px-4 py-4 space-y-4" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
               <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                Tap a vertex to declare what you're working on.
+                Tap a focus area to declare what you're working on.
               </p>
 
-              <PillarPrism
-                heading={heading}
-                resonance={heading ? 10 : null}
-                defaultHeading={editIntention?.heading ?? undefined}
-                snapOnly
-                onSelect={(h, _r, _w) => { setHeading(h); setError(''); }}
-              />
+              {/* Pokedex layout: chips on the left, live Prism shape on the right. */}
+              <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+                <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+                  <FocusAreaChips
+                    selections={selections}
+                    onChange={s => { setSelections(s); setError(''); }}
+                    mode="single"
+                  />
+                </div>
+                <div style={{ flex: '0 0 auto', opacity: 0.95 }}>
+                  <PrismShape selections={selections} size={isDesktop ? 160 : 130} showLabels={false} />
+                </div>
+              </div>
 
               {/* Optional label */}
               <div>

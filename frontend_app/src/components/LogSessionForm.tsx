@@ -6,10 +6,12 @@ import { vibrate } from '../lib/haptics.ts';
 import { INTENSITY_COLOR } from '../lib/sessionUtils.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import BeltDateBanner from './BeltDateBanner.tsx';
-import PillarPrism from './PillarPrism.tsx';
+import FocusAreaChips from './FocusAreaChips.tsx';
+import PrismReceipt from './PrismReceipt.tsx';
 import SegmentedToggle from './SegmentedToggle.tsx';
 import TagPicker from './TagPicker.tsx';
 import VoiceReflectionInput from './VoiceReflectionInput.tsx';
+import { selectionsToDistribution, type ChipSelection } from '../lib/selectionsToDistribution.ts';
 import type { Intention, Pillar } from '../types/api.ts';
 
 interface LogSessionResponse {
@@ -68,18 +70,44 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
          :                     `${min} m`;
   }
 
-  // Dynamic Pillar Engine fields
-  const [heading,      setHeading]      = useState<string | null>(defaultHeading ?? null);
+  // Chip-input state — selections drive heading/tags/distribution at submit time.
+  const initialSelections: ChipSelection[] = defaultHeading
+    ? [{ pillar: defaultHeading as Pillar, primary: true, deep_work: false }]
+    : [];
+  const [selections, setSelections] = useState<ChipSelection[]>(initialSelections);
   const [polarity,     setPolarity]     = useState<Polarity | null>(null);
   const [subSkillTag,  setSubSkillTag]  = useState(defaultSubSkillTag ?? '');
   const [userTagIds,           setUserTagIds]           = useState<string[]>([]);
   const [canonicalPositionIds, setCanonicalPositionIds] = useState<string[]>([]);
-  // resonance initialized to max when pre-filled from roulette (dot sits at the vertex)
   const [scriptSource, setScriptSource] = useState<ScriptSource | null>(null);
-  const [resonance,    setResonance]    = useState<number | null>(defaultHeading ? 10 : null);
-  // IDW weight distribution from PillarPrism — sent to API as pillar_distribution.
-  // Falls back to { heading: 1.0 } server-side if absent (e.g. snap-only intentions).
-  const [pillarWeights, setPillarWeights] = useState<Record<string, number> | null>(null);
+
+  // Post-save receipt — shows the resulting Prism shape and auto-dismisses.
+  const [receiptSelections, setReceiptSelections] = useState<ChipSelection[] | null>(null);
+  const [pendingSuccessCount, setPendingSuccessCount] = useState<number | undefined>(undefined);
+
+  // Derive heading at render-time so polarity gating + submit payload stay in sync.
+  // Primary chip wins; otherwise highest-weight pillar (ties broken by selection order).
+  const derivedHeading: Pillar | null = (() => {
+    if (selections.length === 0) return null;
+    const primary = selections.find(s => s.primary);
+    if (primary) return primary.pillar;
+    const dist = selectionsToDistribution(selections);
+    if (!dist) return null;
+    let best: Pillar | null = null;
+    let bestW = -1;
+    for (const s of selections) {
+      const w = dist[s.pillar] ?? 0;
+      if (w > bestW) { bestW = w; best = s.pillar; }
+    }
+    return best;
+  })();
+
+  // Wipe polarity when the derived heading leaves guard/pins (where it's relevant).
+  useEffect(() => {
+    if (derivedHeading !== 'guard' && derivedHeading !== 'pins' && polarity !== null) {
+      setPolarity(null);
+    }
+  }, [derivedHeading, polarity]);
 
   // Current intention hint
   const [currentIntention, setCurrentIntention] = useState<Intention | null>(null);
@@ -102,13 +130,12 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
   const resetForm = () => {
     setForm({ date: today, notes: '', gi_nogi: 'gi', intensity: 3, session_type: 'class' });
     setDurationMinutes(null);
-    setHeading(null);
+    setSelections([]);
     setPolarity(null);
     setSubSkillTag('');
     setUserTagIds([]);
+    setCanonicalPositionIds([]);
     setScriptSource(null);
-    setResonance(null);
-    setPillarWeights(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -120,13 +147,16 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
       return;
     }
 
-    if (!heading) {
-      setError('Please select a pillar focus.');
+    if (selections.length === 0 || !derivedHeading) {
+      setError('Tap at least one focus area.');
       return;
     }
 
     setLoading(true);
     try {
+      const distribution = selectionsToDistribution(selections);
+      const tags = Array.from(new Set(selections.map(s => s.pillar)));
+
       const sessionSnapshot = {
         date:         form.date,
         duration:     durationMinutes!,
@@ -134,15 +164,14 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
         gi_nogi:      form.gi_nogi,
         session_type: form.session_type,
         notes:        form.notes || undefined,
-        tags:         [heading],
-        heading,
+        tags,
+        heading:      derivedHeading,
         polarity:      polarity      ?? undefined,
         sub_skill_tag: subSkillTag   || undefined,
         script_source: scriptSource  ?? undefined,
-        resonance:     resonance     ?? undefined,
         user_tag_ids:  userTagIds.length > 0 ? userTagIds : undefined,
         canonical_position_ids: canonicalPositionIds.length > 0 ? canonicalPositionIds : undefined,
-        pillar_distribution: pillarWeights ?? undefined,
+        pillar_distribution: distribution ?? undefined,
       };
 
       const data = await api.post<LogSessionResponse>('/api/sessions', {
@@ -157,7 +186,6 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
         polarity:     sessionSnapshot.polarity,
         sub_skill_tag: sessionSnapshot.sub_skill_tag,
         script_source: sessionSnapshot.script_source,
-        resonance:    sessionSnapshot.resonance,
         user_tag_ids: sessionSnapshot.user_tag_ids,
         canonical_position_ids: sessionSnapshot.canonical_position_ids,
         pillar_distribution: sessionSnapshot.pillar_distribution,
@@ -175,13 +203,14 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
         addPending({ id: `pending-${Date.now()}`, ...sessionSnapshot });
       }
 
+      // Capture selections for the receipt before reset clears them.
+      setReceiptSelections(selections);
+      setPendingSuccessCount(dataAny._offline ? undefined : data.session_count);
       resetForm();
-      toast({
-        title: dataAny._offline
-          ? 'Session saved offline — will sync when connected.'
-          : 'Session logged!',
-      });
-      onSuccess?.(dataAny._offline ? undefined : data.session_count);
+
+      if (dataAny._offline) {
+        toast({ title: 'Session saved offline — will sync when connected.' });
+      }
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.status === 0) {
@@ -200,6 +229,18 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
   };
 
   return (
+    <>
+    {receiptSelections && (
+      <PrismReceipt
+        selections={receiptSelections}
+        onDismiss={() => {
+          const count = pendingSuccessCount;
+          setReceiptSelections(null);
+          setPendingSuccessCount(undefined);
+          onSuccess?.(count);
+        }}
+      />
+    )}
     <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: CARD_BG, border: '1px solid rgba(255,255,255,0.10)', isolation: 'isolate' }}>
       <form onSubmit={handleSubmit}>
         {/* Belt date banner — full-bleed, animates in from the right on mount */}
@@ -365,16 +406,15 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
             )}
           </div>
 
-          {/* Pillar Prism — tap/drag to mark focus and alignment */}
-          <PillarPrism
-            heading={heading}
-            resonance={resonance}
-            defaultHeading={defaultHeading}
-            onSelect={(h, r, w) => { setHeading(h); setResonance(r); setPillarWeights(w); setPolarity(null); }}
+          {/* Focus-area chips — tap to add, double-tap for primary, hold for deep work */}
+          <FocusAreaChips
+            selections={selections}
+            onChange={setSelections}
+            defaultPrimaryPillar={defaultHeading as Pillar | undefined}
           />
 
           {/* Polarity — only for guard and pins */}
-          {(heading === 'guard' || heading === 'pins') && (
+          {(derivedHeading === 'guard' || derivedHeading === 'pins') && (
             <div>
               <SegmentedToggle
                 options={[
@@ -433,7 +473,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
               selectedUserTagIds={userTagIds}
               selectedCanonicalIds={canonicalPositionIds}
               onChange={(u, c) => { setUserTagIds(u); setCanonicalPositionIds(c); }}
-              currentPillar={(heading as Pillar | null) ?? null}
+              currentPillar={derivedHeading}
               maxSelected={5}
             />
           </div>
@@ -500,5 +540,6 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
         </div>{/* end content wrapper */}
       </form>
     </div>
+    </>
   );
 }

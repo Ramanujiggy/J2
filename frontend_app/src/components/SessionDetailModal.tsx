@@ -6,8 +6,11 @@ import { COPPER, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3 } from '../lib/the
 import { INTENSITY_COLOR } from '../lib/sessionUtils.ts';
 import { vibrate } from '../lib/haptics.ts';
 import SegmentedToggle from './SegmentedToggle.tsx';
-import PillarPrism from './PillarPrism.tsx';
+import FocusAreaChips from './FocusAreaChips.tsx';
+import PrismShape from './PrismShape.tsx';
 import TagPicker from './TagPicker.tsx';
+import { selectionsToDistribution, sessionToSelections, type ChipSelection } from '../lib/selectionsToDistribution.ts';
+import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import type { SessionSummary } from './TrainingHeatmap.tsx';
 import type { Pillar } from '../types/api.ts';
 
@@ -69,6 +72,7 @@ interface Props {
 
 export default function SessionDetailModal({ session, date, intention, sessionCount, sessionIndex, onNavigate, onClose, onSaved, onDeleted }: Props) {
   const [isEditing, setIsEditing] = useState(false);
+  const isDesktop = useIsDesktop();
 
   // ── Form state (includes Pillar Engine fields) ──────────────────────────
   const [form, setForm] = useState({
@@ -77,12 +81,37 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
     intensity:     session.intensity,
     session_type:  session.session_type as SessionType,
     notes:         session.notes ?? '',
-    heading:       session.heading ?? null as string | null,
     polarity:      (session.polarity ?? null) as Polarity | null,
     sub_skill_tag: session.sub_skill_tag ?? '',
     script_source: (session.script_source ?? null) as ScriptSource | null,
-    resonance:     session.resonance ?? null as number | null,
   });
+
+  // Reconstruct chip selections from the existing session record.
+  const [selections, setSelections] = useState<ChipSelection[]>(() => sessionToSelections(session));
+
+  // Heading is derived from selections — primary chip wins, else top-weighted
+  // (ties broken by selection order).
+  const derivedHeading: Pillar | null = (() => {
+    if (selections.length === 0) return null;
+    const primary = selections.find(s => s.primary);
+    if (primary) return primary.pillar;
+    const dist = selectionsToDistribution(selections);
+    if (!dist) return null;
+    let best: Pillar | null = null;
+    let bestW = -1;
+    for (const s of selections) {
+      const w = dist[s.pillar] ?? 0;
+      if (w > bestW) { bestW = w; best = s.pillar; }
+    }
+    return best;
+  })();
+
+  // Wipe polarity when the derived heading leaves guard/pins.
+  useEffect(() => {
+    if (derivedHeading !== 'guard' && derivedHeading !== 'pins' && form.polarity !== null) {
+      setForm(f => ({ ...f, polarity: null }));
+    }
+  }, [derivedHeading, form.polarity]);
 
   // Tag selections — mirror the LogSessionForm contract so edits don't wipe them
   const [userTagIds, setUserTagIds] = useState<string[]>(session.user_tag_ids ?? []);
@@ -136,20 +165,22 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
     setSaving(true);
     setSaveError(false);
     try {
+      const distribution = selectionsToDistribution(selections);
+      const tagsArr = Array.from(new Set(selections.map(s => s.pillar)));
       await api.put(`/api/sessions/${session.id}`, {
         duration:      form.duration,
         gi_nogi:       form.gi_nogi,
         intensity:     form.intensity,
         session_type:  form.session_type,
         notes:         form.notes,
-        tags:          form.heading ? [form.heading] : [],
-        heading:       form.heading,
+        tags:          tagsArr,
+        heading:       derivedHeading,
         polarity:      form.polarity,
         sub_skill_tag: form.sub_skill_tag || undefined,
         script_source: form.script_source,
-        resonance:     form.resonance,
         user_tag_ids:  userTagIds,
         canonical_position_ids: canonicalPositionIds,
+        pillar_distribution: distribution ?? undefined,
       });
       onSaved();
       onClose();
@@ -214,7 +245,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
         onClick={onClose}
       >
         <div
-          className="w-full sm:max-w-md animate-j2-modal-in"
+          className="w-full sm:max-w-md md:max-w-2xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-5xl animate-j2-modal-in"
           onClick={e => e.stopPropagation()}
           style={{
             position: 'relative',
@@ -548,14 +579,17 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                     What did you work on?
                   </h3>
 
-                  <PillarPrism
-                    heading={form.heading}
-                    resonance={form.resonance}
-                    defaultHeading={form.heading ?? undefined}
-                    onSelect={(h, r) => { setForm(f => ({ ...f, heading: h, resonance: r, polarity: f.heading !== h ? null : f.polarity })); }}
-                  />
+                  {/* Pokedex layout: chips on the left, live Prism shape on the right. */}
+                  <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+                    <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+                      <FocusAreaChips selections={selections} onChange={setSelections} />
+                    </div>
+                    <div style={{ flex: '0 0 auto', opacity: 0.95 }}>
+                      <PrismShape selections={selections} size={isDesktop ? 160 : 130} showLabels={false} />
+                    </div>
+                  </div>
 
-                  {(form.heading === 'guard' || form.heading === 'pins') && (
+                  {(derivedHeading === 'guard' || derivedHeading === 'pins') && (
                     <div>
                       <SegmentedToggle
                         options={[
@@ -637,7 +671,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                       selectedUserTagIds={userTagIds}
                       selectedCanonicalIds={canonicalPositionIds}
                       onChange={(u, c) => { setUserTagIds(u); setCanonicalPositionIds(c); }}
-                      currentPillar={(form.heading as Pillar | null) ?? null}
+                      currentPillar={derivedHeading}
                       maxSelected={5}
                     />
                   </div>

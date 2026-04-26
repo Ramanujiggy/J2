@@ -45,3 +45,52 @@ export function selectionsToDistribution(
   }
   return dist;
 }
+
+const VALID_PILLARS = new Set<Pillar>(['standup', 'passing', 'pins', 'submissions', 'guard']);
+
+/**
+ * Reconstruct chip selections from an existing session record so the modal
+ * pre-fills with what the user originally entered. `deep_work` is always
+ * `false` here — that flag is not derivable from historical data.
+ *
+ * Priority: pillar_distribution (most precise) → tags → heading.
+ */
+export function sessionToSelections(session: {
+  heading?: string | null;
+  tags?: string[];
+  pillar_distribution?: PillarDistribution | null;
+}): ChipSelection[] {
+  const dist = session.pillar_distribution;
+  if (dist) {
+    const entries = (Object.entries(dist) as [Pillar, number | undefined][])
+      .filter(([k, v]) => VALID_PILLARS.has(k) && typeof v === 'number' && v > 0) as [Pillar, number][];
+    if (entries.length > 0) {
+      // Prefer the recorded heading as primary if it's in the distribution;
+      // otherwise pick the top-weighted pillar.
+      const headingInDist = session.heading && entries.some(([k]) => k === session.heading);
+      const primaryPillar = headingInDist
+        ? (session.heading as Pillar)
+        : entries.reduce((best, e) => (e[1] > best[1] ? e : best))[0];
+      return entries.map(([pillar]) => ({
+        pillar,
+        primary: pillar === primaryPillar,
+        deep_work: false,
+      }));
+    }
+  }
+
+  const tags = (session.tags ?? []).filter((t): t is Pillar => VALID_PILLARS.has(t as Pillar));
+  if (tags.length > 0) {
+    return tags.map(pillar => ({
+      pillar,
+      primary: pillar === session.heading,
+      deep_work: false,
+    }));
+  }
+
+  if (session.heading && VALID_PILLARS.has(session.heading as Pillar)) {
+    return [{ pillar: session.heading as Pillar, primary: true, deep_work: false }];
+  }
+
+  return [];
+}
