@@ -11,12 +11,47 @@ import { SKILL_TAGS, CATEGORY_COLORS, MONTH_NAMES } from '../lib/constants.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import { useActiveIntention } from '../context/ActiveIntentionContext.tsx';
 import { toDateString, addDays } from '../lib/sessionUtils.ts';
-import type { Intention, SessionSummary, IntentionsResponse, SessionsResponse } from '../types/api.ts';
+import type { Intention, Pillar, SessionSummary, IntentionsResponse, SessionsResponse } from '../types/api.ts';
 import PageContent from '../components/PageContent.tsx';
 import SetIntentionModal from '../components/SetIntentionModal.tsx';
-import MiniPrism from '../components/charts/MiniPrism.tsx';
-import { SKILL_COLORS } from '../components/charts/RadarChart.tsx';
+import SessionDetailModal from '../components/SessionDetailModal.tsx';
+import SegmentedToggle from '../components/SegmentedToggle.tsx';
 import { formatWeekShort, topTagInRange, computeAlignment, tagHoursInRange } from '../lib/analyticsUtils.ts';
+
+// Focus dot/bar colors. These are the 5 colors from the desktop redesign
+// handoff (`Journada (3).zip`, intentions_redesign), remapped to our actual
+// pillar names. The handoff's "Escapes" vertex doesn't match our taxonomy —
+// we have "Stand-up" instead, and assign it copper since copper was the
+// 5th unused color in the handoff palette.
+const FOCUS_COLORS: Record<Pillar, string> = {
+  standup:     '#C4915F', // copper
+  passing:     '#DA7422', // brand orange
+  pins:        '#A8CB72', // light green (handoff "TopControl")
+  submissions: '#52B56C', // green
+  guard:       '#D4A040', // warm yellow
+};
+
+const PILLAR_LABEL: Record<Pillar, string> = {
+  standup:     'Stand-up',
+  passing:     'Passing',
+  pins:        'Pins',
+  submissions: 'Submissions',
+  guard:       'Guard',
+};
+
+const ALL_PILLARS: Pillar[] = ['standup', 'passing', 'pins', 'submissions', 'guard'];
+
+type IntentionsLayout = 'timeline' | 'eras';
+type FocusFilter = 'All' | Pillar;
+
+const LAYOUT_STORAGE_KEY = 'j2_intentions_layout';
+
+// Per-intention derived display data — computed once at the page level so
+// timeline rows + era card stats + bar chart all read from the same source.
+interface IntentionStats {
+  sessionCount: number;       // # of sessions logged in the intention's date window
+  alignment: number;          // 0–100, % of training hours matching intention.heading
+}
 
 export default function IntentionsPage() {
   const navigate = useNavigate();
@@ -275,9 +310,30 @@ interface DesktopViewProps {
 function DesktopIntentionsView({
   intentions, sessions, loading, intentionsEnabled,
   editTarget, createOpen,
-  onOpenCreate, onOpenEdit, onCloseModal, onSaved, onNavigate,
+  onOpenCreate, onCloseModal, onSaved, onNavigate,
+  // onOpenEdit is part of the prop contract for parity with the mobile view
+  // but the redesigned desktop layout doesn't surface inline edit affordances —
+  // the "Adjust focus" CTA edits the active intention; past weeks are read-only
+  // from the timeline. Reintroduce a row-level edit button if/when product asks.
 }: DesktopViewProps) {
   const todayStr = toDateString(new Date());
+
+  // Filter + layout state — both persisted across renders within the page.
+  // Layout is also persisted to localStorage so the user's preference sticks.
+  const [filter, setFilter] = useState<FocusFilter>('All');
+  const [layout, setLayout] = useState<IntentionsLayout>(() => {
+    if (typeof window === 'undefined') return 'timeline';
+    const stored = window.localStorage.getItem(LAYOUT_STORAGE_KEY);
+    return stored === 'eras' ? 'eras' : 'timeline';
+  });
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(LAYOUT_STORAGE_KEY, layout);
+    }
+  }, [layout]);
+
+  // SessionDetailModal state — clicking a row/era opens a session.
+  const [openSession, setOpenSession] = useState<SessionSummary | null>(null);
 
   const activeIntention = useMemo(() => {
     return intentions.find(i => {
@@ -287,51 +343,148 @@ function DesktopIntentionsView({
     }) ?? null;
   }, [intentions, todayStr]);
 
-  // Group intentions by year (newest first), each year's entries also newest-first
+  // Filter by focus heading. 'All' passes everything; anything else passes
+  // intentions whose heading matches. Null-heading intentions only show under 'All'.
+  const filtered = useMemo(() => {
+    if (filter === 'All') return intentions;
+    return intentions.filter(i => i.heading === filter);
+  }, [intentions, filter]);
+
+  // Group filtered intentions by year (newest first); within each year also newest-first.
   const byYear = useMemo(() => {
     const map = new Map<string, Intention[]>();
-    intentions.forEach(i => {
+    filtered.forEach(i => {
       const y = i.week_start.slice(0, 4);
       const bucket = map.get(y) ?? [];
       bucket.push(i);
       map.set(y, bucket);
     });
+    // Within each year, sort by week_start DESC
+    for (const arr of map.values()) {
+      arr.sort((a, b) => b.week_start.localeCompare(a.week_start));
+    }
     return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]));
-  }, [intentions]);
+  }, [filtered]);
+
+  // Era grouping: newest-first walk; consecutive same-heading weeks collapse
+  // into a run. Two intentions are "consecutive" if their week_start dates
+  // differ by exactly the duration of the older one (typically 7 days).
+  const eras = useMemo(() => computeEras(filtered), [filtered]);
+
+  // Per-intention stats — sessionCount + alignment % — computed once.
+  // Drives the timeline row alignment bar and era card stats + bar chart.
+  const statsMap = useMemo<Map<string, IntentionStats>>(() => {
+    const m = new Map<string, IntentionStats>();
+    for (const i of intentions) {
+      const start = i.week_start.slice(0, 10);
+      const endStr = addDays(start, (i.duration_days ?? 7) - 1);
+      const inWindow = sessions.filter(s => {
+        const d = (typeof s.date === 'string' ? s.date : toDateString(new Date(s.date))).slice(0, 10);
+        return d >= start && d <= endStr;
+      });
+      const tagHours = tagHoursInRange(sessions, i.week_start, i.duration_days);
+      const topTag = topTagInRange(sessions, i.week_start, i.duration_days);
+      const alignment = computeAlignment(i, topTag, tagHours).score ?? 0;
+      m.set(i.id, { sessionCount: inWindow.length, alignment });
+    }
+    return m;
+  }, [intentions, sessions]);
+
+  // Click-through handler shared by Timeline rows + Era cards.
+  // Timeline → first session of week (chronologically earliest).
+  // Eras → last session across the era's weeks (most recent).
+  const sessionsForIntention = useCallback((intention: Intention): SessionSummary[] => {
+    const start = intention.week_start.slice(0, 10);
+    const end = addDays(start, (intention.duration_days ?? 7) - 1);
+    return sessions
+      .filter(s => {
+        const d = (typeof s.date === 'string' ? s.date : toDateString(new Date(s.date))).slice(0, 10);
+        return d >= start && d <= end;
+      })
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [sessions]);
+
+  const onOpenWeekSessions = useCallback((intention: Intention, mode: 'first' | 'last') => {
+    const inWeek = sessionsForIntention(intention);
+    if (inWeek.length === 0) {
+      // No sessions to open — fall back to opening the journal entry.
+      onNavigate(`/intentions/${intention.id}/journal`);
+      return;
+    }
+    setOpenSession(mode === 'first' ? inWeek[0]! : inWeek[inWeek.length - 1]!);
+  }, [sessionsForIntention, onNavigate]);
+
+  const onOpenEraSessions = useCallback((era: Era) => {
+    const all: SessionSummary[] = [];
+    for (const i of era.weeks) all.push(...sessionsForIntention(i));
+    if (all.length === 0) {
+      // Fall back to journal of the era's most-recent week (first in era.weeks)
+      onNavigate(`/intentions/${era.weeks[0]!.id}/journal`);
+      return;
+    }
+    all.sort((a, b) => a.date.localeCompare(b.date));
+    setOpenSession(all[all.length - 1]!);
+  }, [sessionsForIntention, onNavigate]);
+
+  // Subtitle: total count when 'All', filtered count otherwise.
+  const totalWeeks = intentions.length;
+  const filteredWeeks = filtered.length;
+  const subtitle = filter === 'All'
+    ? `${totalWeeks} weeks of intent, on the record.`
+    : `${filteredWeeks} of ${totalWeeks} weeks · ${PILLAR_LABEL[filter as Pillar]}.`;
 
   return (
     <PageContent ready={!loading} loadingMessages={['Loading your intentions...']}>
-    <div style={{ maxWidth: 1680, margin: '0 auto', padding: '64px 64px 104px' }}>
+    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 48px 104px' }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 52 }}>
-        <div>
-          <div className="j2-label-micro" style={{ marginBottom: 16 }}>Intentions</div>
-          <h1 className="j2-serif-display j2-heading-glow" style={{ fontSize: 72, margin: 0 }}>
-            Your focus, week by week.
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 28, gap: 24 }}>
+        <div style={{ minWidth: 0 }}>
+          <div className="j2-label-micro" style={{ marginBottom: 10 }}>Intentions</div>
+          <h1
+            className="j2-serif-display j2-heading-glow"
+            style={{ fontSize: 48, margin: 0, lineHeight: 1.05, letterSpacing: '-0.015em' }}
+          >
+            Every week,{' '}
+            <span className="j2-serif-italic" style={{ color: COPPER }}>
+              what you chose to work on.
+            </span>
           </h1>
-          <div className="j2-serif-italic" style={{ marginTop: 14, fontSize: 22 }}>
-            Every week since you started — what you chose to work on.
+          <div
+            className="j2-serif-italic"
+            style={{ marginTop: 10, fontSize: 16, color: 'rgba(255,255,255,0.60)' }}
+          >
+            {subtitle}
           </div>
         </div>
-        {intentionsEnabled && (
-          <button
-            onClick={onOpenCreate}
-            style={{
-              height: 54, padding: '0 28px',
-              background: '#DA7422', color: '#fff',
-              fontWeight: 600, borderRadius: 12,
-              boxShadow: '0 0 0 1px rgba(218,116,34,0.3), 0 10px 24px -12px rgba(218,116,34,0.6)',
-              transition: 'background 180ms ease',
-              display: 'inline-flex', alignItems: 'center', gap: 12,
-              fontSize: 16, cursor: 'pointer',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#E8823A'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = '#DA7422'; }}
-          >
-            ◇ {activeIntention ? 'Adjust focus' : "Set this week's focus"}
-          </button>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
+          <SegmentedToggle<IntentionsLayout>
+            options={[
+              { value: 'timeline', label: 'Timeline' },
+              { value: 'eras',     label: 'Eras' },
+            ]}
+            value={layout}
+            onChange={v => v && setLayout(v)}
+          />
+          {intentionsEnabled && (
+            <button
+              onClick={onOpenCreate}
+              style={{
+                height: 42, padding: '0 20px',
+                background: '#DA7422', color: '#fff',
+                fontWeight: 600, borderRadius: 10,
+                boxShadow: '0 0 0 1px rgba(218,116,34,0.30), 0 10px 24px -12px rgba(218,116,34,0.60)',
+                transition: 'background 180ms ease',
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                fontSize: 14, cursor: 'pointer',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#E8823A'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#DA7422'; }}
+            >
+              ◇ {activeIntention ? 'Adjust focus' : "Set this week's focus"}
+            </button>
+          )}
+        </div>
       </div>
 
       {!intentionsEnabled && (
@@ -354,44 +507,25 @@ function DesktopIntentionsView({
         <DesktopEmpty onStart={() => onNavigate('/home')} />
       ) : (
         <>
-          {/* ── Current-week hero ──────────────────────────── */}
-          {activeIntention && (
-            <CurrentIntentionHero
-              intention={activeIntention}
-              sessions={sessions}
-              onEdit={() => onOpenEdit(activeIntention)}
-              onOpenJournal={() => onNavigate(`/intentions/${activeIntention.id}/journal`)}
+          {/* Filter chips */}
+          <FilterBar value={filter} onChange={setFilter} />
+
+          {/* Body — layout variant */}
+          {filtered.length === 0 ? (
+            <EmptyFilteredState filter={filter as Pillar} />
+          ) : layout === 'timeline' ? (
+            <IntentionsTimeline
+              byYear={byYear}
+              statsMap={statsMap}
+              onOpen={i => onOpenWeekSessions(i, 'first')}
+            />
+          ) : (
+            <IntentionsEras
+              eras={eras}
+              statsMap={statsMap}
+              onOpen={onOpenEraSessions}
             />
           )}
-
-          {/* ── History grouped by year ─────────────────────── */}
-          {byYear.map(([year, items]) => (
-            <div key={year} style={{ marginBottom: 52 }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 22, marginBottom: 22 }}>
-                <div className="j2-serif-display" style={{ fontSize: 48 }}>{year}</div>
-                <div className="j2-label-micro">
-                  {items.length} {items.length === 1 ? 'week' : 'weeks'}
-                </div>
-              </div>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: `repeat(${Math.min(4, items.length)}, 1fr)`,
-                  gap: 16,
-                }}
-              >
-                {items.map(i => (
-                  <HistoryCard
-                    key={i.id}
-                    intention={i}
-                    sessions={sessions}
-                    onOpenJournal={() => onNavigate(`/intentions/${i.id}/journal`)}
-                    onEdit={() => onOpenEdit(i)}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
         </>
       )}
 
@@ -403,279 +537,591 @@ function DesktopIntentionsView({
           onClose={onCloseModal}
         />
       )}
+      {openSession && (
+        <SessionDetailModal
+          session={openSession}
+          date={new Date(openSession.date.slice(0, 10) + 'T00:00:00')}
+          onClose={() => setOpenSession(null)}
+          onSaved={() => { onSaved(); setOpenSession(null); }}
+          onDeleted={() => { onSaved(); setOpenSession(null); }}
+        />
+      )}
     </div>
     </PageContent>
   );
 }
 
-// ── Current-week hero card ────────────────────────────────────────────────
+// ── Filter chip bar ──────────────────────────────────────────────────────
 
-function CurrentIntentionHero({
-  intention, sessions, onEdit, onOpenJournal,
-}: {
-  intention: Intention;
-  sessions: SessionSummary[];
-  onEdit: () => void;
-  onOpenJournal: () => void;
-}) {
-  const heading = intention.heading
-    ? (SKILL_TAGS.find(t => t.value === intention.heading)?.label ?? intention.heading)
-    : intention.intent_label;
-  const subtitle = intention.intent_label
-    && intention.intent_label.trim().toLowerCase() !== (heading ?? '').toLowerCase()
-    ? intention.intent_label
-    : null;
-
-  const topTag = topTagInRange(sessions, intention.week_start, intention.duration_days);
-  const hours = tagHoursInRange(sessions, intention.week_start, intention.duration_days);
-  const alignment = computeAlignment(intention, topTag, hours);
-  const alignmentScore = alignment.score ?? 0;
+function FilterBar({ value, onChange }: { value: FocusFilter; onChange: (v: FocusFilter) => void }) {
+  const chip = (label: string, isActive: boolean, onClick: () => void, dotColor?: string) => (
+    <button
+      key={label}
+      onClick={onClick}
+      role="tab"
+      aria-selected={isActive}
+      style={{
+        height: 30,
+        padding: '0 14px',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 8,
+        fontSize: 12,
+        fontWeight: 600,
+        borderRadius: 16,
+        backgroundColor: isActive ? 'rgba(196,145,95,0.16)' : SURFACE_2,
+        border: `1px solid ${isActive ? COPPER : 'rgba(255,255,255,0.10)'}`,
+        color: isActive ? PALE_YELLOW : 'rgba(255,255,255,0.60)',
+        cursor: 'pointer',
+        transition: 'all 160ms ease',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {dotColor && (
+        <span
+          style={{
+            width: 8,
+            height: 8,
+            borderRadius: '50%',
+            background: dotColor,
+            boxShadow: `0 0 6px ${dotColor}80`,
+          }}
+        />
+      )}
+      {label}
+    </button>
+  );
 
   return (
     <div
+      role="tablist"
       style={{
-        backgroundColor: CARD_BG,
-        border: `1px solid ${CARD_GLOW_BORDER}`,
-        boxShadow: CARD_GLOW,
-        borderRadius: 20,
-        padding: 48,
-        display: 'grid',
-        gridTemplateColumns: '1fr 460px',
-        gap: 52,
+        display: 'flex',
         alignItems: 'center',
-        marginBottom: 52,
+        gap: 10,
+        padding: '14px 0 22px',
+        marginBottom: 24,
+        borderBottom: '1px solid rgba(255,255,255,0.10)',
+        flexWrap: 'wrap',
       }}
     >
-      <div>
-        <div className="j2-label-copper" style={{ marginBottom: 14 }}>◇ This week</div>
-        <div className="j2-serif-display" style={{ fontSize: 96, lineHeight: 1 }}>
-          {heading ?? 'Focus'}
-        </div>
-        {subtitle && (
-          <div
-            className="j2-serif-italic"
-            style={{ fontSize: 22, color: 'rgba(255,255,255,0.60)', marginTop: 12 }}
-          >
-            {subtitle}
-          </div>
-        )}
-
-        {/* Alignment bar */}
-        <div style={{ marginTop: 40, maxWidth: 520 }}>
-          <div
-            style={{
-              display: 'flex', justifyContent: 'space-between',
-              fontSize: 13, letterSpacing: '0.14em', textTransform: 'uppercase',
-              color: 'rgba(255,255,255,0.40)', marginBottom: 10,
-            }}
-          >
-            <span>Alignment so far</span>
-            <span>
-              {alignment.status === 'no-data' ? '—' : `${alignmentScore}%`}
-            </span>
-          </div>
-          <div
-            style={{
-              height: 10,
-              background: 'rgba(255,255,255,0.08)',
-              borderRadius: 5,
-              overflow: 'hidden',
-            }}
-          >
-            <div
-              style={{
-                width: `${alignment.status === 'no-data' ? 0 : alignmentScore}%`,
-                height: '100%',
-                background:
-                  alignment.status === 'aligned'  ? 'linear-gradient(90deg, #A8CB72, #F2E4A8 60%, #C4915F)' :
-                  alignment.status === 'diverged' ? 'linear-gradient(90deg, #DA7422, #C4915F)' :
-                                                    'rgba(255,255,255,0.12)',
-                boxShadow: alignment.status === 'aligned' ? '0 0 14px rgba(242,228,168,0.4)' : 'none',
-                transition: 'width 700ms cubic-bezier(0.2, 0.8, 0.2, 1)',
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div style={{ display: 'flex', gap: 14, marginTop: 40 }}>
-          <button
-            onClick={onOpenJournal}
-            style={{
-              height: 50, padding: '0 22px',
-              background: 'var(--j2-surface-3)',
-              color: 'rgba(255,255,255,0.90)',
-              border: '1px solid var(--j2-border-2)',
-              borderRadius: 12,
-              fontWeight: 500, fontSize: 15,
-              cursor: 'pointer',
-            }}
-          >
-            {intention.journal_entry ? 'Open journal' : 'Write an entry'}
-          </button>
-          <button
-            onClick={onEdit}
-            style={{
-              height: 50, padding: '0 22px',
-              background: 'transparent',
-              color: COPPER,
-              border: '1px solid rgba(196,145,95,0.35)',
-              borderRadius: 12,
-              fontWeight: 500, fontSize: 15,
-              cursor: 'pointer',
-            }}
-          >
-            Edit
-          </button>
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <MiniPrism activeTag={intention.heading ?? null} size={380} />
-      </div>
+      <div className="j2-label-micro" style={{ marginRight: 6 }}>Filter</div>
+      {chip('All', value === 'All', () => onChange('All'))}
+      {ALL_PILLARS.map(p =>
+        chip(PILLAR_LABEL[p], value === p, () => onChange(p), FOCUS_COLORS[p]),
+      )}
     </div>
   );
 }
 
-// ── History card ──────────────────────────────────────────────────────────
+// ── Empty state when filter yields zero results ───────────────────────────
 
-function HistoryCard({
-  intention, sessions, onOpenJournal, onEdit,
+function EmptyFilteredState({ filter }: { filter: Pillar }) {
+  return (
+    <div
+      style={{
+        padding: '60px 20px',
+        textAlign: 'center',
+        color: 'rgba(255,255,255,0.40)',
+        border: '1px dashed rgba(255,255,255,0.10)',
+        borderRadius: 16,
+      }}
+    >
+      <div
+        className="j2-serif-italic"
+        style={{ fontSize: 18, color: 'rgba(255,255,255,0.60)', marginBottom: 8 }}
+      >
+        No weeks of {PILLAR_LABEL[filter]} yet.
+      </div>
+      <div style={{ fontSize: 13 }}>Try another category.</div>
+    </div>
+  );
+}
+
+// ── Layout 1: Editorial Timeline ─────────────────────────────────────────
+
+interface IntentionsTimelineProps {
+  byYear: [string, Intention[]][];
+  statsMap: Map<string, IntentionStats>;
+  onOpen: (i: Intention) => void;
+}
+
+function IntentionsTimeline({ byYear, statsMap, onOpen }: IntentionsTimelineProps) {
+  return (
+    <div>
+      {byYear.map(([year, items]) => {
+        // Dominant focus for the year — most-frequent heading
+        const counts: Partial<Record<Pillar, number>> = {};
+        for (const i of items) {
+          if (i.heading && (ALL_PILLARS as string[]).includes(i.heading)) {
+            const k = i.heading as Pillar;
+            counts[k] = (counts[k] ?? 0) + 1;
+          }
+        }
+        const dominantEntry = (Object.entries(counts) as [Pillar, number][])
+          .sort((a, b) => b[1] - a[1])[0];
+        const dominant = dominantEntry?.[0] ?? null;
+
+        return (
+          <div key={year} style={{ marginBottom: 56 }}>
+            {/* Year header */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'baseline',
+                gap: 22,
+                paddingBottom: 14,
+                borderBottom: '1px solid rgba(255,255,255,0.10)',
+              }}
+            >
+              <div
+                className="j2-serif-display"
+                style={{ fontSize: 56, lineHeight: 1, letterSpacing: '-0.02em' }}
+              >
+                {year}
+              </div>
+              <div className="j2-label-micro">
+                {items.length} {items.length === 1 ? 'week' : 'weeks'}
+              </div>
+              {dominant && (
+                <div
+                  style={{
+                    marginLeft: 'auto',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    fontSize: 12,
+                    color: 'rgba(255,255,255,0.40)',
+                    fontStyle: 'italic',
+                    fontFamily: FONT_EDITORIAL,
+                  }}
+                >
+                  <span>Mostly</span>
+                  <span
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      background: FOCUS_COLORS[dominant],
+                    }}
+                  />
+                  <span style={{ color: PALE_YELLOW }}>{PILLAR_LABEL[dominant]}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Rows */}
+            <div>
+              {items.map(i => (
+                <IntentionRow
+                  key={i.id}
+                  intention={i}
+                  stats={statsMap.get(i.id) ?? { sessionCount: 0, alignment: 0 }}
+                  onOpen={() => onOpen(i)}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function IntentionRow({
+  intention,
+  stats,
+  onOpen,
 }: {
   intention: Intention;
-  sessions: SessionSummary[];
-  onOpenJournal: () => void;
-  onEdit: () => void;
+  stats: IntentionStats;
+  onOpen: () => void;
 }) {
-  const heading = intention.heading
-    ? (SKILL_TAGS.find(t => t.value === intention.heading)?.label ?? intention.heading)
-    : intention.intent_label || 'Focus';
-  const accentColor = intention.heading
-    ? (SKILL_COLORS[intention.heading]?.stroke ?? COPPER)
-    : COPPER;
+  const heading = intention.heading as Pillar | null;
+  const color = heading ? FOCUS_COLORS[heading] : 'rgba(255,255,255,0.30)';
+  const focusName = heading ? PILLAR_LABEL[heading] : (intention.intent_label || 'No focus');
 
-  const topTag = topTagInRange(sessions, intention.week_start, intention.duration_days);
-  const hours = tagHoursInRange(sessions, intention.week_start, intention.duration_days);
-  const alignment = computeAlignment(intention, topTag, hours);
-  const alignmentScore = alignment.score ?? 0;
-  const weekStart = new Date(intention.week_start.slice(0, 10) + 'T00:00:00');
+  // Date "WK NOV 17" — format from week_start
+  const start = intention.week_start.slice(0, 10);
+  const d = new Date(start + 'T00:00:00');
+  const monthDay = `WK ${MONTH_NAMES[d.getMonth()]!.toUpperCase()} ${d.getDate()}`;
+  const fullDate = d.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' });
+
+  // Hover state (CSS-only via inline JS hover for the simple bg + arrow color)
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '88px 14px 1fr 90px 240px 80px',
+        gap: 18,
+        alignItems: 'center',
+        padding: '16px 8px',
+        borderBottom: '1px solid rgba(255,255,255,0.05)',
+        backgroundColor: hovered ? 'rgba(255,255,255,0.02)' : 'transparent',
+        transition: 'background-color 160ms ease',
+      }}
+    >
+      {/* Date */}
+      <div
+        style={{
+          fontSize: 12,
+          color: 'rgba(255,255,255,0.40)',
+          letterSpacing: '0.10em',
+          textTransform: 'uppercase',
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        {monthDay}
+      </div>
+
+      {/* Vertex dot */}
+      <div
+        style={{
+          width: 10,
+          height: 10,
+          borderRadius: '50%',
+          background: color,
+          boxShadow: heading ? `0 0 8px ${color}80` : 'none',
+        }}
+      />
+
+      {/* Focus name */}
+      <div
+        className="j2-serif-display"
+        style={{ fontSize: 22, fontWeight: 500, color: PALE_YELLOW, lineHeight: 1.1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+      >
+        {focusName}
+      </div>
+
+      {/* Session count */}
+      <div
+        style={{
+          fontSize: 12,
+          color: 'rgba(255,255,255,0.60)',
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        {stats.sessionCount} {stats.sessionCount === 1 ? 'session' : 'sessions'}
+      </div>
+
+      {/* Alignment bar — real % from statsMap */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div
+          style={{
+            flex: 1,
+            height: 3,
+            background: 'rgba(255,255,255,0.06)',
+            borderRadius: 2,
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            style={{
+              width: `${stats.alignment}%`,
+              height: '100%',
+              background: color,
+              borderRadius: 2,
+              boxShadow: stats.alignment > 0 ? `0 0 6px ${color}80` : 'none',
+              transition: 'width 240ms ease',
+            }}
+          />
+        </div>
+        <span
+          style={{
+            fontSize: 11,
+            color: 'rgba(255,255,255,0.40)',
+            fontVariantNumeric: 'tabular-nums',
+            minWidth: 36,
+            textAlign: 'right',
+          }}
+        >
+          {stats.alignment}%
+        </span>
+      </div>
+
+      {/* Action */}
+      <button
+        onClick={onOpen}
+        title={fullDate}
+        style={{
+          fontSize: 11,
+          fontWeight: 600,
+          letterSpacing: '0.10em',
+          textTransform: 'uppercase',
+          color: hovered ? COPPER : 'rgba(255,255,255,0.40)',
+          textAlign: 'right',
+          background: 'none',
+          border: 'none',
+          padding: 0,
+          cursor: 'pointer',
+          transition: 'color 160ms ease',
+        }}
+      >
+        Open →
+      </button>
+    </div>
+  );
+}
+
+// ── Layout 2: Eras ───────────────────────────────────────────────────────
+
+interface Era {
+  focus: Pillar;
+  weeks: Intention[];     // newest-first within the era
+  firstWk: string;        // newest week_start (chronologically latest)
+  lastWk: string;         // oldest week_start (chronologically earliest)
+}
+
+// Walk newest-first; group consecutive same-heading weeks where the older
+// week_start is exactly one duration before the run's current oldest week.
+function computeEras(intentions: Intention[]): Era[] {
+  if (intentions.length === 0) return [];
+  // Sort newest-first
+  const ordered = [...intentions].sort((a, b) => b.week_start.localeCompare(a.week_start));
+  const out: Era[] = [];
+  let run: Era | null = null;
+
+  for (const i of ordered) {
+    const heading = i.heading as Pillar | null;
+    if (!heading || !(ALL_PILLARS as string[]).includes(heading)) {
+      // Skip headless intentions — they don't belong in an era.
+      if (run) { out.push(run); run = null; }
+      continue;
+    }
+    if (run && run.focus === heading) {
+      // Two intentions are "consecutive" if the older one's week_start +
+      // its duration === the run's current oldest week_start.
+      const oldestStart = run.lastWk;
+      const candidateExpectedNext = addDays(i.week_start.slice(0, 10), i.duration_days ?? 7);
+      if (candidateExpectedNext === oldestStart) {
+        run.weeks.push(i);
+        run.lastWk = i.week_start.slice(0, 10);
+        continue;
+      }
+    }
+    // Start a new run
+    if (run) out.push(run);
+    run = {
+      focus: heading,
+      weeks: [i],
+      firstWk: i.week_start.slice(0, 10),
+      lastWk: i.week_start.slice(0, 10),
+    };
+  }
+  if (run) out.push(run);
+  return out;
+}
+
+function IntentionsEras({ eras, statsMap, onOpen }: { eras: Era[]; statsMap: Map<string, IntentionStats>; onOpen: (e: Era) => void }) {
+  return (
+    <div>
+      <div
+        className="j2-serif-italic"
+        style={{
+          fontSize: 13,
+          color: 'rgba(255,255,255,0.60)',
+          marginBottom: 24,
+          fontStyle: 'italic',
+        }}
+      >
+        Consecutive weeks on the same focus form an{' '}
+        <span style={{ color: COPPER }}>era</span>. Each era is a chapter of your training.
+      </div>
+      {eras.map((era, idx) => (
+        <EraCard
+          key={`${era.firstWk}-${era.focus}-${idx}`}
+          era={era}
+          statsMap={statsMap}
+          onOpen={() => onOpen(era)}
+        />
+      ))}
+    </div>
+  );
+}
+
+function EraCard({ era, statsMap, onOpen }: { era: Era; statsMap: Map<string, IntentionStats>; onOpen: () => void }) {
+  const color = FOCUS_COLORS[era.focus];
+  const weeksCount = era.weeks.length;
+
+  // Date range — first wk is newest, last wk is oldest (per `computeEras`).
+  // For display, show oldest → newest left-to-right.
+  const startDate = new Date(era.lastWk + 'T00:00:00');
+  const endDate = new Date(era.firstWk + 'T00:00:00');
+  const fmt = (d: Date) => `${MONTH_NAMES[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  const eyebrow = weeksCount === 1
+    ? `One week · ${fmt(startDate)}`
+    : `${weeksCount} weeks · ${fmt(startDate)} → ${fmt(endDate)}`;
+
+  // Bar chart: chronological (oldest left) — reverse era.weeks (newest-first)
+  const chronological = [...era.weeks].reverse();
 
   return (
     <div
       style={{
-        padding: 22,
-        background: 'var(--j2-surface-2)',
-        border: '1px solid var(--j2-border-1)',
-        borderRadius: 14,
         position: 'relative',
+        backgroundColor: CARD_BG,
+        border: '1px solid rgba(255,255,255,0.10)',
+        borderRadius: 16,
+        padding: '24px 28px',
+        marginBottom: 14,
         overflow: 'hidden',
       }}
     >
-      {/* Corner halo in pillar color */}
+      {/* Color sliver */}
       <div
-        aria-hidden
         style={{
-          position: 'absolute', top: 0, right: 0, width: 84, height: 84,
-          background: `radial-gradient(circle at 100% 0%, ${accentColor}30, transparent 70%)`,
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: 3,
+          background: color,
+          boxShadow: `0 0 12px ${color}80`,
+          pointerEvents: 'none',
+        }}
+      />
+      {/* Soft corner glow */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          width: 200,
+          height: 200,
+          background: `radial-gradient(circle at 100% 0%, ${color}18, transparent 65%)`,
           pointerEvents: 'none',
         }}
       />
 
       <div
         style={{
-          fontSize: 12,
-          color: 'rgba(255,255,255,0.40)',
-          letterSpacing: '0.14em',
-          textTransform: 'uppercase',
+          display: 'grid',
+          gridTemplateColumns: '1.4fr 1fr auto',
+          gap: 28,
+          alignItems: 'center',
+          position: 'relative',
         }}
       >
-        Wk of {MONTH_NAMES[weekStart.getMonth()]} {weekStart.getDate()}
-      </div>
-      <div
-        style={{
-          fontSize: 23,
-          fontFamily: FONT_EDITORIAL,
-          fontWeight: 600,
-          color: PALE_YELLOW,
-          marginTop: 10,
-        }}
-      >
-        {heading}
-      </div>
-
-      {/* Alignment row */}
-      <div
-        style={{
-          display: 'flex', alignItems: 'center',
-          justifyContent: 'space-between',
-          marginTop: 18,
-        }}
-      >
-        <div
-          style={{
-            flex: 1,
-            height: 5,
-            background: 'rgba(255,255,255,0.08)',
-            borderRadius: 3,
-            marginRight: 14,
-            overflow: 'hidden',
-          }}
-        >
+        {/* Column 1 — Title */}
+        <div style={{ minWidth: 0 }}>
+          <div className="j2-label-micro" style={{ marginBottom: 8 }}>{eyebrow}</div>
           <div
+            className="j2-serif-display"
             style={{
-              width: `${alignment.status === 'no-data' ? 0 : alignmentScore}%`,
-              height: '100%',
-              background: accentColor,
-              borderRadius: 3,
+              fontSize: 32,
+              fontWeight: 600,
+              color: PALE_YELLOW,
+              lineHeight: 1.1,
+              letterSpacing: '-0.01em',
+              display: 'inline-flex',
+              alignItems: 'baseline',
+              gap: 12,
             }}
-          />
+          >
+            {PILLAR_LABEL[era.focus]}
+            {weeksCount >= 4 && (
+              <span
+                className="j2-serif-italic"
+                style={{ fontSize: 16, fontWeight: 500, color: COPPER }}
+              >
+                · a chapter
+              </span>
+            )}
+          </div>
         </div>
-        <div
-          style={{
-            fontSize: 13,
-            color: 'rgba(255,255,255,0.40)',
-            letterSpacing: '0.1em',
-            minWidth: 44,
-            textAlign: 'right',
-          }}
-        >
-          {alignment.status === 'no-data' ? '—' : `${alignmentScore}%`}
-        </div>
-      </div>
 
-      {/* Footer row — journal link + edit */}
-      <div
-        style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          marginTop: 20, paddingTop: 14,
-          borderTop: '1px solid rgba(255,255,255,0.04)',
-        }}
-      >
+        {/* Column 2 — Stats + bar chart */}
+        <EraStats era={era} chronological={chronological} statsMap={statsMap} color={color} />
+
+        {/* Column 3 — Action */}
         <button
-          onClick={onOpenJournal}
+          onClick={onOpen}
           style={{
-            fontSize: 13, fontWeight: 600,
-            color: intention.journal_entry ? 'rgba(242,228,168,0.45)' : COPPER,
-            background: 'transparent', padding: 0, cursor: 'pointer',
+            height: 36,
+            padding: '0 14px',
+            background: SURFACE_3,
+            border: '1px solid rgba(255,255,255,0.10)',
+            borderRadius: 10,
+            color: 'rgba(255,255,255,0.85)',
+            fontWeight: 500,
+            fontSize: 12,
+            cursor: 'pointer',
+            transition: 'background 180ms ease',
+            whiteSpace: 'nowrap',
           }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = SURFACE_3; }}
         >
-          {intention.journal_entry ? 'Read entry' : '+ Write'}
-        </button>
-        <button
-          onClick={onEdit}
-          style={{
-            color: 'rgba(255,255,255,0.25)',
-            background: 'transparent', padding: 0, cursor: 'pointer',
-            display: 'inline-flex', alignItems: 'center',
-          }}
-          title="Edit intention"
-        >
-          <Pencil size={15} />
+          Open era →
         </button>
       </div>
     </div>
   );
 }
+
+function EraStats({
+  era, chronological, statsMap, color,
+}: {
+  era: Era;
+  chronological: Intention[];
+  statsMap: Map<string, IntentionStats>;
+  color: string;
+}) {
+  const weeksCount = era.weeks.length;
+
+  // Total sessions across the era + alignment averaged across the era's weeks.
+  const totalSessions = era.weeks.reduce(
+    (sum, i) => sum + (statsMap.get(i.id)?.sessionCount ?? 0),
+    0,
+  );
+  const avgAlignment = weeksCount > 0
+    ? Math.round(
+        era.weeks.reduce((sum, i) => sum + (statsMap.get(i.id)?.alignment ?? 0), 0) / weeksCount,
+      )
+    : 0;
+
+  const topLabel = totalSessions > 0
+    ? `${weeksCount} ${weeksCount === 1 ? 'week' : 'weeks'} · ${totalSessions} session${totalSessions === 1 ? '' : 's'} · ${avgAlignment}% on focus`
+    : `${weeksCount} ${weeksCount === 1 ? 'week' : 'weeks'} of ${PILLAR_LABEL[era.focus]}`;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
+      <div className="j2-label-micro">{topLabel}</div>
+      <div style={{ display: 'flex', gap: 3, alignItems: 'flex-end', height: 24 }}>
+        {chronological.map((wk, idx) => {
+          const wkStats = statsMap.get(wk.id);
+          const a = wkStats?.alignment ?? 0;
+          // Spec: height = 30 + (alignment/100)*70 (% of 24px container)
+          //        opacity = 0.4 + (alignment/100)*0.6
+          const heightPct = 30 + (a / 100) * 70;
+          const opacity = 0.4 + (a / 100) * 0.6;
+          const sessionsCount = wkStats?.sessionCount ?? 0;
+          return (
+            <div
+              key={`${wk.id}-${idx}`}
+              title={`${wk.week_start.slice(0, 10)} · ${sessionsCount} session${sessionsCount === 1 ? '' : 's'} · ${a}%`}
+              style={{
+                flex: 1,
+                minWidth: 4,
+                maxWidth: 16,
+                height: `${heightPct}%`,
+                background: color,
+                opacity,
+                borderRadius: 1,
+                transition: 'height 240ms ease, opacity 240ms ease',
+              }}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 
 // ── Empty state ───────────────────────────────────────────────────────────
 
