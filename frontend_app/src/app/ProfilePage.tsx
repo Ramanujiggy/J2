@@ -632,10 +632,13 @@ export default function ProfilePage() {
           ) : (
             <button
               onClick={() => { logout(); navigate('/'); }}
-              className="text-sm transition-colors"
-              style={{ color: 'rgba(255,255,255,0.3)' }}
-              onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.6)')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.3)')}
+              className="w-full text-sm font-semibold rounded-xl transition-all touch-manipulation j2-press"
+              style={{
+                height: 48,
+                color: 'rgba(248,113,113,0.95)',
+                backgroundColor: 'rgba(248,113,113,0.10)',
+                border: '1px solid rgba(248,113,113,0.30)',
+              }}
             >
               Log out
             </button>
