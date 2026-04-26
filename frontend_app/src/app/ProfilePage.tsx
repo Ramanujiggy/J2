@@ -235,6 +235,9 @@ export default function ProfilePage() {
               <label className={labelCls} style={labelStyle}>Name</label>
               <input
                 type="text"
+                autoComplete="name"
+                autoCapitalize="words"
+                enterKeyHint="next"
                 value={form.name}
                 onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="Your name"
@@ -304,7 +307,7 @@ export default function ProfilePage() {
                         key={n}
                         type="button"
                         onClick={() => setForm(prev => ({ ...prev, stripes: n }))}
-                        className={`w-10 h-10 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
+                        className={`w-11 h-11 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
                           active
                             ? 'bg-brand-orange text-white'
                             : 'bg-white/10 text-white/60 hover:bg-white/20'
@@ -326,6 +329,8 @@ export default function ProfilePage() {
                   <input
                     ref={gymInputRef}
                     type="text"
+                    autoCapitalize="words"
+                    enterKeyHint="search"
                     defaultValue={form.home_gym_name}
                     placeholder="Search for your gym…"
                     className={inputCls}
@@ -340,6 +345,8 @@ export default function ProfilePage() {
                 <>
                   <input
                     type="text"
+                    autoCapitalize="words"
+                    enterKeyHint="done"
                     value={form.home_gym_name}
                     onChange={e => setForm(prev => ({ ...prev, home_gym_name: e.target.value }))}
                     placeholder="Gym name"

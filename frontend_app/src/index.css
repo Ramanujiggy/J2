@@ -94,12 +94,44 @@
   html, body {
     @apply bg-brand-dark;
     overflow-x: hidden;
+    /* Prevent rubber-band on the page itself; allow it inside scroll containers
+       that opt in (e.g. .j2-app-scroll, modal bodies) via overscroll-behavior: contain. */
+    overscroll-behavior: none;
   }
 
   body {
     @apply text-white font-sans antialiased;
     font-feature-settings: "cv01", "ss03";
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* iOS: prevent text size adjusting on orientation change */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* iOS native-feel baseline — applied globally.
+     - Kills the gray tap-highlight flash on every touchable element.
+     - Disables long-press callout menus on buttons/links (keeps text inputs intact).
+     - touch-action: manipulation removes the 300ms tap delay on iOS without
+       disabling pinch-zoom on the page itself. */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button,
+  a,
+  [role="button"],
+  [role="tab"],
+  [role="menuitem"] {
+    -webkit-touch-callout: none;
+    touch-action: manipulation;
+  }
+
+  /* Allow text selection where it makes sense (inputs, prose), block it on
+     interactive chrome to prevent accidental selection during taps. */
+  button,
+  [role="button"] {
+    user-select: none;
+    -webkit-user-select: none;
   }
 }
 
@@ -313,5 +345,18 @@
   [style*="j2VertexToggle"],
   [style*="j2VertexSnapIn"],
   [style*="j2VertexDotPump"] { animation: none !important; }
+}
+
+/* Journal inscribe — line-by-line fade-up reveal of a saved journal entry.
+   Each line gets a staggered animation-delay so prose appears as if being
+   written onto the mat. Lines respect actual word-wrap break points
+   (computed via Pretext) so the cadence reads as sentences, not characters. */
+@keyframes j2InscribeLine {
+  0%   { opacity: 0; transform: translateY(4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [style*="j2InscribeLine"] { animation: none !important; opacity: 1 !important; transform: none !important; }
 }
 

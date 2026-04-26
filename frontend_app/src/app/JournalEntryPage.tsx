@@ -12,6 +12,7 @@ import type { Intention, IntentionsResponse, SessionSummary, SessionsResponse } 
 import PageContent from '../components/PageContent.tsx';
 import SessionDetailModal from '../components/SessionDetailModal.tsx';
 import { formatWeekLong } from '../lib/analyticsUtils.ts';
+import { measureLines } from '../lib/pretextMeasure.ts';
 
 export default function JournalEntryPage() {
   const { id } = useParams<{ id: string }>();
@@ -31,6 +32,29 @@ export default function JournalEntryPage() {
   const textareaRef  = useRef<HTMLTextAreaElement>(null);
   const textInitialized = useRef(false);
 
+  // Inscribe reveal — when an existing entry loads, animate it line-by-line
+  // (using Pretext-measured wrap points) before handing the textarea over.
+  // Skipped for empty entries, reduced-motion users, and re-fetches.
+  // `revealComplete` starts false: textarea is hidden until we know whether
+  // there's anything to reveal (avoids a flash of full text on first paint).
+  const [revealLines, setRevealLines] = useState<string[] | null>(null);
+  const [revealComplete, setRevealComplete] = useState(false);
+  const [revealStagger, setRevealStagger] = useState(120);
+  const journalCardRef = useRef<HTMLDivElement | null>(null);
+  const [journalCardWidth, setJournalCardWidth] = useState(0);
+  useEffect(() => {
+    const el = journalCardRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const w = entry.contentRect.width;
+        if (w > 0) setJournalCardWidth(w);
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const fetchIntention = useCallback(async () => {
     try {
       const data = await api.get<IntentionsResponse>('/api/intentions');
@@ -40,6 +64,17 @@ export default function JournalEntryPage() {
       if (found?.journal_entry && !textInitialized.current) {
         setText(found.journal_entry);
         textInitialized.current = true;
+        // Trigger inscribe reveal unless reduced-motion is on. The reveal-line
+        // measurement runs in a useEffect once journalCardWidth is known.
+        const reduceMotion = typeof window !== 'undefined'
+          && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+        if (reduceMotion) {
+          setRevealComplete(true);
+        }
+        // Else: revealComplete stays false; useEffect below will schedule completion.
+      } else {
+        // No entry to reveal — textarea is interactive immediately.
+        setRevealComplete(true);
       }
 
       // Fetch sessions within the intention's date window
@@ -53,6 +88,8 @@ export default function JournalEntryPage() {
       }
     } catch {
       setError('Could not load intention. Please go back and try again.');
+      // Don't leave the textarea trapped behind a never-firing reveal
+      setRevealComplete(true);
     } finally {
       setLoading(false);
     }
@@ -66,6 +103,29 @@ export default function JournalEntryPage() {
     el.style.height = 'auto';
     el.style.height = `${el.scrollHeight}px`;
   }, [text]);
+
+  // When the reveal has been requested AND the card width is known, measure
+  // the prose into wrapped lines and schedule the completion timeout.
+  useEffect(() => {
+    if (revealComplete) return;
+    if (!text || journalCardWidth <= 0) return;
+    // Card has px-5 (20px each side) → prose width = card width - 40px.
+    const lines = measureLines({
+      text,
+      width: Math.max(40, journalCardWidth - 40),
+      font: "14px 'Plus Jakarta Sans', system-ui, sans-serif",
+      lineHeight: 14 * 1.625,
+    }).lines;
+    setRevealLines(lines);
+    // Stagger formula: 40ms floor, 150ms ceiling, scales inversely with line
+    // count so total reveal duration stays within ~2.5s for long entries.
+    const stagger = Math.min(150, Math.max(40, Math.round(2400 / Math.max(1, lines.length))));
+    setRevealStagger(stagger);
+    const total = lines.length * stagger + 280 + 200; // last-line settle + breath
+    const t = setTimeout(() => setRevealComplete(true), total);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [revealComplete, journalCardWidth]);
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
@@ -158,6 +218,7 @@ export default function JournalEntryPage() {
 
       {/* Journal card */}
       <div
+        ref={journalCardRef}
         className="rounded-xl px-5 py-5"
         style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}
       >
@@ -172,21 +233,51 @@ export default function JournalEntryPage() {
             Intentions are disabled — entry is read-only.
           </p>
         )}
-        <textarea
-          ref={textareaRef}
-          value={text}
-          onChange={intentionsEnabled ? handleChange : undefined}
-          readOnly={!intentionsEnabled}
-          placeholder="Describe the context and goals of your training intentions this week..."
-          className="w-full bg-transparent resize-none outline-none text-sm leading-relaxed placeholder-white/20"
-          style={{
-            minHeight: 200,
-            height: 'auto',
-            color: 'rgba(255,255,255,0.75)',
-            cursor: intentionsEnabled ? 'text' : 'default',
-          }}
-          autoFocus={intentionsEnabled}
-        />
+
+        {/* Inscribe reveal overlay — line-by-line fade-up of the saved entry,
+            shown only on initial load with content. Sits in the same flex slot
+            as the textarea; the textarea is hidden via opacity until reveal
+            completes, then we cross-fade to it. */}
+        <div style={{ position: 'relative' }}>
+          {!revealComplete && revealLines && revealLines.length > 0 && (
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 pointer-events-none text-sm leading-relaxed"
+              style={{ color: 'rgba(255,255,255,0.75)' }}
+            >
+              {revealLines.map((line, i) => (
+                <span
+                  key={i}
+                  style={{
+                    display: 'block',
+                    opacity: 0,
+                    animation: `j2InscribeLine 280ms cubic-bezier(0.16, 1, 0.3, 1) ${i * revealStagger}ms forwards`,
+                  }}
+                >
+                  {line || '\u00A0'}
+                </span>
+              ))}
+            </div>
+          )}
+
+          <textarea
+            ref={textareaRef}
+            value={text}
+            onChange={intentionsEnabled ? handleChange : undefined}
+            readOnly={!intentionsEnabled || !revealComplete}
+            placeholder="Describe the context and goals of your training intentions this week..."
+            className="w-full bg-transparent resize-none outline-none text-sm leading-relaxed placeholder-white/20"
+            style={{
+              minHeight: 200,
+              height: 'auto',
+              color: 'rgba(255,255,255,0.75)',
+              cursor: intentionsEnabled && revealComplete ? 'text' : 'default',
+              opacity: revealComplete ? 1 : 0,
+              transition: 'opacity 240ms ease',
+            }}
+            autoFocus={intentionsEnabled && revealComplete}
+          />
+        </div>
       </div>
 
       {/* Save area */}

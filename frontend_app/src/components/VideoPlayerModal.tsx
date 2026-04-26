@@ -69,7 +69,10 @@ export default function VideoPlayerModal({ tag, onClose }: Props) {
         backgroundColor: 'rgba(13,26,20,0.92)',
         backdropFilter: 'blur(12px) saturate(1.2)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '1rem',
+        paddingTop: 'max(1rem, env(safe-area-inset-top))',
+        paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
+        paddingLeft: 'max(1rem, env(safe-area-inset-left))',
+        paddingRight: 'max(1rem, env(safe-area-inset-right))',
       }}
     >
       <div
@@ -81,7 +84,7 @@ export default function VideoPlayerModal({ tag, onClose }: Props) {
           border: '1px solid rgba(255,255,255,0.10)',
           borderRadius: '1rem',
           padding: '1.25rem',
-          maxHeight: 'calc(100dvh - 2rem)',
+          maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem)',
           overflowY: 'auto',
         }}
       >

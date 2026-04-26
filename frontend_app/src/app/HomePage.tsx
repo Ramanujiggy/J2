@@ -235,9 +235,13 @@ export default function HomePage() {
                   Email
                 </label>
                 <input
-                  type="text"
+                  type="email"
                   inputMode="email"
                   autoComplete="email"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  enterKeyHint={mode === 'forgot' ? 'go' : 'next'}
                   required
                   value={email}
                   onChange={e => setEmail(e.target.value)}
@@ -266,6 +270,8 @@ export default function HomePage() {
                   </label>
                   <input
                     type="password"
+                    autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+                    enterKeyHint="go"
                     required
                     value={password}
                     onChange={e => setPassword(e.target.value)}

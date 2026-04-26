@@ -87,6 +87,8 @@ export default function ResetPasswordPage() {
               <label className="block text-sm text-white/70 mb-1">New Password</label>
               <input
                 type="password"
+                autoComplete="new-password"
+                enterKeyHint="next"
                 required
                 value={newPassword}
                 onChange={e => setNewPassword(e.target.value)}
@@ -99,6 +101,8 @@ export default function ResetPasswordPage() {
               <label className="block text-sm text-white/70 mb-1">Confirm Password</label>
               <input
                 type="password"
+                autoComplete="new-password"
+                enterKeyHint="go"
                 required
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}

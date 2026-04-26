@@ -7,7 +7,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext.tsx';
 import { useActiveIntention } from '../context/ActiveIntentionContext.tsx';
-import RiveBeltBar from './RiveBeltBar.tsx';
+import BeltBar from './BeltBar.tsx';
 import RailAmbient from './RailAmbient.tsx';
 import OfflineBanner from './OfflineBanner.tsx';
 import PageTransition from './PageTransition.tsx';
@@ -356,7 +356,7 @@ export default function DesktopAppShell({ children }: Props) {
             }}
             aria-label={`${beltRank ?? 'White'} belt${stripes ? `, ${stripes} stripe${stripes > 1 ? 's' : ''}` : ''}`}
           >
-            <RiveBeltBar rank={beltRank} stripes={stripes ?? 0} />
+            <BeltBar rank={beltRank} stripes={stripes ?? 0} />
           </div>
 
           {/* Avatar + name — tappable, routes to profile */}

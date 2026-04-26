@@ -28,12 +28,23 @@ import { sessionPillarHours } from '../lib/analyticsUtils.ts';
 import RepRouletteFab from '../components/RepRouletteFab.tsx';
 import { toDateString, addDays, formatDuration, DAY_NAMES, INTENSITY_COLOR, SESSION_TYPE_LABELS } from '../lib/sessionUtils.ts';
 import { STATS_PARTICLES } from '../lib/particles.ts';
+import { maxLinesHeight } from '../lib/pretextMeasure.ts';
 import { computeStats } from '../components/TrainingHeatmap.tsx';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
 interface DeleteResponse      { message: string }
+
+// Static so the height-measurement memo doesn't invalidate on every render.
+const REFLECTION_PROMPTS = [
+  "What moment from yesterday's roll still teaches you?",
+  "Which opponent's pressure changed how you move?",
+  "What's the smallest detail you're drilling this week?",
+  "Where did your breath leave you last session?",
+  "What technique are you quietly getting better at?",
+  "When did the mat last surprise you?",
+] as const;
 
 // ── PathAheadPage ──────────────────────────────────────────────────────────
 
@@ -686,20 +697,42 @@ export default function PathAheadPage() {
   );
 
   // ── Reflection prompt — rotating meditative question ──
-  const REFLECTION_PROMPTS = [
-    "What moment from yesterday's roll still teaches you?",
-    "Which opponent's pressure changed how you move?",
-    "What's the smallest detail you're drilling this week?",
-    "Where did your breath leave you last session?",
-    "What technique are you quietly getting better at?",
-    "When did the mat last surprise you?",
-  ];
   // Stable per-day prompt
   const todayIdx = Math.floor(today.getTime() / 86400000);
   const reflectionPrompt = REFLECTION_PROMPTS[todayIdx % REFLECTION_PROMPTS.length];
 
+  // Reflection card height stability — measure all 6 prompts at the card's
+  // actual content width and lock the prose <p> to the tallest. Stops the card
+  // from jumping height as the daily prompt cycles. Recomputes when the card
+  // resizes (viewport rotation, desktop column reflow).
+  const reflectionCardRef = useRef<HTMLDivElement | null>(null);
+  const [reflectionCardWidth, setReflectionCardWidth] = useState<number>(0);
+  useEffect(() => {
+    const el = reflectionCardRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const w = entry.contentRect.width;
+        if (w > 0) setReflectionCardWidth(w);
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const reflectionMaxHeight = useMemo(() => {
+    if (reflectionCardWidth <= 0) return null;
+    // Card has px-4 padding (16px each side) → prose width = card width - 32.
+    // <p> is text-sm (14px) italic with leading-relaxed (1.625).
+    return maxLinesHeight(REFLECTION_PROMPTS, {
+      width: Math.max(40, reflectionCardWidth - 32),
+      font: "italic 14px 'Plus Jakarta Sans', system-ui, sans-serif",
+      lineHeight: 14 * 1.625,
+    });
+  }, [reflectionCardWidth]);
+
   const reflectionCard = (
     <div
+      ref={reflectionCardRef}
       className="rounded-xl px-4 py-4"
       style={{ backgroundColor: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}` }}
     >
@@ -711,7 +744,10 @@ export default function PathAheadPage() {
       </p>
       <p
         className="text-sm italic leading-relaxed"
-        style={{ color: 'rgba(255,255,255,0.75)' }}
+        style={{
+          color: 'rgba(255,255,255,0.75)',
+          minHeight: reflectionMaxHeight ? `${reflectionMaxHeight}px` : undefined,
+        }}
       >
         &ldquo;{reflectionPrompt}&rdquo;
       </p>

@@ -119,6 +119,11 @@ export default function JournalIndexPage() {
 
           {/* Search */}
           <input
+            type="search"
+            inputMode="search"
+            enterKeyHint="search"
+            autoCapitalize="none"
+            autoCorrect="off"
             placeholder="Search…"
             value={query}
             onChange={e => setQuery(e.target.value)}
@@ -233,6 +238,11 @@ export default function JournalIndexPage() {
       {/* ── Search + filter chips ──────────────────────────── */}
       <div style={{ display: 'flex', gap: 14, marginBottom: 40, alignItems: 'center' }}>
         <input
+          type="search"
+          inputMode="search"
+          enterKeyHint="search"
+          autoCapitalize="none"
+          autoCorrect="off"
           placeholder="Search positions, focus, notes…"
           value={query}
           onChange={e => setQuery(e.target.value)}
