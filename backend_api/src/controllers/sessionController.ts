@@ -80,6 +80,26 @@ function sanitizePillarDistribution(raw: unknown): PillarDistribution | null {
     return cleaned as PillarDistribution;
 }
 
+/**
+ * Sanitize a single boolean telemetry field. Returns null if missing/invalid;
+ * the raw value if it's a real boolean. Strings like "true"/"false" are NOT
+ * accepted — clients must send actual booleans.
+ */
+function sanitizeBool(raw: unknown): boolean | null {
+    return typeof raw === 'boolean' ? raw : null;
+}
+
+/**
+ * Sanitize a non-negative integer telemetry field. Returns null if missing
+ * or invalid. Clamps to a reasonable upper bound to defend against bogus input.
+ */
+function sanitizeNonNegInt(raw: unknown): number | null {
+    if (raw === undefined || raw === null) return null;
+    const n = Number(raw);
+    if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0 || n > 100) return null;
+    return n;
+}
+
 export const logSession = async (req: Request, res: Response): Promise<void> => {
     try {
         const userId = req.user?.id;
@@ -90,7 +110,7 @@ export const logSession = async (req: Request, res: Response): Promise<void> => 
 
         const { date, duration, notes, gi_nogi, intensity, session_type, tags,
                 heading, polarity, sub_skill_tag, script_source, resonance, user_tag_ids, pillar_distribution,
-                canonical_position_ids } = req.body;
+                canonical_position_ids, had_primary, had_deep_work, selection_count } = req.body;
 
         if (!date || duration === undefined || !gi_nogi || intensity === undefined || !session_type) {
             res.status(400).json({ message: 'Date, duration, gi/no-gi, intensity, and session type are required.' });
@@ -170,6 +190,7 @@ export const logSession = async (req: Request, res: Response): Promise<void> => 
             userId, date, durationNum, notes ?? '', gi_nogi, intensityNum, session_type, finalTags,
             heading ?? null, polarity ?? null, sub_skill_tag ?? null, script_source ?? null, resonanceNum,
             userTagIds, dist, canonicalIds,
+            sanitizeBool(had_primary), sanitizeBool(had_deep_work), sanitizeNonNegInt(selection_count),
         );
         res.status(201).json({ message: 'Session logged.', session, session_count: session.session_count });
     } catch (err) {
@@ -409,7 +430,7 @@ export const updateSession = async (req: Request, res: Response): Promise<void> 
         const { id } = req.params;
         const { duration, gi_nogi, intensity, session_type, notes, tags,
                 heading, polarity, sub_skill_tag, script_source, resonance, user_tag_ids, pillar_distribution,
-                canonical_position_ids } = req.body;
+                canonical_position_ids, had_primary, had_deep_work, selection_count } = req.body;
 
         if (duration === undefined || !gi_nogi || intensity === undefined || !session_type) {
             res.status(400).json({ message: 'Duration, gi/no-gi, intensity, and session type are required.' });
@@ -476,6 +497,7 @@ export const updateSession = async (req: Request, res: Response): Promise<void> 
             finalTags,
             heading ?? null, polarity ?? null, sub_skill_tag ?? null, script_source ?? null, resonanceNum,
             userTagIds, dist, canonicalIds,
+            sanitizeBool(had_primary), sanitizeBool(had_deep_work), sanitizeNonNegInt(selection_count),
         );
 
         if (!session) {

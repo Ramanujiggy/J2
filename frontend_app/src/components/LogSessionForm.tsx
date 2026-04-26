@@ -157,6 +157,11 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
       const distribution = selectionsToDistribution(selections);
       const tags = Array.from(new Set(selections.map(s => s.pillar)));
 
+      // Migration 013 telemetry — adoption signal for primary + deep-work mechanics.
+      const had_primary     = selections.some(s => s.primary);
+      const had_deep_work   = selections.some(s => s.deep_work);
+      const selection_count = selections.length;
+
       const sessionSnapshot = {
         date:         form.date,
         duration:     durationMinutes!,
@@ -172,6 +177,9 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
         user_tag_ids:  userTagIds.length > 0 ? userTagIds : undefined,
         canonical_position_ids: canonicalPositionIds.length > 0 ? canonicalPositionIds : undefined,
         pillar_distribution: distribution ?? undefined,
+        had_primary,
+        had_deep_work,
+        selection_count,
       };
 
       const data = await api.post<LogSessionResponse>('/api/sessions', {
@@ -189,6 +197,9 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
         user_tag_ids: sessionSnapshot.user_tag_ids,
         canonical_position_ids: sessionSnapshot.canonical_position_ids,
         pillar_distribution: sessionSnapshot.pillar_distribution,
+        had_primary:     sessionSnapshot.had_primary,
+        had_deep_work:   sessionSnapshot.had_deep_work,
+        selection_count: sessionSnapshot.selection_count,
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

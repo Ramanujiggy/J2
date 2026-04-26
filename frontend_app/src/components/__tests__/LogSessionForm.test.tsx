@@ -75,4 +75,23 @@ describe('LogSessionForm (chip input)', () => {
       ),
     );
   });
+
+  it('sends migration-013 telemetry fields (had_primary, had_deep_work, selection_count)', async () => {
+    mockPost.mockResolvedValueOnce({ message: 'Session logged.' });
+    const user = userEvent.setup();
+    render(<LogSessionForm />);
+    await user.click(screen.getByRole('button', { name: '+' }));
+    await user.click(screen.getByRole('switch', { name: /Stand-up/i }));
+    await user.click(screen.getByRole('button', { name: /save session/i }));
+    await waitFor(() =>
+      expect(mockPost).toHaveBeenCalledWith(
+        '/api/sessions',
+        expect.objectContaining({
+          had_primary: false,
+          had_deep_work: false,
+          selection_count: 1,
+        }),
+      ),
+    );
+  });
 });

@@ -167,6 +167,11 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
     try {
       const distribution = selectionsToDistribution(selections);
       const tagsArr = Array.from(new Set(selections.map(s => s.pillar)));
+      // Migration 013 telemetry — recompute on edit so a session originally logged
+      // without telemetry (legacy) gains it on first save.
+      const had_primary     = selections.some(s => s.primary);
+      const had_deep_work   = selections.some(s => s.deep_work);
+      const selection_count = selections.length;
       await api.put(`/api/sessions/${session.id}`, {
         duration:      form.duration,
         gi_nogi:       form.gi_nogi,
@@ -181,6 +186,9 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
         user_tag_ids:  userTagIds,
         canonical_position_ids: canonicalPositionIds,
         pillar_distribution: distribution ?? undefined,
+        had_primary,
+        had_deep_work,
+        selection_count,
       });
       onSaved();
       onClose();

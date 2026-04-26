@@ -34,8 +34,13 @@ const VERTICES = PILLAR_ORDER.map((p, i) => {
 
 const POLYGON_POINTS = VERTICES.map(v => `${v.cx.toFixed(1)},${v.cy.toFixed(1)}`).join(' ');
 
-const AUTO_DISMISS_MS = 2600;
-const FADE_OUT_MS = 320;
+// Pacing — the receipt's whole purpose is to give the user a moment to *see*
+// the shape they just made. Earlier values rushed past the finished frame.
+// New numbers leave ~1.5–2 s of "settled" viewing after the last vertex/label
+// pops in (5-selection case lands the final label around 2.6 s; auto-dismiss
+// fires at 5 s).
+const AUTO_DISMISS_MS = 5000;
+const FADE_OUT_MS = 360;
 
 interface Props {
   selections: ChipSelection[];
@@ -83,16 +88,58 @@ export default function PrismReceipt({ selections, onDismiss }: Props) {
         animation: `pr_overlay_in 220ms ease-out, pr_overlay_out ${FADE_OUT_MS}ms ease-in ${AUTO_DISMISS_MS - FADE_OUT_MS}ms forwards`,
       }}
     >
+      {/* Top-right dismiss — replaces the old "tap to dismiss" footer text.
+          Standard close affordance, doesn't pull the eye while the shape draws. */}
+      <button
+        type="button"
+        aria-label="Dismiss"
+        onClick={(e) => { e.stopPropagation(); onDismiss(); }}
+        style={{
+          position: 'fixed',
+          top: 'max(20px, env(safe-area-inset-top))',
+          right: 'max(20px, env(safe-area-inset-right))',
+          width: 40,
+          height: 40,
+          borderRadius: '50%',
+          border: '1px solid rgba(255,255,255,0.16)',
+          background: 'rgba(255,255,255,0.06)',
+          color: 'rgba(255,255,255,0.75)',
+          fontSize: 20,
+          lineHeight: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          backdropFilter: 'blur(6px)',
+          WebkitBackdropFilter: 'blur(6px)',
+          transition: 'background 160ms ease, color 160ms ease, border-color 160ms ease',
+          animation: 'pr_fade_in 360ms ease-out 200ms backwards',
+          zIndex: 1,
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = 'rgba(255,255,255,0.14)';
+          e.currentTarget.style.color = 'rgba(255,255,255,0.95)';
+          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.30)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+          e.currentTarget.style.color = 'rgba(255,255,255,0.75)';
+          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.16)';
+        }}
+      >
+        ×
+      </button>
+
       <div
         className="flex flex-col items-center"
-        style={{ animation: 'pr_card_in 320ms cubic-bezier(0.2,0.8,0.2,1)' }}
+        style={{ animation: 'pr_card_in 380ms cubic-bezier(0.2,0.8,0.2,1)' }}
       >
         <span
           className="font-display text-2xl tracking-wide mb-3"
           style={{
             color: PALE_YELLOW,
             textShadow: '0 0 14px rgba(242,228,168,0.45), 0 0 30px rgba(242,228,168,0.18)',
-            animation: 'pr_text_in 400ms ease-out 80ms backwards',
+            animation: 'pr_text_in 480ms ease-out 80ms backwards',
           }}
         >
           Logged
@@ -110,7 +157,7 @@ export default function PrismReceipt({ selections, onDismiss }: Props) {
             fill="rgba(21,46,34,0.55)"
             stroke="rgba(196,145,95,0.22)"
             strokeWidth={1.2}
-            style={{ animation: 'pr_fade_in 360ms ease-out 120ms backwards' }}
+            style={{ animation: 'pr_fade_in 460ms ease-out 140ms backwards' }}
           />
 
           {/* Spokes — center to each selected vertex. Drawn before edges so
@@ -124,7 +171,7 @@ export default function PrismReceipt({ selections, onDismiss }: Props) {
               pathLength={100}
               strokeDasharray={100}
               strokeDashoffset={100}
-              style={{ animation: `pr_draw 360ms ease-out ${380 + i * 90}ms forwards` }}
+              style={{ animation: `pr_draw 480ms ease-out ${460 + i * 130}ms forwards` }}
             />
           ))}
 
@@ -140,7 +187,7 @@ export default function PrismReceipt({ selections, onDismiss }: Props) {
               strokeDasharray={100}
               strokeDashoffset={100}
               style={{
-                animation: `pr_draw 380ms ease-out ${600 + i * 110}ms forwards`,
+                animation: `pr_draw 520ms ease-out ${740 + i * 160}ms forwards`,
                 filter: 'drop-shadow(0 0 4px rgba(242,228,168,0.35))',
               }}
             />
@@ -153,9 +200,9 @@ export default function PrismReceipt({ selections, onDismiss }: Props) {
             const isDeepWork = !!sel?.deep_work;
             const radius = sel ? (isPrimary ? 6 : 4.5) : 2.5;
             const fill = sel ? (isPrimary ? PALE_YELLOW : COPPER) : 'rgba(196,145,95,0.25)';
-            const popDelay = 800 + edges.length * 110 + i * 60;
+            const popDelay = 1000 + edges.length * 160 + i * 90;
             return (
-              <g key={`v-${v.value}`} style={{ animation: `pr_pop ${sel ? 320 : 240}ms cubic-bezier(0.2,0.8,0.2,1) ${popDelay}ms backwards`, transformOrigin: `${v.cx}px ${v.cy}px` }}>
+              <g key={`v-${v.value}`} style={{ animation: `pr_pop ${sel ? 380 : 300}ms cubic-bezier(0.2,0.8,0.2,1) ${popDelay}ms backwards`, transformOrigin: `${v.cx}px ${v.cy}px` }}>
                 {/* Halo for deep-work */}
                 {isDeepWork && (
                   <circle
@@ -180,7 +227,7 @@ export default function PrismReceipt({ selections, onDismiss }: Props) {
           {/* Vertex labels — selected ones bright, others dim. */}
           {VERTICES.map((v, i) => {
             const sel = stateOf(v.value);
-            const labelDelay = 950 + edges.length * 110 + i * 60;
+            const labelDelay = 1180 + edges.length * 160 + i * 90;
             return (
               <text
                 key={`l-${v.value}`}
@@ -193,7 +240,7 @@ export default function PrismReceipt({ selections, onDismiss }: Props) {
                   fontWeight: sel ? 600 : 400,
                   fill: sel ? PALE_YELLOW : 'rgba(255,255,255,0.30)',
                   letterSpacing: '0.04em',
-                  animation: `pr_fade_in 280ms ease-out ${labelDelay}ms backwards`,
+                  animation: `pr_fade_in 360ms ease-out ${labelDelay}ms backwards`,
                 }}
               >
                 {v.label}
@@ -201,13 +248,6 @@ export default function PrismReceipt({ selections, onDismiss }: Props) {
             );
           })}
         </svg>
-
-        <span
-          className="text-[11px] mt-4"
-          style={{ color: 'rgba(255,255,255,0.40)', animation: 'pr_fade_in 400ms ease-out 1400ms backwards' }}
-        >
-          tap to dismiss
-        </span>
       </div>
 
       <style>{`

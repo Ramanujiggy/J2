@@ -435,7 +435,12 @@ function DesktopIntentionsView({
 
   return (
     <PageContent ready={!loading} loadingMessages={['Loading your intentions...']}>
-    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 48px 104px' }}>
+    {/* Responsive container — was a fixed 1100px (handoff spec) which felt cramped
+        on 24"+ monitors, leaving large dead margins on either side. Cascades through
+        Tailwind breakpoints so it grows into the available space without filling
+        100% (modals on top of the rail still want the editorial column feel).
+        max-w-6xl (1152) at lg/xl, max-w-7xl (1280) at xl+, 1520 at 2xl. */}
+    <div className="mx-auto w-full max-w-6xl xl:max-w-7xl 2xl:max-w-[1520px]" style={{ padding: '40px 56px 104px' }}>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 28, gap: 24 }}>
