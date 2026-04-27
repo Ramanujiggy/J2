@@ -5,7 +5,7 @@ import { api } from '../lib/api.ts';
 import { PALE_YELLOW, GLOW_SOFT, SURFACE_2, COPPER } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
-import { CATEGORY_COLORS, SKILL_TAGS, MONTH_NAMES } from '../lib/constants.ts';
+import { CATEGORY_COLORS, SKILL_TAGS, MONTH_NAMES, REFLECTION_PROMPTS } from '../lib/constants.ts';
 import { formatDuration, INTENSITY_COLOR } from '../lib/sessionUtils.ts';
 import { vibrate } from '../lib/haptics.ts';
 import type { Intention, IntentionsResponse, SessionSummary, SessionsResponse } from '../types/api.ts';
@@ -158,6 +158,11 @@ export default function JournalEntryPage() {
     ? (CATEGORY_COLORS[intention.intent_category] ?? 'rgba(255,255,255,0.4)')
     : null;
 
+  // Daily reflection prompt — same index calc as the old Path Ahead card so a
+  // user who reloaded across pages on the same day saw a stable prompt.
+  const todayIdx = Math.floor(Date.now() / 86_400_000);
+  const reflectionPrompt = REFLECTION_PROMPTS[todayIdx % REFLECTION_PROMPTS.length];
+
   return (
     <PageContent ready={!loading} loadingMessages={['Loading your intentions...']}>
     {!intention ? (
@@ -214,6 +219,27 @@ export default function JournalEntryPage() {
             {intention.duration_days}d intention
           </span>
         </div>
+      </div>
+
+      {/* Reflection prompt — daily rotating question. Lives here (instead of
+          on Path Ahead, where it used to) because journaling is when it's
+          actually useful. */}
+      <div
+        className="rounded-xl px-5 py-4"
+        style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}
+      >
+        <p
+          className="text-[10px] font-semibold uppercase tracking-widest mb-2"
+          style={{ color: COPPER }}
+        >
+          ◇ Reflection
+        </p>
+        <p
+          className="text-sm italic leading-relaxed"
+          style={{ color: 'rgba(255,255,255,0.75)' }}
+        >
+          &ldquo;{reflectionPrompt}&rdquo;
+        </p>
       </div>
 
       {/* Journal card */}
