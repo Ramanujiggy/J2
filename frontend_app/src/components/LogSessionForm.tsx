@@ -42,9 +42,8 @@ const SESSION_TYPES: { value: SessionType; label: string }[] = [
   { value: 'competition_training', label: 'Competition' },
 ];
 
-// ── Intensity labels & duration presets ────────────────────────────────────
+// ── Intensity labels ──────────────────────────────────────────────────────
 const INTENSITY_LABELS = ['Light', 'Easy', 'Moderate', 'Hard', 'Max'];
-const DURATION_PRESETS = [30, 60, 90, 120];
 
 export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defaultHeading, defaultSessionType, defaultSubSkillTag }: { onSuccess?: (sessionCount?: number) => void; onCancel?: () => void; defaultDate?: string; defaultHeading?: string; defaultSessionType?: SessionType; defaultSubSkillTag?: string }) {
   const isDesktop = useIsDesktop();
@@ -315,28 +314,8 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
             onChange={v => v && setForm(prev => ({ ...prev, session_type: v }))}
           />
 
-          {/* Duration — preset pills + stepper */}
+          {/* Duration — stepper (±30-min increments) */}
           <div className="space-y-2">
-            <div className="flex gap-2">
-              {DURATION_PRESETS.map(m => {
-                const active = durationMinutes === m;
-                return (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => { vibrate(8); setDurationMinutes(m); }}
-                    className="flex-1 h-9 rounded-[10px] text-xs font-medium transition-all touch-manipulation"
-                    style={{
-                      backgroundColor: active ? COPPER : SURFACE_3,
-                      color: active ? '#fff' : 'rgba(255,255,255,0.45)',
-                      transition: 'background-color 200ms ease, color 200ms ease',
-                    }}
-                  >
-                    {fmtDuration(m)}
-                  </button>
-                );
-              })}
-            </div>
             <div
               className="flex items-center justify-center gap-3 rounded-xl py-2"
               style={{ backgroundColor: SURFACE_3 }}

@@ -395,22 +395,33 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                 {/* ── Focus card ───────────────────────────── */}
                 {headingLabel && (
                   <div className="rounded-xl px-4 py-4" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
-                    <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.25)' }}>
-                      Focus
-                    </span>
-                    <p className="text-base font-semibold mt-1" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
-                      {headingLabel}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1.5">
-                      {session.sub_skill_tag && (
-                        <span className="px-2.5 py-1 rounded-lg text-xs font-medium" style={{ backgroundColor: SURFACE_3, color: 'rgba(255,255,255,0.50)' }}>
-                          {session.sub_skill_tag}
+                    {/* Pokedex layout: text on the left, static Prism shape on the right.
+                        Mirrors the edit-mode layout so the saved shape is visible on read-only reopen. */}
+                    <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+                        <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                          Focus
                         </span>
-                      )}
-                      {session.resonance != null && (
-                        <span className="text-xs" style={{ color: 'rgba(255,255,255,0.30)' }}>
-                          {session.resonance >= 10 ? 'Focused' : session.resonance >= 8 ? 'Targeted' : session.resonance >= 6 ? 'Solid' : session.resonance >= 4 ? 'Mixed' : 'Exploratory'}
-                        </span>
+                        <p className="text-base font-semibold mt-1" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
+                          {headingLabel}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          {session.sub_skill_tag && (
+                            <span className="px-2.5 py-1 rounded-lg text-xs font-medium" style={{ backgroundColor: SURFACE_3, color: 'rgba(255,255,255,0.50)' }}>
+                              {session.sub_skill_tag}
+                            </span>
+                          )}
+                          {session.resonance != null && (
+                            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.30)' }}>
+                              {session.resonance >= 10 ? 'Focused' : session.resonance >= 8 ? 'Targeted' : session.resonance >= 6 ? 'Solid' : session.resonance >= 4 ? 'Mixed' : 'Exploratory'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {selections.length > 0 && (
+                        <div style={{ flex: '0 0 auto', opacity: 0.95 }}>
+                          <PrismShape selections={selections} size={isDesktop ? 160 : 130} showLabels={false} />
+                        </div>
                       )}
                     </div>
 

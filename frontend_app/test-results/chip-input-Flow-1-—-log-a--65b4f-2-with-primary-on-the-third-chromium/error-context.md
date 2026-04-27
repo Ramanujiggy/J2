@@ -6,25 +6,13 @@
 
 # Test info
 
-- Name: chip-input.spec.ts >> Flow 1 — log a session via chips >> 1.1 single tap → distribution {standup:1}, telemetry false/false/1
-- Location: playwright\tests\chip-input.spec.ts:126:5
+- Name: chip-input.spec.ts >> Flow 1 — log a session via chips >> 1.4 two taps + double-tap a third → 0.6 / 0.2 / 0.2 with primary on the third
+- Location: playwright\tests\chip-input.spec.ts:172:5
 
 # Error details
 
 ```
-Error: expect(locator).toHaveAttribute(expected) failed
-
-Locator:  getByRole('switch', { name: /^Stand-up(,|$)/ })
-Expected: "true"
-Received: "false"
-Timeout:  5000ms
-
-Call log:
-  - Expect "toHaveAttribute" with timeout 5000ms
-  - waiting for getByRole('switch', { name: /^Stand-up(,|$)/ })
-    9 × locator resolved to <button tabindex="0" type="button" role="switch" aria-checked="false" aria-label="Stand-up" class="relative rounded-[10px] px-3.5 py-2 text-sm font-medium transition-colors touch-manipulation select-none j2-press">…</button>
-      - unexpected value "false"
-
+TimeoutError: page.waitForRequest: Timeout 10000ms exceeded while waiting for event "request"
 ```
 
 # Page snapshot
@@ -84,12 +72,12 @@ Call log:
             - generic [ref=e61]: "best: 1d"
           - generic [ref=e62]:
             - generic [ref=e63]: This week
-            - generic [ref=e64]: 88h 30m
-            - generic [ref=e65]: 177 sessions
+            - generic [ref=e64]: 107h 30m
+            - generic [ref=e65]: 215 sessions
           - generic [ref=e66]:
             - generic [ref=e67]: Alignment
             - generic [ref=e68]: 40%
-            - generic [ref=e69]: 70 of 177 on focus
+            - generic [ref=e69]: 87 of 215 on focus
           - generic [ref=e70]:
             - generic [ref=e71]: Consistent weeks
             - generic [ref=e72]: "1"
@@ -117,7 +105,7 @@ Call log:
                 - generic "Week 14 · rest" [ref=e100]
                 - generic "Week 15 · rest" [ref=e101]
                 - generic "Week 16 · rest" [ref=e102]
-                - generic "Week 17 · 177 sessions · 88.5h" [ref=e103]
+                - generic "Week 17 · 215 sessions · 107.5h" [ref=e103]
                 - generic "Week 18 · rest" [ref=e104]
                 - generic "Week 19 · rest" [ref=e105]
                 - generic "Week 20 · rest" [ref=e106]
@@ -153,199 +141,199 @@ Call log:
                 - generic "Week 50 · rest" [ref=e136]
                 - generic "Week 51 · rest" [ref=e137]
                 - generic "Week 52 · rest" [ref=e138]
-                - generic [ref=e316]: JAN
-                - generic [ref=e317]: FEB
-                - generic [ref=e318]: MAR
-                - generic [ref=e319]: APR
-                - generic [ref=e320]: MAY
-                - generic [ref=e321]: JUN
-                - generic [ref=e322]: JUL
-                - generic [ref=e323]: AUG
-                - generic [ref=e324]: SEP
-                - generic [ref=e325]: OCT
-                - generic [ref=e326]: NOV
-                - generic [ref=e327]: DEC
-                - generic [ref=e328]: "2026"
-                - generic [ref=e329]: 177 SESSIONS
-                - generic [ref=e330]: 89 HOURS
-              - generic [ref=e331]:
-                - generic [ref=e332]:
-                  - generic [ref=e334]: Stand-up
-                  - generic [ref=e335]: "70"
-                - generic [ref=e336]:
-                  - generic [ref=e338]: Guard Passing
-                  - generic [ref=e339]: "0"
-                - generic [ref=e340]:
-                  - generic [ref=e342]: Dynamic Pins
-                  - generic [ref=e343]: "0"
-                - generic [ref=e344]:
-                  - generic [ref=e346]: Submissions
-                  - generic [ref=e347]: "0"
-                - generic [ref=e348]:
-                  - generic [ref=e350]: Guard
-                  - generic [ref=e351]: "107"
-            - generic [ref=e352] [cursor=pointer]:
-              - generic [ref=e353]:
-                - generic [ref=e354]: Training Rhythm
-                - generic [ref=e355]: View calendar →
-              - generic [ref=e357]:
-                - generic [ref=e358]: Nov
-                - generic [ref=e361]: Dec
-                - generic [ref=e366]: Jan
-                - generic [ref=e370]: Feb
-                - generic [ref=e374]: Mar
-                - generic [ref=e379]: Apr
-            - generic [ref=e552]:
-              - generic [ref=e554]: Training Telemetry
-              - generic [ref=e556]:
-                - generic [ref=e557]: 177 sessions
-                - generic [ref=e558]: ·
-                - generic [ref=e559]: 88h 30m total
-              - paragraph [ref=e560]:
+                - generic [ref=e354]: JAN
+                - generic [ref=e355]: FEB
+                - generic [ref=e356]: MAR
+                - generic [ref=e357]: APR
+                - generic [ref=e358]: MAY
+                - generic [ref=e359]: JUN
+                - generic [ref=e360]: JUL
+                - generic [ref=e361]: AUG
+                - generic [ref=e362]: SEP
+                - generic [ref=e363]: OCT
+                - generic [ref=e364]: NOV
+                - generic [ref=e365]: DEC
+                - generic [ref=e366]: "2026"
+                - generic [ref=e367]: 215 SESSIONS
+                - generic [ref=e368]: 108 HOURS
+              - generic [ref=e369]:
+                - generic [ref=e370]:
+                  - generic [ref=e372]: Stand-up
+                  - generic [ref=e373]: "87"
+                - generic [ref=e374]:
+                  - generic [ref=e376]: Guard Passing
+                  - generic [ref=e377]: "0"
+                - generic [ref=e378]:
+                  - generic [ref=e380]: Dynamic Pins
+                  - generic [ref=e381]: "0"
+                - generic [ref=e382]:
+                  - generic [ref=e384]: Submissions
+                  - generic [ref=e385]: "0"
+                - generic [ref=e386]:
+                  - generic [ref=e388]: Guard
+                  - generic [ref=e389]: "128"
+            - generic [ref=e390] [cursor=pointer]:
+              - generic [ref=e391]:
+                - generic [ref=e392]: Training Rhythm
+                - generic [ref=e393]: View calendar →
+              - generic [ref=e395]:
+                - generic [ref=e396]: Nov
+                - generic [ref=e399]: Dec
+                - generic [ref=e404]: Jan
+                - generic [ref=e408]: Feb
+                - generic [ref=e412]: Mar
+                - generic [ref=e417]: Apr
+            - generic [ref=e590]:
+              - generic [ref=e592]: Training Telemetry
+              - generic [ref=e594]:
+                - generic [ref=e595]: 215 sessions
+                - generic [ref=e596]: ·
+                - generic [ref=e597]: 107h 30m total
+              - paragraph [ref=e598]:
                 - text: Splitting time between
-                - strong [ref=e561]: Guard
+                - strong [ref=e599]: Guard
                 - text: and
-                - strong [ref=e562]: Stand-up
+                - strong [ref=e600]: Stand-up
                 - text: .
-          - generic [ref=e563]:
-            - generic [ref=e565]:
-              - generic [ref=e566]:
-                - generic [ref=e567]: ◈
-                - generic [ref=e568]: This week's focus
-              - paragraph [ref=e569]: Stand-up
-              - generic [ref=e571]: 5d remaining
-              - generic [ref=e575]: 177 sessions
-              - generic [ref=e576]:
-                - button "Edit" [ref=e577] [cursor=pointer]
-                - button "Journal" [ref=e578] [cursor=pointer]
-                - button "Delete" [ref=e579] [cursor=pointer]
-            - generic [ref=e580]:
-              - generic [ref=e581]: ◈ Most recent session
-              - generic [ref=e584]: Stand-up
-              - generic [ref=e585]: 30m · Class · Gi
-              - generic [ref=e586]: Sun, Apr 26
-            - generic [ref=e587]:
-              - generic [ref=e588]: ◈ Last 30 days · intensity
-              - generic [ref=e589]:
-                - generic [ref=e592]: "0"
-                - generic [ref=e595]: "0"
-                - generic [ref=e598]: "177"
-                - generic [ref=e601]: "0"
-                - generic [ref=e604]: "0"
-              - generic [ref=e605]:
-                - generic [ref=e606]: Drill
-                - generic [ref=e607]: Steady
-                - generic [ref=e608]: Hard roll
-            - generic [ref=e609]:
-              - generic [ref=e610]:
-                - generic [ref=e611]:
-                  - button "Previous week" [ref=e612] [cursor=pointer]:
-                    - img [ref=e613]
-                  - button "Return to current week" [ref=e615] [cursor=pointer]: This Week
-                  - button "Next week" [ref=e616] [cursor=pointer]:
-                    - img [ref=e617]
-                - generic [ref=e619]:
-                  - button "Calendar view" [ref=e620] [cursor=pointer]:
-                    - img [ref=e621]
-                  - button "List view" [ref=e623] [cursor=pointer]:
-                    - img [ref=e624]
-              - generic [ref=e626]:
-                - button "M 20" [ref=e627] [cursor=pointer]:
-                  - generic [ref=e628]: M
-                  - generic [ref=e630]: "20"
-                - button "T 21" [ref=e631] [cursor=pointer]:
-                  - generic [ref=e632]: T
-                  - generic [ref=e634]: "21"
-                - button "W 22" [ref=e635] [cursor=pointer]:
-                  - generic [ref=e636]: W
-                  - generic [ref=e638]: "22"
-                - button "T 23" [ref=e639] [cursor=pointer]:
-                  - generic [ref=e640]: T
-                  - generic [ref=e642]: "23"
-                - button "F 24" [ref=e643] [cursor=pointer]:
-                  - generic [ref=e644]: F
-                  - generic [ref=e646]: "24"
-                - button "S 25" [ref=e647] [cursor=pointer]:
-                  - generic [ref=e648]: S
-                  - generic [ref=e650]: "25"
-                - button "S 26 88h 30m" [ref=e651] [cursor=pointer]:
-                  - generic [ref=e652]: S
-                  - generic [ref=e654]: "26"
-                  - generic [ref=e655]: 88h 30m
-            - generic [ref=e656]:
-              - paragraph [ref=e657]: ◇ Reflection
-              - paragraph [ref=e658]: “What's the smallest detail you're drilling this week?”
-              - button "Write an entry" [ref=e659] [cursor=pointer]
-        - generic [ref=e660]:
-          - generic [ref=e661]:
-            - generic [ref=e662]: ◈ Recent intentions
-            - button "See all →" [ref=e663] [cursor=pointer]
-          - generic [ref=e665]:
-            - generic [ref=e666]: Wk of Apr 26
-            - generic [ref=e667]: Stand-up
-        - generic [ref=e671]:
-          - generic [ref=e672]:
+          - generic [ref=e601]:
+            - generic [ref=e603]:
+              - generic [ref=e604]:
+                - generic [ref=e605]: ◈
+                - generic [ref=e606]: This week's focus
+              - paragraph [ref=e607]: Stand-up
+              - generic [ref=e609]: 5d remaining
+              - generic [ref=e613]: 215 sessions
+              - generic [ref=e614]:
+                - button "Edit" [ref=e615] [cursor=pointer]
+                - button "Journal" [ref=e616] [cursor=pointer]
+                - button "Delete" [ref=e617] [cursor=pointer]
+            - generic [ref=e618]:
+              - generic [ref=e619]: ◈ Most recent session
+              - generic [ref=e622]: Stand-up
+              - generic [ref=e623]: 30m · Class · Gi
+              - generic [ref=e624]: Sun, Apr 26
+            - generic [ref=e625]:
+              - generic [ref=e626]: ◈ Last 30 days · intensity
+              - generic [ref=e627]:
+                - generic [ref=e630]: "0"
+                - generic [ref=e633]: "0"
+                - generic [ref=e636]: "215"
+                - generic [ref=e639]: "0"
+                - generic [ref=e642]: "0"
+              - generic [ref=e643]:
+                - generic [ref=e644]: Drill
+                - generic [ref=e645]: Steady
+                - generic [ref=e646]: Hard roll
+            - generic [ref=e647]:
+              - generic [ref=e648]:
+                - generic [ref=e649]:
+                  - button "Previous week" [ref=e650] [cursor=pointer]:
+                    - img [ref=e651]
+                  - button "Return to current week" [ref=e653] [cursor=pointer]: This Week
+                  - button "Next week" [ref=e654] [cursor=pointer]:
+                    - img [ref=e655]
+                - generic [ref=e657]:
+                  - button "Calendar view" [ref=e658] [cursor=pointer]:
+                    - img [ref=e659]
+                  - button "List view" [ref=e661] [cursor=pointer]:
+                    - img [ref=e662]
+              - generic [ref=e664]:
+                - button "M 20" [ref=e665] [cursor=pointer]:
+                  - generic [ref=e666]: M
+                  - generic [ref=e668]: "20"
+                - button "T 21" [ref=e669] [cursor=pointer]:
+                  - generic [ref=e670]: T
+                  - generic [ref=e672]: "21"
+                - button "W 22" [ref=e673] [cursor=pointer]:
+                  - generic [ref=e674]: W
+                  - generic [ref=e676]: "22"
+                - button "T 23" [ref=e677] [cursor=pointer]:
+                  - generic [ref=e678]: T
+                  - generic [ref=e680]: "23"
+                - button "F 24" [ref=e681] [cursor=pointer]:
+                  - generic [ref=e682]: F
+                  - generic [ref=e684]: "24"
+                - button "S 25" [ref=e685] [cursor=pointer]:
+                  - generic [ref=e686]: S
+                  - generic [ref=e688]: "25"
+                - button "S 26 107h 30m" [ref=e689] [cursor=pointer]:
+                  - generic [ref=e690]: S
+                  - generic [ref=e692]: "26"
+                  - generic [ref=e693]: 107h 30m
+            - generic [ref=e694]:
+              - paragraph [ref=e695]: ◇ Reflection
+              - paragraph [ref=e696]: “What's the smallest detail you're drilling this week?”
+              - button "Write an entry" [ref=e697] [cursor=pointer]
+        - generic [ref=e698]:
+          - generic [ref=e699]:
+            - generic [ref=e700]: ◈ Recent intentions
+            - button "See all →" [ref=e701] [cursor=pointer]
+          - generic [ref=e703]:
+            - generic [ref=e704]: Wk of Apr 26
+            - generic [ref=e705]: Stand-up
+        - generic [ref=e709]:
+          - generic [ref=e710]:
             - generic: Apr 26, 2026
-            - textbox [ref=e675] [cursor=pointer]: 2026-04-26
-          - generic [ref=e676]:
-            - heading "Log a Training Session" [level=2] [ref=e677]
-            - generic [ref=e678]:
+            - textbox [ref=e713] [cursor=pointer]: 2026-04-26
+          - generic [ref=e714]:
+            - heading "Log a Training Session" [level=2] [ref=e715]
+            - generic [ref=e716]:
               - text: The Basics
-              - generic [ref=e679]:
-                - button "Gi" [ref=e680] [cursor=pointer]
-                - button "No-Gi" [ref=e681] [cursor=pointer]
-              - generic [ref=e682]:
-                - button "Class" [ref=e683] [cursor=pointer]
-                - button "Drilling" [ref=e684] [cursor=pointer]
-                - button "Competition" [ref=e685] [cursor=pointer]
-              - generic [ref=e686]:
-                - generic [ref=e687]:
-                  - button "30 m" [ref=e688] [cursor=pointer]
-                  - button "1 h" [ref=e689] [cursor=pointer]
-                  - button "1 h 30 m" [ref=e690] [cursor=pointer]
-                  - button "2 h" [ref=e691] [cursor=pointer]
-                - generic [ref=e692]:
-                  - button "−" [ref=e693] [cursor=pointer]
-                  - generic [ref=e694]: tap above
-                  - button "+" [ref=e695] [cursor=pointer]
-              - generic [ref=e696]:
-                - button [ref=e697] [cursor=pointer]
-                - button [ref=e698] [cursor=pointer]
-                - button "Moderate" [ref=e699] [cursor=pointer]
-                - button [ref=e700] [cursor=pointer]
-                - button [ref=e701] [cursor=pointer]
-            - generic [ref=e702]:
-              - heading "What did you work on?" [level=3] [ref=e704]
-              - generic [ref=e705]:
-                - group "Focus areas for this session" [ref=e706]:
-                  - switch "Stand-up" [ref=e707] [cursor=pointer]
-                  - switch "Passing" [ref=e708] [cursor=pointer]
-                  - switch "Pins" [ref=e709] [cursor=pointer]
-                  - switch "Subs" [ref=e710] [cursor=pointer]
-                  - switch "Guard" [ref=e711] [cursor=pointer]
-                - paragraph [ref=e712]:
-                  - text: Tap to add. Double-tap to set your focus. Hold for deep work.
-                  - button "got it" [ref=e713] [cursor=pointer]
-              - generic [ref=e714]:
-                - generic [ref=e715]:
-                  - button "Coach-led" [ref=e716] [cursor=pointer]
-                  - button "Open Mat" [ref=e717] [cursor=pointer]
-                - paragraph [ref=e718]: Was this instructor-led or self-directed?
-            - generic [ref=e719]:
-              - text: Details
+              - generic [ref=e717]:
+                - button "Gi" [ref=e718] [cursor=pointer]
+                - button "No-Gi" [ref=e719] [cursor=pointer]
               - generic [ref=e720]:
-                - generic [ref=e721]: Tags (optional, max 5)
-                - textbox "Pick a heading on the Prism first" [ref=e723]
-              - generic [ref=e724]:
-                - generic [ref=e725]: Notes (optional)
-                - generic [ref=e726]:
-                  - textbox "What stood out today?" [ref=e727]
-                  - button "Record voice note" [ref=e728] [cursor=pointer]:
-                    - img [ref=e729]
-                  - status [ref=e732] [cursor=pointer]: Don't type — just talk. Tap the mic.
-            - generic [ref=e733]:
-              - button "Cancel" [ref=e734] [cursor=pointer]
-              - button "Save Session" [ref=e735] [cursor=pointer]
+                - button "Class" [ref=e721] [cursor=pointer]
+                - button "Drilling" [ref=e722] [cursor=pointer]
+                - button "Competition" [ref=e723] [cursor=pointer]
+              - generic [ref=e725]:
+                - button "−" [ref=e726] [cursor=pointer]
+                - generic [ref=e727]: tap above
+                - button "+" [ref=e728] [cursor=pointer]
+              - generic [ref=e729]:
+                - button [ref=e730] [cursor=pointer]
+                - button [ref=e731] [cursor=pointer]
+                - button "Moderate" [ref=e732] [cursor=pointer]
+                - button [ref=e733] [cursor=pointer]
+                - button [ref=e734] [cursor=pointer]
+            - generic [ref=e735]:
+              - heading "What did you work on?" [level=3] [ref=e737]
+              - generic [ref=e738]:
+                - group "Focus areas for this session" [ref=e739]:
+                  - switch "Stand-up" [ref=e740] [cursor=pointer]
+                  - switch "Passing" [ref=e741] [cursor=pointer]
+                  - switch "Pins" [ref=e742] [cursor=pointer]
+                  - switch "Subs" [checked] [ref=e743] [cursor=pointer]: Subs
+                  - switch "Guard, primary focus" [checked] [ref=e745] [cursor=pointer]: Guard
+                - paragraph [ref=e747]:
+                  - text: Tap to add. Double-tap to set your focus. Hold for deep work.
+                  - button "got it" [ref=e748] [cursor=pointer]
+              - generic [ref=e749]:
+                - generic [ref=e750]:
+                  - button "Defense" [ref=e751] [cursor=pointer]
+                  - button "Neutral" [ref=e752] [cursor=pointer]
+                  - button "Offense" [ref=e753] [cursor=pointer]
+                - paragraph [ref=e754]: What side of the exchange were you primarily on?
+              - generic [ref=e755]:
+                - generic [ref=e756]:
+                  - button "Coach-led" [ref=e757] [cursor=pointer]
+                  - button "Open Mat" [ref=e758] [cursor=pointer]
+                - paragraph [ref=e759]: Was this instructor-led or self-directed?
+            - generic [ref=e760]:
+              - text: Details
+              - generic [ref=e761]:
+                - generic [ref=e762]: Tags (optional, max 5)
+                - textbox "Search positions or type to add…" [ref=e764]
+              - generic [ref=e765]:
+                - generic [ref=e766]: Notes (optional)
+                - generic [ref=e767]:
+                  - textbox "What stood out today?" [ref=e768]
+                  - button "Record voice note" [ref=e769] [cursor=pointer]:
+                    - img [ref=e770]
+            - paragraph [ref=e773]: Please select a duration.
+            - generic [ref=e774]:
+              - button "Cancel" [ref=e775] [cursor=pointer]
+              - button "Save Session" [active] [ref=e776] [cursor=pointer]
   - region "Notifications (F8)":
     - list
 ```
@@ -353,19 +341,6 @@ Call log:
 # Test source
 
 ```ts
-  1   | // E2E coverage for Flow 1 of the smoke-test runbook (LogSessionForm).
-  2   | //
-  3   | // We target the running dev stack (Vite :3000 → Express :5000), open the log
-  4   | // modal from the home page, exercise the chip palette via Playwright pointer
-  5   | // events, then capture the resulting POST /api/sessions request to assert on
-  6   | // payload shape (heading, tags, pillar_distribution, telemetry).
-  7   | //
-  8   | // Each gesture helper waits for the chip's aria-* state to commit before
-  9   | // returning. Without that, click events race ahead of React renders and the
-  10  | // next gesture (or the form submit) reads stale state.
-  11  | 
-  12  | import { test, expect, type Page, type Locator } from '@playwright/test';
-  13  | 
   14  | const SAVE_URL_RE = /\/api\/sessions(\?|$)/;
   15  | 
   16  | // Chip aria-labels include suffixes like ", primary focus" or ", deep work"
@@ -436,8 +411,7 @@ Call log:
   81  |     // overlapping animation frames between rapid taps were causing Playwright
   82  |     // to occasionally retry a click while the React commit was still in flight.
   83  |     await c.click({ force: true });
-> 84  |     await expect(c).toHaveAttribute('aria-checked', before === 'true' ? 'false' : 'true');
-      |                     ^ Error: expect(locator).toHaveAttribute(expected) failed
+  84  |     await expect(c).toHaveAttribute('aria-checked', before === 'true' ? 'false' : 'true');
   85  |     await settle(c.page());
   86  | }
   87  | 
@@ -467,7 +441,8 @@ Call log:
   111 |     // settle once more here before submitting, since the form's submit closure
   112 |     // is on a separate React subtree from the chip palette.
   113 |     await settle(page);
-  114 |     const reqPromise = page.waitForRequest(
+> 114 |     const reqPromise = page.waitForRequest(
+      |                             ^ TimeoutError: page.waitForRequest: Timeout 10000ms exceeded while waiting for event "request"
   115 |         r => SAVE_URL_RE.test(r.url()) && r.method() === 'POST',
   116 |         { timeout: 10_000 },
   117 |     );
@@ -538,4 +513,34 @@ Call log:
   182 |         expect(body.selection_count).toBe(3);
   183 |         const dist = body.pillar_distribution as Record<string, number>;
   184 |         expect(dist.guard).toBeCloseTo(0.6, 2);
+  185 |         expect(dist.standup).toBeCloseTo(0.2, 2);
+  186 |         expect(dist.submissions).toBeCloseTo(0.2, 2);
+  187 |     });
+  188 | 
+  189 |     test('1.5 primary transfer (double-tap A then B) → only B has primary', async ({ page }) => {
+  190 |         await openLogForm(page);
+  191 |         await setMinDuration(page);
+  192 |         await setPrimary(chip(page, 'guard'));
+  193 |         await setPrimary(chip(page, 'submissions'));
+  194 |         // Guard should still be selected (not deselected) but no longer primary.
+  195 |         await expect(chip(page, 'guard')).toHaveAttribute('aria-checked', 'true');
+  196 |         const guardName = await chip(page, 'guard').getAttribute('aria-label');
+  197 |         expect(guardName ?? '').not.toMatch(/primary focus/i);
+  198 | 
+  199 |         const body = await clickAndCapture(page);
+  200 |         expect(body.heading).toBe('submissions');
+  201 |         expect(body.had_primary).toBe(true);
+  202 |         const dist = body.pillar_distribution as Record<string, number>;
+  203 |         // Subs primary (3 raw points), Guard selected only (1) → 0.75 / 0.25.
+  204 |         expect(dist.submissions).toBeCloseTo(0.75, 2);
+  205 |         expect(dist.guard).toBeCloseTo(0.25, 2);
+  206 |         expect(body.selection_count).toBe(2);
+  207 |     });
+  208 | 
+  209 |     test('1.6 long-press → deep_work flag, telemetry had_deep_work=true', async ({ page }) => {
+  210 |         await openLogForm(page);
+  211 |         await setMinDuration(page);
+  212 |         await setDeepWork(chip(page, 'guard'));
+  213 | 
+  214 |         const body = await clickAndCapture(page);
 ```
