@@ -46,8 +46,8 @@ function JournalIcon({ active }: { active: boolean }) {
 
 // Bottom nav: 4 real tabs + center FAB. Journal replaced Analytics in the
 // nav because users reach their sessions much more often than aggregate
-// charts. /analytics route still exists and is reachable via direct URL or
-// (on desktop) by clicking through Atlas.
+// charts. The /analytics route now redirects to /atlas — analytics
+// functionality is folded into the Atlas Prism tab.
 const ALL_TABS = [
   { path: '/home',        label: 'Home',       Icon: HomeIcon,       intentionsGated: false },
   { path: '/journal',     label: 'Journal',    Icon: JournalIcon,    intentionsGated: false },

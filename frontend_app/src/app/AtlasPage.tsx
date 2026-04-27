@@ -19,15 +19,18 @@ import { useCountUp } from '../hooks/useCountUp.ts';
 import PageContent from '../components/PageContent.tsx';
 import TrainingHeatmap from '../components/TrainingHeatmap.tsx';
 import ErrorBoundary from '../components/ErrorBoundary.tsx';
+import { SKILL_COLORS } from '../components/charts/RadarChart.tsx';
 import { SKILL_TAGS } from '../lib/constants.ts';
-import { toDateString, formatDuration } from '../lib/sessionUtils.ts';
-import { type TimeWindow, WINDOW_DAYS, sessionPillarHours } from '../lib/analyticsUtils.ts';
+import { toDateString, formatDuration, addDays } from '../lib/sessionUtils.ts';
+import {
+  type TimeWindow, WINDOW_DAYS,
+  sessionPillarHours, computeAlignment, topTagInRange, tagHoursInRange, formatWeekShort,
+} from '../lib/analyticsUtils.ts';
 import {
   PALE_YELLOW, COPPER, CARD_BG, CARD_GLOW, CARD_GLOW_BORDER,
   FONT_EDITORIAL, INT_COLORS, SURFACE_2, SURFACE_2_BORDER, GLOW_SOFT,
 } from '../lib/theme.ts';
 import type { SessionSummary, Intention, SessionsResponse, IntentionsResponse, CalendarIntention } from '../types/api.ts';
-import BigPrism from '../components/atlas/BigPrism.tsx';
 import AtlasPrismDeck from '../components/atlas/AtlasPrismDeck.tsx';
 
 const LS_TAB_KEY = 'j2_atlas_tab';
@@ -45,12 +48,10 @@ export default function AtlasPage() {
   const navigate = useNavigate();
   const isDesktop = useIsDesktop();
 
-  // Mobile fallback: Atlas is desktop-only. Redirect to the traditional
-  // calendar view on narrow viewports so bookmarks don't break.
-  useEffect(() => {
-    if (!isDesktop) navigate('/calendar', { replace: true });
-  }, [isDesktop, navigate]);
-
+  // Mobile renders Prism-only (the merged analytics view). The other Atlas
+  // tabs (Timeline / Library / Calendar) stay desktop-only for now —
+  // Calendar mobile users have the dedicated `/calendar` route in the
+  // bottom nav, Timeline/Library don't have mobile analogues yet.
   const [tab, setTab] = useState<AtlasTab>(() => {
     const stored = localStorage.getItem(LS_TAB_KEY);
     return TABS.some(t => t.id === stored) ? (stored as AtlasTab) : 'timeline';
@@ -110,8 +111,42 @@ export default function AtlasPage() {
   const pendingSessions = usePendingSessions();
   const allSessions = useMemo(() => [...sessions, ...pendingSessions], [sessions, pendingSessions]);
 
-  if (!isDesktop) return null;
+  // ── Mobile: Prism-only ───────────────────────────────────────────────
+  if (!isDesktop) {
+    return (
+      <PageContent ready={!loading} loadingMessages={['Charting the year...']}>
+        <div className="mx-auto space-y-4 max-w-5xl px-4 sm:px-6 py-6">
+          <div>
+            <h2
+              className="text-2xl font-display font-bold tracking-tight"
+              style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}
+            >
+              Atlas
+            </h2>
+            <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.30)' }}>
+              The patterns in your training
+            </p>
+          </div>
+          {fetchError && <p className="text-sm text-red-400">{fetchError}</p>}
+          <PrismPanel
+            sessions={allSessions}
+            intentions={intentions}
+            timeWindow={timeWindow}
+            onWindowChange={setTimeWindow}
+            customRange={customRange}
+            onCustomRangeChange={setCustomRange}
+            selectedTag={selectedTag}
+            onSelectTag={setSelectedTag}
+            onOpenSession={(id) => navigate(`/journal/${id}`)}
+            onOpenIntentionJournal={(id) => navigate(`/intentions/${id}/journal`)}
+            isDesktop={false}
+          />
+        </div>
+      </PageContent>
+    );
+  }
 
+  // ── Desktop: full 4-tab editorial layout ─────────────────────────────
   return (
     <PageContent ready={!loading} loadingMessages={['Charting the year...', 'Measuring the ring...', 'Lacing up for the long look...']}>
     <div style={{ maxWidth: 1680, margin: '0 auto', padding: '64px 64px 104px' }}>
@@ -148,6 +183,8 @@ export default function AtlasPage() {
           selectedTag={selectedTag}
           onSelectTag={setSelectedTag}
           onOpenSession={(id) => navigate(`/journal/${id}`)}
+          onOpenIntentionJournal={(id) => navigate(`/intentions/${id}/journal`)}
+          isDesktop={true}
         />
       )}
 
@@ -466,7 +503,7 @@ function TimelineStrip({ year, sessions }: { year: number; sessions: SessionSumm
 
 function PrismPanel({
   sessions, intentions, timeWindow, onWindowChange, customRange, onCustomRangeChange,
-  selectedTag, onSelectTag, onOpenSession,
+  selectedTag, onSelectTag, onOpenSession, onOpenIntentionJournal, isDesktop,
 }: {
   sessions: SessionSummary[];
   intentions: Intention[];
@@ -477,6 +514,8 @@ function PrismPanel({
   selectedTag: string;
   onSelectTag: (tag: string) => void;
   onOpenSession: (id: string) => void;
+  onOpenIntentionJournal: (id: string) => void;
+  isDesktop: boolean;
 }) {
   // ── Hero stats — filtered to current time window ──
   const filtered = useMemo(() => {
@@ -569,8 +608,24 @@ function PrismPanel({
         const bk = typeof b.date === 'string' ? b.date.slice(0, 10) : toDateString(new Date(b.date));
         return bk.localeCompare(ak);
       })
-      .slice(0, 8);
+      .slice(0, 6);
   }, [sessions, selectedTag]);
+
+  // Intentions targeting the selected vertex (all-time), with alignment.
+  // Reuses computeAlignment so the readout matches what IntentionsPage shows.
+  const focusIntentions = useMemo(() => {
+    return intentions
+      .filter(i => i.heading === selectedTag)
+      .slice()
+      .sort((a, b) => b.week_start.localeCompare(a.week_start))
+      .slice(0, 6)
+      .map(i => {
+        const top   = topTagInRange(sessions, i.week_start, i.duration_days);
+        const hours = tagHoursInRange(sessions, i.week_start, i.duration_days);
+        const a     = computeAlignment(i, top, hours);
+        return { intention: i, alignment: a };
+      });
+  }, [intentions, sessions, selectedTag]);
 
   const descriptions: Record<string, string> = {
     standup:     'Where it begins. Grip fighting, entries, takedowns, the scramble before the mat.',
@@ -628,13 +683,14 @@ function PrismPanel({
       <ErrorBoundary>
         <AtlasPrismDeck
           sessions={sessions}
+          intentions={intentions}
           timeWindow={timeWindow}
           onWindowChange={onWindowChange}
           customRange={customRange}
           onCustomRangeChange={onCustomRangeChange}
           selectedTag={selectedTag}
           onSelectTag={onSelectTag}
-          bigPrismSize={520}
+          bigPrismSize={isDesktop ? 520 : 280}
         />
       </ErrorBoundary>
 
@@ -644,25 +700,25 @@ function PrismPanel({
           backgroundColor: CARD_BG,
           border: `1px solid ${CARD_GLOW_BORDER}`,
           boxShadow: CARD_GLOW,
-          borderRadius: 20,
-          padding: 32,
-          marginTop: 24,
+          borderRadius: isDesktop ? 20 : 16,
+          padding: isDesktop ? 32 : 20,
+          marginTop: isDesktop ? 24 : 16,
           display: 'grid',
-          gridTemplateColumns: '1fr 480px',
-          gap: 56,
-          alignItems: 'center',
+          gridTemplateColumns: isDesktop ? '1fr 480px' : '1fr',
+          gap: isDesktop ? 56 : 20,
+          alignItems: isDesktop ? 'center' : 'stretch',
         }}
       >
         <div>
           <div className="j2-label-copper" style={{ marginBottom: 10 }}>◇ Selected vertex</div>
-          <div className="j2-serif-display j2-heading-glow" style={{ fontSize: 56, lineHeight: 1 }}>
+          <div className="j2-serif-display j2-heading-glow" style={{ fontSize: isDesktop ? 56 : 36, lineHeight: 1 }}>
             {selectedLabel}
           </div>
           <p
             style={{
-              fontSize: 16, lineHeight: 1.6,
+              fontSize: isDesktop ? 16 : 14, lineHeight: 1.6,
               color: 'rgba(255,255,255,0.60)',
-              marginTop: 14, marginBottom: 0,
+              marginTop: 12, marginBottom: 0,
             }}
           >
             {descriptions[selectedTag] ?? 'Your training in this pillar.'}
@@ -725,78 +781,174 @@ function PrismPanel({
         </div>
       </div>
 
-      {/* ── Recent sessions at selected vertex ────────────────────── */}
-      {recentSessions.length > 0 && (
+      {/* ── Sessions × Intentions for selected vertex ──────────────────
+          Two-column layout: Recent sessions left, Intentions for this
+          focus right. Stacks vertically on mobile. */}
+      {(recentSessions.length > 0 || focusIntentions.length > 0) && (
         <div
           style={{
             background: CARD_BG,
             border: '1px solid var(--j2-border-2)',
-            borderRadius: 18,
-            padding: 32,
-            marginTop: 24,
+            borderRadius: isDesktop ? 18 : 14,
+            padding: isDesktop ? 32 : 20,
+            marginTop: isDesktop ? 24 : 16,
+            display: 'grid',
+            gridTemplateColumns: isDesktop ? '1fr 1fr' : '1fr',
+            gap: isDesktop ? 32 : 24,
           }}
         >
-          <div className="j2-label-copper" style={{ marginBottom: 20 }}>
-            ◈ Recent sessions at {selectedLabel}
-          </div>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: 16,
-            }}
-          >
-            {recentSessions.map(s => {
-              const dateStr = typeof s.date === 'string' ? s.date.slice(0, 10) : toDateString(new Date(s.date));
-              const d = new Date(dateStr + 'T00:00:00');
-              const intensity = Math.max(1, Math.min(5, s.intensity ?? 3));
-              const intColor = INT_COLORS[intensity as 1 | 2 | 3 | 4 | 5] ?? '#A8CB72';
-              return (
-                <button
-                  key={s.id}
-                  onClick={() => onOpenSession(s.id)}
-                  style={{
-                    padding: 20,
-                    background: 'var(--j2-surface-2)',
-                    border: '1px solid var(--j2-border-1)',
-                    borderRadius: 14,
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    transition: 'background 160ms ease, transform 160ms ease',
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-                    e.currentTarget.style.transform = 'translateY(-1px)';
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.background = 'var(--j2-surface-2)';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
-                >
-                  <div className="j2-label-micro" style={{ fontSize: 11 }}>
-                    {new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(d)}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10 }}>
-                    <span
+          {/* Left column — Recent sessions */}
+          <div>
+            <div className="j2-label-copper" style={{ marginBottom: 16 }}>
+              ◈ Recent sessions at {selectedLabel}
+            </div>
+            {recentSessions.length === 0 ? (
+              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.30)', fontStyle: 'italic' }}>
+                No sessions logged with this focus yet.
+              </p>
+            ) : (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: isDesktop ? 'repeat(2, 1fr)' : 'repeat(2, 1fr)',
+                  gap: isDesktop ? 12 : 10,
+                }}
+              >
+                {recentSessions.map(s => {
+                  const dateStr = typeof s.date === 'string' ? s.date.slice(0, 10) : toDateString(new Date(s.date));
+                  const d = new Date(dateStr + 'T00:00:00');
+                  const intensity = Math.max(1, Math.min(5, s.intensity ?? 3));
+                  const intColor = INT_COLORS[intensity as 1 | 2 | 3 | 4 | 5] ?? '#A8CB72';
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => onOpenSession(s.id)}
                       style={{
-                        width: 12, height: 12, borderRadius: '50%',
-                        background: intColor,
-                        boxShadow: `0 0 10px ${intColor}60`,
-                        flexShrink: 0,
+                        padding: isDesktop ? 16 : 14,
+                        background: 'var(--j2-surface-2)',
+                        border: '1px solid var(--j2-border-1)',
+                        borderRadius: 12,
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        transition: 'background 160ms ease, transform 160ms ease',
                       }}
-                    />
-                    <div
-                      style={{
-                        fontSize: 15, fontFamily: FONT_EDITORIAL,
-                        color: 'rgba(255,255,255,0.90)',
+                      onMouseEnter={e => {
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.background = 'var(--j2-surface-2)';
+                        e.currentTarget.style.transform = 'translateY(0)';
                       }}
                     >
-                      {formatDuration(s.duration ?? 0)}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
+                      <div className="j2-label-micro" style={{ fontSize: 10 }}>
+                        {new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(d)}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                        <span
+                          style={{
+                            width: 10, height: 10, borderRadius: '50%',
+                            background: intColor,
+                            boxShadow: `0 0 8px ${intColor}60`,
+                            flexShrink: 0,
+                          }}
+                        />
+                        <div
+                          style={{
+                            fontSize: 14, fontFamily: FONT_EDITORIAL,
+                            color: 'rgba(255,255,255,0.90)',
+                          }}
+                        >
+                          {formatDuration(s.duration ?? 0)}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Right column — Intentions for this focus */}
+          <div>
+            <div className="j2-label-copper" style={{ marginBottom: 16 }}>
+              ◇ Intentions for {selectedLabel}
+            </div>
+            {focusIntentions.length === 0 ? (
+              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.30)', fontStyle: 'italic' }}>
+                No intentions have targeted this pillar yet.
+              </p>
+            ) : (
+              <div className="rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--j2-surface-2)', border: '1px solid var(--j2-border-1)' }}>
+                {focusIntentions.map(({ intention, alignment }, i) => {
+                  const endDate = addDays(intention.week_start, intention.duration_days);
+                  return (
+                    <button
+                      key={intention.id}
+                      onClick={() => onOpenIntentionJournal(intention.id)}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 12,
+                        padding: '12px 14px',
+                        background: 'transparent',
+                        border: 'none',
+                        borderTop: i === 0 ? 'none' : '1px solid rgba(255,255,255,0.04)',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        transition: 'background 160ms ease',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                    >
+                      <div
+                        style={{
+                          width: 5, height: 28, borderRadius: 999,
+                          backgroundColor:
+                            alignment.status === 'aligned'  ? 'rgba(82,181,108,0.70)'
+                          : alignment.status === 'diverged' ? 'rgba(218,116,34,0.50)'
+                          : 'rgba(255,255,255,0.06)',
+                          flexShrink: 0,
+                        }}
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div
+                          style={{
+                            fontSize: 13, fontWeight: 600,
+                            color: 'rgba(255,255,255,0.85)',
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {intention.intent_label || selectedLabel}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)', marginTop: 2 }}>
+                          {formatWeekShort(intention.week_start)} – {formatWeekShort(endDate)}
+                        </div>
+                      </div>
+                      {alignment.status !== 'no-data' ? (
+                        <span
+                          style={{
+                            fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 999,
+                            backgroundColor:
+                              alignment.status === 'aligned' ? 'rgba(82,181,108,0.12)' : 'rgba(218,116,34,0.12)',
+                            color:
+                              alignment.status === 'aligned' ? 'rgba(82,181,108,0.85)' : 'rgba(218,116,34,0.75)',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {alignment.score !== null ? `${alignment.score}%` : (alignment.status === 'aligned' ? 'Aligned' : 'Diverged')}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: 11, fontStyle: 'italic', color: 'rgba(255,255,255,0.20)', flexShrink: 0 }}>
+                          No data
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -804,203 +956,8 @@ function PrismPanel({
   );
 }
 
-function BigPrism({
-  activeTag, pillarStats, maxCount, size, onSelect,
-}: {
-  activeTag: string;
-  pillarStats: Record<string, { count: number; minutes: number }>;
-  maxCount: number;
-  size: number;
-  onSelect: (tag: string) => void;
-}) {
-  const cx = size / 2;
-  const cy = size / 2;
-  const R = size * 0.36;
-  const N = SKILL_TAGS.length;
-
-  const vs = SKILL_TAGS.map((tag, i) => {
-    const angle = (2 * Math.PI / N) * i - Math.PI / 2;
-    const count = pillarStats[tag.value]?.count ?? 0;
-    // Data radius: normalize against the top pillar, floor at 0.08 so empty
-    // pillars still read as a tiny-but-present point rather than collapsing
-    // onto the center and distorting the polygon.
-    const norm = maxCount > 0 ? Math.max(0.08, count / maxCount) : 0.08;
-    return {
-      value: tag.value,
-      label: tag.label,
-      x: cx + R * Math.cos(angle),
-      y: cy + R * Math.sin(angle),
-      dx: cx + R * norm * Math.cos(angle),
-      dy: cy + R * norm * Math.sin(angle),
-      angle,
-      norm,
-    };
-  });
-  const polyPoints = vs.map(v => `${v.x},${v.y}`).join(' ');
-  const dataPoints = vs.map(v => `${v.dx},${v.dy}`).join(' ');
-
-  return (
-    <svg
-      viewBox={`0 0 ${size} ${size}`}
-      width={size}
-      height={size}
-      style={{ overflow: 'visible', display: 'block' }}
-    >
-      <defs>
-        <radialGradient id={`prism-lab-glow-${size}`} cx="50%" cy="50%">
-          <stop offset="0%"   stopColor={PALE_YELLOW} stopOpacity="0.30" />
-          <stop offset="50%"  stopColor={COPPER}      stopOpacity="0.06" />
-          <stop offset="100%" stopColor="#000"        stopOpacity="0" />
-        </radialGradient>
-        <radialGradient id={`prism-lab-data-${size}`} cx="50%" cy="50%" r="65%">
-          <stop offset="0%"   stopColor={PALE_YELLOW} stopOpacity="0.38" />
-          <stop offset="60%"  stopColor={COPPER}      stopOpacity="0.18" />
-          <stop offset="100%" stopColor={COPPER}      stopOpacity="0.06" />
-        </radialGradient>
-      </defs>
-
-      {/* Ambient center glow */}
-      <circle cx={cx} cy={cy} r={R * 1.25} fill={`url(#prism-lab-glow-${size})`} />
-
-      {/* Concentric guide pentagons (4 rings for larger scale) */}
-      {[0.25, 0.5, 0.75, 1].map(t => (
-        <polygon
-          key={t}
-          points={vs.map(v => `${cx + R * t * Math.cos(v.angle)},${cy + R * t * Math.sin(v.angle)}`).join(' ')}
-          fill="none"
-          stroke="rgba(196,145,95,0.18)"
-          strokeWidth={1}
-          strokeDasharray="2 3"
-        />
-      ))}
-
-      {/* Spokes */}
-      {vs.map(v => (
-        <line
-          key={`spoke-${v.value}`}
-          x1={cx} y1={cy} x2={v.x} y2={v.y}
-          stroke="rgba(255,255,255,0.06)"
-        />
-      ))}
-
-      {/* Outer reference pentagon — dashed, the "max" ring */}
-      <polygon
-        points={polyPoints}
-        fill="none"
-        stroke="rgba(196,145,95,0.30)"
-        strokeWidth={1.2}
-        strokeDasharray="3 4"
-      />
-
-      {/* DATA polygon — each vertex pulled toward center proportional to
-          its session count. This is the degree-of-alignment shape the old
-          radar showed, reborn inside the Prism Lab aesthetic. */}
-      <polygon
-        points={dataPoints}
-        fill={`url(#prism-lab-data-${size})`}
-        stroke={PALE_YELLOW}
-        strokeOpacity={0.7}
-        strokeWidth={1.5}
-        strokeLinejoin="round"
-        style={{ filter: `drop-shadow(0 0 10px rgba(242,228,168,0.22))` }}
-      />
-
-      {/* Small champagne markers at each data vertex */}
-      {vs.map(v => (
-        <circle
-          key={`data-dot-${v.value}`}
-          cx={v.dx}
-          cy={v.dy}
-          r={3.5}
-          fill={PALE_YELLOW}
-          opacity={0.85}
-          style={{ pointerEvents: 'none' }}
-        />
-      ))}
-
-      {/* Per-vertex session-count halos — sized proportionally */}
-      {vs.map(v => {
-        const count = pillarStats[v.value]?.count ?? 0;
-        const intensity = count / maxCount;
-        const color = SKILL_COLORS[v.value]?.stroke ?? COPPER;
-        return (
-          <circle
-            key={`halo-${v.value}`}
-            cx={v.x}
-            cy={v.y}
-            r={14 + intensity * 38}
-            fill={color}
-            opacity={0.10 + intensity * 0.28}
-            style={{ pointerEvents: 'none' }}
-          />
-        );
-      })}
-
-      {/* Outer ring halo on the active vertex */}
-      {(() => {
-        const v = vs.find(x => x.value === activeTag);
-        if (!v) return null;
-        const color = SKILL_COLORS[activeTag]?.stroke ?? COPPER;
-        return (
-          <circle
-            cx={v.x} cy={v.y}
-            r={size * 0.095}
-            fill="none"
-            stroke={color}
-            strokeWidth={1.5}
-            opacity={0.7}
-            style={{ pointerEvents: 'none' }}
-          />
-        );
-      })()}
-
-      {/* Vertex dots + labels — whole <g> is clickable */}
-      {vs.map(v => {
-        const isActive = v.value === activeTag;
-        const color = SKILL_COLORS[v.value]?.stroke ?? COPPER;
-        const dx = v.x - cx;
-        const dy = v.y - cy;
-        const textX = v.x + (dx > 1 ? 22 : dx < -1 ? -22 : 0);
-        const textY = v.y + (dy > 1 ? 28 : dy < -1 ? -18 : 4);
-        const anchor: 'start' | 'end' | 'middle' = dx > 1 ? 'start' : dx < -1 ? 'end' : 'middle';
-        return (
-          <g
-            key={v.value}
-            onClick={() => onSelect(v.value)}
-            style={{ cursor: 'pointer' }}
-          >
-            {/* Invisible larger hit area for easier clicking */}
-            <circle cx={v.x} cy={v.y} r={24} fill="transparent" />
-            <circle
-              cx={v.x}
-              cy={v.y}
-              r={isActive ? 11 : 6}
-              fill={isActive ? PALE_YELLOW : color}
-              style={isActive
-                ? { filter: `drop-shadow(0 0 14px ${PALE_YELLOW})` }
-                : undefined}
-            />
-            <text
-              x={textX}
-              y={textY}
-              textAnchor={anchor}
-              fill={isActive ? PALE_YELLOW : 'rgba(255,255,255,0.60)'}
-              fontSize={13}
-              fontWeight={isActive ? 700 : 600}
-              letterSpacing={2}
-              style={{ textTransform: 'uppercase', userSelect: 'none' }}
-            >
-              {v.label}
-            </text>
-          </g>
-        );
-      })}
-
-      {/* Center mark */}
-      <circle cx={cx} cy={cy} r={3} fill={PALE_YELLOW} opacity={0.6} />
-    </svg>
-  );
-}
+// (BigPrism extracted to components/atlas/BigPrism.tsx — animation transitions
+// + normalized-prop API live there now.)
 
 // ── Library panel (Coming Soon) ───────────────────────────────────────────
 

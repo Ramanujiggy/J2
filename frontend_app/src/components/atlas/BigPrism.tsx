@@ -21,6 +21,13 @@ import { PALE_YELLOW, COPPER } from '../../lib/theme.ts';
 interface Props {
   /** Normalized hours per pillar in [0, 1], length === SKILL_TAGS.length, ordered by SKILL_TAGS. */
   normalized: number[];
+  /**
+   * Optional alignment overlay — per-pillar alignment % in [0, 1] (e.g. 0.75 = 75%
+   * of intention-targeted hours matched). Renders as a faint copper polygon
+   * behind the data shape, showing "what you said you'd train" against the
+   * actual training shape. Pass undefined or all-zeros to skip the overlay.
+   */
+  alignmentNormalized?: number[];
   activeTag: string;
   onSelect: (tag: string) => void;
   size?: number;
@@ -28,16 +35,20 @@ interface Props {
 
 const FLOOR = 0.08; // empty pillars still render as a small dot rather than collapsing onto center
 
-export default function BigPrism({ normalized, activeTag, onSelect, size = 560 }: Props) {
+export default function BigPrism({ normalized, alignmentNormalized, activeTag, onSelect, size = 560 }: Props) {
   const cx = size / 2;
   const cy = size / 2;
   const R = size * 0.36;
   const N = SKILL_TAGS.length;
 
   const polyRef = useRef<SVGPolygonElement>(null);
+  const alignPolyRef = useRef<SVGPolygonElement>(null);
   const dotRefs = useRef<(SVGCircleElement | null)[]>([]);
   const haloRefs = useRef<(SVGCircleElement | null)[]>([]);
   const mountedRef = useRef(false);
+
+  const hasAlignmentOverlay =
+    !!alignmentNormalized && alignmentNormalized.some(v => v > 0);
 
   // Compute geometry — outer reference vertices + data vertices pulled in by `norm`.
   const vs = SKILL_TAGS.map((tag, i) => {
@@ -58,6 +69,15 @@ export default function BigPrism({ normalized, activeTag, onSelect, size = 560 }
   const dataPoints = vs.map(v => `${v.dx},${v.dy}`).join(' ');
   const centerPoints = Array(N).fill(`${cx},${cy}`).join(' ');
 
+  // Alignment overlay vertices — same geometry, radius driven by per-pillar
+  // alignment instead of by hours. Floor matches the data polygon so empty
+  // pillars stay readable.
+  const alignPoints = SKILL_TAGS.map((_, i) => {
+    const angle = (2 * Math.PI / N) * i - Math.PI / 2;
+    const a = Math.max(FLOOR, alignmentNormalized?.[i] ?? FLOOR);
+    return `${cx + R * a * Math.cos(angle)},${cy + R * a * Math.sin(angle)}`;
+  }).join(' ');
+
   // Animate the data polygon + data dots + per-vertex halos in lockstep.
   // Effect re-runs whenever the normalized vector changes — first run does the
   // dramatic from-center reveal, subsequent runs morph in place.
@@ -72,6 +92,15 @@ export default function BigPrism({ normalized, activeTag, onSelect, size = 560 }
         { attr: { points: centerPoints } },
         { attr: { points: dataPoints }, duration: 1.1, ease: 'elastic.out(1, 0.75)' },
       );
+      // Alignment overlay traces in just before the data shape so the
+      // "what you said you'd train" backdrop reads first.
+      if (alignPolyRef.current) {
+        gsap.fromTo(
+          alignPolyRef.current,
+          { attr: { points: centerPoints } },
+          { attr: { points: alignPoints }, duration: 0.9, ease: 'power3.out', delay: 0.05 },
+        );
+      }
       // Dots pop in after the polygon traces out
       dotRefs.current.forEach((dot, i) => {
         if (!dot) return;
@@ -82,8 +111,11 @@ export default function BigPrism({ normalized, activeTag, onSelect, size = 560 }
         );
       });
     } else {
-      // Subsequent: morph polygon + dots + halos from current to target.
+      // Subsequent: morph polygon + dots + halos + alignment overlay in place.
       gsap.to(poly, { attr: { points: dataPoints }, duration: 0.6, ease: 'power3.out' });
+      if (alignPolyRef.current) {
+        gsap.to(alignPolyRef.current, { attr: { points: alignPoints }, duration: 0.6, ease: 'power3.out' });
+      }
       dotRefs.current.forEach((dot, i) => {
         if (!dot) return;
         gsap.to(dot, { attr: { cx: vs[i]!.dx, cy: vs[i]!.dy }, duration: 0.6, ease: 'power3.out' });
@@ -100,7 +132,7 @@ export default function BigPrism({ normalized, activeTag, onSelect, size = 560 }
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [normalized.join(',')]);
+  }, [normalized.join(','), alignmentNormalized?.join(',')]);
 
   return (
     <svg
@@ -154,6 +186,22 @@ export default function BigPrism({ normalized, activeTag, onSelect, size = 560 }
         strokeWidth={1.2}
         strokeDasharray="3 4"
       />
+
+      {/* Alignment overlay — what the user said they'd train (per-pillar
+          alignment % from intentions). Sits behind the data polygon. */}
+      {hasAlignmentOverlay && (
+        <polygon
+          ref={alignPolyRef}
+          points={alignPoints}
+          fill="rgba(196,145,95,0.10)"
+          stroke={COPPER}
+          strokeOpacity={0.55}
+          strokeWidth={1.2}
+          strokeDasharray="4 3"
+          strokeLinejoin="round"
+          style={{ filter: 'drop-shadow(0 0 6px rgba(196,145,95,0.20))' }}
+        />
+      )}
 
       {/* Data polygon — shape morphs as `normalized` changes */}
       <polygon

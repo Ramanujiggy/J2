@@ -16,8 +16,9 @@ import { Info, Triangle, Target, BarChart2, Layers, BookOpen, Activity, type Luc
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { SKILL_TAGS, MONTH_NAMES } from '../../lib/constants.ts';
 import { CARD_BG, COPPER, CARD_GLOW, CARD_GLOW_BORDER, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3_BORDER } from '../../lib/theme.ts';
-import { WINDOW_DAYS, type TimeWindow, sessionPillarHours } from '../../lib/analyticsUtils.ts';
+import { WINDOW_DAYS, type TimeWindow, sessionPillarHours, tagHoursInRange } from '../../lib/analyticsUtils.ts';
 import type { SessionSummary } from '../TrainingHeatmap.tsx';
+import type { Intention } from '../../types/api.ts';
 import TimeRangeBar from '../TimeRangeBar.tsx';
 import { SKILL_COLORS, DEFAULT_COLORS } from '../charts/RadarChart.tsx';
 import DonutChart from '../charts/DonutChart.tsx';
@@ -67,6 +68,9 @@ const VIEW_META: Record<ViewMode, { title: string; subtitle: string }> = {
 
 interface Props {
   sessions: SessionSummary[];
+  /** Used for the alignment overlay — per-pillar alignment % comes from
+   *  intentions whose heading matches a pillar, hours-weighted. */
+  intentions: Intention[];
   timeWindow: TimeWindow;
   onWindowChange: (w: TimeWindow) => void;
   customRange: { start: string; end: string } | null;
@@ -79,7 +83,7 @@ interface Props {
 }
 
 export default function AtlasPrismDeck({
-  sessions, timeWindow, onWindowChange, customRange, onCustomRangeChange,
+  sessions, intentions, timeWindow, onWindowChange, customRange, onCustomRangeChange,
   selectedTag, onSelectTag, bigPrismSize = 480,
 }: Props) {
   const [subtitleRevealed, setSubtitleRevealed] = useState(false);
@@ -134,6 +138,44 @@ export default function AtlasPrismDeck({
       return d >= priorCutoff && d < cutoff;
     });
   }, [sessions, timeWindow]);
+
+  // ── Alignment overlay (per-pillar) ──
+  // For each pillar, compute hours-weighted alignment across intentions that
+  // targeted that pillar AND started within the current time window.
+  // matchHours = time spent on the pillar during the intention's date range
+  // totalHours = total training time during that date range
+  // Pillar alignment = Σ matchHours / Σ totalHours across matching intentions.
+  // If no intentions targeted a pillar in window, alignment = 0 (no overlay vertex).
+  const alignmentNormalized = useMemo(() => {
+    // Determine window cutoffs (mirrors `filtered` logic but for intentions).
+    let windowStart: Date | null = null;
+    let windowEnd: Date | null = null;
+    if (timeWindow === 'custom' && customRange) {
+      windowStart = new Date(customRange.start + 'T00:00:00');
+      windowEnd   = new Date(customRange.end   + 'T23:59:59');
+    } else {
+      const days = WINDOW_DAYS[timeWindow];
+      if (days != null) windowStart = new Date(Date.now() - days * 86_400_000);
+    }
+
+    return SKILL_TAGS.map(({ value }) => {
+      let matchSum = 0;
+      let totalSum = 0;
+      for (const i of intentions) {
+        if (i.heading !== value) continue;
+        const ws = new Date(i.week_start + 'T00:00:00');
+        if (windowStart && ws < windowStart) continue;
+        if (windowEnd && ws > windowEnd) continue;
+        const tagHours = tagHoursInRange(sessions, i.week_start, i.duration_days);
+        const t = Object.values(tagHours).reduce((a, b) => a + b, 0);
+        if (t <= 0) continue;
+        const m = tagHours[value] ?? 0;
+        matchSum += m;
+        totalSum += t;
+      }
+      return totalSum > 0 ? matchSum / totalSum : 0;
+    });
+  }, [sessions, intentions, timeWindow, customRange]);
 
   // ── Prism data ──
   const hoursMap: Record<string, number> = Object.fromEntries(SKILL_TAGS.map(({ value }) => [value, 0]));
@@ -290,6 +332,7 @@ export default function AtlasPrismDeck({
     return (
       <BigPrism
         normalized={normalized}
+        alignmentNormalized={alignmentNormalized}
         activeTag={selectedTag}
         onSelect={onSelectTag}
         size={bigPrismSize}
@@ -547,7 +590,7 @@ export default function AtlasPrismDeck({
 
         <div className="w-full flex justify-center">
           {viewMode === 'prism' ? (
-            <BigPrism normalized={normalized} activeTag={selectedTag} onSelect={onSelectTag} size={Math.min(bigPrismSize, 320)} />
+            <BigPrism normalized={normalized} alignmentNormalized={alignmentNormalized} activeTag={selectedTag} onSelect={onSelectTag} size={Math.min(bigPrismSize, 320)} />
           ) : (
             <div className="w-full max-w-[300px]">{renderChart(viewMode)}</div>
           )}

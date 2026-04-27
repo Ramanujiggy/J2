@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronRight, ChevronLeft, CalendarDays, X } from 'lucide-react';
-import type { TimeWindow } from './SkillRadar.tsx';
+import type { TimeWindow } from '../lib/analyticsUtils.ts';
 import { CARD_BG, COPPER_BORDER, PALE_YELLOW, COPPER, SURFACE_3, DATE_INPUT_STYLE } from '../lib/theme.ts';
 import { MONTH_NAMES } from '../lib/constants.ts';
 

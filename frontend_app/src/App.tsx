@@ -8,7 +8,6 @@ import LoginPage from './app/LoginPage.tsx';
 import ResetPasswordPage from './app/ResetPasswordPage.tsx';
 import PathAheadPage from './app/PathAheadPage.tsx';
 import CalendarPage from './app/CalendarPage.tsx';
-import AnalyticsPage from './app/AnalyticsPage.tsx';
 import AtlasPage from './app/AtlasPage.tsx';
 import IntentionsPage from './app/IntentionsPage.tsx';
 import JournalEntryPage from './app/JournalEntryPage.tsx';
@@ -38,7 +37,9 @@ function App() {
 
       <Route path="/home"        element={<ProtectedShell><PathAheadPage /></ProtectedShell>} />
       <Route path="/calendar"    element={<ProtectedShell><CalendarPage /></ProtectedShell>} />
-      <Route path="/analytics"   element={<ProtectedShell><AnalyticsPage /></ProtectedShell>} />
+      {/* /analytics retired — its functionality folded into Atlas's Prism tab.
+          Bookmarks land on the merged view. */}
+      <Route path="/analytics"   element={<Navigate to="/atlas" replace />} />
       <Route path="/atlas"       element={<ProtectedShell><AtlasPage /></ProtectedShell>} />
       <Route path="/journal"     element={<ProtectedShell><JournalIndexPage /></ProtectedShell>} />
       <Route path="/journal/:id" element={<ProtectedShell><SessionDetailPage /></ProtectedShell>} />

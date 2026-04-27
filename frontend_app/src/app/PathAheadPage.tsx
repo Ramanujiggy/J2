@@ -28,23 +28,12 @@ import { sessionPillarHours } from '../lib/analyticsUtils.ts';
 import RepRouletteFab from '../components/RepRouletteFab.tsx';
 import { toDateString, addDays, formatDuration, DAY_NAMES, INTENSITY_COLOR, SESSION_TYPE_LABELS } from '../lib/sessionUtils.ts';
 import { STATS_PARTICLES } from '../lib/particles.ts';
-import { maxLinesHeight } from '../lib/pretextMeasure.ts';
 import { computeStats } from '../components/TrainingHeatmap.tsx';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
 interface DeleteResponse      { message: string }
-
-// Static so the height-measurement memo doesn't invalidate on every render.
-const REFLECTION_PROMPTS = [
-  "What moment from yesterday's roll still teaches you?",
-  "Which opponent's pressure changed how you move?",
-  "What's the smallest detail you're drilling this week?",
-  "Where did your breath leave you last session?",
-  "What technique are you quietly getting better at?",
-  "When did the mat last surprise you?",
-] as const;
 
 // ── PathAheadPage ──────────────────────────────────────────────────────────
 
@@ -696,82 +685,6 @@ export default function PathAheadPage() {
     </div>
   );
 
-  // ── Reflection prompt — rotating meditative question ──
-  // Stable per-day prompt
-  const todayIdx = Math.floor(today.getTime() / 86400000);
-  const reflectionPrompt = REFLECTION_PROMPTS[todayIdx % REFLECTION_PROMPTS.length];
-
-  // Reflection card height stability — measure all 6 prompts at the card's
-  // actual content width and lock the prose <p> to the tallest. Stops the card
-  // from jumping height as the daily prompt cycles. Recomputes when the card
-  // resizes (viewport rotation, desktop column reflow).
-  const reflectionCardRef = useRef<HTMLDivElement | null>(null);
-  const [reflectionCardWidth, setReflectionCardWidth] = useState<number>(0);
-  useEffect(() => {
-    const el = reflectionCardRef.current;
-    if (!el || typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver(entries => {
-      for (const entry of entries) {
-        const w = entry.contentRect.width;
-        if (w > 0) setReflectionCardWidth(w);
-      }
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-  const reflectionMaxHeight = useMemo(() => {
-    if (reflectionCardWidth <= 0) return null;
-    // Card has px-4 padding (16px each side) → prose width = card width - 32.
-    // <p> is text-sm (14px) italic with leading-relaxed (1.625).
-    return maxLinesHeight(REFLECTION_PROMPTS, {
-      width: Math.max(40, reflectionCardWidth - 32),
-      font: "italic 14px 'Plus Jakarta Sans', system-ui, sans-serif",
-      lineHeight: 14 * 1.625,
-    });
-  }, [reflectionCardWidth]);
-
-  const reflectionCard = (
-    <div
-      ref={reflectionCardRef}
-      className="rounded-xl px-4 py-4"
-      style={{ backgroundColor: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}` }}
-    >
-      <p
-        className="text-[10px] font-semibold uppercase tracking-widest mb-2"
-        style={{ color: COPPER }}
-      >
-        ◇ Reflection
-      </p>
-      <p
-        className="text-sm italic leading-relaxed"
-        style={{
-          color: 'rgba(255,255,255,0.75)',
-          minHeight: reflectionMaxHeight ? `${reflectionMaxHeight}px` : undefined,
-        }}
-      >
-        &ldquo;{reflectionPrompt}&rdquo;
-      </p>
-      <button
-        onClick={() => {
-          if (activeIntention) {
-            navigate(`/intentions/${activeIntention.id}/journal`);
-          } else {
-            setLogDate(toDateString(today));
-            setLogOpen(true);
-          }
-        }}
-        className="mt-3 w-full rounded-xl px-4 py-2.5 text-xs font-medium transition-colors touch-manipulation"
-        style={{
-          backgroundColor: SURFACE_3,
-          border: '1px solid rgba(255,255,255,0.08)',
-          color: 'rgba(255,255,255,0.75)',
-        }}
-      >
-        Write an entry
-      </button>
-    </div>
-  );
-
   const modals = (
     <>
       {logOpen && (
@@ -1136,10 +1049,10 @@ export default function PathAheadPage() {
 
             {/* Last 30 days intensity */}
             <div style={{ ...softCardStyle, padding: 32 }}>
-              <div className="j2-label-copper" style={{ marginBottom: 16 }}>◈ Last 30 days · intensity</div>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 96 }}>
+              <div className="j2-label-copper" style={{ marginBottom: 22 }}>◈ Last 30 days · intensity</div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 140 }}>
                 {intensityDist.map((n, i) => {
-                  const h = intensityMax ? (n / intensityMax) * 80 + 10 : 6;
+                  const h = intensityMax ? (n / intensityMax) * 116 + 14 : 8;
                   const c = INT_COLORS[(i + 1) as 1 | 2 | 3 | 4 | 5];
                   return (
                     <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
@@ -1168,7 +1081,7 @@ export default function PathAheadPage() {
                   letterSpacing: '0.14em', textTransform: 'uppercase', marginTop: 8,
                 }}
               >
-                <span>Drill</span><span>Steady</span><span>Hard roll</span>
+                <span>Light</span><span>Moderate</span><span>High</span>
               </div>
             </div>
 
@@ -1178,9 +1091,6 @@ export default function PathAheadPage() {
               {weekSectionHeader}
               <div style={{ marginTop: 16 }}>{weekViewContent}</div>
             </div>
-
-            {/* Reflection */}
-            {reflectionCard}
           </div>
         </div>
 
@@ -1321,7 +1231,6 @@ export default function PathAheadPage() {
         {weekViewContent}
         {primaryCta}
         {heatmapSection}
-        {reflectionCard}
       </>
       )}
 

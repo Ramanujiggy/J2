@@ -80,9 +80,9 @@ type NavItem = {
   gated?: 'intentions';
 };
 
-// Atlas absorbs what used to be Calendar + Analytics on desktop. The old
-// /calendar and /analytics routes still exist so mobile nav + direct URLs
-// continue to work, but the desktop rail is a single Atlas entry.
+// Atlas absorbs what used to be Calendar + Analytics. /calendar still
+// exists for the dedicated mobile heatmap view + direct URLs; /analytics
+// redirects to /atlas (its functionality is now Atlas's Prism tab).
 const NAV_ITEMS: readonly NavItem[] = [
   { path: '/home',       label: 'Path Ahead', Icon: CompassIcon },
   { path: '/journal',    label: 'Journal',    Icon: BookIcon },

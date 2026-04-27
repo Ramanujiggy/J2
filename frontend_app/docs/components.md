@@ -47,8 +47,8 @@ Year-at-a-glance view. Contains `TrainingHeatmap` for the selected year with pre
 
 ---
 
-### `AnalyticsPage.tsx`
-Full analytics view powered by `SkillRadar`. Contains an **Intention vs Training Telemetry** section below the radar: a collapsible table comparing each week's set intention category against the actual top-logged skill tag. Toggle show/hide. Fetches sessions and intentions on mount.
+### `AtlasPage.tsx`
+Aggregate view across years. Four tabs (Timeline / Prism / Library / Calendar) on desktop. The **Prism** tab absorbed the former `/analytics` page: 5-view sub-rail (Prism / Volume / Split / Format / Weekly Rhythm), time-window pills with custom range, hero stats strip with prior-period delta, alignment overlay on the BigPrism (intentions vs actual training), and a two-column "Recent sessions | Intentions for this focus" panel below a selected vertex. Mobile renders the Prism tab only; the redirect to `/calendar` was retired. The `/analytics` URL now redirects to `/atlas`.
 
 ---
 
@@ -356,7 +356,8 @@ React class-based error boundary wrapping `TrainingHeatmap` and `SkillRadar`. Ca
 | `/reset-password` | `ResetPasswordPage` | No |
 | `/home` | `PathAheadPage` | Yes |
 | `/calendar` | `CalendarPage` | Yes |
-| `/analytics` | `AnalyticsPage` | Yes |
+| `/atlas` | `AtlasPage` | Yes |
+| `/analytics` | Redirect → `/atlas` | — |
 | `/intentions` | `IntentionsPage` | Yes |
 | `/intentions/:id/journal` | `JournalEntryPage` | Yes |
 | `/profile` | `ProfilePage` | Yes |

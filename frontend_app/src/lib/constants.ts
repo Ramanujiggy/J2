@@ -1,5 +1,17 @@
 import { PRESTIGE_GREEN, PRESTIGE_GREEN_GLOW } from './theme';
 
+// Daily reflection prompts — rotates one per day on the JournalEntryPage.
+// Index = floor(unix_ms / 86_400_000) % length, so the same day gives the
+// same prompt regardless of how many times the page is opened.
+export const REFLECTION_PROMPTS = [
+  "What moment from yesterday's roll still teaches you?",
+  "Which opponent's pressure changed how you move?",
+  "What's the smallest detail you're drilling this week?",
+  "Where did your breath leave you last session?",
+  "What technique are you quietly getting better at?",
+  "When did the mat last surprise you?",
+] as const;
+
 export const ROULETTE_DRILLS = [
   { name: 'Hip Escape Drill',        focus: 'Guard',           suggestion: '3 × 10 each side',
     description: 'From bottom mount or side control, bridge to create space then shrimp your hips out to re-guard. Focus on explosive hip movement and keeping your frames tight.' },
