@@ -292,11 +292,11 @@ export default function BigPrism({ normalized, alignmentNormalized, activeTag, o
               x={textX}
               y={textY}
               textAnchor={anchor}
-              fill={isActive ? PALE_YELLOW : 'rgba(255,255,255,0.60)'}
-              fontSize={13}
-              fontWeight={isActive ? 700 : 600}
-              letterSpacing={2}
-              style={{ textTransform: 'uppercase', userSelect: 'none' }}
+              fill={isActive ? PALE_YELLOW : 'rgba(255,255,255,0.65)'}
+              fontSize={14}
+              fontWeight={isActive ? 700 : 500}
+              letterSpacing={0.3}
+              style={{ userSelect: 'none' }}
             >
               {v.label}
             </text>

@@ -39,6 +39,8 @@ export const ROULETTE_DRILLS = [
     description: 'From half guard or knee shield, slide your knee across your partner\'s thigh, pin their far hip, and cut through to side control. Keep heavy chest pressure as you pass.' },
   { name: 'Armbar from Guard',       focus: 'Submissions',     suggestion: '3 × 10 each side',
     description: 'From closed guard, control one arm with a two-on-one grip, pivot your hips out, throw your leg over their head, and extend the arm. Pinch your knees and keep their thumb pointing up.' },
+  { name: 'Armbar from Mount',       focus: 'Submissions',     suggestion: '4 × 10 each arm',
+    description: 'From high mount, trap one of your partner\'s arms across their body, post your far hand by their head, and swing your same-side leg over their face as you pivot 180°. Sit back, pinch your knees, and extend the hips slowly to finish — keep their thumb up and squeeze the elbow tight to your chest.' },
   { name: 'Granby Roll',             focus: 'Guard Retention', suggestion: '3 × 10 each direction',
     description: 'From turtle or a scramble, invert over your shoulder and roll through to re-guard or create a leg entanglement. Builds inverting confidence and scramble recovery.' },
   { name: 'Elbow-Knee Escape',       focus: 'Dynamic Pins',    suggestion: '3 × 10 each side',

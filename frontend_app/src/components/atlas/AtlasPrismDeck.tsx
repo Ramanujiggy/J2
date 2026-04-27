@@ -12,7 +12,7 @@
 //     deserves a calmer transition than SkillRadar's clinical slide.
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Info, Triangle, Target, BarChart2, Layers, BookOpen, Activity, type LucideIcon } from 'lucide-react';
+import { Info, Target, BarChart2, Layers, BookOpen, Activity, type LucideIcon } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { SKILL_TAGS, MONTH_NAMES } from '../../lib/constants.ts';
 import { CARD_BG, COPPER, CARD_GLOW, CARD_GLOW_BORDER, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3_BORDER } from '../../lib/theme.ts';
@@ -86,7 +86,6 @@ export default function AtlasPrismDeck({
   sessions, intentions, timeWindow, onWindowChange, customRange, onCustomRangeChange,
   selectedTag, onSelectTag, bigPrismSize = 480,
 }: Props) {
-  const [subtitleRevealed, setSubtitleRevealed] = useState(false);
   const [displayMode, setDisplayMode] = useState<'hours' | 'pct'>('hours');
   const [viewMode, setViewMode] = useState<ViewMode>('prism');
   const weeklyScrollRef = useRef<HTMLDivElement>(null);
@@ -97,18 +96,6 @@ export default function AtlasPrismDeck({
     const el = weeklyScrollRef.current;
     if (!el) return;
     el.scrollTo({ left: el.scrollWidth - el.clientWidth, behavior: 'smooth' });
-  }, [viewMode]);
-
-  // Mobile auto-reveal subtitle on view change
-  useEffect(() => {
-    const isTouchOnly = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
-    if (!isTouchOnly) {
-      setSubtitleRevealed(false);
-      return;
-    }
-    setSubtitleRevealed(false);
-    const t = setTimeout(() => setSubtitleRevealed(true), 1200);
-    return () => clearTimeout(t);
   }, [viewMode]);
 
   // ── Filtered sessions ──
@@ -534,37 +521,14 @@ export default function AtlasPrismDeck({
         />
       </div>
 
-      {/* Subtitle reveal — desktop only */}
-      <div className="hidden sm:flex items-start gap-3 mb-3">
-        <button
-          className="flex-shrink-0 leading-none pt-px transition-all duration-300"
-          style={{ color: PALE_YELLOW, opacity: subtitleRevealed ? 1 : 0.4 }}
-          aria-label="About this view"
-          onMouseEnter={() => setSubtitleRevealed(true)}
-        >
-          <Triangle
-            size={11}
-            fill={subtitleRevealed ? CARD_BG : 'currentColor'}
-            stroke={subtitleRevealed ? PALE_YELLOW : 'none'}
-            strokeWidth={subtitleRevealed ? 1.5 : 0}
-          />
-        </button>
-        <div className="relative flex-1">
-          <p className="text-xs leading-relaxed invisible select-none" aria-hidden="true">
-            {VIEW_META['prism'].subtitle}
-          </p>
-          <p
-            className="text-xs leading-relaxed absolute inset-0"
-            style={{
-              color: 'rgba(242,228,168,0.7)',
-              opacity: subtitleRevealed ? 1 : 0,
-              transition: subtitleRevealed ? 'opacity 700ms ease-in-out' : 'opacity 80ms ease',
-            }}
-          >
-            {VIEW_META[viewMode].subtitle}
-          </p>
-        </div>
-      </div>
+      {/* Subtitle — visible by default. Replaces the prior triangle-reveal
+          easter egg, which most users never discovered. */}
+      <p
+        className="hidden sm:block text-xs leading-relaxed mb-3"
+        style={{ color: 'rgba(242,228,168,0.55)' }}
+      >
+        {VIEW_META[viewMode].subtitle}
+      </p>
 
       {/* Mobile: full-width segmented control + stacked content (Phase 2 polishes the layout) */}
       <div className="sm:hidden flex flex-col gap-4">

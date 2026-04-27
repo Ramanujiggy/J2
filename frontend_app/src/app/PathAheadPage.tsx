@@ -842,7 +842,11 @@ export default function PathAheadPage() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 14 }}>
-            {intentionsEnabled && (
+            {/* Adjust-focus chip is only shown once an intention exists. The
+                no-intention state is handled by the dashed IntentionHeroCard
+                below, which is far more inviting — keeping both visible was
+                offering the same action twice with different wording. */}
+            {intentionsEnabled && activeIntention && (
               <button
                 onClick={() => setSetIntentOpen(true)}
                 style={{
@@ -859,7 +863,7 @@ export default function PathAheadPage() {
                 onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'var(--j2-surface-3)'; }}
               >
-                ◇ {activeIntention ? 'Adjust focus' : 'Set focus'}
+                ◇ Adjust focus
               </button>
             )}
             <button

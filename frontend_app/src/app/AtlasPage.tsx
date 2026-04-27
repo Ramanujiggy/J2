@@ -28,7 +28,7 @@ import {
 } from '../lib/analyticsUtils.ts';
 import {
   PALE_YELLOW, COPPER, CARD_BG, CARD_GLOW, CARD_GLOW_BORDER,
-  FONT_EDITORIAL, INT_COLORS, SURFACE_2, SURFACE_2_BORDER, GLOW_SOFT,
+  FONT_EDITORIAL, INT_COLORS, GLOW_SOFT,
 } from '../lib/theme.ts';
 import type { SessionSummary, Intention, SessionsResponse, IntentionsResponse, CalendarIntention } from '../types/api.ts';
 import AtlasPrismDeck from '../components/atlas/AtlasPrismDeck.tsx';
@@ -546,9 +546,22 @@ function PrismPanel({
 
   const totalHours = filtered.reduce((sum, s) => sum + (s.duration ?? 0) / 60, 0);
   const sessionCount = filtered.length;
-  const windowDays = WINDOW_DAYS[timeWindow] ?? (customRange
-    ? Math.max(1, Math.round((new Date(customRange.end + 'T23:59:59').getTime() - new Date(customRange.start + 'T00:00:00').getTime()) / 86_400_000))
-    : 365);
+
+  // For 'all' (no fixed window), measure the actual span from earliest session
+  // to today so weekly averages don't lie. Otherwise use the preset.
+  const windowDays = useMemo(() => {
+    if (timeWindow === 'custom' && customRange) {
+      const start = new Date(customRange.start + 'T00:00:00').getTime();
+      const end   = new Date(customRange.end   + 'T23:59:59').getTime();
+      return Math.max(1, Math.round((end - start) / 86_400_000));
+    }
+    const days = WINDOW_DAYS[timeWindow];
+    if (days != null) return days;
+    if (filtered.length === 0) return 1;
+    const earliest = Math.min(...filtered.map(s => new Date((typeof s.date === 'string' ? s.date.slice(0, 10) : toDateString(new Date(s.date))) + 'T00:00:00').getTime()));
+    return Math.max(1, Math.ceil((Date.now() - earliest) / 86_400_000));
+  }, [timeWindow, customRange, filtered]);
+
   const avgPerWeek = windowDays > 0 ? totalHours / (windowDays / 7) : 0;
   const priorTotalHours = priorFiltered?.reduce((sum, s) => sum + (s.duration ?? 0) / 60, 0) ?? null;
 
@@ -564,43 +577,69 @@ function PrismPanel({
   const animAvg      = useCountUp(Math.round(avgPerWeek * 10) / 10);
 
   const WINDOW_LABELS: Partial<Record<TimeWindow, string>> = {
-    '7d': '7 days', '14d': '2 weeks', '30d': '30 days',
-    '90d': '90 days', '180d': '6 months', '1y': '1 year',
+    '7d': 'last 7 days', '14d': 'last 2 weeks', '30d': 'last 30 days',
+    '90d': 'last 90 days', '180d': 'last 6 months', '1y': 'last year',
+    'all': 'all time',
   };
   const windowLabel = timeWindow === 'custom' ? 'custom range' : (WINDOW_LABELS[timeWindow] ?? 'all time');
+  // Detect the unbounded case so stat-card subs can adapt their copy.
+  const isAllTime = timeWindow === 'all' || (timeWindow === 'custom' && !customRange);
 
   // ── Selected-vertex stats ──
-  // All-time pillarStats drive the lower stat cards (Sessions / Hours / Weeks
-  // as focus / Avg intensity) — these are about the user's career-long
-  // relationship with the pillar, not the time-windowed view.
+  // ALL pillar stats source from `filtered` so the Selected Vertex card
+  // reflects the active time window. When the user picks "All time", filtered
+  // === sessions and the values match the career-long view.
   const pillarStats = useMemo(() => {
     const stats: Record<string, { count: number; minutes: number; intensitySum: number }> = {};
     SKILL_TAGS.forEach(t => { stats[t.value] = { count: 0, minutes: 0, intensitySum: 0 }; });
-    sessions.forEach(s => {
-      // pillar_distribution-aware: count a session against every pillar that had
-      // weight, weighted proportionally so multi-chip sessions don't double-count
-      // for halo sizing on the BigPrism. Intensity always full-weighted.
+    filtered.forEach(s => {
+      // pillar_distribution-aware: a session contributes proportionally to each
+      // pillar that had weight, so multi-chip sessions don't double-count.
       const ph = sessionPillarHours(s);
+      const totalH = (s.duration ?? 0) / 60;
       for (const [k, v] of Object.entries(ph)) {
-        if (k in stats && v > 0) {
-          stats[k]!.count += v / Math.max(0.001, (s.duration ?? 0) / 60); // proportional share
+        if (k in stats && v > 0 && totalH > 0) {
+          const share = v / totalH;
+          stats[k]!.count += share;
           stats[k]!.minutes += v * 60;
-          stats[k]!.intensitySum += (s.intensity ?? 3) * (v / Math.max(0.001, (s.duration ?? 0) / 60));
+          stats[k]!.intensitySum += (s.intensity ?? 3) * share;
         }
       }
     });
     return stats;
-  }, [sessions]);
+  }, [filtered]);
 
-  const totalCount = sessions.length;
+  const totalCount = filtered.length;
   const selected = pillarStats[selectedTag] ?? { count: 0, minutes: 0, intensitySum: 0 };
   const selectedLabel = SKILL_TAGS.find(t => t.value === selectedTag)?.label ?? selectedTag;
-  const weeksAsFocus = intentions.filter(i => i.heading === selectedTag).length;
+
+  // Intentions whose week_start falls in the active window. Mirrors the
+  // semantics of `filtered` for sessions.
+  const intentionsInWindow = useMemo(() => {
+    if (isAllTime) return intentions;
+    let windowStart: Date | null = null;
+    let windowEnd: Date | null = null;
+    if (timeWindow === 'custom' && customRange) {
+      windowStart = new Date(customRange.start + 'T00:00:00');
+      windowEnd   = new Date(customRange.end   + 'T23:59:59');
+    } else {
+      const days = WINDOW_DAYS[timeWindow];
+      if (days != null) windowStart = new Date(Date.now() - days * 86_400_000);
+    }
+    return intentions.filter(i => {
+      const ws = new Date(i.week_start + 'T00:00:00');
+      if (windowStart && ws < windowStart) return false;
+      if (windowEnd && ws > windowEnd) return false;
+      return true;
+    });
+  }, [intentions, timeWindow, customRange, isAllTime]);
+
+  const weeksAsFocus = intentionsInWindow.filter(i => i.heading === selectedTag).length;
   const avgIntensity = selected.count > 0 ? selected.intensitySum / selected.count : 0;
 
-  // Recent sessions for the selected vertex (all-time, not windowed)
+  // Recent sessions for the selected vertex — windowed.
   const recentSessions = useMemo(() => {
-    return sessions
+    return filtered
       .filter(s => s.tags?.includes(selectedTag) || s.heading === selectedTag)
       .slice()
       .sort((a, b) => {
@@ -609,12 +648,14 @@ function PrismPanel({
         return bk.localeCompare(ak);
       })
       .slice(0, 6);
-  }, [sessions, selectedTag]);
+  }, [filtered, selectedTag]);
 
-  // Intentions targeting the selected vertex (all-time), with alignment.
-  // Reuses computeAlignment so the readout matches what IntentionsPage shows.
+  // Intentions targeting the selected vertex within the active window, with
+  // alignment computed from the original (un-windowed) sessions so an
+  // intention's score reflects the full week it covered, even if the window
+  // chops a piece off.
   const focusIntentions = useMemo(() => {
-    return intentions
+    return intentionsInWindow
       .filter(i => i.heading === selectedTag)
       .slice()
       .sort((a, b) => b.week_start.localeCompare(a.week_start))
@@ -625,7 +666,7 @@ function PrismPanel({
         const a     = computeAlignment(i, top, hours);
         return { intention: i, alignment: a };
       });
-  }, [intentions, sessions, selectedTag]);
+  }, [intentionsInWindow, sessions, selectedTag]);
 
   const descriptions: Record<string, string> = {
     standup:     'Where it begins. Grip fighting, entries, takedowns, the scramble before the mat.',
@@ -637,44 +678,52 @@ function PrismPanel({
 
   return (
     <>
-      {/* ── Hero stats strip ─────────────────────────────────── */}
+      {/* ── Hero stats strip ───────────────────────────────────────────
+          Three columns share the same card chrome as the deck and selected-
+          vertex card below — consistent visual weight unifies the page. */}
       <div
-        className="rounded-xl flex animate-j2-card-enter select-none"
-        style={{ backgroundColor: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}`, marginBottom: 20 }}
+        className="rounded-2xl flex animate-j2-card-enter select-none"
+        style={{
+          backgroundColor: CARD_BG,
+          border: `1px solid ${CARD_GLOW_BORDER}`,
+          boxShadow: CARD_GLOW,
+          marginBottom: isDesktop ? 20 : 16,
+        }}
       >
-        <div className="flex-1 flex flex-col items-center justify-center py-4 gap-0.5">
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
+        <div className="flex-1 flex flex-col items-center justify-center py-5 gap-1">
+          <div className="flex items-baseline gap-2">
+            <span style={{ fontSize: isDesktop ? 30 : 24, fontFamily: FONT_EDITORIAL, fontWeight: 600, color: PALE_YELLOW, textShadow: GLOW_SOFT, lineHeight: 1 }}>
               {animHours.toFixed(1)}h
             </span>
             {hoursDelta && (
-              <span className="text-xs font-semibold" style={{
-                color: hoursDelta.startsWith('↑') ? 'rgba(82,181,108,0.85)' : 'rgba(218,90,70,0.75)',
+              <span style={{
+                fontSize: 12, fontWeight: 600,
+                color: hoursDelta.startsWith('↑') ? 'rgba(82,181,108,0.90)' : 'rgba(218,90,70,0.80)',
               }}>
                 {hoursDelta}
               </span>
             )}
           </div>
-          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.38)' }}>
-            {windowLabel}
+          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.04em' }}>
+            Hours, {windowLabel}
           </span>
         </div>
-        <div className="w-px" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />
-        <div className="flex-1 flex flex-col items-center justify-center py-4 gap-0.5">
-          <span className="text-xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
+        <div className="w-px" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }} />
+        <div className="flex-1 flex flex-col items-center justify-center py-5 gap-1">
+          <span style={{ fontSize: isDesktop ? 30 : 24, fontFamily: FONT_EDITORIAL, fontWeight: 600, color: PALE_YELLOW, textShadow: GLOW_SOFT, lineHeight: 1 }}>
             {Math.round(animSessions)}
           </span>
-          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.38)' }}>
-            sessions
+          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.04em' }}>
+            {sessionCount === 1 ? 'session' : 'sessions'} logged
           </span>
         </div>
-        <div className="w-px" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />
-        <div className="flex-1 flex flex-col items-center justify-center py-4 gap-0.5">
-          <span className="text-xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
+        <div className="w-px" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }} />
+        <div className="flex-1 flex flex-col items-center justify-center py-5 gap-1">
+          <span style={{ fontSize: isDesktop ? 30 : 24, fontFamily: FONT_EDITORIAL, fontWeight: 600, color: PALE_YELLOW, textShadow: GLOW_SOFT, lineHeight: 1 }}>
             {animAvg.toFixed(1)}h
           </span>
-          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.38)' }}>
-            avg / wk
+          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.04em' }}>
+            average per week
           </span>
         </div>
       </div>
@@ -694,7 +743,10 @@ function PrismPanel({
         />
       </ErrorBoundary>
 
-      {/* ── Selected vertex readout ───────────────────────────────── */}
+      {/* ── Selected vertex card — title row + stat strip + 2 columns ──
+          Consolidates what used to be two stacked cards. The user just
+          clicked a vertex; reward them with concrete sessions + intentions
+          immediately, with stats inlined as supporting context. */}
       <div
         style={{
           backgroundColor: CARD_BG,
@@ -703,95 +755,98 @@ function PrismPanel({
           borderRadius: isDesktop ? 20 : 16,
           padding: isDesktop ? 32 : 20,
           marginTop: isDesktop ? 24 : 16,
-          display: 'grid',
-          gridTemplateColumns: isDesktop ? '1fr 480px' : '1fr',
-          gap: isDesktop ? 56 : 20,
-          alignItems: isDesktop ? 'center' : 'stretch',
         }}
       >
-        <div>
-          <div className="j2-label-copper" style={{ marginBottom: 10 }}>◇ Selected vertex</div>
-          <div className="j2-serif-display j2-heading-glow" style={{ fontSize: isDesktop ? 56 : 36, lineHeight: 1 }}>
-            {selectedLabel}
-          </div>
-          <p
-            style={{
-              fontSize: isDesktop ? 16 : 14, lineHeight: 1.6,
-              color: 'rgba(255,255,255,0.60)',
-              marginTop: 12, marginBottom: 0,
-            }}
-          >
-            {descriptions[selectedTag] ?? 'Your training in this pillar.'}
-          </p>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
-          {([
-            {
-              k: 'Sessions',
-              v: Math.round(selected.count),
-              sub: totalCount > 0 && selected.count > 0
-                ? `${Math.round(selected.count / totalCount * 100)}% of practice`
-                : 'none yet',
-            },
-            {
-              k: 'Hours',
-              v: Math.round(selected.minutes / 60),
-              sub: 'all-time',
-            },
-            {
-              k: 'Weeks as focus',
-              v: weeksAsFocus,
-              sub: weeksAsFocus === 1 ? 'week set this intent' : 'weeks set this intent',
-            },
-            {
-              k: 'Avg intensity',
-              v: selected.count > 0 ? avgIntensity.toFixed(1) : '—',
-              sub: selected.count > 0 ? 'on a 5-point scale' : 'log one to see',
-            },
-          ]).map((s, i) => (
-            <div
-              key={i}
-              style={{
-                padding: '18px 20px',
-                background: 'var(--j2-surface-2)',
-                border: '1px solid var(--j2-border-1)',
-                borderRadius: 14,
-              }}
-            >
-              <div className="j2-label-micro" style={{ marginBottom: 8 }}>{s.k}</div>
-              <div
-                style={{
-                  fontSize: 28, fontFamily: FONT_EDITORIAL, fontWeight: 600,
-                  color: PALE_YELLOW, lineHeight: 1.05,
-                }}
-              >
-                {s.v}
-              </div>
-              <div
-                style={{
-                  fontSize: 11, color: 'rgba(255,255,255,0.40)',
-                  marginTop: 5, letterSpacing: '0.1em', textTransform: 'uppercase',
-                }}
-              >
-                {s.sub}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Sessions × Intentions for selected vertex ──────────────────
-          Two-column layout: Recent sessions left, Intentions for this
-          focus right. Stacks vertically on mobile. */}
-      {(recentSessions.length > 0 || focusIntentions.length > 0) && (
+        {/* Header row: label + name + stat metadata strip */}
         <div
           style={{
-            background: CARD_BG,
-            border: '1px solid var(--j2-border-2)',
-            borderRadius: isDesktop ? 18 : 14,
-            padding: isDesktop ? 32 : 20,
-            marginTop: isDesktop ? 24 : 16,
+            display: 'flex',
+            flexDirection: isDesktop ? 'row' : 'column',
+            alignItems: isDesktop ? 'flex-end' : 'flex-start',
+            justifyContent: 'space-between',
+            gap: isDesktop ? 32 : 14,
+            marginBottom: isDesktop ? 28 : 20,
+            paddingBottom: isDesktop ? 20 : 16,
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <div className="j2-label-copper" style={{ marginBottom: 6 }}>◇ Selected vertex</div>
+            <div className="j2-serif-display j2-heading-glow" style={{ fontSize: isDesktop ? 44 : 32, lineHeight: 1 }}>
+              {selectedLabel}
+            </div>
+            <p
+              style={{
+                fontSize: isDesktop ? 14 : 13, lineHeight: 1.55,
+                color: 'rgba(255,255,255,0.50)',
+                marginTop: 8, marginBottom: 0,
+                maxWidth: isDesktop ? 460 : 'none',
+              }}
+            >
+              {descriptions[selectedTag] ?? 'Your training in this pillar.'}
+            </p>
+          </div>
+
+          {/* Inline stat strip — 4 small readouts */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, auto)',
+              columnGap: isDesktop ? 28 : 18,
+              rowGap: 4,
+              flexShrink: 0,
+            }}
+          >
+            {([
+              {
+                k: 'Sessions',
+                v: Math.round(selected.count),
+                sub: totalCount > 0 && selected.count > 0
+                  ? `${Math.round(selected.count / totalCount * 100)}% of mat time`
+                  : (isAllTime ? 'none yet' : 'none in window'),
+              },
+              {
+                k: 'Hours',
+                v: Math.round(selected.minutes / 60),
+                sub: windowLabel,
+              },
+              {
+                k: 'Weeks as focus',
+                v: weeksAsFocus,
+                sub: weeksAsFocus === 1 ? 'week set this intent' : 'weeks set this intent',
+              },
+              {
+                k: 'Avg intensity',
+                v: selected.count > 0 ? avgIntensity.toFixed(1) : '—',
+                sub: selected.count > 0 ? 'on a 5-point scale' : 'log one to see',
+              },
+            ]).map((s, i) => (
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <div className="j2-label-micro" style={{ fontSize: 10, marginBottom: 2 }}>{s.k}</div>
+                <div
+                  style={{
+                    fontSize: isDesktop ? 24 : 20, fontFamily: FONT_EDITORIAL, fontWeight: 600,
+                    color: PALE_YELLOW, lineHeight: 1,
+                  }}
+                >
+                  {s.v}
+                </div>
+                <div
+                  style={{
+                    fontSize: 10, color: 'rgba(255,255,255,0.40)',
+                    marginTop: 2, letterSpacing: '0.06em',
+                  }}
+                >
+                  {s.sub}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Two columns: Recent sessions | Intentions for this focus */}
+        <div
+          style={{
             display: 'grid',
             gridTemplateColumns: isDesktop ? '1fr 1fr' : '1fr',
             gap: isDesktop ? 32 : 24,
@@ -799,18 +854,20 @@ function PrismPanel({
         >
           {/* Left column — Recent sessions */}
           <div>
-            <div className="j2-label-copper" style={{ marginBottom: 16 }}>
-              ◈ Recent sessions at {selectedLabel}
+            <div className="j2-label-copper" style={{ marginBottom: 14 }}>
+              ◈ Recent sessions
             </div>
             {recentSessions.length === 0 ? (
               <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.30)', fontStyle: 'italic' }}>
-                No sessions logged with this focus yet.
+                {isAllTime
+                  ? 'No sessions logged with this focus yet.'
+                  : `No ${selectedLabel} sessions in this window.`}
               </p>
             ) : (
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: isDesktop ? 'repeat(2, 1fr)' : 'repeat(2, 1fr)',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
                   gap: isDesktop ? 12 : 10,
                 }}
               >
@@ -951,7 +1008,7 @@ function PrismPanel({
             )}
           </div>
         </div>
-      )}
+      </div>
     </>
   );
 }

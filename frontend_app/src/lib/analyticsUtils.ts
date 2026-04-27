@@ -3,8 +3,9 @@ import type { SessionSummary, Intention } from '../types/api.ts';
 
 // ── Time windows ─────────────────────────────────────────────────────────────
 
-export type TimeWindow = '7d' | '14d' | '30d' | '90d' | '180d' | '1y' | 'custom';
+export type TimeWindow = '7d' | '14d' | '30d' | '90d' | '180d' | '1y' | 'all' | 'custom';
 
+// 'all' has no entry — falsy lookup → no cutoff → unfiltered (career-long).
 export const WINDOW_DAYS: Partial<Record<TimeWindow, number>> = {
   '7d': 7, '14d': 14, '30d': 30, '90d': 90, '180d': 180, '1y': 365,
 };

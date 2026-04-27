@@ -22,6 +22,7 @@ const SECONDARY: { id: TimeWindow; label: string }[] = [
   { id: '90d',  label: '3M' },
   { id: '180d', label: '6M' },
   { id: '1y',   label: '1Y' },
+  { id: 'all',  label: 'All' },
 ];
 
 function fmtDate(iso: string): string {
@@ -83,7 +84,7 @@ export default function TimeRangeBar({ value, onChange, customRange, onCustomRan
           className="flex gap-1.5"
           style={{
             overflow: 'hidden',
-            maxWidth: expanded ? '160px' : '0px',
+            maxWidth: expanded ? '220px' : '0px',
             opacity:  expanded ? 1 : 0,
             transition: 'max-width 260ms cubic-bezier(0.16,1,0.3,1), opacity 200ms ease',
             pointerEvents: expanded ? 'auto' : 'none',
