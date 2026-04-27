@@ -98,19 +98,6 @@ export default function PathAheadPage() {
   const [detailSessionIndex,  setDetailSessionIndex]  = useState(0);
   const [detailDate,          setDetailDate]          = useState<Date | null>(null);
   const [detailIntention,     setDetailIntention]     = useState<Intention | null>(null);
-
-  // Most-recent-session dot reveal: pulses on mount, then morphs into "FOCUS:" label.
-  // Tied to component mount so it plays once per page load (per user spec).
-  const [focusRevealed, setFocusRevealed] = useState(false);
-  useEffect(() => {
-    if (typeof window !== 'undefined' &&
-        window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
-      setFocusRevealed(true);
-      return;
-    }
-    const t = setTimeout(() => setFocusRevealed(true), 1400);
-    return () => clearTimeout(t);
-  }, []);
   const detailSession = detailSessions[detailSessionIndex] ?? null;
 
   // ── Data fetching ──────────────────────────────────────────────────────
@@ -1143,90 +1130,9 @@ export default function PathAheadPage() {
             )}
 
             {/* Most recent session */}
-            {mostRecent && (() => {
-              const dateStr = typeof mostRecent.date === 'string' ? mostRecent.date.slice(0, 10) : toDateString(new Date(mostRecent.date));
-              const dateObj = new Date(dateStr + 'T00:00:00');
-              const giLabel = mostRecent.gi_nogi === 'gi' ? 'Gi' : 'No-Gi';
-              const typeLabel = SESSION_TYPE_LABELS[mostRecent.session_type] ?? mostRecent.session_type;
-              // Prefer `heading` (dynamic-pillar-engine primary) over `tags[0]` so the focus
-              // label matches what was actually flagged as primary at log time.
-              const headingPillar = (mostRecent.heading ?? mostRecent.tags?.[0]) as string | undefined;
-              const focusLabel = headingPillar
-                ? (SKILL_TAGS.find(s => s.value === headingPillar)?.label ?? headingPillar)
-                : 'Free rolling';
-              const intColor = INTENSITY_COLOR[mostRecent.intensity ?? 3] ?? '#A8CB72';
-
-              // Qualifier: "deep work" if the heading was long-pressed (mig 014), else
-              // "1 of N" when the user picked multiple pillars but didn't flag any deep,
-              // else null (single-pillar non-flagged sessions stay unqualified).
-              const isDeepWorkFocus = !!headingPillar
-                && Array.isArray(mostRecent.deep_work_pillars)
-                && (mostRecent.deep_work_pillars as string[]).includes(headingPillar);
-              const totalSelections = mostRecent.selection_count ?? 0;
-              const qualifier: string | null =
-                isDeepWorkFocus       ? 'deep work'
-                : totalSelections > 1 ? `1 of ${totalSelections}`
-                : null;
-
-              return (
-                <div style={{ ...softCardStyle, padding: 32 }}>
-                  <div className="j2-label-copper" style={{ marginBottom: 16 }}>◈ Most recent session</div>
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10,
-                    minHeight: 38,
-                  }}>
-                    {/* Pulsing dot — collapses out once revealed */}
-                    <span
-                      aria-hidden
-                      style={{
-                        width: 16, height: 16, borderRadius: '50%',
-                        background: intColor,
-                        boxShadow: `0 0 14px ${intColor}AA, 0 0 28px ${intColor}55`,
-                        animation: 'j2DotGlow 1400ms ease-in-out',
-                        opacity: focusRevealed ? 0 : 1,
-                        transform: focusRevealed ? 'scale(0.4)' : 'scale(1)',
-                        transition: 'opacity 320ms ease-out, transform 320ms cubic-bezier(0.4,0,0.2,1)',
-                        flexShrink: 0,
-                      }}
-                    />
-                    {/* "FOCUS:" eyebrow — fades in once dot collapses */}
-                    <span
-                      className="j2-label-copper"
-                      style={{
-                        opacity: focusRevealed ? 1 : 0,
-                        transform: focusRevealed ? 'translateX(0)' : 'translateX(-6px)',
-                        transition: 'opacity 360ms ease-out 60ms, transform 360ms cubic-bezier(0.16,1,0.3,1) 60ms',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      Focus:
-                    </span>
-                    <div className="j2-serif-display" style={{ fontSize: 30 }}>
-                      {focusLabel}
-                    </div>
-                    {qualifier && (
-                      <span
-                        className="j2-serif-italic"
-                        style={{
-                          fontSize: 16, color: COPPER,
-                          opacity: focusRevealed ? 0.85 : 0,
-                          transition: 'opacity 360ms ease-out 200ms',
-                          marginLeft: -4,
-                        }}
-                      >
-                        · {qualifier}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ fontSize: 15, color: 'rgba(255,255,255,0.60)' }}>
-                    {formatDuration(mostRecent.duration ?? 0)} · {typeLabel} · {giLabel}
-                  </div>
-                  <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.40)', marginTop: 8 }}>
-                    {DAY_NAMES[dateObj.getDay()]}, {MONTH_NAMES[dateObj.getMonth()]} {dateObj.getDate()}
-                  </div>
-                </div>
-              );
-            })()}
+            {mostRecent && (
+              <MostRecentSessionCard mostRecent={mostRecent} softCardStyle={softCardStyle} />
+            )}
 
             {/* Last 30 days intensity */}
             <div style={{ ...softCardStyle, padding: 32 }}>
@@ -1427,5 +1333,101 @@ export default function PathAheadPage() {
       }} />
     </div>
     </PageContent>
+  );
+}
+
+// ── Most Recent Session card (desktop) ────────────────────────────────────
+//
+// Lives in its own component so the reveal timer fires on *card* mount, not
+// page mount. (The page mount fires before data arrives, so when the card
+// finally rendered its reveal had already silently elapsed — no animation
+// was visible to the user. Scoping the state here fixes that.)
+//
+// Design: a softly-breathing colored dot waits ~1.2s, then fades out as the
+// eyebrow word slides into its place — "Focus:" by default, "Deep Work:" if
+// the heading pillar carried the long-press deep_work flag. Slide direction
+// is asymmetric (Deep Work from the left, Focus from the right) to convey
+// the difference at a glance.
+function MostRecentSessionCard({ mostRecent, softCardStyle }: {
+  mostRecent: SessionSummary;
+  softCardStyle: React.CSSProperties;
+}) {
+  const [revealed, setRevealed] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' &&
+        window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      setRevealed(true);
+      return;
+    }
+    const t = setTimeout(() => setRevealed(true), 1200);
+    return () => clearTimeout(t);
+  }, []);
+
+  const dateStr = typeof mostRecent.date === 'string'
+    ? mostRecent.date.slice(0, 10)
+    : toDateString(new Date(mostRecent.date));
+  const dateObj = new Date(dateStr + 'T00:00:00');
+  const giLabel = mostRecent.gi_nogi === 'gi' ? 'Gi' : 'No-Gi';
+  const typeLabel = SESSION_TYPE_LABELS[mostRecent.session_type] ?? mostRecent.session_type;
+  // Prefer `heading` (mig 007 dynamic-pillar primary) over the older `tags[0]`.
+  const headingPillar = (mostRecent.heading ?? mostRecent.tags?.[0]) as string | undefined;
+  const focusLabel = headingPillar
+    ? (SKILL_TAGS.find(s => s.value === headingPillar)?.label ?? headingPillar)
+    : 'Free rolling';
+  const intColor = INTENSITY_COLOR[mostRecent.intensity ?? 3] ?? '#A8CB72';
+
+  const isDeepWorkFocus = !!headingPillar
+    && Array.isArray(mostRecent.deep_work_pillars)
+    && (mostRecent.deep_work_pillars as string[]).includes(headingPillar);
+  const eyebrowText = isDeepWorkFocus ? 'Deep Work:' : 'Focus:';
+  // Per spec: "Focus" slides in from the right of the dot; "Deep Work" from the left.
+  // Initial offsets are signed — Focus starts further right (+16), Deep Work further left (-16).
+  const slideFromX = isDeepWorkFocus ? -16 : 16;
+
+  return (
+    <div style={{ ...softCardStyle, padding: 32 }}>
+      <div className="j2-label-copper" style={{ marginBottom: 16 }}>◈ Most recent session</div>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10,
+        minHeight: 38,
+      }}>
+        {/* Glowing dot — fades out once revealed */}
+        <span
+          aria-hidden
+          style={{
+            width: 16, height: 16, borderRadius: '50%',
+            background: intColor,
+            color: intColor,                                     // for currentColor in any future filter() use
+            boxShadow: `0 0 16px ${intColor}CC, 0 0 32px ${intColor}66`,
+            animation: 'j2DotGlow 2000ms ease-in-out infinite',
+            opacity: revealed ? 0 : 1,
+            transition: 'opacity 320ms ease-out',
+            flexShrink: 0,
+          }}
+        />
+        {/* Eyebrow — slides in from the side once revealed */}
+        <span
+          className="j2-label-copper"
+          style={{
+            opacity: revealed ? 1 : 0,
+            transform: revealed ? 'translateX(0)' : `translateX(${slideFromX}px)`,
+            transition: 'opacity 380ms ease-out 80ms, transform 480ms cubic-bezier(0.16,1,0.3,1) 80ms',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {eyebrowText}
+        </span>
+        <div className="j2-serif-display" style={{ fontSize: 30 }}>
+          {focusLabel}
+        </div>
+      </div>
+      <div style={{ fontSize: 15, color: 'rgba(255,255,255,0.60)' }}>
+        {formatDuration(mostRecent.duration ?? 0)} · {typeLabel} · {giLabel}
+      </div>
+      <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.40)', marginTop: 8 }}>
+        {DAY_NAMES[dateObj.getDay()]}, {MONTH_NAMES[dateObj.getMonth()]} {dateObj.getDate()}
+      </div>
+    </div>
   );
 }
