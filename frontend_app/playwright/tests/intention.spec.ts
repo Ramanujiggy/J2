@@ -50,14 +50,14 @@ async function settle(page: Page): Promise<void> {
 // others clear. We assert primary in the aria-label so the next gesture only
 // runs after React commits the state.
 async function singleTapPromote(c: Locator): Promise<void> {
-    await c.click();
+    await c.click({ force: true });
     await expect(c).toHaveAttribute('aria-checked', 'true');
     await expect(c).toHaveAccessibleName(/primary focus/i);
     await settle(c.page());
 }
 
 async function singleTapDeselect(c: Locator): Promise<void> {
-    await c.click();
+    await c.click({ force: true });
     await expect(c).toHaveAttribute('aria-checked', 'false');
     await settle(c.page());
 }

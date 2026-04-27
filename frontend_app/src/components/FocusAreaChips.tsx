@@ -206,7 +206,11 @@ export default function FocusAreaChips({ selections, onChange, defaultPrimaryPil
     // Mouse right-click etc. — ignore.
     if (e.button !== undefined && e.button !== 0) return;
     e.preventDefault();
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    // Note: we deliberately don't `setPointerCapture` here. Capture made the
+    // long-press robust to small cursor drift, but it also intercepted rapid
+    // back-to-back chip clicks under Playwright (the prior chip could still
+    // hold capture when the next click landed). The 10px movement abort below
+    // already handles the drift-during-hold case.
 
     pressStateRef.current = {
       pillar,

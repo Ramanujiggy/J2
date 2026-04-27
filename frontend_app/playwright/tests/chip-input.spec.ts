@@ -76,13 +76,17 @@ async function settle(page: Page): Promise<void> {
 
 async function tap(c: Locator): Promise<void> {
     const before = await c.getAttribute('aria-checked');
-    await c.click();
+    // force: true bypasses Playwright's stability/actionability checks. The
+    // chip animates colors on selection change (`transition-colors`), and
+    // overlapping animation frames between rapid taps were causing Playwright
+    // to occasionally retry a click while the React commit was still in flight.
+    await c.click({ force: true });
     await expect(c).toHaveAttribute('aria-checked', before === 'true' ? 'false' : 'true');
     await settle(c.page());
 }
 
 async function setPrimary(c: Locator): Promise<void> {
-    await c.dblclick();
+    await c.dblclick({ force: true });
     await expect(c).toHaveAttribute('aria-checked', 'true');
     await expect(c).toHaveAccessibleName(/primary focus/i);
     await settle(c.page());

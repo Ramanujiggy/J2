@@ -7,7 +7,7 @@
 # Test info
 
 - Name: chip-input.spec.ts >> Flow 1 — log a session via chips >> 1.1 single tap → distribution {standup:1}, telemetry false/false/1
-- Location: playwright\tests\chip-input.spec.ts:122:5
+- Location: playwright\tests\chip-input.spec.ts:126:5
 
 # Error details
 
@@ -72,12 +72,12 @@ TimeoutError: page.waitForRequest: Timeout 10000ms exceeded while waiting for ev
             - generic [ref=e61]: "best: 1d"
           - generic [ref=e62]:
             - generic [ref=e63]: This week
-            - generic [ref=e64]: 58h 30m
-            - generic [ref=e65]: 117 sessions
+            - generic [ref=e64]: 88h 30m
+            - generic [ref=e65]: 177 sessions
           - generic [ref=e66]:
             - generic [ref=e67]: Alignment
-            - generic [ref=e68]: 41%
-            - generic [ref=e69]: 48 of 117 on focus
+            - generic [ref=e68]: 40%
+            - generic [ref=e69]: 70 of 177 on focus
           - generic [ref=e70]:
             - generic [ref=e71]: Consistent weeks
             - generic [ref=e72]: "1"
@@ -105,7 +105,7 @@ TimeoutError: page.waitForRequest: Timeout 10000ms exceeded while waiting for ev
                 - generic "Week 14 · rest" [ref=e100]
                 - generic "Week 15 · rest" [ref=e101]
                 - generic "Week 16 · rest" [ref=e102]
-                - generic "Week 17 · 117 sessions · 58.5h" [ref=e103]
+                - generic "Week 17 · 177 sessions · 88.5h" [ref=e103]
                 - generic "Week 18 · rest" [ref=e104]
                 - generic "Week 19 · rest" [ref=e105]
                 - generic "Week 20 · rest" [ref=e106]
@@ -141,199 +141,199 @@ TimeoutError: page.waitForRequest: Timeout 10000ms exceeded while waiting for ev
                 - generic "Week 50 · rest" [ref=e136]
                 - generic "Week 51 · rest" [ref=e137]
                 - generic "Week 52 · rest" [ref=e138]
-                - generic [ref=e256]: JAN
-                - generic [ref=e257]: FEB
-                - generic [ref=e258]: MAR
-                - generic [ref=e259]: APR
-                - generic [ref=e260]: MAY
-                - generic [ref=e261]: JUN
-                - generic [ref=e262]: JUL
-                - generic [ref=e263]: AUG
-                - generic [ref=e264]: SEP
-                - generic [ref=e265]: OCT
-                - generic [ref=e266]: NOV
-                - generic [ref=e267]: DEC
-                - generic [ref=e268]: "2026"
-                - generic [ref=e269]: 117 SESSIONS
-                - generic [ref=e270]: 59 HOURS
-              - generic [ref=e271]:
-                - generic [ref=e272]:
-                  - generic [ref=e274]: Stand-up
-                  - generic [ref=e275]: "48"
-                - generic [ref=e276]:
-                  - generic [ref=e278]: Guard Passing
-                  - generic [ref=e279]: "0"
-                - generic [ref=e280]:
-                  - generic [ref=e282]: Dynamic Pins
-                  - generic [ref=e283]: "0"
-                - generic [ref=e284]:
-                  - generic [ref=e286]: Submissions
-                  - generic [ref=e287]: "0"
-                - generic [ref=e288]:
-                  - generic [ref=e290]: Guard
-                  - generic [ref=e291]: "69"
-            - generic [ref=e292] [cursor=pointer]:
-              - generic [ref=e293]:
-                - generic [ref=e294]: Training Rhythm
-                - generic [ref=e295]: View calendar →
-              - generic [ref=e297]:
-                - generic [ref=e298]: Nov
-                - generic [ref=e301]: Dec
-                - generic [ref=e306]: Jan
-                - generic [ref=e310]: Feb
-                - generic [ref=e314]: Mar
-                - generic [ref=e319]: Apr
-            - generic [ref=e492]:
-              - generic [ref=e494]: Training Telemetry
-              - generic [ref=e496]:
-                - generic [ref=e497]: 117 sessions
-                - generic [ref=e498]: ·
-                - generic [ref=e499]: 58h 30m total
-              - paragraph [ref=e500]:
+                - generic [ref=e316]: JAN
+                - generic [ref=e317]: FEB
+                - generic [ref=e318]: MAR
+                - generic [ref=e319]: APR
+                - generic [ref=e320]: MAY
+                - generic [ref=e321]: JUN
+                - generic [ref=e322]: JUL
+                - generic [ref=e323]: AUG
+                - generic [ref=e324]: SEP
+                - generic [ref=e325]: OCT
+                - generic [ref=e326]: NOV
+                - generic [ref=e327]: DEC
+                - generic [ref=e328]: "2026"
+                - generic [ref=e329]: 177 SESSIONS
+                - generic [ref=e330]: 89 HOURS
+              - generic [ref=e331]:
+                - generic [ref=e332]:
+                  - generic [ref=e334]: Stand-up
+                  - generic [ref=e335]: "70"
+                - generic [ref=e336]:
+                  - generic [ref=e338]: Guard Passing
+                  - generic [ref=e339]: "0"
+                - generic [ref=e340]:
+                  - generic [ref=e342]: Dynamic Pins
+                  - generic [ref=e343]: "0"
+                - generic [ref=e344]:
+                  - generic [ref=e346]: Submissions
+                  - generic [ref=e347]: "0"
+                - generic [ref=e348]:
+                  - generic [ref=e350]: Guard
+                  - generic [ref=e351]: "107"
+            - generic [ref=e352] [cursor=pointer]:
+              - generic [ref=e353]:
+                - generic [ref=e354]: Training Rhythm
+                - generic [ref=e355]: View calendar →
+              - generic [ref=e357]:
+                - generic [ref=e358]: Nov
+                - generic [ref=e361]: Dec
+                - generic [ref=e366]: Jan
+                - generic [ref=e370]: Feb
+                - generic [ref=e374]: Mar
+                - generic [ref=e379]: Apr
+            - generic [ref=e552]:
+              - generic [ref=e554]: Training Telemetry
+              - generic [ref=e556]:
+                - generic [ref=e557]: 177 sessions
+                - generic [ref=e558]: ·
+                - generic [ref=e559]: 88h 30m total
+              - paragraph [ref=e560]:
                 - text: Splitting time between
-                - strong [ref=e501]: Guard
+                - strong [ref=e561]: Guard
                 - text: and
-                - strong [ref=e502]: Stand-up
+                - strong [ref=e562]: Stand-up
                 - text: .
-          - generic [ref=e503]:
-            - generic [ref=e505]:
-              - generic [ref=e506]:
-                - generic [ref=e507]: ◈
-                - generic [ref=e508]: This week's focus
-              - paragraph [ref=e509]: Stand-up
-              - generic [ref=e511]: 5d remaining
-              - generic [ref=e515]: 117 sessions
-              - generic [ref=e516]:
-                - button "Edit" [ref=e517] [cursor=pointer]
-                - button "Journal" [ref=e518] [cursor=pointer]
-                - button "Delete" [ref=e519] [cursor=pointer]
-            - generic [ref=e520]:
-              - generic [ref=e521]: ◈ Most recent session
-              - generic [ref=e524]: Stand-up
-              - generic [ref=e525]: 30m · Class · Gi
-              - generic [ref=e526]: Sun, Apr 26
-            - generic [ref=e527]:
-              - generic [ref=e528]: ◈ Last 30 days · intensity
-              - generic [ref=e529]:
-                - generic [ref=e532]: "0"
-                - generic [ref=e535]: "0"
-                - generic [ref=e538]: "117"
-                - generic [ref=e541]: "0"
-                - generic [ref=e544]: "0"
-              - generic [ref=e545]:
-                - generic [ref=e546]: Drill
-                - generic [ref=e547]: Steady
-                - generic [ref=e548]: Hard roll
-            - generic [ref=e549]:
-              - generic [ref=e550]:
-                - generic [ref=e551]:
-                  - button "Previous week" [ref=e552] [cursor=pointer]:
-                    - img [ref=e553]
-                  - button "Return to current week" [ref=e555] [cursor=pointer]: This Week
-                  - button "Next week" [ref=e556] [cursor=pointer]:
-                    - img [ref=e557]
-                - generic [ref=e559]:
-                  - button "Calendar view" [ref=e560] [cursor=pointer]:
-                    - img [ref=e561]
-                  - button "List view" [ref=e563] [cursor=pointer]:
-                    - img [ref=e564]
+          - generic [ref=e563]:
+            - generic [ref=e565]:
               - generic [ref=e566]:
-                - button "M 20" [ref=e567] [cursor=pointer]:
-                  - generic [ref=e568]: M
-                  - generic [ref=e570]: "20"
-                - button "T 21" [ref=e571] [cursor=pointer]:
-                  - generic [ref=e572]: T
-                  - generic [ref=e574]: "21"
-                - button "W 22" [ref=e575] [cursor=pointer]:
-                  - generic [ref=e576]: W
-                  - generic [ref=e578]: "22"
-                - button "T 23" [ref=e579] [cursor=pointer]:
-                  - generic [ref=e580]: T
-                  - generic [ref=e582]: "23"
-                - button "F 24" [ref=e583] [cursor=pointer]:
-                  - generic [ref=e584]: F
-                  - generic [ref=e586]: "24"
-                - button "S 25" [ref=e587] [cursor=pointer]:
-                  - generic [ref=e588]: S
-                  - generic [ref=e590]: "25"
-                - button "S 26 58h 30m" [ref=e591] [cursor=pointer]:
-                  - generic [ref=e592]: S
-                  - generic [ref=e594]: "26"
-                  - generic [ref=e595]: 58h 30m
-            - generic [ref=e596]:
-              - paragraph [ref=e597]: ◇ Reflection
-              - paragraph [ref=e598]: “What's the smallest detail you're drilling this week?”
-              - button "Write an entry" [ref=e599] [cursor=pointer]
-        - generic [ref=e600]:
-          - generic [ref=e601]:
-            - generic [ref=e602]: ◈ Recent intentions
-            - button "See all →" [ref=e603] [cursor=pointer]
-          - generic [ref=e605]:
-            - generic [ref=e606]: Wk of Apr 26
-            - generic [ref=e607]: Stand-up
-        - generic [ref=e611]:
-          - generic [ref=e612]:
-            - generic: Apr 26, 2026
-            - textbox [ref=e615] [cursor=pointer]: 2026-04-26
-          - generic [ref=e616]:
-            - heading "Log a Training Session" [level=2] [ref=e617]
-            - generic [ref=e618]:
-              - text: The Basics
-              - generic [ref=e619]:
-                - button "Gi" [ref=e620] [cursor=pointer]
-                - button "No-Gi" [ref=e621] [cursor=pointer]
-              - generic [ref=e622]:
-                - button "Class" [ref=e623] [cursor=pointer]
-                - button "Drilling" [ref=e624] [cursor=pointer]
-                - button "Competition" [ref=e625] [cursor=pointer]
+                - generic [ref=e567]: ◈
+                - generic [ref=e568]: This week's focus
+              - paragraph [ref=e569]: Stand-up
+              - generic [ref=e571]: 5d remaining
+              - generic [ref=e575]: 177 sessions
+              - generic [ref=e576]:
+                - button "Edit" [ref=e577] [cursor=pointer]
+                - button "Journal" [ref=e578] [cursor=pointer]
+                - button "Delete" [ref=e579] [cursor=pointer]
+            - generic [ref=e580]:
+              - generic [ref=e581]: ◈ Most recent session
+              - generic [ref=e584]: Stand-up
+              - generic [ref=e585]: 30m · Class · Gi
+              - generic [ref=e586]: Sun, Apr 26
+            - generic [ref=e587]:
+              - generic [ref=e588]: ◈ Last 30 days · intensity
+              - generic [ref=e589]:
+                - generic [ref=e592]: "0"
+                - generic [ref=e595]: "0"
+                - generic [ref=e598]: "177"
+                - generic [ref=e601]: "0"
+                - generic [ref=e604]: "0"
+              - generic [ref=e605]:
+                - generic [ref=e606]: Drill
+                - generic [ref=e607]: Steady
+                - generic [ref=e608]: Hard roll
+            - generic [ref=e609]:
+              - generic [ref=e610]:
+                - generic [ref=e611]:
+                  - button "Previous week" [ref=e612] [cursor=pointer]:
+                    - img [ref=e613]
+                  - button "Return to current week" [ref=e615] [cursor=pointer]: This Week
+                  - button "Next week" [ref=e616] [cursor=pointer]:
+                    - img [ref=e617]
+                - generic [ref=e619]:
+                  - button "Calendar view" [ref=e620] [cursor=pointer]:
+                    - img [ref=e621]
+                  - button "List view" [ref=e623] [cursor=pointer]:
+                    - img [ref=e624]
               - generic [ref=e626]:
-                - generic [ref=e627]:
-                  - button "30 m" [ref=e628] [cursor=pointer]
-                  - button "1 h" [ref=e629] [cursor=pointer]
-                  - button "1 h 30 m" [ref=e630] [cursor=pointer]
-                  - button "2 h" [ref=e631] [cursor=pointer]
-                - generic [ref=e632]:
-                  - button "−" [ref=e633] [cursor=pointer]
-                  - generic [ref=e634]: tap above
-                  - button "+" [ref=e635] [cursor=pointer]
-              - generic [ref=e636]:
-                - button [ref=e637] [cursor=pointer]
-                - button [ref=e638] [cursor=pointer]
-                - button "Moderate" [ref=e639] [cursor=pointer]
-                - button [ref=e640] [cursor=pointer]
-                - button [ref=e641] [cursor=pointer]
-            - generic [ref=e642]:
-              - heading "What did you work on?" [level=3] [ref=e644]
-              - generic [ref=e645]:
-                - group "Focus areas for this session" [ref=e646]:
-                  - switch "Stand-up" [checked] [ref=e647] [cursor=pointer]: Stand-up
-                  - switch "Passing" [ref=e649] [cursor=pointer]
-                  - switch "Pins" [ref=e650] [cursor=pointer]
-                  - switch "Subs" [ref=e651] [cursor=pointer]
-                  - switch "Guard" [ref=e652] [cursor=pointer]
-                - paragraph [ref=e653]:
+                - button "M 20" [ref=e627] [cursor=pointer]:
+                  - generic [ref=e628]: M
+                  - generic [ref=e630]: "20"
+                - button "T 21" [ref=e631] [cursor=pointer]:
+                  - generic [ref=e632]: T
+                  - generic [ref=e634]: "21"
+                - button "W 22" [ref=e635] [cursor=pointer]:
+                  - generic [ref=e636]: W
+                  - generic [ref=e638]: "22"
+                - button "T 23" [ref=e639] [cursor=pointer]:
+                  - generic [ref=e640]: T
+                  - generic [ref=e642]: "23"
+                - button "F 24" [ref=e643] [cursor=pointer]:
+                  - generic [ref=e644]: F
+                  - generic [ref=e646]: "24"
+                - button "S 25" [ref=e647] [cursor=pointer]:
+                  - generic [ref=e648]: S
+                  - generic [ref=e650]: "25"
+                - button "S 26 88h 30m" [ref=e651] [cursor=pointer]:
+                  - generic [ref=e652]: S
+                  - generic [ref=e654]: "26"
+                  - generic [ref=e655]: 88h 30m
+            - generic [ref=e656]:
+              - paragraph [ref=e657]: ◇ Reflection
+              - paragraph [ref=e658]: “What's the smallest detail you're drilling this week?”
+              - button "Write an entry" [ref=e659] [cursor=pointer]
+        - generic [ref=e660]:
+          - generic [ref=e661]:
+            - generic [ref=e662]: ◈ Recent intentions
+            - button "See all →" [ref=e663] [cursor=pointer]
+          - generic [ref=e665]:
+            - generic [ref=e666]: Wk of Apr 26
+            - generic [ref=e667]: Stand-up
+        - generic [ref=e671]:
+          - generic [ref=e672]:
+            - generic: Apr 26, 2026
+            - textbox [ref=e675] [cursor=pointer]: 2026-04-26
+          - generic [ref=e676]:
+            - heading "Log a Training Session" [level=2] [ref=e677]
+            - generic [ref=e678]:
+              - text: The Basics
+              - generic [ref=e679]:
+                - button "Gi" [ref=e680] [cursor=pointer]
+                - button "No-Gi" [ref=e681] [cursor=pointer]
+              - generic [ref=e682]:
+                - button "Class" [ref=e683] [cursor=pointer]
+                - button "Drilling" [ref=e684] [cursor=pointer]
+                - button "Competition" [ref=e685] [cursor=pointer]
+              - generic [ref=e686]:
+                - generic [ref=e687]:
+                  - button "30 m" [ref=e688] [cursor=pointer]
+                  - button "1 h" [ref=e689] [cursor=pointer]
+                  - button "1 h 30 m" [ref=e690] [cursor=pointer]
+                  - button "2 h" [ref=e691] [cursor=pointer]
+                - generic [ref=e692]:
+                  - button "−" [ref=e693] [cursor=pointer]
+                  - generic [ref=e694]: tap above
+                  - button "+" [ref=e695] [cursor=pointer]
+              - generic [ref=e696]:
+                - button [ref=e697] [cursor=pointer]
+                - button [ref=e698] [cursor=pointer]
+                - button "Moderate" [ref=e699] [cursor=pointer]
+                - button [ref=e700] [cursor=pointer]
+                - button [ref=e701] [cursor=pointer]
+            - generic [ref=e702]:
+              - heading "What did you work on?" [level=3] [ref=e704]
+              - generic [ref=e705]:
+                - group "Focus areas for this session" [ref=e706]:
+                  - switch "Stand-up" [ref=e707] [cursor=pointer]
+                  - switch "Passing" [ref=e708] [cursor=pointer]
+                  - switch "Pins" [ref=e709] [cursor=pointer]
+                  - switch "Subs" [ref=e710] [cursor=pointer]
+                  - switch "Guard" [ref=e711] [cursor=pointer]
+                - paragraph [ref=e712]:
                   - text: Tap to add. Double-tap to set your focus. Hold for deep work.
-                  - button "got it" [ref=e654] [cursor=pointer]
-              - generic [ref=e655]:
-                - generic [ref=e656]:
-                  - button "Coach-led" [ref=e657] [cursor=pointer]
-                  - button "Open Mat" [ref=e658] [cursor=pointer]
-                - paragraph [ref=e659]: Was this instructor-led or self-directed?
-            - generic [ref=e660]:
+                  - button "got it" [ref=e713] [cursor=pointer]
+              - generic [ref=e714]:
+                - generic [ref=e715]:
+                  - button "Coach-led" [ref=e716] [cursor=pointer]
+                  - button "Open Mat" [ref=e717] [cursor=pointer]
+                - paragraph [ref=e718]: Was this instructor-led or self-directed?
+            - generic [ref=e719]:
               - text: Details
-              - generic [ref=e661]:
-                - generic [ref=e662]: Tags (optional, max 5)
-                - textbox "Search positions or type to add…" [ref=e664]
-              - generic [ref=e665]:
-                - generic [ref=e666]: Notes (optional)
-                - generic [ref=e667]:
-                  - textbox "What stood out today?" [ref=e668]
-                  - button "Record voice note" [ref=e669] [cursor=pointer]:
-                    - img [ref=e670]
-            - paragraph [ref=e673]: Please select a duration.
-            - generic [ref=e674]:
-              - button "Cancel" [ref=e675] [cursor=pointer]
-              - button "Save Session" [active] [ref=e676] [cursor=pointer]
+              - generic [ref=e720]:
+                - generic [ref=e721]: Tags (optional, max 5)
+                - textbox "Pick a heading on the Prism first" [ref=e723]
+              - generic [ref=e724]:
+                - generic [ref=e725]: Notes (optional)
+                - generic [ref=e726]:
+                  - textbox "What stood out today?" [ref=e727]
+                  - button "Record voice note" [ref=e728] [cursor=pointer]:
+                    - img [ref=e729]
+            - paragraph [ref=e732]: Please select a duration.
+            - generic [ref=e733]:
+              - button "Cancel" [ref=e734] [cursor=pointer]
+              - button "Save Session" [active] [ref=e735] [cursor=pointer]
   - region "Notifications (F8)":
     - list
 ```
@@ -341,10 +341,6 @@ TimeoutError: page.waitForRequest: Timeout 10000ms exceeded while waiting for ev
 # Test source
 
 ```ts
-  10  | // next gesture (or the form submit) reads stale state.
-  11  | 
-  12  | import { test, expect, type Page, type Locator } from '@playwright/test';
-  13  | 
   14  | const SAVE_URL_RE = /\/api\/sessions(\?|$)/;
   15  | 
   16  | // Chip aria-labels include suffixes like ", primary focus" or ", deep work"
@@ -410,137 +406,141 @@ TimeoutError: page.waitForRequest: Timeout 10000ms exceeded while waiting for ev
   76  | 
   77  | async function tap(c: Locator): Promise<void> {
   78  |     const before = await c.getAttribute('aria-checked');
-  79  |     await c.click();
-  80  |     await expect(c).toHaveAttribute('aria-checked', before === 'true' ? 'false' : 'true');
-  81  |     await settle(c.page());
-  82  | }
-  83  | 
-  84  | async function setPrimary(c: Locator): Promise<void> {
-  85  |     await c.dblclick();
-  86  |     await expect(c).toHaveAttribute('aria-checked', 'true');
-  87  |     await expect(c).toHaveAccessibleName(/primary focus/i);
-  88  |     await settle(c.page());
-  89  | }
-  90  | 
-  91  | async function setDeepWork(target: Locator, holdMs = 600): Promise<void> {
-  92  |     const box = await target.boundingBox();
-  93  |     if (!box) throw new Error('Cannot long-press a chip with no bounding box');
-  94  |     const cx = box.x + box.width / 2;
-  95  |     const cy = box.y + box.height / 2;
-  96  |     const page = target.page();
-  97  |     await page.mouse.move(cx, cy);
-  98  |     await page.mouse.down();
-  99  |     await page.waitForTimeout(holdMs);
-  100 |     await page.mouse.up();
-  101 |     await expect(target).toHaveAccessibleName(/deep work/i);
-  102 |     await settle(page);
-  103 | }
-  104 | 
-  105 | async function clickAndCapture(page: Page): Promise<Record<string, unknown>> {
-  106 |     // The gesture helpers above already settle via two RAFs. Belt-and-suspenders:
-  107 |     // settle once more here before submitting, since the form's submit closure
-  108 |     // is on a separate React subtree from the chip palette.
-  109 |     await settle(page);
-> 110 |     const reqPromise = page.waitForRequest(
+  79  |     // force: true bypasses Playwright's stability/actionability checks. The
+  80  |     // chip animates colors on selection change (`transition-colors`), and
+  81  |     // overlapping animation frames between rapid taps were causing Playwright
+  82  |     // to occasionally retry a click while the React commit was still in flight.
+  83  |     await c.click({ force: true });
+  84  |     await expect(c).toHaveAttribute('aria-checked', before === 'true' ? 'false' : 'true');
+  85  |     await settle(c.page());
+  86  | }
+  87  | 
+  88  | async function setPrimary(c: Locator): Promise<void> {
+  89  |     await c.dblclick({ force: true });
+  90  |     await expect(c).toHaveAttribute('aria-checked', 'true');
+  91  |     await expect(c).toHaveAccessibleName(/primary focus/i);
+  92  |     await settle(c.page());
+  93  | }
+  94  | 
+  95  | async function setDeepWork(target: Locator, holdMs = 600): Promise<void> {
+  96  |     const box = await target.boundingBox();
+  97  |     if (!box) throw new Error('Cannot long-press a chip with no bounding box');
+  98  |     const cx = box.x + box.width / 2;
+  99  |     const cy = box.y + box.height / 2;
+  100 |     const page = target.page();
+  101 |     await page.mouse.move(cx, cy);
+  102 |     await page.mouse.down();
+  103 |     await page.waitForTimeout(holdMs);
+  104 |     await page.mouse.up();
+  105 |     await expect(target).toHaveAccessibleName(/deep work/i);
+  106 |     await settle(page);
+  107 | }
+  108 | 
+  109 | async function clickAndCapture(page: Page): Promise<Record<string, unknown>> {
+  110 |     // The gesture helpers above already settle via two RAFs. Belt-and-suspenders:
+  111 |     // settle once more here before submitting, since the form's submit closure
+  112 |     // is on a separate React subtree from the chip palette.
+  113 |     await settle(page);
+> 114 |     const reqPromise = page.waitForRequest(
       |                             ^ TimeoutError: page.waitForRequest: Timeout 10000ms exceeded while waiting for event "request"
-  111 |         r => SAVE_URL_RE.test(r.url()) && r.method() === 'POST',
-  112 |         { timeout: 10_000 },
-  113 |     );
-  114 |     await page.getByRole('button', { name: /save session/i }).click();
-  115 |     const req = await reqPromise;
-  116 |     return req.postDataJSON() as Record<string, unknown>;
-  117 | }
-  118 | 
-  119 | // --- Tests ------------------------------------------------------------------
-  120 | 
-  121 | test.describe('Flow 1 — log a session via chips', () => {
-  122 |     test('1.1 single tap → distribution {standup:1}, telemetry false/false/1', async ({ page }) => {
-  123 |         await openLogForm(page);
-  124 |         await setMinDuration(page);
-  125 |         await tap(chip(page, 'standup'));
-  126 | 
-  127 |         const body = await clickAndCapture(page);
-  128 |         expect(body.heading).toBe('standup');
-  129 |         expect(body.tags).toEqual(['standup']);
-  130 |         expect(body.pillar_distribution).toEqual({ standup: 1 });
-  131 |         expect(body.had_primary).toBe(false);
-  132 |         expect(body.had_deep_work).toBe(false);
-  133 |         expect(body.selection_count).toBe(1);
-  134 |     });
-  135 | 
-  136 |     test('1.2 double-tap → primary, telemetry had_primary=true', async ({ page }) => {
-  137 |         await openLogForm(page);
-  138 |         await setMinDuration(page);
-  139 |         await setPrimary(chip(page, 'guard'));
-  140 | 
-  141 |         const body = await clickAndCapture(page);
-  142 |         expect(body.heading).toBe('guard');
-  143 |         expect(body.tags).toEqual(['guard']);
-  144 |         expect(body.pillar_distribution).toEqual({ guard: 1 });
-  145 |         expect(body.had_primary).toBe(true);
-  146 |         expect(body.had_deep_work).toBe(false);
-  147 |         expect(body.selection_count).toBe(1);
-  148 |     });
-  149 | 
-  150 |     test('1.3 three taps no primary → distribution split ~0.3333, telemetry false/false/3', async ({ page }) => {
-  151 |         await openLogForm(page);
-  152 |         await setMinDuration(page);
-  153 |         await tap(chip(page, 'standup'));
-  154 |         await tap(chip(page, 'submissions'));
-  155 |         await tap(chip(page, 'guard'));
-  156 | 
-  157 |         const body = await clickAndCapture(page);
-  158 |         expect(body.had_primary).toBe(false);
-  159 |         expect(body.had_deep_work).toBe(false);
-  160 |         expect(body.selection_count).toBe(3);
-  161 |         const dist = body.pillar_distribution as Record<string, number>;
-  162 |         expect(Object.keys(dist).sort()).toEqual(['guard', 'standup', 'submissions']);
-  163 |         for (const w of Object.values(dist)) expect(w).toBeCloseTo(0.3333, 3);
-  164 |         // Heading derives to first-tapped pillar in tie scenarios.
-  165 |         expect(body.heading).toBe('standup');
-  166 |     });
-  167 | 
-  168 |     test('1.4 two taps + double-tap a third → 0.6 / 0.2 / 0.2 with primary on the third', async ({ page }) => {
-  169 |         await openLogForm(page);
-  170 |         await setMinDuration(page);
-  171 |         await tap(chip(page, 'standup'));
-  172 |         await tap(chip(page, 'submissions'));
-  173 |         await setPrimary(chip(page, 'guard'));
-  174 | 
-  175 |         const body = await clickAndCapture(page);
-  176 |         expect(body.heading).toBe('guard');
-  177 |         expect(body.had_primary).toBe(true);
-  178 |         expect(body.selection_count).toBe(3);
-  179 |         const dist = body.pillar_distribution as Record<string, number>;
-  180 |         expect(dist.guard).toBeCloseTo(0.6, 2);
-  181 |         expect(dist.standup).toBeCloseTo(0.2, 2);
-  182 |         expect(dist.submissions).toBeCloseTo(0.2, 2);
-  183 |     });
-  184 | 
-  185 |     test('1.5 primary transfer (double-tap A then B) → only B has primary', async ({ page }) => {
-  186 |         await openLogForm(page);
-  187 |         await setMinDuration(page);
-  188 |         await setPrimary(chip(page, 'guard'));
-  189 |         await setPrimary(chip(page, 'submissions'));
-  190 |         // Guard should still be selected (not deselected) but no longer primary.
-  191 |         await expect(chip(page, 'guard')).toHaveAttribute('aria-checked', 'true');
-  192 |         const guardName = await chip(page, 'guard').getAttribute('aria-label');
-  193 |         expect(guardName ?? '').not.toMatch(/primary focus/i);
-  194 | 
-  195 |         const body = await clickAndCapture(page);
-  196 |         expect(body.heading).toBe('submissions');
-  197 |         expect(body.had_primary).toBe(true);
-  198 |         const dist = body.pillar_distribution as Record<string, number>;
-  199 |         // Subs primary (3 raw points), Guard selected only (1) → 0.75 / 0.25.
-  200 |         expect(dist.submissions).toBeCloseTo(0.75, 2);
-  201 |         expect(dist.guard).toBeCloseTo(0.25, 2);
-  202 |         expect(body.selection_count).toBe(2);
-  203 |     });
-  204 | 
-  205 |     test('1.6 long-press → deep_work flag, telemetry had_deep_work=true', async ({ page }) => {
-  206 |         await openLogForm(page);
-  207 |         await setMinDuration(page);
-  208 |         await setDeepWork(chip(page, 'guard'));
-  209 | 
-  210 |         const body = await clickAndCapture(page);
+  115 |         r => SAVE_URL_RE.test(r.url()) && r.method() === 'POST',
+  116 |         { timeout: 10_000 },
+  117 |     );
+  118 |     await page.getByRole('button', { name: /save session/i }).click();
+  119 |     const req = await reqPromise;
+  120 |     return req.postDataJSON() as Record<string, unknown>;
+  121 | }
+  122 | 
+  123 | // --- Tests ------------------------------------------------------------------
+  124 | 
+  125 | test.describe('Flow 1 — log a session via chips', () => {
+  126 |     test('1.1 single tap → distribution {standup:1}, telemetry false/false/1', async ({ page }) => {
+  127 |         await openLogForm(page);
+  128 |         await setMinDuration(page);
+  129 |         await tap(chip(page, 'standup'));
+  130 | 
+  131 |         const body = await clickAndCapture(page);
+  132 |         expect(body.heading).toBe('standup');
+  133 |         expect(body.tags).toEqual(['standup']);
+  134 |         expect(body.pillar_distribution).toEqual({ standup: 1 });
+  135 |         expect(body.had_primary).toBe(false);
+  136 |         expect(body.had_deep_work).toBe(false);
+  137 |         expect(body.selection_count).toBe(1);
+  138 |     });
+  139 | 
+  140 |     test('1.2 double-tap → primary, telemetry had_primary=true', async ({ page }) => {
+  141 |         await openLogForm(page);
+  142 |         await setMinDuration(page);
+  143 |         await setPrimary(chip(page, 'guard'));
+  144 | 
+  145 |         const body = await clickAndCapture(page);
+  146 |         expect(body.heading).toBe('guard');
+  147 |         expect(body.tags).toEqual(['guard']);
+  148 |         expect(body.pillar_distribution).toEqual({ guard: 1 });
+  149 |         expect(body.had_primary).toBe(true);
+  150 |         expect(body.had_deep_work).toBe(false);
+  151 |         expect(body.selection_count).toBe(1);
+  152 |     });
+  153 | 
+  154 |     test('1.3 three taps no primary → distribution split ~0.3333, telemetry false/false/3', async ({ page }) => {
+  155 |         await openLogForm(page);
+  156 |         await setMinDuration(page);
+  157 |         await tap(chip(page, 'standup'));
+  158 |         await tap(chip(page, 'submissions'));
+  159 |         await tap(chip(page, 'guard'));
+  160 | 
+  161 |         const body = await clickAndCapture(page);
+  162 |         expect(body.had_primary).toBe(false);
+  163 |         expect(body.had_deep_work).toBe(false);
+  164 |         expect(body.selection_count).toBe(3);
+  165 |         const dist = body.pillar_distribution as Record<string, number>;
+  166 |         expect(Object.keys(dist).sort()).toEqual(['guard', 'standup', 'submissions']);
+  167 |         for (const w of Object.values(dist)) expect(w).toBeCloseTo(0.3333, 3);
+  168 |         // Heading derives to first-tapped pillar in tie scenarios.
+  169 |         expect(body.heading).toBe('standup');
+  170 |     });
+  171 | 
+  172 |     test('1.4 two taps + double-tap a third → 0.6 / 0.2 / 0.2 with primary on the third', async ({ page }) => {
+  173 |         await openLogForm(page);
+  174 |         await setMinDuration(page);
+  175 |         await tap(chip(page, 'standup'));
+  176 |         await tap(chip(page, 'submissions'));
+  177 |         await setPrimary(chip(page, 'guard'));
+  178 | 
+  179 |         const body = await clickAndCapture(page);
+  180 |         expect(body.heading).toBe('guard');
+  181 |         expect(body.had_primary).toBe(true);
+  182 |         expect(body.selection_count).toBe(3);
+  183 |         const dist = body.pillar_distribution as Record<string, number>;
+  184 |         expect(dist.guard).toBeCloseTo(0.6, 2);
+  185 |         expect(dist.standup).toBeCloseTo(0.2, 2);
+  186 |         expect(dist.submissions).toBeCloseTo(0.2, 2);
+  187 |     });
+  188 | 
+  189 |     test('1.5 primary transfer (double-tap A then B) → only B has primary', async ({ page }) => {
+  190 |         await openLogForm(page);
+  191 |         await setMinDuration(page);
+  192 |         await setPrimary(chip(page, 'guard'));
+  193 |         await setPrimary(chip(page, 'submissions'));
+  194 |         // Guard should still be selected (not deselected) but no longer primary.
+  195 |         await expect(chip(page, 'guard')).toHaveAttribute('aria-checked', 'true');
+  196 |         const guardName = await chip(page, 'guard').getAttribute('aria-label');
+  197 |         expect(guardName ?? '').not.toMatch(/primary focus/i);
+  198 | 
+  199 |         const body = await clickAndCapture(page);
+  200 |         expect(body.heading).toBe('submissions');
+  201 |         expect(body.had_primary).toBe(true);
+  202 |         const dist = body.pillar_distribution as Record<string, number>;
+  203 |         // Subs primary (3 raw points), Guard selected only (1) → 0.75 / 0.25.
+  204 |         expect(dist.submissions).toBeCloseTo(0.75, 2);
+  205 |         expect(dist.guard).toBeCloseTo(0.25, 2);
+  206 |         expect(body.selection_count).toBe(2);
+  207 |     });
+  208 | 
+  209 |     test('1.6 long-press → deep_work flag, telemetry had_deep_work=true', async ({ page }) => {
+  210 |         await openLogForm(page);
+  211 |         await setMinDuration(page);
+  212 |         await setDeepWork(chip(page, 'guard'));
+  213 | 
+  214 |         const body = await clickAndCapture(page);
 ```
