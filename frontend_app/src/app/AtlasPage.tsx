@@ -15,7 +15,6 @@ import { api, ApiError } from '../lib/api.ts';
 import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
-import { useCountUp } from '../hooks/useCountUp.ts';
 import PageContent from '../components/PageContent.tsx';
 import TrainingHeatmap from '../components/TrainingHeatmap.tsx';
 import ErrorBoundary from '../components/ErrorBoundary.tsx';
@@ -32,6 +31,7 @@ import {
 } from '../lib/theme.ts';
 import type { SessionSummary, Intention, SessionsResponse, IntentionsResponse, CalendarIntention } from '../types/api.ts';
 import AtlasPrismDeck from '../components/atlas/AtlasPrismDeck.tsx';
+import TimeRangeBar from '../components/TimeRangeBar.tsx';
 
 const LS_TAB_KEY = 'j2_atlas_tab';
 type AtlasTab = 'timeline' | 'prism' | 'library' | 'calendar';
@@ -532,49 +532,7 @@ function PrismPanel({
     return cutoff ? sessions.filter(s => new Date(s.date) >= cutoff) : sessions;
   }, [sessions, timeWindow, customRange]);
 
-  const priorFiltered = useMemo(() => {
-    if (timeWindow === 'custom') return null;
-    const days = WINDOW_DAYS[timeWindow];
-    if (!days) return null;
-    const cutoff      = new Date(Date.now() - days * 86_400_000);
-    const priorCutoff = new Date(Date.now() - days * 2 * 86_400_000);
-    return sessions.filter(s => {
-      const d = new Date(s.date + 'T00:00:00');
-      return d >= priorCutoff && d < cutoff;
-    });
-  }, [sessions, timeWindow]);
-
   const totalHours = filtered.reduce((sum, s) => sum + (s.duration ?? 0) / 60, 0);
-  const sessionCount = filtered.length;
-
-  // For 'all' (no fixed window), measure the actual span from earliest session
-  // to today so weekly averages don't lie. Otherwise use the preset.
-  const windowDays = useMemo(() => {
-    if (timeWindow === 'custom' && customRange) {
-      const start = new Date(customRange.start + 'T00:00:00').getTime();
-      const end   = new Date(customRange.end   + 'T23:59:59').getTime();
-      return Math.max(1, Math.round((end - start) / 86_400_000));
-    }
-    const days = WINDOW_DAYS[timeWindow];
-    if (days != null) return days;
-    if (filtered.length === 0) return 1;
-    const earliest = Math.min(...filtered.map(s => new Date((typeof s.date === 'string' ? s.date.slice(0, 10) : toDateString(new Date(s.date))) + 'T00:00:00').getTime()));
-    return Math.max(1, Math.ceil((Date.now() - earliest) / 86_400_000));
-  }, [timeWindow, customRange, filtered]);
-
-  const avgPerWeek = windowDays > 0 ? totalHours / (windowDays / 7) : 0;
-  const priorTotalHours = priorFiltered?.reduce((sum, s) => sum + (s.duration ?? 0) / 60, 0) ?? null;
-
-  function delta(current: number, prior: number | null): string | null {
-    if (prior === null || prior < 0.01) return null;
-    const p = Math.round(((current - prior) / prior) * 100);
-    return (p >= 0 ? '↑' : '↓') + Math.abs(p) + '%';
-  }
-  const hoursDelta = delta(totalHours, priorTotalHours);
-
-  const animHours    = useCountUp(Math.round(totalHours * 10) / 10);
-  const animSessions = useCountUp(sessionCount);
-  const animAvg      = useCountUp(Math.round(avgPerWeek * 10) / 10);
 
   const WINDOW_LABELS: Partial<Record<TimeWindow, string>> = {
     '7d': 'last 7 days', '14d': 'last 2 weeks', '30d': 'last 30 days',
@@ -676,85 +634,125 @@ function PrismPanel({
     submissions: 'The ending itself. Finish mechanics that carry across every belt.',
   };
 
+  // ── Reading sentence ────────────────────────────────────────────────────
+  // The single editorial line that frames the page. Built from filtered data
+  // so it tracks the active time window. Replaces the prior 3-stat hero strip
+  // — same numbers, narrated rather than tiled.
+  const readingSentence = useMemo(() => {
+    if (totalHours <= 0) return 'No training logged in this window.';
+    const trained = SKILL_TAGS
+      .map(t => ({ value: t.value, label: t.label, hours: (pillarStats[t.value]?.minutes ?? 0) / 60 }))
+      .filter(p => p.hours > 0)
+      .sort((a, b) => b.hours - a.hours);
+    const top    = trained[0];
+    const bottom = trained[trained.length - 1];
+    const hoursLabel = totalHours >= 100 ? Math.round(totalHours).toString() : totalHours.toFixed(1);
+    const pillarsWord = trained.length === 1 ? 'pillar' : 'pillars';
+    let s = `${hoursLabel}h across ${trained.length} ${pillarsWord}.`;
+    if (top) {
+      s += ` You've spent the most time on ${top.label}`;
+      // Only mention the "least" pillar when there's a meaningful gap (≥3
+      // pillars trained AND the lowest is < 40% of the highest). Below that,
+      // the shape is balanced enough that calling out a "least" feels picky.
+      if (bottom && top !== bottom && trained.length >= 3 && bottom.hours < top.hours * 0.4) {
+        s += `, and the least on ${bottom.label}`;
+      }
+      s += '.';
+    }
+    return s;
+  }, [totalHours, pillarStats]);
+
   return (
     <>
-      {/* ── Hero stats strip ───────────────────────────────────────────
-          Three columns share the same card chrome as the deck and selected-
-          vertex card below — consistent visual weight unifies the page. */}
+      {/* ── Sticky time-window band ────────────────────────────────────
+          Pulled out of the deck and sticky-positioned at the top of the
+          page. Sits naturally below the Atlas page header at scroll=0; once
+          the user scrolls past the header, the band sticks to the viewport
+          top so the active window stays addressable from anywhere. */}
       <div
-        className="rounded-2xl flex animate-j2-card-enter select-none"
         style={{
-          backgroundColor: CARD_BG,
-          border: `1px solid ${CARD_GLOW_BORDER}`,
-          boxShadow: CARD_GLOW,
-          marginBottom: isDesktop ? 20 : 16,
+          position: 'sticky',
+          top: 0,
+          zIndex: 30,
+          backgroundColor: 'rgba(13,26,20,0.92)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          borderBottom: '1px solid rgba(196,145,95,0.10)',
+          marginLeft: isDesktop ? -64 : -16,
+          marginRight: isDesktop ? -64 : -16,
+          marginBottom: isDesktop ? 36 : 22,
+          padding: isDesktop ? '14px 64px' : '10px 16px',
         }}
       >
-        <div className="flex-1 flex flex-col items-center justify-center py-5 gap-1">
-          <div className="flex items-baseline gap-2">
-            <span style={{ fontSize: isDesktop ? 30 : 24, fontFamily: FONT_EDITORIAL, fontWeight: 600, color: PALE_YELLOW, textShadow: GLOW_SOFT, lineHeight: 1 }}>
-              {animHours.toFixed(1)}h
-            </span>
-            {hoursDelta && (
-              <span style={{
-                fontSize: 12, fontWeight: 600,
-                color: hoursDelta.startsWith('↑') ? 'rgba(82,181,108,0.90)' : 'rgba(218,90,70,0.80)',
-              }}>
-                {hoursDelta}
-              </span>
-            )}
-          </div>
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.04em' }}>
-            Hours, {windowLabel}
-          </span>
-        </div>
-        <div className="w-px" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }} />
-        <div className="flex-1 flex flex-col items-center justify-center py-5 gap-1">
-          <span style={{ fontSize: isDesktop ? 30 : 24, fontFamily: FONT_EDITORIAL, fontWeight: 600, color: PALE_YELLOW, textShadow: GLOW_SOFT, lineHeight: 1 }}>
-            {Math.round(animSessions)}
-          </span>
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.04em' }}>
-            {sessionCount === 1 ? 'session' : 'sessions'} logged
-          </span>
-        </div>
-        <div className="w-px" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }} />
-        <div className="flex-1 flex flex-col items-center justify-center py-5 gap-1">
-          <span style={{ fontSize: isDesktop ? 30 : 24, fontFamily: FONT_EDITORIAL, fontWeight: 600, color: PALE_YELLOW, textShadow: GLOW_SOFT, lineHeight: 1 }}>
-            {animAvg.toFixed(1)}h
-          </span>
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.04em' }}>
-            average per week
-          </span>
+        <div style={{ maxWidth: 1120, margin: '0 auto' }}>
+          <TimeRangeBar
+            value={timeWindow}
+            onChange={onWindowChange}
+            customRange={customRange}
+            onCustomRange={onCustomRangeChange}
+          />
         </div>
       </div>
 
-      {/* ── 5-view deck (Prism / Volume / Split / Format / Weekly) ────── */}
+      {/* ── Reading sentence ────────────────────────────────────────────
+          Single editorial line that frames the page. Replaces the prior
+          3-stat hero strip — same data, narrated, anchored to the top. */}
+      <div
+        style={{
+          maxWidth: 720,
+          margin: isDesktop ? '0 auto 44px' : '0 auto 26px',
+          padding: isDesktop ? '0 8px' : 0,
+        }}
+      >
+        <p
+          style={{
+            fontFamily: FONT_EDITORIAL,
+            fontSize: isDesktop ? 28 : 20,
+            fontWeight: 500,
+            lineHeight: 1.35,
+            color: PALE_YELLOW,
+            textShadow: GLOW_SOFT,
+            margin: 0,
+            textAlign: isDesktop ? 'center' : 'left',
+          }}
+        >
+          {readingSentence}
+        </p>
+        <p
+          style={{
+            fontSize: 11,
+            color: 'rgba(255,255,255,0.32)',
+            marginTop: 10,
+            letterSpacing: '0.16em',
+            textTransform: 'uppercase',
+            textAlign: isDesktop ? 'center' : 'left',
+          }}
+        >
+          {windowLabel}
+        </p>
+      </div>
+
+      {/* ── Deck (chrome-less) ──────────────────────────────────────── */}
       <ErrorBoundary>
         <AtlasPrismDeck
           sessions={sessions}
           intentions={intentions}
           timeWindow={timeWindow}
-          onWindowChange={onWindowChange}
           customRange={customRange}
-          onCustomRangeChange={onCustomRangeChange}
           selectedTag={selectedTag}
           onSelectTag={onSelectTag}
           bigPrismSize={isDesktop ? 520 : 280}
         />
       </ErrorBoundary>
 
-      {/* ── Selected vertex card — title row + stat strip + 2 columns ──
-          Consolidates what used to be two stacked cards. The user just
-          clicked a vertex; reward them with concrete sessions + intentions
-          immediately, with stats inlined as supporting context. */}
+      {/* ── Selected vertex zoom — chrome-less, separated by hairline ──
+          Currently always rendered as a sibling section below the deck.
+          Reads as a continuation of the page rather than a peer card. */}
       <div
         style={{
-          backgroundColor: CARD_BG,
-          border: `1px solid ${CARD_GLOW_BORDER}`,
-          boxShadow: CARD_GLOW,
-          borderRadius: isDesktop ? 20 : 16,
-          padding: isDesktop ? 32 : 20,
-          marginTop: isDesktop ? 24 : 16,
+          marginTop: isDesktop ? 80 : 48,
+          paddingTop: isDesktop ? 40 : 28,
+          borderTop: '1px solid rgba(196,145,95,0.18)',
         }}
       >
         {/* Header row: label + name + stat metadata strip */}

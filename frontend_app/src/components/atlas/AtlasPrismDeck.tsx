@@ -12,14 +12,11 @@
 //     deserves a calmer transition than SkillRadar's clinical slide.
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Info, Target, BarChart2, Layers, BookOpen, Activity, type LucideIcon } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { SKILL_TAGS, MONTH_NAMES } from '../../lib/constants.ts';
-import { CARD_BG, COPPER, CARD_GLOW, CARD_GLOW_BORDER, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3_BORDER } from '../../lib/theme.ts';
+import { COPPER, PALE_YELLOW, GLOW_SOFT, SURFACE_3_BORDER, PAGE_BG } from '../../lib/theme.ts';
 import { WINDOW_DAYS, type TimeWindow, sessionPillarHours, tagHoursInRange } from '../../lib/analyticsUtils.ts';
 import type { SessionSummary } from '../TrainingHeatmap.tsx';
 import type { Intention } from '../../types/api.ts';
-import TimeRangeBar from '../TimeRangeBar.tsx';
 import { SKILL_COLORS, DEFAULT_COLORS } from '../charts/RadarChart.tsx';
 import DonutChart from '../charts/DonutChart.tsx';
 import VolumeChart, { sessionMonth } from '../charts/VolumeChart.tsx';
@@ -35,34 +32,37 @@ const SEG_COMP  = 'rgba(220,90,80,0.80)';
 
 export type ViewMode = 'prism' | 'volume' | 'split' | 'format' | 'weekly';
 
-const RAIL_VIEWS: { id: ViewMode; label: string; short: string; Icon: LucideIcon }[] = [
-  { id: 'prism',  label: 'Grappling Prism',  short: 'Prism',  Icon: Target    },
-  { id: 'volume', label: 'Volume by Month',   short: 'Volume', Icon: BarChart2 },
-  { id: 'split',  label: 'The Two Worlds',    short: 'Split',  Icon: Layers    },
-  { id: 'format', label: 'Session Format',    short: 'Format', Icon: BookOpen  },
-  { id: 'weekly', label: 'Weekly Rhythm',     short: 'Weekly', Icon: Activity  },
+// Sub-view rail — desktop renders as a horizontal text-link row beneath the
+// chart; mobile collapses to a segmented control. Both surfaces use the same
+// short label. The `prism` entry's short reads as "Shape" — the page already
+// frames it as "your grappling shape" in the reading sentence above, so the
+// rail label only needs to be a tag, not a title.
+const RAIL_VIEWS: { id: ViewMode; short: string }[] = [
+  { id: 'prism',  short: 'Shape'   },
+  { id: 'volume', short: 'Volume'  },
+  { id: 'split',  short: 'Split'   },
+  { id: 'format', short: 'Format'  },
+  { id: 'weekly', short: 'Weekly'  },
 ];
 
-const VIEW_META: Record<ViewMode, { title: string; subtitle: string }> = {
-  prism: {
-    title: 'The Grappling Prism',
-    subtitle: 'Your training is a single source of effort that refracts into five distinct pillars of mastery. The Grappling Prism visualizes the balance of your mat time, revealing the unique spectrum of your game.',
-  },
+// Only non-prism sub-views render an in-deck title — the prism sub-view is
+// framed by the page-level reading sentence in PrismPanel.
+const VIEW_META: Partial<Record<ViewMode, { title: string; subtitle: string }>> = {
   volume: {
-    title: 'Volume by Month',
-    subtitle: 'Hours Logged — track your consistency and pinpoint exactly when your momentum peaks or dips.',
+    title: 'Volume by month',
+    subtitle: 'Hours logged across the months in this window — where momentum peaks and dips.',
   },
   split: {
-    title: 'The Two Worlds',
-    subtitle: 'Gi vs. No-Gi — a clear division of your mat time between the traditional kimono and the submission grappling ruleset.',
+    title: 'Gi and No-Gi',
+    subtitle: 'How mat time is divided between the two rulesets.',
   },
   format: {
-    title: 'Session Format',
-    subtitle: 'A breakdown of your labor across structured classes, focused drilling, and live competition.',
+    title: 'Session format',
+    subtitle: 'Structured class, focused drilling, and live competition — the shape of your week.',
   },
   weekly: {
-    title: 'Weekly Rhythm',
-    subtitle: 'Hours per week across the past 52 weeks — see the cadence of your training at a glance.',
+    title: 'Weekly rhythm',
+    subtitle: 'Hours per week across the past 52 weeks — the cadence of your training.',
   },
 };
 
@@ -72,9 +72,7 @@ interface Props {
    *  intentions whose heading matches a pillar, hours-weighted. */
   intentions: Intention[];
   timeWindow: TimeWindow;
-  onWindowChange: (w: TimeWindow) => void;
   customRange: { start: string; end: string } | null;
-  onCustomRangeChange: (r: { start: string; end: string } | null) => void;
   /** Lifted up so the parent can render a vertex-specific stats row beneath the deck. */
   selectedTag: string;
   onSelectTag: (tag: string) => void;
@@ -83,7 +81,7 @@ interface Props {
 }
 
 export default function AtlasPrismDeck({
-  sessions, intentions, timeWindow, onWindowChange, customRange, onCustomRangeChange,
+  sessions, intentions, timeWindow, customRange,
   selectedTag, onSelectTag, bigPrismSize = 480,
 }: Props) {
   const [displayMode, setDisplayMode] = useState<'hours' | 'pct'>('hours');
@@ -282,8 +280,8 @@ export default function AtlasPrismDeck({
           <style>{`.j2-weekly-scroll::-webkit-scrollbar { display: none; }`}</style>
           <WeeklyChart weeks={weeklyData} />
         </div>
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-6" style={{ background: `linear-gradient(to right, ${CARD_BG}, transparent)` }} />
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-6" style={{ background: `linear-gradient(to left, ${CARD_BG}, transparent)` }} />
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-6" style={{ background: `linear-gradient(to right, ${PAGE_BG}, transparent)` }} />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-6" style={{ background: `linear-gradient(to left, ${PAGE_BG}, transparent)` }} />
       </div>
     );
     if (mode === 'split') return (
@@ -485,73 +483,43 @@ export default function AtlasPrismDeck({
   }
 
   const isVolumeType = viewMode === 'volume' || viewMode === 'weekly';
+  const meta = VIEW_META[viewMode];
 
+  // ── Editorial vertical flow ──────────────────────────────────────────
+  // No outer card chrome — sits directly on PAGE_BG. Hierarchy is carried by
+  // typography and whitespace, not container edges. Order:
+  //   1. Sub-view title (only for non-prism modes; prism is framed above)
+  //   2. Visualization, centered
+  //   3. Hairline + breakdown / hours-bar legend with h/% toggle
+  //   4. Sub-view text-link rail
   return (
-    <div className="rounded-2xl p-5" style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}>
+    <div style={{ backgroundColor: 'transparent' }}>
 
-      {/* Title */}
-      <div className="flex items-center gap-1.5 mb-2">
-        <h2 className="text-lg font-semibold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
-          {VIEW_META[viewMode].title}
-        </h2>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button className="text-white/40 hover:text-white/70 transition-colors leading-none">
-              <Info size={13} />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="right" className="max-w-xs">
-            <p className="font-semibold mb-1">How it Works</p>
-            <p className="text-xs leading-relaxed text-popover-foreground/80">
-              Five lenses on your training: skill balance, monthly volume, Gi vs No-Gi, session
-              format, and weekly cadence. Use the rail on the right to switch views. All data
-              reflects the selected time window.
-            </p>
-          </TooltipContent>
-        </Tooltip>
-      </div>
-
-      {/* Time range */}
-      <div className="mb-3">
-        <TimeRangeBar
-          value={timeWindow}
-          onChange={onWindowChange}
-          customRange={customRange}
-          onCustomRange={onCustomRangeChange}
-        />
-      </div>
-
-      {/* Subtitle — visible by default. Replaces the prior triangle-reveal
-          easter egg, which most users never discovered. */}
-      <p
-        className="hidden sm:block text-xs leading-relaxed mb-3"
-        style={{ color: 'rgba(242,228,168,0.55)' }}
-      >
-        {VIEW_META[viewMode].subtitle}
-      </p>
-
-      {/* Mobile: full-width segmented control + stacked content (Phase 2 polishes the layout) */}
-      <div className="sm:hidden flex flex-col gap-4">
-        <div className="flex gap-1 p-1 rounded-xl" style={{ backgroundColor: SURFACE_2 }}>
-          {RAIL_VIEWS.map(({ id, short, Icon }) => {
-            const isActive = viewMode === id;
-            return (
-              <button
-                key={id}
-                onClick={() => setViewMode(id)}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-medium transition-colors min-h-[44px] touch-manipulation j2-press"
-                style={{
-                  backgroundColor: isActive ? COPPER : 'transparent',
-                  color: isActive ? '#fff' : 'rgba(255,255,255,0.4)',
-                }}
-              >
-                <Icon size={13} strokeWidth={isActive ? 2 : 1.5} />
-                <span className="hidden min-[375px]:inline">{short}</span>
-              </button>
-            );
-          })}
+      {/* Sub-view title — only for non-prism modes. The prism sub-view is
+          framed by the page-level reading sentence in PrismPanel above. */}
+      {meta && (
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <h2
+            className="j2-serif-display"
+            style={{ fontSize: 28, color: PALE_YELLOW, textShadow: GLOW_SOFT, margin: 0, lineHeight: 1.1 }}
+          >
+            {meta.title}
+          </h2>
+          <p
+            className="hidden sm:block"
+            style={{
+              maxWidth: 560, margin: '10px auto 0',
+              fontSize: 13, lineHeight: 1.6,
+              color: 'rgba(255,255,255,0.45)',
+            }}
+          >
+            {meta.subtitle}
+          </p>
         </div>
+      )}
 
+      {/* Mobile layout — vertical stack */}
+      <div className="sm:hidden flex flex-col gap-5">
         <div className="w-full flex justify-center">
           {viewMode === 'prism' ? (
             <BigPrism normalized={normalized} alignmentNormalized={alignmentNormalized} activeTag={selectedTag} onSelect={onSelectTag} size={Math.min(bigPrismSize, 320)} />
@@ -562,124 +530,180 @@ export default function AtlasPrismDeck({
 
         <div>
           <div
-            className="flex justify-end mb-2"
-            style={{
-              opacity: isVolumeType ? 0 : 1,
-              pointerEvents: isVolumeType ? 'none' : 'auto',
-              transition: 'opacity 200ms ease',
-            }}
+            className="flex items-center justify-between mb-3"
+            style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 14 }}
           >
-            <div className="flex overflow-hidden rounded-lg text-xs" style={{ border: `1px solid ${SURFACE_3_BORDER}` }}>
-              <button
-                onClick={() => setDisplayMode('hours')}
-                className="px-3 py-3 min-h-[40px] touch-manipulation j2-press"
-                style={{
-                  backgroundColor: displayMode === 'hours' ? COPPER : 'transparent',
-                  color: displayMode === 'hours' ? 'white' : 'rgba(255,255,255,0.4)',
-                  transition: 'background-color 150ms ease, color 150ms ease',
-                }}
-              >h</button>
-              <button
-                onClick={() => setDisplayMode('pct')}
-                className="px-3 py-3 min-h-[40px] touch-manipulation j2-press"
-                style={{
-                  backgroundColor: displayMode === 'pct' ? COPPER : 'transparent',
-                  color: displayMode === 'pct' ? 'white' : 'rgba(255,255,255,0.4)',
-                  transition: 'background-color 150ms ease, color 150ms ease',
-                }}
-              >%</button>
+            <span
+              className="j2-label-micro"
+              style={{ fontSize: 10, color: 'rgba(242,228,168,0.55)' }}
+            >
+              {viewMode === 'prism' ? 'Hours per pillar' : 'Breakdown'}
+            </span>
+            <div
+              style={{
+                opacity: isVolumeType ? 0 : 1,
+                pointerEvents: isVolumeType ? 'none' : 'auto',
+                transition: 'opacity 200ms ease',
+              }}
+            >
+              <div className="flex overflow-hidden rounded-md text-xs" style={{ border: `1px solid ${SURFACE_3_BORDER}` }}>
+                <button
+                  onClick={() => setDisplayMode('hours')}
+                  className="px-3 py-2 min-h-[36px] touch-manipulation j2-press"
+                  style={{
+                    backgroundColor: displayMode === 'hours' ? COPPER : 'transparent',
+                    color: displayMode === 'hours' ? 'white' : 'rgba(255,255,255,0.4)',
+                    transition: 'background-color 150ms ease, color 150ms ease',
+                  }}
+                >h</button>
+                <button
+                  onClick={() => setDisplayMode('pct')}
+                  className="px-3 py-2 min-h-[36px] touch-manipulation j2-press"
+                  style={{
+                    backgroundColor: displayMode === 'pct' ? COPPER : 'transparent',
+                    color: displayMode === 'pct' ? 'white' : 'rgba(255,255,255,0.4)',
+                    transition: 'background-color 150ms ease, color 150ms ease',
+                  }}
+                >%</button>
+              </div>
             </div>
           </div>
           {renderBreakdownContent(viewMode)}
         </div>
+
+        {/* Sub-view text rail (mobile) — single line, wraps if needed */}
+        <SubViewRail value={viewMode} onChange={setViewMode} />
       </div>
 
-      {/* Desktop: chart + breakdown left, rail right */}
-      <div className="hidden sm:flex sm:flex-row items-start gap-4">
-        <div className="flex-1 flex flex-row items-center gap-6 min-w-0">
-          <div className="flex-shrink-0" style={{ maxWidth: viewMode === 'prism' ? bigPrismSize : 320 }}>
+      {/* Desktop layout — vertical stack, BigPrism centered, breakdown below */}
+      <div className="hidden sm:block">
+        <div className="flex justify-center">
+          <div style={{ maxWidth: viewMode === 'prism' ? bigPrismSize : 360 }}>
             {renderChart(viewMode)}
           </div>
-          <div className="flex-1 flex flex-col justify-center gap-3 pl-2">
-            {renderBreakdownContent(viewMode)}
-          </div>
         </div>
 
-        {/* Rail column: h/% toggle + 5-view icon rail */}
-        <div className="hidden sm:flex flex-col items-center gap-3 self-stretch justify-center">
+        {/* Hairline section header + h/% toggle, then breakdown content */}
+        <div
+          style={{
+            marginTop: viewMode === 'prism' ? 36 : 28,
+            maxWidth: 720,
+            marginLeft: 'auto', marginRight: 'auto',
+          }}
+        >
           <div
+            className="flex items-center justify-between"
             style={{
-              transformOrigin: 'center center',
-              transform: isVolumeType ? 'scaleY(0.04)' : 'scaleY(1)',
-              transition: 'transform 300ms cubic-bezier(0.4,0,0.2,1)',
+              borderTop: '1px solid rgba(196,145,95,0.18)',
+              paddingTop: 14,
+              marginBottom: 18,
             }}
           >
+            <span
+              className="j2-label-micro"
+              style={{ fontSize: 10, color: 'rgba(242,228,168,0.55)', letterSpacing: '0.16em' }}
+            >
+              {viewMode === 'prism' ? 'Hours per pillar' : 'Breakdown'}
+            </span>
             <div
-              className="flex overflow-hidden text-xs"
               style={{
-                border: `1px solid ${isVolumeType ? 'transparent' : SURFACE_3_BORDER}`,
-                backgroundColor: isVolumeType ? PALE_YELLOW : 'transparent',
-                borderRadius: isVolumeType ? '1px' : '6px',
-                transition: 'border-color 250ms ease, background-color 250ms ease, border-radius 250ms ease',
+                opacity: isVolumeType ? 0 : 1,
+                pointerEvents: isVolumeType ? 'none' : 'auto',
+                transition: 'opacity 200ms ease',
               }}
             >
-              <button
-                onClick={() => setDisplayMode('hours')}
-                className="px-3 py-1.5"
-                style={{
-                  color: isVolumeType ? 'transparent' : displayMode === 'hours' ? 'white' : 'rgba(255,255,255,0.4)',
-                  backgroundColor: !isVolumeType && displayMode === 'hours' ? COPPER : 'transparent',
-                  transition: 'color 200ms ease, background-color 200ms ease',
-                  pointerEvents: isVolumeType ? 'none' : 'auto',
-                }}
-              >h</button>
-              <button
-                onClick={() => setDisplayMode('pct')}
-                className="px-3 py-1.5"
-                style={{
-                  color: isVolumeType ? 'transparent' : displayMode === 'pct' ? 'white' : 'rgba(255,255,255,0.4)',
-                  backgroundColor: !isVolumeType && displayMode === 'pct' ? COPPER : 'transparent',
-                  transition: 'color 200ms ease, background-color 200ms ease',
-                  pointerEvents: isVolumeType ? 'none' : 'auto',
-                }}
-              >%</button>
+              <div
+                className="flex overflow-hidden text-xs"
+                style={{ border: `1px solid ${SURFACE_3_BORDER}`, borderRadius: 6 }}
+              >
+                <button
+                  onClick={() => setDisplayMode('hours')}
+                  className="px-3 py-1.5"
+                  style={{
+                    color: displayMode === 'hours' ? 'white' : 'rgba(255,255,255,0.4)',
+                    backgroundColor: displayMode === 'hours' ? COPPER : 'transparent',
+                    transition: 'color 200ms ease, background-color 200ms ease',
+                  }}
+                >h</button>
+                <button
+                  onClick={() => setDisplayMode('pct')}
+                  className="px-3 py-1.5"
+                  style={{
+                    color: displayMode === 'pct' ? 'white' : 'rgba(255,255,255,0.4)',
+                    backgroundColor: displayMode === 'pct' ? COPPER : 'transparent',
+                    transition: 'color 200ms ease, background-color 200ms ease',
+                  }}
+                >%</button>
+              </div>
             </div>
           </div>
+          {renderBreakdownContent(viewMode)}
+        </div>
 
-          <div className="border-l border-white/10 pl-2 flex flex-col gap-1">
-            {RAIL_VIEWS.map(({ id, label, Icon }) => {
-              const active = viewMode === id;
-              return (
-                <Tooltip key={id}>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={() => setViewMode(id)}
-                      className="relative w-8 h-8 flex items-center justify-center rounded-md transition-all j2-press"
-                      style={{
-                        color: active ? PALE_YELLOW : 'rgba(242,228,168,0.2)',
-                        backgroundColor: active ? 'rgba(242,228,168,0.06)' : 'transparent',
-                      }}
-                    >
-                      {active && (
-                        <div
-                          className="absolute top-1.5 bottom-1.5 w-0.5 rounded-full"
-                          style={{ left: '-9px', backgroundColor: COPPER }}
-                        />
-                      )}
-                      <Icon
-                        size={14}
-                        strokeWidth={active ? 2 : 1.5}
-                        style={{ filter: active ? `drop-shadow(0 0 4px ${PALE_YELLOW}88)` : 'none' }}
-                      />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="left"><p>{label}</p></TooltipContent>
-                </Tooltip>
-              );
-            })}
+        {/* Sub-view text rail — quiet horizontal text links */}
+        <div style={{ marginTop: 48, maxWidth: 720, marginLeft: 'auto', marginRight: 'auto' }}>
+          <div
+            style={{
+              borderTop: '1px solid rgba(196,145,95,0.18)',
+              paddingTop: 16,
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            }}
+          >
+            <span
+              className="j2-label-micro"
+              style={{ fontSize: 10, color: 'rgba(242,228,168,0.55)', letterSpacing: '0.16em' }}
+            >
+              Other views
+            </span>
+            <SubViewRail value={viewMode} onChange={setViewMode} />
           </div>
         </div>
+
       </div>
+    </div>
+  );
+}
+
+// ── Sub-view text rail ───────────────────────────────────────────────────
+// Replaces the icon rail on the side. Quiet horizontal links — selected is
+// PALE_YELLOW, unselected is white-at-50% with copper-at-50% on hover.
+function SubViewRail({
+  value, onChange,
+}: {
+  value: ViewMode;
+  onChange: (m: ViewMode) => void;
+}) {
+  return (
+    <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
+      {RAIL_VIEWS.map(({ id, short }, i) => {
+        const active = id === value;
+        return (
+          <span key={id} style={{ display: 'inline-flex', alignItems: 'center', gap: 18 }}>
+            <button
+              onClick={() => onChange(id)}
+              style={{
+                fontSize: 13,
+                fontWeight: active ? 600 : 500,
+                color: active ? PALE_YELLOW : 'rgba(255,255,255,0.50)',
+                background: 'transparent',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+                letterSpacing: '0.02em',
+                textShadow: active ? GLOW_SOFT : 'none',
+                transition: 'color 160ms ease',
+              }}
+              onMouseEnter={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.color = COPPER; }}
+              onMouseLeave={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.50)'; }}
+            >
+              {short}
+            </button>
+            {i < RAIL_VIEWS.length - 1 && (
+              <span aria-hidden style={{ color: 'rgba(255,255,255,0.18)', fontSize: 12 }}>·</span>
+            )}
+          </span>
+        );
+      })}
     </div>
   );
 }

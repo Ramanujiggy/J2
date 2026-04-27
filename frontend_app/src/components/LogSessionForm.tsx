@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { api, ApiError } from '../lib/api.ts';
 import { toast } from '../hooks/use-toast.ts';
-import { CARD_BG, COPPER, SURFACE_2, SURFACE_3, PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
+import { CARD_BG, COPPER, SURFACE_2, SURFACE_3, PALE_YELLOW, GLOW_SOFT, FONT_EDITORIAL } from '../lib/theme.ts';
 import { vibrate } from '../lib/haptics.ts';
 import { INTENSITY_COLOR } from '../lib/sessionUtils.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
+import { useProfile } from '../context/ProfileContext.tsx';
+import { BELT_COLORS, type BeltRank } from '../lib/belt.ts';
 import BeltDateBanner from './BeltDateBanner.tsx';
 import FocusAreaChips from './FocusAreaChips.tsx';
 import PrismReceipt from './PrismReceipt.tsx';
@@ -258,15 +260,25 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
     )}
     <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: CARD_BG, border: '1px solid rgba(255,255,255,0.10)', isolation: 'isolate' }}>
       <form onSubmit={handleSubmit}>
-        {/* Belt date banner — full-bleed, animates in from the right on mount */}
-        <BeltDateBanner
-          value={form.date}
-          required
-          onChange={date => setForm(prev => ({ ...prev, date }))}
-        />
+        {/* Header — animated belt banner on desktop, editorial header on mobile.
+            The mobile variant collapses the banner to a 4pt belt-color hairline
+            and surfaces the date as a copper eyebrow + Cormorant title, freeing
+            ~150pt of vertical real estate the banner was eating on phone. */}
+        {isDesktop ? (
+          <BeltDateBanner
+            value={form.date}
+            required
+            onChange={date => setForm(prev => ({ ...prev, date }))}
+          />
+        ) : (
+          <MobileLogHeader
+            date={form.date}
+            onChange={date => setForm(prev => ({ ...prev, date }))}
+          />
+        )}
 
         <div
-          className={isDesktop ? 'px-8 pb-8 pt-6' : 'px-5 pb-5 pt-4 space-y-4'}
+          className={isDesktop ? 'px-8 pb-8 pt-6' : 'px-5 pb-5 pt-4'}
           style={isDesktop ? {
             display: 'grid',
             gridTemplateColumns: '1fr 420px',
@@ -276,29 +288,39 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
             alignItems: 'start',
           } : undefined}
         >
-        <h2
-          className={isDesktop ? 'text-2xl font-display font-semibold' : 'text-lg font-display font-semibold'}
-          style={isDesktop
-            ? { color: PALE_YELLOW, gridColumn: '1 / -1', marginBottom: 0 }
-            : { color: PALE_YELLOW }}
-        >
-          Log a Training Session
-        </h2>
+        {/* H2 stays on desktop only — on mobile the MobileLogHeader's serif
+            title above is the page's primary heading. */}
+        {isDesktop && (
+          <h2
+            className="text-2xl font-display font-semibold"
+            style={{ color: PALE_YELLOW, gridColumn: '1 / -1', marginBottom: 0 }}
+          >
+            Log a Training Session
+          </h2>
+        )}
 
         {/* ══════════════════════════════════════════════════════════════
             SECTION 1: The Basics
+            Desktop keeps its boxed SURFACE_2 card; mobile lives directly on
+            the canvas — implicit containment via eyebrow + whitespace, per
+            the editorial-register research (Day One / Bear / Apple Notes
+            pattern). The visual weight drops without losing the structure.
             ══════════════════════════════════════════════════════════════ */}
         <div
-          className="rounded-xl px-4 py-4 space-y-4"
-          style={{
+          className={isDesktop ? 'rounded-xl px-4 py-4 space-y-4' : 'space-y-4'}
+          style={isDesktop ? {
             backgroundColor: SURFACE_2,
             border: '1px solid rgba(255,255,255,0.05)',
-            ...(isDesktop ? { gridColumn: '1', gridRow: '2' } : {}),
-          }}
+            gridColumn: '1', gridRow: '2',
+          } : undefined}
         >
-          <span className="text-xs font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.40)' }}>
-            The Basics
-          </span>
+          {isDesktop ? (
+            <span className="text-xs font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.40)' }}>
+              The Basics
+            </span>
+          ) : (
+            <div className="j2-label-copper">The Basics</div>
+          )}
 
           {/* Gi / No-Gi */}
           <SegmentedToggle
@@ -378,22 +400,35 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
           </div>
         </div>
 
+        {/* Hairline divider between sections — mobile only. The hairline +
+            its surrounding 28px margins replace the visual weight of the
+            old card borders without re-introducing chrome. */}
+        {!isDesktop && (
+          <div style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginTop: 28, marginBottom: 28 }} />
+        )}
+
         {/* ══════════════════════════════════════════════════════════════
             SECTION 2: Your Focus — on desktop this sits in the right column,
             spanning rows 2-3 so it stays alongside both Basics and Details.
+            On mobile the section eyebrow flattens the H3 into the same
+            "FOCUS" rhythm as the other sections — consistency over emphasis.
             ══════════════════════════════════════════════════════════════ */}
         <div
-          className="rounded-xl px-4 py-4 space-y-4"
-          style={{
+          className={isDesktop ? 'rounded-xl px-4 py-4 space-y-4' : 'space-y-4'}
+          style={isDesktop ? {
             backgroundColor: SURFACE_2,
             border: '1px solid rgba(255,255,255,0.05)',
-            ...(isDesktop ? { gridColumn: '2', gridRow: '2 / span 2' } : {}),
-          }}
+            gridColumn: '2', gridRow: '2 / span 2',
+          } : undefined}
         >
           <div>
-            <h3 className="text-sm font-semibold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
-              What did you work on?
-            </h3>
+            {isDesktop ? (
+              <h3 className="text-sm font-semibold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
+                What did you work on?
+              </h3>
+            ) : (
+              <div className="j2-label-copper">Focus</div>
+            )}
             {currentIntention && (
               <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.30)' }}>
                 This week's focus: <span style={{ color: COPPER }}>{currentIntention.intent_label}</span>
@@ -444,20 +479,29 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
           </div>
         </div>
 
+        {/* Hairline divider — mobile only, between Focus and Details. */}
+        {!isDesktop && (
+          <div style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginTop: 28, marginBottom: 28 }} />
+        )}
+
         {/* ══════════════════════════════════════════════════════════════
             SECTION 3: Details (optional)
             ══════════════════════════════════════════════════════════════ */}
         <div
-          className="rounded-xl px-4 py-4 space-y-3"
-          style={{
+          className={isDesktop ? 'rounded-xl px-4 py-4 space-y-3' : 'space-y-3'}
+          style={isDesktop ? {
             backgroundColor: SURFACE_2,
             border: '1px solid rgba(255,255,255,0.05)',
-            ...(isDesktop ? { gridColumn: '1', gridRow: '3' } : {}),
-          }}
+            gridColumn: '1', gridRow: '3',
+          } : undefined}
         >
-          <span className="text-xs font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.40)' }}>
-            Details
-          </span>
+          {isDesktop ? (
+            <span className="text-xs font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.40)' }}>
+              Details
+            </span>
+          ) : (
+            <div className="j2-label-copper">Details</div>
+          )}
 
           {/* Tags — user's personal vocabulary, each linked to a pillar */}
           <div>
@@ -491,6 +535,12 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
           </div>
         </div>
 
+        {/* Hairline divider — mobile only, before the CTA. Desktop uses
+            the action row's own borderTop instead. */}
+        {!isDesktop && (
+          <div style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginTop: 28, marginBottom: 16 }} />
+        )}
+
         {/* ── Error + CTA — full-width on desktop ─────────────────── */}
         {error && (
           <p
@@ -502,10 +552,10 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
         )}
 
         <div
-          className="flex items-center gap-3 pt-2"
+          className={isDesktop ? 'flex items-center gap-3 pt-2' : 'flex items-center gap-3'}
           style={isDesktop
             ? { borderTop: '1px solid rgba(196,145,95,0.12)', gridColumn: '1 / -1', marginTop: 4 }
-            : { borderTop: '1px solid rgba(196,145,95,0.12)' }}
+            : undefined}
         >
           {onCancel && (
             <button
@@ -536,5 +586,152 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
       </form>
     </div>
     </>
+  );
+}
+
+// ── MobileLogHeader ──────────────────────────────────────────────────────
+//
+// The mobile-only editorial header that replaces the full-bleed BeltDateBanner.
+// Top-to-bottom:
+//   1. 4pt belt-color hairline (full-bleed, ambient brand thread)
+//   2. Copper eyebrow date (TUE · APR 27) — tappable, opens date picker
+//   3. Cormorant Garamond italic title — "Today's session" / "Yesterday's
+//      session" / long-form date
+//
+// Total vertical cost ~80pt, vs ~150pt for the full belt-banner. The banner
+// stays on the home and session-detail surfaces where it has narrative
+// weight; here on the compose form it was costing real estate without
+// earning the editorial register the desktop has achieved.
+
+function beltHairlineColor(rank: BeltRank): string {
+  // White and blue belts use their own color — light enough to read against forest.
+  // Purple/brown/black fall back to COPPER so the strip stays warm against the
+  // dark canvas (a black hairline on near-black would be invisible).
+  if (rank === 'white' || rank === 'blue') return BELT_COLORS[rank];
+  return COPPER;
+}
+
+function todayLocalString(): string {
+  const t = new Date();
+  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+}
+
+function yesterdayLocalString(): string {
+  const t = new Date(Date.now() - 86_400_000);
+  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+}
+
+function formatEyebrowDate(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00');
+  const wkday = d.toLocaleDateString('en-US', { weekday: 'short' });
+  const month = d.toLocaleDateString('en-US', { month: 'short' });
+  return `${wkday} · ${month} ${d.getDate()}`.toUpperCase();
+}
+
+function formatTitleForDate(dateStr: string): string {
+  if (dateStr === todayLocalString()) return "Today's session";
+  if (dateStr === yesterdayLocalString()) return "Yesterday's session";
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+}
+
+function MobileLogHeader({ date, onChange }: { date: string; onChange: (d: string) => void }) {
+  const { beltRank } = useProfile();
+  const rank: BeltRank = (beltRank as BeltRank) ?? 'white';
+  const hairlineColor = beltHairlineColor(rank);
+  const dateInputRef = useRef<HTMLInputElement>(null);
+
+  const openDatePicker = () => {
+    const el = dateInputRef.current;
+    if (!el) return;
+    // showPicker() is the modern API; fall back to click() for older browsers.
+    if (typeof el.showPicker === 'function') {
+      try { el.showPicker(); return; } catch { /* fall through */ }
+    }
+    el.click();
+  };
+
+  return (
+    <div style={{ position: 'relative' }}>
+      {/* 4pt belt-color hairline — full-bleed at the top of the form */}
+      <div
+        aria-hidden
+        style={{
+          height: 4,
+          background: hairlineColor,
+          boxShadow: `0 0 12px ${hairlineColor}40`,
+        }}
+      />
+
+      <div style={{ padding: '20px 20px 0 20px' }}>
+        {/* Date control — eyebrow + serif title are wrapped in a single
+            full-width button so the whole block is one tap target. Visually
+            still an editorial header (no border, no fill); hit area meets
+            the 44pt iOS HIG minimum because the inner content stacks to
+            ~52pt total height. The chevron sits next to the title so the
+            larger, more visible element carries the "tappable" cue. */}
+        <button
+          type="button"
+          onClick={openDatePicker}
+          aria-label={`Session date: ${formatTitleForDate(date)}. Tap to change.`}
+          className="touch-manipulation"
+          style={{
+            background: 'none',
+            border: 'none',
+            padding: '4px 0',
+            margin: 0,
+            cursor: 'pointer',
+            textAlign: 'left',
+            display: 'block',
+            width: '100%',
+            color: 'inherit',
+          }}
+        >
+          <div className="j2-label-copper">{formatEyebrowDate(date)}</div>
+          <div
+            style={{
+              fontFamily: FONT_EDITORIAL,
+              fontStyle: 'italic',
+              fontSize: 24,
+              lineHeight: 1.15,
+              color: PALE_YELLOW,
+              opacity: 0.9,
+              marginTop: 8,
+              letterSpacing: '-0.005em',
+              display: 'flex',
+              alignItems: 'baseline',
+              gap: 8,
+            }}
+          >
+            <span>{formatTitleForDate(date)}</span>
+            <span
+              aria-hidden
+              style={{ fontSize: 14, opacity: 0.45, fontStyle: 'normal', fontFamily: 'inherit' }}
+            >
+              ▾
+            </span>
+          </div>
+        </button>
+
+        {/* Hidden native date input — anchors the picker. Sits visually
+            inside the button area so iOS Safari opens the picker near the
+            tap target, not at the page corner. */}
+        <input
+          ref={dateInputRef}
+          type="date"
+          value={date}
+          onChange={e => onChange(e.target.value)}
+          aria-hidden
+          tabIndex={-1}
+          style={{
+            position: 'absolute',
+            opacity: 0,
+            pointerEvents: 'none',
+            width: 1, height: 1,
+            left: 20, top: 32,
+          }}
+        />
+      </div>
+    </div>
   );
 }
