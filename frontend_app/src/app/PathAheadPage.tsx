@@ -1339,29 +1339,35 @@ export default function PathAheadPage() {
 // ── Most Recent Session card (desktop) ────────────────────────────────────
 //
 // Lives in its own component so the reveal timer fires on *card* mount, not
-// page mount. (The page mount fires before data arrives, so when the card
-// finally rendered its reveal had already silently elapsed — no animation
-// was visible to the user. Scoping the state here fixes that.)
+// page mount. (Page mount fires before data arrives, so the reveal silently
+// elapsed before the card existed. Scoping fixes that.)
 //
-// Design: a softly-breathing colored dot waits ~1.2s, then fades out as the
-// eyebrow word slides into its place — "Focus:" by default, "Deep Work:" if
-// the heading pillar carried the long-press deep_work flag. Slide direction
-// is asymmetric (Deep Work from the left, Focus from the right) to convey
-// the difference at a glance.
+// Three-phase reveal:
+//   Phase 'dot':    copper dot, glowing (brightness breathe, no scale change).
+//   Phase 'line':   dot stretches rightward into a thin horizontal line.
+//   Phase 'reveal': the line dissolves and the eyebrow text rises up from
+//                   where the line was. Eyebrow reads "Focus:" or "Deep Work:"
+//                   depending on whether the heading pillar carried the
+//                   long-press deep_work flag.
+//
+// Both shape and text live inside a fixed-width slot so the surrounding
+// layout doesn't lurch as the morph plays.
 function MostRecentSessionCard({ mostRecent, softCardStyle }: {
   mostRecent: SessionSummary;
   softCardStyle: React.CSSProperties;
 }) {
-  const [revealed, setRevealed] = useState(false);
+  type Phase = 'dot' | 'line' | 'reveal';
+  const [phase, setPhase] = useState<Phase>('dot');
 
   useEffect(() => {
     if (typeof window !== 'undefined' &&
         window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
-      setRevealed(true);
+      setPhase('reveal');
       return;
     }
-    const t = setTimeout(() => setRevealed(true), 1200);
-    return () => clearTimeout(t);
+    const t1 = setTimeout(() => setPhase('line'),   1000);
+    const t2 = setTimeout(() => setPhase('reveal'), 1450);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
 
   const dateStr = typeof mostRecent.date === 'string'
@@ -1375,49 +1381,77 @@ function MostRecentSessionCard({ mostRecent, softCardStyle }: {
   const focusLabel = headingPillar
     ? (SKILL_TAGS.find(s => s.value === headingPillar)?.label ?? headingPillar)
     : 'Free rolling';
-  const intColor = INTENSITY_COLOR[mostRecent.intensity ?? 3] ?? '#A8CB72';
 
   const isDeepWorkFocus = !!headingPillar
     && Array.isArray(mostRecent.deep_work_pillars)
     && (mostRecent.deep_work_pillars as string[]).includes(headingPillar);
   const eyebrowText = isDeepWorkFocus ? 'Deep Work:' : 'Focus:';
-  // Per spec: "Focus" slides in from the right of the dot; "Deep Work" from the left.
-  // Initial offsets are signed — Focus starts further right (+16), Deep Work further left (-16).
-  const slideFromX = isDeepWorkFocus ? -16 : 16;
+
+  // Slot dimensions — wide enough for "Deep Work:" plus a buffer.
+  const SLOT_WIDTH = 118;
+  const SHAPE_W = phase === 'dot' ? 14 : Math.max(SLOT_WIDTH - 12, 100);
+  const SHAPE_H = phase === 'dot' ? 14 : 2;
 
   return (
     <div style={{ ...softCardStyle, padding: 32 }}>
       <div className="j2-label-copper" style={{ marginBottom: 16 }}>◈ Most recent session</div>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10,
-        minHeight: 38,
+        minHeight: 42,
       }}>
-        {/* Glowing dot — fades out once revealed */}
-        <span
-          aria-hidden
+        {/* Animated slot — dot → line → text rises out of line */}
+        <div
           style={{
-            width: 16, height: 16, borderRadius: '50%',
-            background: intColor,
-            color: intColor,                                     // for currentColor in any future filter() use
-            boxShadow: `0 0 16px ${intColor}CC, 0 0 32px ${intColor}66`,
-            animation: 'j2DotGlow 2000ms ease-in-out infinite',
-            opacity: revealed ? 0 : 1,
-            transition: 'opacity 320ms ease-out',
+            position: 'relative',
+            width: SLOT_WIDTH,
+            height: 24,
             flexShrink: 0,
           }}
-        />
-        {/* Eyebrow — slides in from the side once revealed */}
-        <span
-          className="j2-label-copper"
-          style={{
-            opacity: revealed ? 1 : 0,
-            transform: revealed ? 'translateX(0)' : `translateX(${slideFromX}px)`,
-            transition: 'opacity 380ms ease-out 80ms, transform 480ms cubic-bezier(0.16,1,0.3,1) 80ms',
-            whiteSpace: 'nowrap',
-          }}
         >
-          {eyebrowText}
-        </span>
+          {/* The dot/line shape */}
+          <span
+            aria-hidden
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: '50%',
+              marginTop: -(SHAPE_H / 2),
+              width: SHAPE_W,
+              height: SHAPE_H,
+              borderRadius: phase === 'dot' ? '50%' : 1,
+              background: COPPER,
+              boxShadow: phase === 'dot'
+                ? `0 0 14px ${COPPER}DD, 0 0 30px ${COPPER}66`
+                : `0 0 10px ${COPPER}88`,
+              animation: phase === 'dot' ? 'j2DotGlow 2000ms ease-in-out infinite' : 'none',
+              opacity: phase === 'reveal' ? 0 : 1,
+              transition:
+                'width 460ms cubic-bezier(0.65,0,0.35,1), ' +
+                'height 320ms cubic-bezier(0.65,0,0.35,1), ' +
+                'margin-top 320ms cubic-bezier(0.65,0,0.35,1), ' +
+                'border-radius 320ms ease-out, ' +
+                'box-shadow 460ms ease-out, ' +
+                'opacity 360ms ease-out 200ms',
+            }}
+          />
+          {/* Eyebrow — rises up from the line's vertical center */}
+          <span
+            className="j2-label-copper"
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: '50%',
+              transform: phase === 'reveal'
+                ? 'translateY(-50%) translateY(0)'
+                : 'translateY(-50%) translateY(10px)',
+              opacity: phase === 'reveal' ? 1 : 0,
+              transition: 'opacity 380ms ease-out 200ms, transform 520ms cubic-bezier(0.16,1,0.3,1) 200ms',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {eyebrowText}
+          </span>
+        </div>
         <div className="j2-serif-display" style={{ fontSize: 30 }}>
           {focusLabel}
         </div>
