@@ -485,41 +485,31 @@ export default function AtlasPrismDeck({
   const isVolumeType = viewMode === 'volume' || viewMode === 'weekly';
   const meta = VIEW_META[viewMode];
 
-  // ── Editorial vertical flow ──────────────────────────────────────────
-  // No outer card chrome — sits directly on PAGE_BG. Hierarchy is carried by
-  // typography and whitespace, not container edges. Order:
-  //   1. Sub-view title (only for non-prism modes; prism is framed above)
-  //   2. Visualization, centered
-  //   3. Hairline + breakdown / hours-bar legend with h/% toggle
-  //   4. Sub-view text-link rail
+  // ── Editorial workspace ──────────────────────────────────────────────
+  // No outer card chrome — sits directly on PAGE_BG. Mobile keeps a vertical
+  // stack; desktop is a 2-column workspace (Prism left, annotations + sub-view
+  // rail right) so the page reads horizontally rather than as a centered slide.
   return (
     <div style={{ backgroundColor: 'transparent' }}>
 
-      {/* Sub-view title — only for non-prism modes. The prism sub-view is
-          framed by the page-level reading sentence in PrismPanel above. */}
-      {meta && (
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <h2
-            className="j2-serif-display"
-            style={{ fontSize: 28, color: PALE_YELLOW, textShadow: GLOW_SOFT, margin: 0, lineHeight: 1.1 }}
-          >
-            {meta.title}
-          </h2>
-          <p
-            className="hidden sm:block"
-            style={{
-              maxWidth: 560, margin: '10px auto 0',
-              fontSize: 13, lineHeight: 1.6,
-              color: 'rgba(255,255,255,0.45)',
-            }}
-          >
-            {meta.subtitle}
-          </p>
-        </div>
-      )}
-
       {/* Mobile layout — vertical stack */}
       <div className="sm:hidden flex flex-col gap-5">
+        {/* Sub-view title (mobile) — non-prism modes only. Prism is framed by
+            the page-level reading sentence in PrismPanel above. */}
+        {meta && (
+          <div style={{ textAlign: 'left' }}>
+            <h2
+              className="j2-serif-display"
+              style={{ fontSize: 24, color: PALE_YELLOW, textShadow: GLOW_SOFT, margin: 0, lineHeight: 1.15 }}
+            >
+              {meta.title}
+            </h2>
+            <p style={{ fontSize: 12, lineHeight: 1.55, color: 'rgba(255,255,255,0.45)', marginTop: 6 }}>
+              {meta.subtitle}
+            </p>
+          </div>
+        )}
+
         <div className="w-full flex justify-center">
           {viewMode === 'prism' ? (
             <BigPrism normalized={normalized} alignmentNormalized={alignmentNormalized} activeTag={selectedTag} onSelect={onSelectTag} size={Math.min(bigPrismSize, 320)} />
@@ -575,104 +565,193 @@ export default function AtlasPrismDeck({
         <SubViewRail value={viewMode} onChange={setViewMode} />
       </div>
 
-      {/* Desktop layout — vertical stack, BigPrism centered, breakdown below */}
-      <div className="hidden sm:block">
-        <div className="flex justify-center">
-          <div style={{ maxWidth: viewMode === 'prism' ? bigPrismSize : 360 }}>
+      {/* Desktop layout — 2-column workspace.
+          LEFT (auto-flex): the visualization, vertically centered in its column.
+          RIGHT (380px):    annotations + sub-view rail, stacked.
+
+          The eye scans Prism → legend → sub-view rail in one rightward sweep.
+          Replaces the centered single-column stack that read as a slide. */}
+      <div
+        className="hidden sm:grid"
+        style={{
+          gridTemplateColumns: '1fr 380px',
+          gap: 64,
+          maxWidth: 1280,
+          marginLeft: 'auto', marginRight: 'auto',
+          alignItems: 'start',
+        }}
+      >
+        {/* LEFT — visualization */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: bigPrismSize,
+            paddingTop: viewMode === 'prism' ? 0 : 16,
+          }}
+        >
+          <div style={{ maxWidth: viewMode === 'prism' ? bigPrismSize : 360, width: '100%' }}>
             {renderChart(viewMode)}
           </div>
         </div>
 
-        {/* Hairline section header + h/% toggle, then breakdown content */}
-        <div
-          style={{
-            marginTop: viewMode === 'prism' ? 36 : 28,
-            maxWidth: 720,
-            marginLeft: 'auto', marginRight: 'auto',
-          }}
-        >
-          <div
-            className="flex items-center justify-between"
-            style={{
-              borderTop: '1px solid rgba(196,145,95,0.18)',
-              paddingTop: 14,
-              marginBottom: 18,
-            }}
-          >
-            <span
-              className="j2-label-micro"
-              style={{ fontSize: 10, color: 'rgba(242,228,168,0.55)', letterSpacing: '0.16em' }}
-            >
-              {viewMode === 'prism' ? 'Hours per pillar' : 'Breakdown'}
-            </span>
+        {/* RIGHT — annotations stack */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+
+          {/* Sub-view title block — non-prism modes only. Prism is framed
+              by the page-level reading sentence in PrismPanel. */}
+          {meta && (
+            <div>
+              <h2
+                className="j2-serif-display"
+                style={{ fontSize: 22, color: PALE_YELLOW, textShadow: GLOW_SOFT, margin: 0, lineHeight: 1.15 }}
+              >
+                {meta.title}
+              </h2>
+              <p style={{ fontSize: 12, lineHeight: 1.6, color: 'rgba(255,255,255,0.45)', marginTop: 6 }}>
+                {meta.subtitle}
+              </p>
+            </div>
+          )}
+
+          {/* Section: Hours per pillar (prism) / Breakdown (others) + h/% toggle */}
+          <div>
             <div
+              className="flex items-center justify-between"
               style={{
-                opacity: isVolumeType ? 0 : 1,
-                pointerEvents: isVolumeType ? 'none' : 'auto',
-                transition: 'opacity 200ms ease',
+                borderTop: '1px solid rgba(196,145,95,0.18)',
+                paddingTop: 14,
+                marginBottom: 16,
               }}
             >
-              <div
-                className="flex overflow-hidden text-xs"
-                style={{ border: `1px solid ${SURFACE_3_BORDER}`, borderRadius: 6 }}
+              <span
+                className="j2-label-micro"
+                style={{ fontSize: 10, color: 'rgba(242,228,168,0.55)', letterSpacing: '0.16em' }}
               >
-                <button
-                  onClick={() => setDisplayMode('hours')}
-                  className="px-3 py-1.5"
-                  style={{
-                    color: displayMode === 'hours' ? 'white' : 'rgba(255,255,255,0.4)',
-                    backgroundColor: displayMode === 'hours' ? COPPER : 'transparent',
-                    transition: 'color 200ms ease, background-color 200ms ease',
-                  }}
-                >h</button>
-                <button
-                  onClick={() => setDisplayMode('pct')}
-                  className="px-3 py-1.5"
-                  style={{
-                    color: displayMode === 'pct' ? 'white' : 'rgba(255,255,255,0.4)',
-                    backgroundColor: displayMode === 'pct' ? COPPER : 'transparent',
-                    transition: 'color 200ms ease, background-color 200ms ease',
-                  }}
-                >%</button>
+                {viewMode === 'prism' ? 'Hours per pillar' : 'Breakdown'}
+              </span>
+              <div
+                style={{
+                  opacity: isVolumeType ? 0 : 1,
+                  pointerEvents: isVolumeType ? 'none' : 'auto',
+                  transition: 'opacity 200ms ease',
+                }}
+              >
+                <div
+                  className="flex overflow-hidden text-xs"
+                  style={{ border: `1px solid ${SURFACE_3_BORDER}`, borderRadius: 6 }}
+                >
+                  <button
+                    onClick={() => setDisplayMode('hours')}
+                    className="px-3 py-1.5"
+                    style={{
+                      color: displayMode === 'hours' ? 'white' : 'rgba(255,255,255,0.4)',
+                      backgroundColor: displayMode === 'hours' ? COPPER : 'transparent',
+                      transition: 'color 200ms ease, background-color 200ms ease',
+                    }}
+                  >h</button>
+                  <button
+                    onClick={() => setDisplayMode('pct')}
+                    className="px-3 py-1.5"
+                    style={{
+                      color: displayMode === 'pct' ? 'white' : 'rgba(255,255,255,0.4)',
+                      backgroundColor: displayMode === 'pct' ? COPPER : 'transparent',
+                      transition: 'color 200ms ease, background-color 200ms ease',
+                    }}
+                  >%</button>
+                </div>
               </div>
             </div>
+            {renderBreakdownContent(viewMode)}
           </div>
-          {renderBreakdownContent(viewMode)}
-        </div>
 
-        {/* Sub-view text rail — quiet horizontal text links */}
-        <div style={{ marginTop: 48, maxWidth: 720, marginLeft: 'auto', marginRight: 'auto' }}>
-          <div
-            style={{
-              borderTop: '1px solid rgba(196,145,95,0.18)',
-              paddingTop: 16,
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            }}
-          >
+          {/* Section: Other views — vertical rail with copper left-marker on active */}
+          <div style={{ borderTop: '1px solid rgba(196,145,95,0.18)', paddingTop: 16 }}>
             <span
               className="j2-label-micro"
-              style={{ fontSize: 10, color: 'rgba(242,228,168,0.55)', letterSpacing: '0.16em' }}
+              style={{
+                display: 'block',
+                marginBottom: 14,
+                fontSize: 10,
+                color: 'rgba(242,228,168,0.55)',
+                letterSpacing: '0.16em',
+              }}
             >
               Other views
             </span>
-            <SubViewRail value={viewMode} onChange={setViewMode} />
+            <SubViewRail value={viewMode} onChange={setViewMode} orientation="vertical" />
           </div>
-        </div>
 
+        </div>
       </div>
     </div>
   );
 }
 
 // ── Sub-view text rail ───────────────────────────────────────────────────
-// Replaces the icon rail on the side. Quiet horizontal links — selected is
+// Replaces the icon rail on the side. Quiet text links — selected is
 // PALE_YELLOW, unselected is white-at-50% with copper-at-50% on hover.
+//
+// Two orientations:
+//   • 'horizontal' — used by mobile and (legacy) horizontal placements.
+//     Items inline with `·` separators, wraps if needed.
+//   • 'vertical'   — used in the desktop right-column workspace. Items stack
+//     with a copper left-rail marker on the active item, like a sidebar nav.
 function SubViewRail({
-  value, onChange,
+  value, onChange, orientation = 'horizontal',
 }: {
   value: ViewMode;
   onChange: (m: ViewMode) => void;
+  orientation?: 'horizontal' | 'vertical';
 }) {
+  if (orientation === 'vertical') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {RAIL_VIEWS.map(({ id, short }) => {
+          const active = id === value;
+          return (
+            <button
+              key={id}
+              onClick={() => onChange(id)}
+              style={{
+                position: 'relative',
+                fontSize: 14,
+                fontWeight: active ? 600 : 500,
+                color: active ? PALE_YELLOW : 'rgba(255,255,255,0.50)',
+                background: 'transparent',
+                border: 'none',
+                padding: '2px 0 2px 14px',
+                cursor: 'pointer',
+                letterSpacing: '0.02em',
+                textShadow: active ? GLOW_SOFT : 'none',
+                textAlign: 'left',
+                transition: 'color 160ms ease',
+              }}
+              onMouseEnter={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.color = COPPER; }}
+              onMouseLeave={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.50)'; }}
+            >
+              {/* Copper left-rail marker on active — the only chrome */}
+              {active && (
+                <span
+                  aria-hidden
+                  style={{
+                    position: 'absolute',
+                    left: 0, top: 4, bottom: 4,
+                    width: 2,
+                    backgroundColor: COPPER,
+                    borderRadius: 1,
+                  }}
+                />
+              )}
+              {short}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
       {RAIL_VIEWS.map(({ id, short }, i) => {

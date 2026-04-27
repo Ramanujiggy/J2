@@ -151,16 +151,31 @@ export default function AtlasPage() {
     <PageContent ready={!loading} loadingMessages={['Charting the year...', 'Measuring the ring...', 'Lacing up for the long look...']}>
     <div style={{ maxWidth: 1680, margin: '0 auto', padding: '64px 64px 104px' }}>
 
-      {/* ── Header ───────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 44 }}>
+      {/* ── Header ───────────────────────────────────────────────────
+          On the Analytics tab the page-level editorial frame compresses to
+          just the kicker — the reading sentence below the sticky band
+          becomes the primary headline for that view. Other tabs keep the
+          full "Look back at your training." treatment. */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: tab === 'prism' ? 'center' : 'flex-end',
+          justifyContent: 'space-between',
+          marginBottom: tab === 'prism' ? 28 : 44,
+        }}
+      >
         <div>
-          <div className="j2-label-micro" style={{ marginBottom: 16 }}>Atlas</div>
-          <h1 className="j2-serif-display j2-heading-glow" style={{ fontSize: 72, margin: 0 }}>
-            Look back at your training.
-          </h1>
-          <div className="j2-serif-italic" style={{ marginTop: 14, fontSize: 22 }}>
-            Where the patterns show up — across weeks, months, and years.
-          </div>
+          <div className="j2-label-micro" style={{ marginBottom: tab === 'prism' ? 0 : 16 }}>Atlas</div>
+          {tab !== 'prism' && (
+            <>
+              <h1 className="j2-serif-display j2-heading-glow" style={{ fontSize: 72, margin: 0 }}>
+                Look back at your training.
+              </h1>
+              <div className="j2-serif-italic" style={{ marginTop: 14, fontSize: 22 }}>
+                Where the patterns show up — across weeks, months, and years.
+              </div>
+            </>
+          )}
         </div>
         <SegmentedToggle tabs={TABS} value={tab} onChange={setTab} />
       </div>
@@ -665,10 +680,9 @@ function PrismPanel({
   return (
     <>
       {/* ── Sticky time-window band ────────────────────────────────────
-          Pulled out of the deck and sticky-positioned at the top of the
-          page. Sits naturally below the Atlas page header at scroll=0; once
-          the user scrolls past the header, the band sticks to the viewport
-          top so the active window stays addressable from anywhere. */}
+          Sticky control bar — date pills on the left, active-window readout
+          on the right (small caps). Tighter than v1's 14px padding so it
+          reads as utility, not as a feature zone. */}
       <div
         style={{
           position: 'sticky',
@@ -681,54 +695,67 @@ function PrismPanel({
           marginLeft: isDesktop ? -64 : -16,
           marginRight: isDesktop ? -64 : -16,
           marginBottom: isDesktop ? 36 : 22,
-          padding: isDesktop ? '14px 64px' : '10px 16px',
+          padding: isDesktop ? '10px 64px' : '8px 16px',
         }}
       >
-        <div style={{ maxWidth: 1120, margin: '0 auto' }}>
-          <TimeRangeBar
-            value={timeWindow}
-            onChange={onWindowChange}
-            customRange={customRange}
-            onCustomRange={onCustomRangeChange}
-          />
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 24,
+            maxWidth: 1280,
+            margin: '0 auto',
+          }}
+        >
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <TimeRangeBar
+              value={timeWindow}
+              onChange={onWindowChange}
+              customRange={customRange}
+              onCustomRange={onCustomRangeChange}
+            />
+          </div>
+          {isDesktop && (
+            <div
+              style={{
+                flexShrink: 0,
+                fontSize: 10,
+                color: 'rgba(255,255,255,0.42)',
+                letterSpacing: '0.20em',
+                textTransform: 'uppercase',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {windowLabel}
+            </div>
+          )}
         </div>
       </div>
 
       {/* ── Reading sentence ────────────────────────────────────────────
-          Single editorial line that frames the page. Replaces the prior
-          3-stat hero strip — same data, narrated, anchored to the top. */}
+          Left-aligned editorial line. Window label moved to the band, so
+          the sentence stands alone. */}
       <div
         style={{
-          maxWidth: 720,
-          margin: isDesktop ? '0 auto 44px' : '0 auto 26px',
-          padding: isDesktop ? '0 8px' : 0,
+          maxWidth: 640,
+          margin: isDesktop ? '0 0 44px' : '0 0 26px',
+          padding: 0,
         }}
       >
         <p
           style={{
             fontFamily: FONT_EDITORIAL,
-            fontSize: isDesktop ? 28 : 20,
+            fontSize: isDesktop ? 30 : 20,
             fontWeight: 500,
             lineHeight: 1.35,
             color: PALE_YELLOW,
             textShadow: GLOW_SOFT,
             margin: 0,
-            textAlign: isDesktop ? 'center' : 'left',
+            textAlign: 'left',
           }}
         >
           {readingSentence}
-        </p>
-        <p
-          style={{
-            fontSize: 11,
-            color: 'rgba(255,255,255,0.32)',
-            marginTop: 10,
-            letterSpacing: '0.16em',
-            textTransform: 'uppercase',
-            textAlign: isDesktop ? 'center' : 'left',
-          }}
-        >
-          {windowLabel}
         </p>
       </div>
 
