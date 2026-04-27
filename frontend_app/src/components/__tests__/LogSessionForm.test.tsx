@@ -31,7 +31,8 @@ describe('LogSessionForm (chip input)', () => {
   it('renders the focus-area chips and the save button', () => {
     render(<LogSessionForm />);
     expect(screen.getByRole('switch', { name: /Stand-up/i })).toBeInTheDocument();
-    expect(screen.getByRole('switch', { name: /Guard Passing/i })).toBeInTheDocument();
+    // Aria-label is the short chip label ("Passing"), not the full pillar name.
+    expect(screen.getByRole('switch', { name: /^Passing(,|$)/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /save session/i })).toBeInTheDocument();
   });
 
