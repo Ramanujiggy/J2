@@ -1,7 +1,9 @@
 // Atlas — desktop-only aggregate view with 4 sub-tabs:
 //
 //   • Timeline — year-by-year horizontal strips with session dots + focus ribbon
-//   • Prism    — desktop Prism Lab: editorial pentagon + per-vertex stats + recent
+//   • Prism    — merged Prism Lab + Analytics: time-windowed pentagon (BigPrism)
+//                with 5-view sub-rail, hero stats strip, alignment overlay, and
+//                vertex-selected sessions/intentions panel below
 //   • Library  — "Coming Soon" empty state (technique catalog lands later)
 //   • Calendar — reuses existing TrainingHeatmap (the traditional detailed view)
 //
@@ -13,17 +15,20 @@ import { api, ApiError } from '../lib/api.ts';
 import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
+import { useCountUp } from '../hooks/useCountUp.ts';
 import PageContent from '../components/PageContent.tsx';
 import TrainingHeatmap from '../components/TrainingHeatmap.tsx';
 import ErrorBoundary from '../components/ErrorBoundary.tsx';
-import { SKILL_COLORS } from '../components/charts/RadarChart.tsx';
 import { SKILL_TAGS } from '../lib/constants.ts';
 import { toDateString, formatDuration } from '../lib/sessionUtils.ts';
+import { type TimeWindow, WINDOW_DAYS, sessionPillarHours } from '../lib/analyticsUtils.ts';
 import {
   PALE_YELLOW, COPPER, CARD_BG, CARD_GLOW, CARD_GLOW_BORDER,
-  FONT_EDITORIAL, INT_COLORS,
+  FONT_EDITORIAL, INT_COLORS, SURFACE_2, SURFACE_2_BORDER, GLOW_SOFT,
 } from '../lib/theme.ts';
 import type { SessionSummary, Intention, SessionsResponse, IntentionsResponse, CalendarIntention } from '../types/api.ts';
+import BigPrism from '../components/atlas/BigPrism.tsx';
+import AtlasPrismDeck from '../components/atlas/AtlasPrismDeck.tsx';
 
 const LS_TAB_KEY = 'j2_atlas_tab';
 type AtlasTab = 'timeline' | 'prism' | 'library' | 'calendar';
@@ -60,6 +65,23 @@ export default function AtlasPage() {
   // Calendar year navigation (tab-local state)
   const currentYear = new Date().getFullYear();
   const [calendarYear, setCalendarYear] = useState(currentYear);
+
+  // Prism tab state — lifted so the user's window/vertex selections persist
+  // across Atlas-tab switches (they unmount the panel otherwise).
+  // localStorage key kept as `j2-analytics-timeWindow` so existing user
+  // preferences carry over from the retired /analytics route.
+  const [timeWindow, setTimeWindow] = useState<TimeWindow>(() => {
+    if (typeof window === 'undefined') return '30d';
+    const stored = window.localStorage.getItem('j2-analytics-timeWindow');
+    return (stored as TimeWindow) ?? '30d';
+  });
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('j2-analytics-timeWindow', timeWindow);
+    }
+  }, [timeWindow]);
+  const [customRange, setCustomRange] = useState<{ start: string; end: string } | null>(null);
+  const [selectedTag, setSelectedTag] = useState<string>(SKILL_TAGS[0]!.value);
 
   // ── Fetch: Atlas is THE surface for looking back across years, so we pull
   //          the full session history (no `from` filter). Backend has no
@@ -119,6 +141,12 @@ export default function AtlasPage() {
         <PrismPanel
           sessions={allSessions}
           intentions={intentions}
+          timeWindow={timeWindow}
+          onWindowChange={setTimeWindow}
+          customRange={customRange}
+          onCustomRangeChange={setCustomRange}
+          selectedTag={selectedTag}
+          onSelectTag={setSelectedTag}
           onOpenSession={(id) => navigate(`/journal/${id}`)}
         />
       )}
@@ -429,46 +457,112 @@ function TimelineStrip({ year, sessions }: { year: number; sessions: SessionSumm
   );
 }
 
-// ── Prism Lab panel ───────────────────────────────────────────────────────
-// Desktop-scaled Prism Lab: one selectable pentagon with per-vertex halos
-// sized by session count, a stats panel on the right, and a 4-col grid of
-// recent sessions for the selected vertex. Matches the MiniPrism aesthetic
-// (dashed guide pentagons, copper spokes, champagne selected vertex).
+// ── Prism panel — merged Atlas/Analytics view ─────────────────────────────
+// Vertical layout:
+//   1. Hero stats strip (lifted from former AnalyticsPage)
+//   2. AtlasPrismDeck (5 sub-views: Prism / Volume / Split / Format / Weekly)
+//   3. Selected-vertex readout (4 stat cards)
+//   4. Recent sessions for selected vertex
 
 function PrismPanel({
-  sessions, intentions, onOpenSession,
+  sessions, intentions, timeWindow, onWindowChange, customRange, onCustomRangeChange,
+  selectedTag, onSelectTag, onOpenSession,
 }: {
   sessions: SessionSummary[];
   intentions: Intention[];
+  timeWindow: TimeWindow;
+  onWindowChange: (w: TimeWindow) => void;
+  customRange: { start: string; end: string } | null;
+  onCustomRangeChange: (r: { start: string; end: string } | null) => void;
+  selectedTag: string;
+  onSelectTag: (tag: string) => void;
   onOpenSession: (id: string) => void;
 }) {
-  const [selectedTag, setSelectedTag] = useState<string>(SKILL_TAGS[0]!.value);
+  // ── Hero stats — filtered to current time window ──
+  const filtered = useMemo(() => {
+    if (timeWindow === 'custom' && customRange) {
+      const start = new Date(customRange.start + 'T00:00:00');
+      const end   = new Date(customRange.end   + 'T23:59:59');
+      return sessions.filter(s => {
+        const d = new Date(s.date + 'T00:00:00');
+        return d >= start && d <= end;
+      });
+    }
+    const days = WINDOW_DAYS[timeWindow];
+    const cutoff = days != null ? new Date(Date.now() - days * 86_400_000) : null;
+    return cutoff ? sessions.filter(s => new Date(s.date) >= cutoff) : sessions;
+  }, [sessions, timeWindow, customRange]);
 
+  const priorFiltered = useMemo(() => {
+    if (timeWindow === 'custom') return null;
+    const days = WINDOW_DAYS[timeWindow];
+    if (!days) return null;
+    const cutoff      = new Date(Date.now() - days * 86_400_000);
+    const priorCutoff = new Date(Date.now() - days * 2 * 86_400_000);
+    return sessions.filter(s => {
+      const d = new Date(s.date + 'T00:00:00');
+      return d >= priorCutoff && d < cutoff;
+    });
+  }, [sessions, timeWindow]);
+
+  const totalHours = filtered.reduce((sum, s) => sum + (s.duration ?? 0) / 60, 0);
+  const sessionCount = filtered.length;
+  const windowDays = WINDOW_DAYS[timeWindow] ?? (customRange
+    ? Math.max(1, Math.round((new Date(customRange.end + 'T23:59:59').getTime() - new Date(customRange.start + 'T00:00:00').getTime()) / 86_400_000))
+    : 365);
+  const avgPerWeek = windowDays > 0 ? totalHours / (windowDays / 7) : 0;
+  const priorTotalHours = priorFiltered?.reduce((sum, s) => sum + (s.duration ?? 0) / 60, 0) ?? null;
+
+  function delta(current: number, prior: number | null): string | null {
+    if (prior === null || prior < 0.01) return null;
+    const p = Math.round(((current - prior) / prior) * 100);
+    return (p >= 0 ? '↑' : '↓') + Math.abs(p) + '%';
+  }
+  const hoursDelta = delta(totalHours, priorTotalHours);
+
+  const animHours    = useCountUp(Math.round(totalHours * 10) / 10);
+  const animSessions = useCountUp(sessionCount);
+  const animAvg      = useCountUp(Math.round(avgPerWeek * 10) / 10);
+
+  const WINDOW_LABELS: Partial<Record<TimeWindow, string>> = {
+    '7d': '7 days', '14d': '2 weeks', '30d': '30 days',
+    '90d': '90 days', '180d': '6 months', '1y': '1 year',
+  };
+  const windowLabel = timeWindow === 'custom' ? 'custom range' : (WINDOW_LABELS[timeWindow] ?? 'all time');
+
+  // ── Selected-vertex stats ──
+  // All-time pillarStats drive the lower stat cards (Sessions / Hours / Weeks
+  // as focus / Avg intensity) — these are about the user's career-long
+  // relationship with the pillar, not the time-windowed view.
   const pillarStats = useMemo(() => {
     const stats: Record<string, { count: number; minutes: number; intensitySum: number }> = {};
     SKILL_TAGS.forEach(t => { stats[t.value] = { count: 0, minutes: 0, intensitySum: 0 }; });
     sessions.forEach(s => {
-      const tag = s.tags?.[0];
-      if (tag && stats[tag]) {
-        stats[tag]!.count += 1;
-        stats[tag]!.minutes += s.duration ?? 0;
-        stats[tag]!.intensitySum += s.intensity ?? 3;
+      // pillar_distribution-aware: count a session against every pillar that had
+      // weight, weighted proportionally so multi-chip sessions don't double-count
+      // for halo sizing on the BigPrism. Intensity always full-weighted.
+      const ph = sessionPillarHours(s);
+      for (const [k, v] of Object.entries(ph)) {
+        if (k in stats && v > 0) {
+          stats[k]!.count += v / Math.max(0.001, (s.duration ?? 0) / 60); // proportional share
+          stats[k]!.minutes += v * 60;
+          stats[k]!.intensitySum += (s.intensity ?? 3) * (v / Math.max(0.001, (s.duration ?? 0) / 60));
+        }
       }
     });
     return stats;
   }, [sessions]);
 
   const totalCount = sessions.length;
-  const maxCount = Math.max(1, ...Object.values(pillarStats).map(s => s.count));
-
   const selected = pillarStats[selectedTag] ?? { count: 0, minutes: 0, intensitySum: 0 };
   const selectedLabel = SKILL_TAGS.find(t => t.value === selectedTag)?.label ?? selectedTag;
   const weeksAsFocus = intentions.filter(i => i.heading === selectedTag).length;
   const avgIntensity = selected.count > 0 ? selected.intensitySum / selected.count : 0;
 
+  // Recent sessions for the selected vertex (all-time, not windowed)
   const recentSessions = useMemo(() => {
     return sessions
-      .filter(s => s.tags?.[0] === selectedTag)
+      .filter(s => s.tags?.includes(selectedTag) || s.heading === selectedTag)
       .slice()
       .sort((a, b) => {
         const ak = typeof a.date === 'string' ? a.date.slice(0, 10) : toDateString(new Date(a.date));
@@ -488,110 +582,150 @@ function PrismPanel({
 
   return (
     <>
-      {/* Main 2-col hero card */}
+      {/* ── Hero stats strip ─────────────────────────────────── */}
+      <div
+        className="rounded-xl flex animate-j2-card-enter select-none"
+        style={{ backgroundColor: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}`, marginBottom: 20 }}
+      >
+        <div className="flex-1 flex flex-col items-center justify-center py-4 gap-0.5">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
+              {animHours.toFixed(1)}h
+            </span>
+            {hoursDelta && (
+              <span className="text-xs font-semibold" style={{
+                color: hoursDelta.startsWith('↑') ? 'rgba(82,181,108,0.85)' : 'rgba(218,90,70,0.75)',
+              }}>
+                {hoursDelta}
+              </span>
+            )}
+          </div>
+          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.38)' }}>
+            {windowLabel}
+          </span>
+        </div>
+        <div className="w-px" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />
+        <div className="flex-1 flex flex-col items-center justify-center py-4 gap-0.5">
+          <span className="text-xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
+            {Math.round(animSessions)}
+          </span>
+          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.38)' }}>
+            sessions
+          </span>
+        </div>
+        <div className="w-px" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />
+        <div className="flex-1 flex flex-col items-center justify-center py-4 gap-0.5">
+          <span className="text-xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
+            {animAvg.toFixed(1)}h
+          </span>
+          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.38)' }}>
+            avg / wk
+          </span>
+        </div>
+      </div>
+
+      {/* ── 5-view deck (Prism / Volume / Split / Format / Weekly) ────── */}
+      <ErrorBoundary>
+        <AtlasPrismDeck
+          sessions={sessions}
+          timeWindow={timeWindow}
+          onWindowChange={onWindowChange}
+          customRange={customRange}
+          onCustomRangeChange={onCustomRangeChange}
+          selectedTag={selectedTag}
+          onSelectTag={onSelectTag}
+          bigPrismSize={520}
+        />
+      </ErrorBoundary>
+
+      {/* ── Selected vertex readout ───────────────────────────────── */}
       <div
         style={{
           backgroundColor: CARD_BG,
           border: `1px solid ${CARD_GLOW_BORDER}`,
           boxShadow: CARD_GLOW,
           borderRadius: 20,
-          padding: 48,
+          padding: 32,
+          marginTop: 24,
           display: 'grid',
           gridTemplateColumns: '1fr 480px',
           gap: 56,
           alignItems: 'center',
         }}
       >
-        {/* LEFT — big interactive prism */}
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <BigPrism
-            activeTag={selectedTag}
-            pillarStats={pillarStats}
-            maxCount={maxCount}
-            size={560}
-            onSelect={setSelectedTag}
-          />
-        </div>
-
-        {/* RIGHT — selected-vertex readout + stats */}
         <div>
           <div className="j2-label-copper" style={{ marginBottom: 10 }}>◇ Selected vertex</div>
-          <div className="j2-serif-display j2-heading-glow" style={{ fontSize: 72, lineHeight: 1 }}>
+          <div className="j2-serif-display j2-heading-glow" style={{ fontSize: 56, lineHeight: 1 }}>
             {selectedLabel}
           </div>
           <p
             style={{
-              fontSize: 17, lineHeight: 1.6,
+              fontSize: 16, lineHeight: 1.6,
               color: 'rgba(255,255,255,0.60)',
               marginTop: 14, marginBottom: 0,
             }}
           >
             {descriptions[selectedTag] ?? 'Your training in this pillar.'}
           </p>
+        </div>
 
-          <div
-            style={{
-              display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)',
-              gap: 14, marginTop: 32,
-            }}
-          >
-            {([
-              {
-                k: 'Sessions',
-                v: selected.count,
-                sub: totalCount > 0 && selected.count > 0
-                  ? `${Math.round(selected.count / totalCount * 100)}% of practice`
-                  : 'none yet',
-              },
-              {
-                k: 'Hours',
-                v: Math.round(selected.minutes / 60),
-                sub: 'all-time',
-              },
-              {
-                k: 'Weeks as focus',
-                v: weeksAsFocus,
-                sub: weeksAsFocus === 1 ? 'week set this intent' : 'weeks set this intent',
-              },
-              {
-                k: 'Avg intensity',
-                v: selected.count > 0 ? avgIntensity.toFixed(1) : '—',
-                sub: selected.count > 0 ? 'on a 5-point scale' : 'log one to see',
-              },
-            ]).map((s, i) => (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
+          {([
+            {
+              k: 'Sessions',
+              v: Math.round(selected.count),
+              sub: totalCount > 0 && selected.count > 0
+                ? `${Math.round(selected.count / totalCount * 100)}% of practice`
+                : 'none yet',
+            },
+            {
+              k: 'Hours',
+              v: Math.round(selected.minutes / 60),
+              sub: 'all-time',
+            },
+            {
+              k: 'Weeks as focus',
+              v: weeksAsFocus,
+              sub: weeksAsFocus === 1 ? 'week set this intent' : 'weeks set this intent',
+            },
+            {
+              k: 'Avg intensity',
+              v: selected.count > 0 ? avgIntensity.toFixed(1) : '—',
+              sub: selected.count > 0 ? 'on a 5-point scale' : 'log one to see',
+            },
+          ]).map((s, i) => (
+            <div
+              key={i}
+              style={{
+                padding: '18px 20px',
+                background: 'var(--j2-surface-2)',
+                border: '1px solid var(--j2-border-1)',
+                borderRadius: 14,
+              }}
+            >
+              <div className="j2-label-micro" style={{ marginBottom: 8 }}>{s.k}</div>
               <div
-                key={i}
                 style={{
-                  padding: '20px 22px',
-                  background: 'var(--j2-surface-2)',
-                  border: '1px solid var(--j2-border-1)',
-                  borderRadius: 14,
+                  fontSize: 28, fontFamily: FONT_EDITORIAL, fontWeight: 600,
+                  color: PALE_YELLOW, lineHeight: 1.05,
                 }}
               >
-                <div className="j2-label-micro" style={{ marginBottom: 10 }}>{s.k}</div>
-                <div
-                  style={{
-                    fontSize: 32, fontFamily: FONT_EDITORIAL, fontWeight: 600,
-                    color: PALE_YELLOW, lineHeight: 1.05,
-                  }}
-                >
-                  {s.v}
-                </div>
-                <div
-                  style={{
-                    fontSize: 12, color: 'rgba(255,255,255,0.40)',
-                    marginTop: 6, letterSpacing: '0.1em', textTransform: 'uppercase',
-                  }}
-                >
-                  {s.sub}
-                </div>
+                {s.v}
               </div>
-            ))}
-          </div>
+              <div
+                style={{
+                  fontSize: 11, color: 'rgba(255,255,255,0.40)',
+                  marginTop: 5, letterSpacing: '0.1em', textTransform: 'uppercase',
+                }}
+              >
+                {s.sub}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Recent sessions at selected vertex */}
+      {/* ── Recent sessions at selected vertex ────────────────────── */}
       {recentSessions.length > 0 && (
         <div
           style={{

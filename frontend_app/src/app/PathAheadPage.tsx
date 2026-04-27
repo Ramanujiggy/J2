@@ -1399,7 +1399,7 @@ function MostRecentSessionCard({ mostRecent, softCardStyle }: {
         display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10,
         minHeight: 42,
       }}>
-        {/* Animated slot — dot → line → text rises out of line */}
+        {/* Animated slot — dot → line → text emerges out of line via clip-path */}
         <div
           style={{
             position: 'relative',
@@ -1408,7 +1408,7 @@ function MostRecentSessionCard({ mostRecent, softCardStyle }: {
             flexShrink: 0,
           }}
         >
-          {/* The dot/line shape */}
+          {/* The dot/line shape — fades out as the text unveils from its midline */}
           <span
             aria-hidden
             style={{
@@ -1431,21 +1431,28 @@ function MostRecentSessionCard({ mostRecent, softCardStyle }: {
                 'margin-top 320ms cubic-bezier(0.65,0,0.35,1), ' +
                 'border-radius 320ms ease-out, ' +
                 'box-shadow 460ms ease-out, ' +
-                'opacity 360ms ease-out 200ms',
+                'opacity 380ms ease-out 100ms',
             }}
           />
-          {/* Eyebrow — rises up from the line's vertical center */}
+          {/* Eyebrow — clipped to a 0-height horizontal slice at the line's vertical center
+              until reveal, then the inset shrinks symmetrically to reveal the full letters.
+              Effectively the line's strip *unfolds* into the text. */}
           <span
             className="j2-label-copper"
             style={{
               position: 'absolute',
               left: 0,
               top: '50%',
-              transform: phase === 'reveal'
-                ? 'translateY(-50%) translateY(0)'
-                : 'translateY(-50%) translateY(10px)',
-              opacity: phase === 'reveal' ? 1 : 0,
-              transition: 'opacity 380ms ease-out 200ms, transform 520ms cubic-bezier(0.16,1,0.3,1) 200ms',
+              transform: 'translateY(-50%)',
+              clipPath: phase === 'reveal'
+                ? 'inset(-2px 0 -2px 0)'
+                : 'inset(50% 0 50% 0)',
+              WebkitClipPath: phase === 'reveal'
+                ? 'inset(-2px 0 -2px 0)'
+                : 'inset(50% 0 50% 0)',
+              transition:
+                'clip-path 560ms cubic-bezier(0.16,1,0.3,1) 80ms, ' +
+                '-webkit-clip-path 560ms cubic-bezier(0.16,1,0.3,1) 80ms',
               whiteSpace: 'nowrap',
             }}
           >
