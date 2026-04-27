@@ -10,7 +10,7 @@ import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import { SKILL_TAGS, CATEGORY_COLORS, MONTH_NAMES } from '../lib/constants.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import { useActiveIntention } from '../context/ActiveIntentionContext.tsx';
-import { toDateString, addDays } from '../lib/sessionUtils.ts';
+import { toDateString, addDays, getWeekStart } from '../lib/sessionUtils.ts';
 import type { Intention, Pillar, SessionSummary, IntentionsResponse, SessionsResponse } from '../types/api.ts';
 import PageContent from '../components/PageContent.tsx';
 import SetIntentionModal from '../components/SetIntentionModal.tsx';
@@ -45,6 +45,15 @@ type IntentionsLayout = 'timeline' | 'eras';
 type FocusFilter = 'All' | Pillar;
 
 const LAYOUT_STORAGE_KEY = 'j2_intentions_layout';
+const YEAR_STORAGE_KEY = 'j2_intentions_year';
+
+// One slot in the single-year timeline. When filter='All' we render every ISO
+// Monday in the selected year (capped at this-week for the current year), so
+// gaps without an intention show up as muted "no focus set" rows. When a focus
+// filter is active we drop the skeleton and only emit intention rows.
+type TimelineRow =
+  | { type: 'intention'; weekStart: string; intention: Intention }
+  | { type: 'empty';     weekStart: string };
 
 // Per-intention derived display data — computed once at the page level so
 // timeline rows + era card stats + bar chart all read from the same source.
@@ -407,6 +416,18 @@ function DesktopIntentionsView({
   // owned by IntentionsPage so the mobile branch can share them.
   const [filter, setFilter] = useState<FocusFilter>('All');
 
+  // Year selection — single-year-at-a-time view. Persisted across reloads so
+  // navigating into a session and back restores the year you were browsing.
+  const [selectedYear, setSelectedYear] = useState<string>(() => {
+    if (typeof window === 'undefined') return '';
+    return window.localStorage.getItem(YEAR_STORAGE_KEY) ?? '';
+  });
+  useEffect(() => {
+    if (typeof window !== 'undefined' && selectedYear) {
+      window.localStorage.setItem(YEAR_STORAGE_KEY, selectedYear);
+    }
+  }, [selectedYear]);
+
   // SessionDetailModal state — clicking a row/era opens a session.
   const [openSession, setOpenSession] = useState<SessionSummary | null>(null);
 
@@ -418,6 +439,26 @@ function DesktopIntentionsView({
     }) ?? null;
   }, [intentions, todayStr]);
 
+  // Years that contain at least one intention. Counts are pre-filter so the
+  // tabs don't shrink/grow as you flip focus chips — they reflect raw history.
+  const availableYears = useMemo(() => {
+    const m = new Map<string, number>();
+    intentions.forEach(i => {
+      const y = i.week_start.slice(0, 4);
+      m.set(y, (m.get(y) ?? 0) + 1);
+    });
+    return Array.from(m.entries())
+      .map(([year, count]) => ({ year, count }))
+      .sort((a, b) => b.year.localeCompare(a.year));
+  }, [intentions]);
+
+  // Default to the most recent year with data if no selection (or if the
+  // persisted year no longer has any intentions — e.g., after a reset).
+  const effectiveYear = useMemo(() => {
+    if (selectedYear && availableYears.some(y => y.year === selectedYear)) return selectedYear;
+    return availableYears[0]?.year ?? '';
+  }, [selectedYear, availableYears]);
+
   // Filter by focus heading. 'All' passes everything; anything else passes
   // intentions whose heading matches. Null-heading intentions only show under 'All'.
   const filtered = useMemo(() => {
@@ -425,26 +466,77 @@ function DesktopIntentionsView({
     return intentions.filter(i => i.heading === filter);
   }, [intentions, filter]);
 
-  // Group filtered intentions by year (newest first); within each year also newest-first.
-  const byYear = useMemo(() => {
-    const map = new Map<string, Intention[]>();
-    filtered.forEach(i => {
-      const y = i.week_start.slice(0, 4);
-      const bucket = map.get(y) ?? [];
-      bucket.push(i);
-      map.set(y, bucket);
-    });
-    // Within each year, sort by week_start DESC
-    for (const arr of map.values()) {
-      arr.sort((a, b) => b.week_start.localeCompare(a.week_start));
-    }
-    return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]));
-  }, [filtered]);
+  // Year + focus scoped intentions, newest first.
+  const yearScoped = useMemo(() => {
+    if (!effectiveYear) return [];
+    return filtered
+      .filter(i => i.week_start.slice(0, 4) === effectiveYear)
+      .sort((a, b) => b.week_start.localeCompare(a.week_start));
+  }, [filtered, effectiveYear]);
 
-  // Era grouping: newest-first walk; consecutive same-heading weeks collapse
-  // into a run. Two intentions are "consecutive" if their week_start dates
-  // differ by exactly the duration of the older one (typically 7 days).
-  const eras = useMemo(() => computeEras(filtered), [filtered]);
+  // Session counts keyed by ISO Monday — used to surface "you trained this week
+  // but didn't set a focus" on empty rows.
+  const sessionsByWeek = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const s of sessions) {
+      const dStr = (typeof s.date === 'string' ? s.date : toDateString(new Date(s.date))).slice(0, 10);
+      const wk = getWeekStart(new Date(dStr + 'T00:00:00'));
+      m.set(wk, (m.get(wk) ?? 0) + 1);
+    }
+    return m;
+  }, [sessions]);
+
+  // Build the timeline rows for the selected year. With filter='All' we emit
+  // every ISO Monday so missing weeks render as "no focus set". With a focus
+  // filter active we just emit the matching intentions — padding wouldn't
+  // mean anything since most weeks weren't that focus to begin with.
+  const timelineRows = useMemo<TimelineRow[]>(() => {
+    if (!effectiveYear) return [];
+    if (filter !== 'All') {
+      return yearScoped.map(i => ({
+        type: 'intention',
+        weekStart: i.week_start.slice(0, 10),
+        intention: i,
+      }));
+    }
+    // Generate ISO Mondays whose date falls in `effectiveYear`.
+    const year = parseInt(effectiveYear, 10);
+    const jan1 = new Date(year, 0, 1);
+    const dow = jan1.getDay(); // 0=Sun … 6=Sat
+    const firstMonOffset = dow === 1 ? 0 : (dow === 0 ? 1 : 8 - dow);
+    const mondays: string[] = [];
+    const cursor = new Date(year, 0, 1 + firstMonOffset);
+    while (cursor.getFullYear() === year) {
+      mondays.push(toDateString(cursor));
+      cursor.setDate(cursor.getDate() + 7);
+    }
+    // Cap the current year at this week's Monday so we don't render empty
+    // future rows. Past years render the full 52/53 weeks.
+    const today = new Date();
+    if (effectiveYear === String(today.getFullYear())) {
+      const currentMon = getWeekStart(today);
+      const cutoffIdx = mondays.findIndex(m => m > currentMon);
+      if (cutoffIdx !== -1) mondays.length = cutoffIdx;
+    }
+    // Match each Monday to an intention whose week_start lands inside that
+    // 7-day window. Off-Monday intentions still get bucketed correctly.
+    const rows: TimelineRow[] = mondays.map(monday => {
+      const weekEnd = addDays(monday, 7); // Monday + 6 days = Sunday
+      const matched = yearScoped.find(i => {
+        const s = i.week_start.slice(0, 10);
+        return s >= monday && s <= weekEnd;
+      });
+      return matched
+        ? { type: 'intention' as const, weekStart: matched.week_start.slice(0, 10), intention: matched }
+        : { type: 'empty' as const, weekStart: monday };
+    });
+    return rows.reverse(); // newest first
+  }, [filter, yearScoped, effectiveYear]);
+
+  // Era grouping: newest-first walk over the year-scoped set; consecutive
+  // same-heading weeks collapse into a run. Two intentions are "consecutive"
+  // if their week_start dates differ by exactly the older one's duration.
+  const eras = useMemo(() => computeEras(yearScoped), [yearScoped]);
 
   // Click-through handler shared by Timeline rows + Era cards.
   // Timeline → first session of week (chronologically earliest).
@@ -482,12 +574,20 @@ function DesktopIntentionsView({
     setOpenSession(all[all.length - 1]!);
   }, [sessionsForIntention, onNavigate]);
 
-  // Subtitle: total count when 'All', filtered count otherwise.
-  const totalWeeks = intentions.length;
-  const filteredWeeks = filtered.length;
-  const subtitle = filter === 'All'
-    ? `${totalWeeks} weeks of intent, on the record.`
-    : `${filteredWeeks} of ${totalWeeks} weeks · ${PILLAR_LABEL[filter as Pillar]}.`;
+  // Subtitle reflects the selected year. With 'All' filter we surface the
+  // "set vs. elapsed" ratio so missing weeks register as missing. With a focus
+  // filter we drop the ratio (denominator stops being meaningful).
+  const subtitle = useMemo(() => {
+    if (intentions.length === 0) return 'No intentions yet.';
+    if (!effectiveYear) return '';
+    if (filter === 'All') {
+      const intentioned = timelineRows.filter(r => r.type === 'intention').length;
+      const total = timelineRows.length;
+      return `${intentioned} of ${total} ${total === 1 ? 'week' : 'weeks'} set in ${effectiveYear}.`;
+    }
+    const n = timelineRows.length;
+    return `${n} ${n === 1 ? 'week' : 'weeks'} of ${PILLAR_LABEL[filter as Pillar]} in ${effectiveYear}.`;
+  }, [intentions.length, effectiveYear, filter, timelineRows]);
 
   return (
     <PageContent ready={!loading} loadingMessages={['Loading your intentions...']}>
@@ -568,24 +668,42 @@ function DesktopIntentionsView({
         <DesktopEmpty onStart={() => onNavigate('/home')} />
       ) : (
         <>
-          {/* Filter chips */}
+          {/* Year + focus controls — stacked. Year scopes the entire view to a
+              single year (52 weeks max) so the page stays a predictable size
+              and you always know which year you're looking at. */}
+          <YearTabs
+            years={availableYears}
+            value={effectiveYear}
+            onChange={setSelectedYear}
+          />
           <FilterBar value={filter} onChange={setFilter} />
 
           {/* Body — layout variant */}
-          {filtered.length === 0 ? (
-            <EmptyFilteredState filter={filter as Pillar} />
-          ) : layout === 'timeline' ? (
-            <IntentionsTimeline
-              byYear={byYear}
-              statsMap={statsMap}
-              onOpen={i => onOpenWeekSessions(i, 'first')}
-            />
+          {layout === 'timeline' ? (
+            timelineRows.length === 0 ? (
+              filter !== 'All'
+                ? <EmptyFilteredState filter={filter as Pillar} />
+                : <EmptyYearState year={effectiveYear} />
+            ) : (
+              <IntentionsTimeline
+                rows={timelineRows}
+                statsMap={statsMap}
+                sessionsByWeek={sessionsByWeek}
+                onOpen={i => onOpenWeekSessions(i, 'first')}
+              />
+            )
           ) : (
-            <IntentionsEras
-              eras={eras}
-              statsMap={statsMap}
-              onOpen={onOpenEraSessions}
-            />
+            eras.length === 0 ? (
+              filter !== 'All'
+                ? <EmptyFilteredState filter={filter as Pillar} />
+                : <EmptyYearState year={effectiveYear} />
+            ) : (
+              <IntentionsEras
+                eras={eras}
+                statsMap={statsMap}
+                onOpen={onOpenEraSessions}
+              />
+            )
           )}
         </>
       )}
@@ -702,89 +820,225 @@ function EmptyFilteredState({ filter }: { filter: Pillar }) {
 // ── Layout 1: Editorial Timeline ─────────────────────────────────────────
 
 interface IntentionsTimelineProps {
-  byYear: [string, Intention[]][];
+  rows: TimelineRow[];
   statsMap: Map<string, IntentionStats>;
+  sessionsByWeek: Map<string, number>;
   onOpen: (i: Intention) => void;
 }
 
-function IntentionsTimeline({ byYear, statsMap, onOpen }: IntentionsTimelineProps) {
+function IntentionsTimeline({ rows, statsMap, sessionsByWeek, onOpen }: IntentionsTimelineProps) {
+  // Dominant focus across the rendered (year-scoped) rows — the small "Mostly"
+  // marker that used to hang off the year header. Lives at the top of the
+  // timeline now since the year header itself is gone (year is in the tabs).
+  const dominant = (() => {
+    const counts: Partial<Record<Pillar, number>> = {};
+    for (const r of rows) {
+      if (r.type !== 'intention') continue;
+      const h = r.intention.heading;
+      if (h && (ALL_PILLARS as string[]).includes(h)) {
+        const k = h as Pillar;
+        counts[k] = (counts[k] ?? 0) + 1;
+      }
+    }
+    const top = (Object.entries(counts) as [Pillar, number][])
+      .sort((a, b) => b[1] - a[1])[0];
+    return top?.[0] ?? null;
+  })();
+
   return (
     <div>
-      {byYear.map(([year, items]) => {
-        // Dominant focus for the year — most-frequent heading
-        const counts: Partial<Record<Pillar, number>> = {};
-        for (const i of items) {
-          if (i.heading && (ALL_PILLARS as string[]).includes(i.heading)) {
-            const k = i.heading as Pillar;
-            counts[k] = (counts[k] ?? 0) + 1;
-          }
-        }
-        const dominantEntry = (Object.entries(counts) as [Pillar, number][])
-          .sort((a, b) => b[1] - a[1])[0];
-        const dominant = dominantEntry?.[0] ?? null;
+      {dominant && (
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            gap: 8,
+            paddingBottom: 12,
+            fontSize: 12,
+            color: 'rgba(255,255,255,0.40)',
+            fontStyle: 'italic',
+            fontFamily: FONT_EDITORIAL,
+          }}
+        >
+          <span>Mostly</span>
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              background: FOCUS_COLORS[dominant],
+            }}
+          />
+          <span style={{ color: PALE_YELLOW }}>{PILLAR_LABEL[dominant]}</span>
+        </div>
+      )}
+      <div>
+        {rows.map(row =>
+          row.type === 'intention' ? (
+            <IntentionRow
+              key={row.intention.id}
+              intention={row.intention}
+              stats={statsMap.get(row.intention.id) ?? { sessionCount: 0, alignment: 0, matchHours: 0, totalHours: 0 }}
+              onOpen={() => onOpen(row.intention)}
+            />
+          ) : (
+            <EmptyWeekRow
+              key={`empty-${row.weekStart}`}
+              weekStart={row.weekStart}
+              sessionCount={sessionsByWeek.get(row.weekStart) ?? 0}
+            />
+          ),
+        )}
+      </div>
+    </div>
+  );
+}
 
+// Empty-week placeholder row in the 52-week timeline. Keeps the same grid as
+// IntentionRow so columns line up; everything is muted to read as absence
+// without competing visually with set weeks.
+function EmptyWeekRow({ weekStart, sessionCount }: { weekStart: string; sessionCount: number }) {
+  const d = new Date(weekStart + 'T00:00:00');
+  const monthDay = `WK ${MONTH_NAMES[d.getMonth()]!.toUpperCase()} ${d.getDate()}`;
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '88px 14px 1fr 90px 240px 80px',
+        gap: 18,
+        alignItems: 'center',
+        padding: '14px 8px',
+        borderBottom: '1px solid rgba(255,255,255,0.04)',
+      }}
+    >
+      <div
+        style={{
+          fontSize: 13,
+          color: 'rgba(255,255,255,0.30)',
+          letterSpacing: '0.10em',
+          textTransform: 'uppercase',
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        {monthDay}
+      </div>
+      {/* Hollow dash where the focus dot would be */}
+      <div style={{ width: 10, height: 1, background: 'rgba(255,255,255,0.15)' }} />
+      <div
+        className="j2-serif-italic"
+        style={{
+          fontSize: 20,
+          fontStyle: 'italic',
+          color: 'rgba(255,255,255,0.30)',
+          lineHeight: 1.1,
+        }}
+      >
+        No focus set
+      </div>
+      <div
+        style={{
+          fontSize: 12,
+          color: sessionCount > 0 ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.20)',
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        {sessionCount === 0 ? '—' : `${sessionCount} ${sessionCount === 1 ? 'session' : 'sessions'}`}
+      </div>
+      <div />
+      <div />
+    </div>
+  );
+}
+
+// Year picker — chip row mirroring FilterBar styling so the two stack cleanly.
+function YearTabs({
+  years,
+  value,
+  onChange,
+}: {
+  years: { year: string; count: number }[];
+  value: string;
+  onChange: (year: string) => void;
+}) {
+  if (years.length === 0) return null;
+  return (
+    <div
+      role="tablist"
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        paddingTop: 6,
+        paddingBottom: 14,
+        flexWrap: 'wrap',
+      }}
+    >
+      <div className="j2-label-micro" style={{ marginRight: 6 }}>Year</div>
+      {years.map(({ year, count }) => {
+        const active = year === value;
         return (
-          <div key={year} style={{ marginBottom: 56 }}>
-            {/* Year header */}
-            <div
+          <button
+            key={year}
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(year)}
+            style={{
+              height: 32,
+              padding: '0 14px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: 13,
+              fontWeight: 600,
+              borderRadius: 16,
+              backgroundColor: active ? 'rgba(196,145,95,0.16)' : SURFACE_2,
+              border: `1px solid ${active ? COPPER : 'rgba(255,255,255,0.10)'}`,
+              color: active ? PALE_YELLOW : 'rgba(255,255,255,0.70)',
+              cursor: 'pointer',
+              transition: 'all 160ms ease',
+              whiteSpace: 'nowrap',
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {year}
+            <span
               style={{
-                display: 'flex',
-                alignItems: 'baseline',
-                gap: 22,
-                paddingBottom: 14,
-                borderBottom: '1px solid rgba(255,255,255,0.10)',
+                fontSize: 11,
+                fontWeight: 500,
+                color: active ? COPPER : 'rgba(255,255,255,0.40)',
               }}
             >
-              <div
-                className="j2-serif-display"
-                style={{ fontSize: 56, lineHeight: 1, letterSpacing: '-0.02em' }}
-              >
-                {year}
-              </div>
-              <div className="j2-label-micro">
-                {items.length} {items.length === 1 ? 'week' : 'weeks'}
-              </div>
-              {dominant && (
-                <div
-                  style={{
-                    marginLeft: 'auto',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    fontSize: 12,
-                    color: 'rgba(255,255,255,0.40)',
-                    fontStyle: 'italic',
-                    fontFamily: FONT_EDITORIAL,
-                  }}
-                >
-                  <span>Mostly</span>
-                  <span
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: '50%',
-                      background: FOCUS_COLORS[dominant],
-                    }}
-                  />
-                  <span style={{ color: PALE_YELLOW }}>{PILLAR_LABEL[dominant]}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Rows */}
-            <div>
-              {items.map(i => (
-                <IntentionRow
-                  key={i.id}
-                  intention={i}
-                  stats={statsMap.get(i.id) ?? { sessionCount: 0, alignment: 0, matchHours: 0, totalHours: 0 }}
-                  onOpen={() => onOpen(i)}
-                />
-              ))}
-            </div>
-          </div>
+              {count}w
+            </span>
+          </button>
         );
       })}
+    </div>
+  );
+}
+
+// Empty state when the selected year has zero intentions (e.g., no data was
+// recorded that year). Distinct from the global empty state, which only fires
+// when there are no intentions at all.
+function EmptyYearState({ year }: { year: string }) {
+  return (
+    <div
+      style={{
+        padding: '60px 20px',
+        textAlign: 'center',
+        color: 'rgba(255,255,255,0.40)',
+        border: '1px dashed rgba(255,255,255,0.10)',
+        borderRadius: 16,
+      }}
+    >
+      <div
+        className="j2-serif-italic"
+        style={{ fontSize: 18, color: 'rgba(255,255,255,0.60)', marginBottom: 8 }}
+      >
+        No intentions in {year || 'this year'}.
+      </div>
+      <div style={{ fontSize: 13 }}>Pick another year above.</div>
     </div>
   );
 }
@@ -829,8 +1083,8 @@ function IntentionRow({
       {/* Date */}
       <div
         style={{
-          fontSize: 12,
-          color: 'rgba(255,255,255,0.40)',
+          fontSize: 13,
+          color: 'rgba(255,255,255,0.55)',
           letterSpacing: '0.10em',
           textTransform: 'uppercase',
           fontVariantNumeric: 'tabular-nums',
@@ -853,7 +1107,7 @@ function IntentionRow({
       {/* Focus name */}
       <div
         className="j2-serif-display"
-        style={{ fontSize: 22, fontWeight: 500, color: PALE_YELLOW, lineHeight: 1.1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+        style={{ fontSize: 26, fontWeight: 500, color: PALE_YELLOW, lineHeight: 1.1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
       >
         {focusName}
       </div>
@@ -861,8 +1115,8 @@ function IntentionRow({
       {/* Session count */}
       <div
         style={{
-          fontSize: 12,
-          color: 'rgba(255,255,255,0.60)',
+          fontSize: 13,
+          color: 'rgba(255,255,255,0.65)',
           fontVariantNumeric: 'tabular-nums',
         }}
       >
@@ -893,8 +1147,8 @@ function IntentionRow({
         </div>
         <span
           style={{
-            fontSize: 11,
-            color: 'rgba(255,255,255,0.40)',
+            fontSize: 12,
+            color: 'rgba(255,255,255,0.50)',
             fontVariantNumeric: 'tabular-nums',
             minWidth: 36,
             textAlign: 'right',
@@ -909,11 +1163,11 @@ function IntentionRow({
         onClick={onOpen}
         title={fullDate}
         style={{
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: 600,
           letterSpacing: '0.10em',
           textTransform: 'uppercase',
-          color: hovered ? COPPER : 'rgba(255,255,255,0.40)',
+          color: hovered ? COPPER : 'rgba(255,255,255,0.45)',
           textAlign: 'right',
           background: 'none',
           border: 'none',
