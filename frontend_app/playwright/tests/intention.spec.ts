@@ -38,6 +38,14 @@ async function openIntentionModal(page: Page): Promise<void> {
     await expect(chip(page, 'standup')).toBeVisible();
 }
 
+// Two RAFs: lets React commit the state update + re-render the parent so its
+// handler closures see the latest selections before the next gesture fires.
+async function settle(page: Page): Promise<void> {
+    await page.evaluate(() => new Promise<void>(r =>
+        requestAnimationFrame(() => requestAnimationFrame(() => r())),
+    ));
+}
+
 // Single-mode tap behaves like a primary-promote: chip becomes primary, all
 // others clear. We assert primary in the aria-label so the next gesture only
 // runs after React commits the state.
@@ -45,11 +53,13 @@ async function singleTapPromote(c: Locator): Promise<void> {
     await c.click();
     await expect(c).toHaveAttribute('aria-checked', 'true');
     await expect(c).toHaveAccessibleName(/primary focus/i);
+    await settle(c.page());
 }
 
 async function singleTapDeselect(c: Locator): Promise<void> {
     await c.click();
     await expect(c).toHaveAttribute('aria-checked', 'false');
+    await settle(c.page());
 }
 
 async function longPress(target: Locator, ms: number): Promise<void> {
@@ -62,6 +72,7 @@ async function longPress(target: Locator, ms: number): Promise<void> {
     await page.mouse.down();
     await page.waitForTimeout(ms);
     await page.mouse.up();
+    await settle(page);
 }
 
 test.describe('Flow 3 — set an intention via single-mode chips', () => {

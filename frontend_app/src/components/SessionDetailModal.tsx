@@ -172,6 +172,9 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
       const had_primary     = selections.some(s => s.primary);
       const had_deep_work   = selections.some(s => s.deep_work);
       const selection_count = selections.length;
+      // Migration 014 — per-pillar deep_work set so the saved Prism shape can
+      // be rehydrated with halo rings when the user reopens this session.
+      const deep_work_pillars = selections.filter(s => s.deep_work).map(s => s.pillar);
       await api.put(`/api/sessions/${session.id}`, {
         duration:      form.duration,
         gi_nogi:       form.gi_nogi,
@@ -189,6 +192,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
         had_primary,
         had_deep_work,
         selection_count,
+        deep_work_pillars,
       });
       onSaved();
       onClose();

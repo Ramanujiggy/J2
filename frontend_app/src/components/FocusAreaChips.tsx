@@ -136,8 +136,11 @@ export default function FocusAreaChips({ selections, onChange, defaultPrimaryPil
   const selectionsRef = useRef<ChipSelection[]>(selections);
 
   // Keep a live ref to selections so gesture handlers reading at fire-time
-  // see the up-to-date snapshot, not the closure-captured one.
-  useEffect(() => { selectionsRef.current = selections; }, [selections]);
+  // see the up-to-date snapshot, not the closure-captured one. Synced during
+  // render (rather than in a useEffect) so the ref is fresh by the time the
+  // next user event fires — useEffect runs after commit, leaving a gap where
+  // rapid back-to-back gestures could read stale state.
+  selectionsRef.current = selections;
 
   // Cleanup any in-flight timers on unmount.
   useEffect(() => () => {

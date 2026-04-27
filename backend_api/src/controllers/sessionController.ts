@@ -100,6 +100,19 @@ function sanitizeNonNegInt(raw: unknown): number | null {
     return n;
 }
 
+/**
+ * Sanitize the deep_work_pillars input from the client:
+ * - must be an array of valid pillar strings (unknown values dropped)
+ * - dedupe
+ * Returns null if missing or invalid; [] if input was empty/all-invalid.
+ * Stored verbatim so sessionToSelections() can re-flag the right chips on reopen.
+ */
+function sanitizeDeepWorkPillars(raw: unknown): string[] | null {
+    if (!Array.isArray(raw)) return null;
+    const valid = raw.filter((v): v is string => typeof v === 'string' && VALID_TAGS.has(v));
+    return [...new Set(valid)];
+}
+
 export const logSession = async (req: Request, res: Response): Promise<void> => {
     try {
         const userId = req.user?.id;
@@ -110,7 +123,7 @@ export const logSession = async (req: Request, res: Response): Promise<void> => 
 
         const { date, duration, notes, gi_nogi, intensity, session_type, tags,
                 heading, polarity, sub_skill_tag, script_source, resonance, user_tag_ids, pillar_distribution,
-                canonical_position_ids, had_primary, had_deep_work, selection_count } = req.body;
+                canonical_position_ids, had_primary, had_deep_work, selection_count, deep_work_pillars } = req.body;
 
         if (!date || duration === undefined || !gi_nogi || intensity === undefined || !session_type) {
             res.status(400).json({ message: 'Date, duration, gi/no-gi, intensity, and session type are required.' });
@@ -191,6 +204,7 @@ export const logSession = async (req: Request, res: Response): Promise<void> => 
             heading ?? null, polarity ?? null, sub_skill_tag ?? null, script_source ?? null, resonanceNum,
             userTagIds, dist, canonicalIds,
             sanitizeBool(had_primary), sanitizeBool(had_deep_work), sanitizeNonNegInt(selection_count),
+            sanitizeDeepWorkPillars(deep_work_pillars),
         );
         res.status(201).json({ message: 'Session logged.', session, session_count: session.session_count });
     } catch (err) {
@@ -430,7 +444,7 @@ export const updateSession = async (req: Request, res: Response): Promise<void> 
         const { id } = req.params;
         const { duration, gi_nogi, intensity, session_type, notes, tags,
                 heading, polarity, sub_skill_tag, script_source, resonance, user_tag_ids, pillar_distribution,
-                canonical_position_ids, had_primary, had_deep_work, selection_count } = req.body;
+                canonical_position_ids, had_primary, had_deep_work, selection_count, deep_work_pillars } = req.body;
 
         if (duration === undefined || !gi_nogi || intensity === undefined || !session_type) {
             res.status(400).json({ message: 'Duration, gi/no-gi, intensity, and session type are required.' });
@@ -498,6 +512,7 @@ export const updateSession = async (req: Request, res: Response): Promise<void> 
             heading ?? null, polarity ?? null, sub_skill_tag ?? null, script_source ?? null, resonanceNum,
             userTagIds, dist, canonicalIds,
             sanitizeBool(had_primary), sanitizeBool(had_deep_work), sanitizeNonNegInt(selection_count),
+            sanitizeDeepWorkPillars(deep_work_pillars),
         );
 
         if (!session) {

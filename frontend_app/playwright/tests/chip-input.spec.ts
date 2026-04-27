@@ -46,6 +46,10 @@ async function openLogForm(page: Page): Promise<void> {
         await page.evaluate(() => window.dispatchEvent(new CustomEvent('journada:open-log-form')));
         try {
             await saveBtn.waitFor({ state: 'visible', timeout: 1000 });
+            // Confirm the chip palette has finished rendering — Save being
+            // visible only proves the modal mounted, not that FocusAreaChips
+            // committed its first render.
+            await chip(page, 'standup').waitFor({ state: 'visible', timeout: 2000 });
             return;
         } catch { /* retry */ }
     }
@@ -60,16 +64,28 @@ async function setMinDuration(page: Page): Promise<void> {
 
 // --- Gesture helpers (each waits for state to commit) -----------------------
 
+// Wait for two animation frames. The first lets React commit the current
+// pending state update; the second guarantees the parent component's render
+// (and therefore its handler closures over the latest state) has happened
+// before we fire the next event.
+async function settle(page: Page): Promise<void> {
+    await page.evaluate(() => new Promise<void>(r =>
+        requestAnimationFrame(() => requestAnimationFrame(() => r())),
+    ));
+}
+
 async function tap(c: Locator): Promise<void> {
     const before = await c.getAttribute('aria-checked');
     await c.click();
     await expect(c).toHaveAttribute('aria-checked', before === 'true' ? 'false' : 'true');
+    await settle(c.page());
 }
 
 async function setPrimary(c: Locator): Promise<void> {
     await c.dblclick();
     await expect(c).toHaveAttribute('aria-checked', 'true');
     await expect(c).toHaveAccessibleName(/primary focus/i);
+    await settle(c.page());
 }
 
 async function setDeepWork(target: Locator, holdMs = 600): Promise<void> {
@@ -83,9 +99,14 @@ async function setDeepWork(target: Locator, holdMs = 600): Promise<void> {
     await page.waitForTimeout(holdMs);
     await page.mouse.up();
     await expect(target).toHaveAccessibleName(/deep work/i);
+    await settle(page);
 }
 
 async function clickAndCapture(page: Page): Promise<Record<string, unknown>> {
+    // The gesture helpers above already settle via two RAFs. Belt-and-suspenders:
+    // settle once more here before submitting, since the form's submit closure
+    // is on a separate React subtree from the chip palette.
+    await settle(page);
     const reqPromise = page.waitForRequest(
         r => SAVE_URL_RE.test(r.url()) && r.method() === 'POST',
         { timeout: 10_000 },
@@ -212,6 +233,7 @@ test.describe('Flow 1 — log a session via chips', () => {
         await setMinDuration(page);
         await setPrimary(chip(page, 'guard'));   // select + primary
         await tap(chip(page, 'guard'));          // deselect (aria-checked flips to false)
+        await settle(page);
         // No selection → save should be blocked client-side.
         await page.getByRole('button', { name: /save session/i }).click();
         await expect(page.getByText(/Tap at least one focus area\./i)).toBeVisible();

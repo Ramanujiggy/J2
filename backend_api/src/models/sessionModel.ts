@@ -26,6 +26,9 @@ export interface Session {
     had_primary?: boolean | null;
     had_deep_work?: boolean | null;
     selection_count?: number | null;
+    // migration 014 — per-pillar deep_work set so the post-save Prism shape can
+    // be reconstructed with halo rings on re-open. NULL on pre-014 rows.
+    deep_work_pillars?: string[] | null;
     created_at?: Date;
 }
 
@@ -49,21 +52,22 @@ export const createSession = async (
     had_primary: boolean | null,
     had_deep_work: boolean | null,
     selection_count: number | null,
+    deep_work_pillars: string[] | null,
 ): Promise<Session & { session_count: number }> => {
     const result = await query(
         `WITH new_session AS (
            INSERT INTO training_sessions
            (user_id, date, duration, notes, gi_nogi, intensity, session_type, tags,
             heading, polarity, sub_skill_tag, script_source, resonance, user_tag_ids, pillar_distribution,
-            canonical_position_ids, had_primary, had_deep_work, selection_count)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+            canonical_position_ids, had_primary, had_deep_work, selection_count, deep_work_pillars)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
            RETURNING *
          )
          SELECT ns.*, (SELECT COUNT(*)::int FROM training_sessions WHERE user_id = $1) AS session_count
          FROM new_session ns`,
         [userId, date, duration, notes || null, gi_nogi, intensity, session_type, tags,
          heading, polarity, sub_skill_tag, script_source, resonance, user_tag_ids, pillar_distribution,
-         canonical_position_ids, had_primary, had_deep_work, selection_count],
+         canonical_position_ids, had_primary, had_deep_work, selection_count, deep_work_pillars],
     );
     return result.rows[0];
 };
@@ -219,18 +223,19 @@ export const updateSession = async (
     had_primary: boolean | null,
     had_deep_work: boolean | null,
     selection_count: number | null,
+    deep_work_pillars: string[] | null,
 ): Promise<Session | null> => {
     const result = await query(
         `UPDATE training_sessions
          SET duration = $3, gi_nogi = $4, intensity = $5, session_type = $6, notes = $7, tags = $8,
              heading = $9, polarity = $10, sub_skill_tag = $11, script_source = $12, resonance = $13,
              user_tag_ids = $14, pillar_distribution = $15, canonical_position_ids = $16,
-             had_primary = $17, had_deep_work = $18, selection_count = $19
+             had_primary = $17, had_deep_work = $18, selection_count = $19, deep_work_pillars = $20
          WHERE id = $1 AND user_id = $2
          RETURNING *`,
         [id, userId, duration, gi_nogi, intensity, session_type, notes || null, tags,
          heading, polarity, sub_skill_tag, script_source, resonance, user_tag_ids, pillar_distribution,
-         canonical_position_ids, had_primary, had_deep_work, selection_count],
+         canonical_position_ids, had_primary, had_deep_work, selection_count, deep_work_pillars],
     );
     return result.rows[0] ?? null;
 };

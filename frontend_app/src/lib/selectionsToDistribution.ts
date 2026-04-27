@@ -50,8 +50,11 @@ const VALID_PILLARS = new Set<Pillar>(['standup', 'passing', 'pins', 'submission
 
 /**
  * Reconstruct chip selections from an existing session record so the modal
- * pre-fills with what the user originally entered. `deep_work` is always
- * `false` here — that flag is not derivable from historical data.
+ * pre-fills with what the user originally entered.
+ *
+ * `deep_work` is rehydrated from `deep_work_pillars` (migration 014). On
+ * pre-014 rows that field is null → empty set → no halos, matching the
+ * original behavior.
  *
  * Priority: pillar_distribution (most precise) → tags → heading.
  */
@@ -59,7 +62,12 @@ export function sessionToSelections(session: {
   heading?: string | null;
   tags?: string[];
   pillar_distribution?: PillarDistribution | null;
+  deep_work_pillars?: Pillar[] | null;
 }): ChipSelection[] {
+  const deepSet = new Set<Pillar>(
+    (session.deep_work_pillars ?? []).filter((p): p is Pillar => VALID_PILLARS.has(p as Pillar)),
+  );
+
   const dist = session.pillar_distribution;
   if (dist) {
     const entries = (Object.entries(dist) as [Pillar, number | undefined][])
@@ -74,7 +82,7 @@ export function sessionToSelections(session: {
       return entries.map(([pillar]) => ({
         pillar,
         primary: pillar === primaryPillar,
-        deep_work: false,
+        deep_work: deepSet.has(pillar),
       }));
     }
   }
@@ -84,12 +92,13 @@ export function sessionToSelections(session: {
     return tags.map(pillar => ({
       pillar,
       primary: pillar === session.heading,
-      deep_work: false,
+      deep_work: deepSet.has(pillar),
     }));
   }
 
   if (session.heading && VALID_PILLARS.has(session.heading as Pillar)) {
-    return [{ pillar: session.heading as Pillar, primary: true, deep_work: false }];
+    const pillar = session.heading as Pillar;
+    return [{ pillar, primary: true, deep_work: deepSet.has(pillar) }];
   }
 
   return [];

@@ -23,6 +23,9 @@ export interface SessionSummary {
   user_tag_ids?: string[] | null;
   canonical_position_ids?: string[] | null;
   pillar_distribution?: PillarDistribution | null;
+  // migration 014 — pillars that carried the long-press deep_work flag.
+  // Lets sessionToSelections rehydrate halo rings on re-open. Null on legacy rows.
+  deep_work_pillars?: Pillar[] | null;
 }
 
 export interface UserTag {

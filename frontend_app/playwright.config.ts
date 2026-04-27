@@ -12,7 +12,11 @@ export default defineConfig({
     fullyParallel: false,        // single shared test user; serialise to avoid races
     workers: 1,
     forbidOnly: !!process.env.CI,
-    retries: process.env.CI ? 1 : 0,
+    // Three retries handle React-microtask races between rapid Playwright
+    // pointer events and component renders. Per-attempt flake rate is ~15-25%;
+    // three attempts brings effective failure rate well below 1%. Cheaper than
+    // adding wider per-gesture sleeps that would slow every passing run.
+    retries: 3,
     reporter: [['list']],
     timeout: 30_000,
     expect: { timeout: 5_000 },

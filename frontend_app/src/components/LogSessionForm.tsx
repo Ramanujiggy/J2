@@ -161,6 +161,9 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
       const had_primary     = selections.some(s => s.primary);
       const had_deep_work   = selections.some(s => s.deep_work);
       const selection_count = selections.length;
+      // Migration 014 — per-pillar deep_work set so the saved Prism shape can
+      // be rehydrated with halo rings when the user reopens this session.
+      const deep_work_pillars = selections.filter(s => s.deep_work).map(s => s.pillar);
 
       const sessionSnapshot = {
         date:         form.date,
@@ -180,6 +183,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
         had_primary,
         had_deep_work,
         selection_count,
+        deep_work_pillars,
       };
 
       const data = await api.post<LogSessionResponse>('/api/sessions', {
@@ -200,6 +204,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
         had_primary:     sessionSnapshot.had_primary,
         had_deep_work:   sessionSnapshot.had_deep_work,
         selection_count: sessionSnapshot.selection_count,
+        deep_work_pillars: sessionSnapshot.deep_work_pillars,
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
