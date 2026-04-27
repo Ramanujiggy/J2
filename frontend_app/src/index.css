@@ -360,3 +360,14 @@
   [style*="j2InscribeLine"] { animation: none !important; opacity: 1 !important; transform: none !important; }
 }
 
+/* Most Recent Session dot — pulses on mount before morphing into the FOCUS: label.
+   Keep keyframe minimal: scale + brightness only. The bloom glow comes from the
+   inline boxShadow on the dot, so we don't need to plumb pillar color through CSS. */
+@keyframes j2DotGlow {
+  0%, 100% { transform: scale(1);    filter: brightness(1);   }
+  50%      { transform: scale(1.08); filter: brightness(1.3); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [style*="j2DotGlow"] { animation: none !important; }
+}
+

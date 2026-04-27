@@ -26,6 +26,10 @@ export interface SessionSummary {
   // migration 014 — pillars that carried the long-press deep_work flag.
   // Lets sessionToSelections rehydrate halo rings on re-open. Null on legacy rows.
   deep_work_pillars?: Pillar[] | null;
+  // migration 013 — input telemetry. Null on rows that predate the chip flow.
+  had_primary?: boolean | null;
+  had_deep_work?: boolean | null;
+  selection_count?: number | null;
 }
 
 export interface UserTag {
