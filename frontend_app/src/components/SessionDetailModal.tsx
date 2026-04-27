@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../lib/api.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
-import { COPPER, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3 } from '../lib/theme.ts';
+import { COPPER, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3, CARD_GLOW, CARD_GLOW_BORDER, FONT_EDITORIAL } from '../lib/theme.ts';
 import { INTENSITY_COLOR } from '../lib/sessionUtils.ts';
 import { vibrate } from '../lib/haptics.ts';
 import SegmentedToggle from './SegmentedToggle.tsx';
@@ -262,8 +262,9 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
           style={{
             position: 'relative',
             backgroundColor: '#152E22',
-            border: '1px solid rgba(255,255,255,0.10)',
-            borderRadius: '1rem',
+            border: `1px solid ${isDesktop ? CARD_GLOW_BORDER : 'rgba(255,255,255,0.10)'}`,
+            borderRadius: isDesktop ? 20 : '1rem',
+            boxShadow: isDesktop ? CARD_GLOW : undefined,
             overflow: 'hidden',
           }}
         >
@@ -314,8 +315,29 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
               position: 'relative', zIndex: 1,
               overflowY: 'auto',
               maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem)',
-              padding: '1.25rem',
+              padding: isDesktop ? '40px 48px 32px' : '1.25rem',
             }}>
+              {isDesktop ? (
+                <DesktopViewContent
+                  session={session}
+                  date={date}
+                  dateLabel={dateLabel}
+                  intention={intention}
+                  intensityColor={intensityColor}
+                  headingLabel={headingLabel}
+                  selections={selections}
+                  sessionCount={sessionCount}
+                  sessionIndex={sessionIndex}
+                  onNavigate={onNavigate}
+                  onClose={onClose}
+                  onEdit={() => setIsEditing(true)}
+                  confirmDelete={confirmDelete}
+                  setConfirmDelete={setConfirmDelete}
+                  handleDelete={handleDelete}
+                  deleting={deleting}
+                />
+              ) : (
+              <>
               {/* Session navigator */}
               {(sessionCount ?? 1) > 1 && onNavigate && (
                 <div className="flex items-center gap-2 mb-3">
@@ -506,6 +528,8 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                   </button>
                 )}
               </div>
+              </>
+              )}
             </div>
           </div>
 
@@ -739,5 +763,444 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
       </div>
     </>,
     document.body
+  );
+}
+
+// ── Desktop view (editorial layout) ───────────────────────────────────────
+//
+// Renders the read-only review of a saved session at desktop sizes only.
+// The mobile branch above stays untouched. This variant pulls the design
+// language from PathAheadPage / AtlasPage / JournalEntryPage: serif display
+// heading, copper micro-labels, italic subtitle, CARD_GLOW shell, Pokedex
+// hero + stat strip rhythm, generous spacing.
+
+interface DesktopViewContentProps {
+  session: SessionSummary;
+  date: Date;
+  dateLabel: string;
+  intention?: IntentionSummary | null;
+  intensityColor: string;
+  headingLabel: string | null;
+  selections: ChipSelection[];
+  sessionCount?: number;
+  sessionIndex?: number;
+  onNavigate?: (index: number) => void;
+  onClose: () => void;
+  onEdit: () => void;
+  confirmDelete: boolean;
+  setConfirmDelete: (v: boolean) => void;
+  handleDelete: () => Promise<void>;
+  deleting: boolean;
+}
+
+function resonanceLabel(r: number): string {
+  if (r >= 10) return 'Focused';
+  if (r >= 8)  return 'Targeted';
+  if (r >= 6)  return 'Solid';
+  if (r >= 4)  return 'Mixed';
+  return 'Exploratory';
+}
+
+function DesktopViewContent({
+  session, date, dateLabel, intention, intensityColor, headingLabel, selections,
+  sessionCount, sessionIndex, onNavigate, onClose, onEdit,
+  confirmDelete, setConfirmDelete, handleDelete, deleting,
+}: DesktopViewContentProps) {
+  const eyebrow = date.toLocaleDateString('en-US', {
+    weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
+  }).toUpperCase();
+
+  const formatLine = [
+    session.gi_nogi === 'gi' ? 'Gi' : 'No-Gi',
+    SESSION_TYPE_LABELS[session.session_type] ?? session.session_type,
+  ].filter(Boolean).join(' · ');
+
+  const subFacts: string[] = [];
+  if (session.script_source) subFacts.push(session.script_source === 'directed' ? 'Coach-led' : 'Open Mat');
+  if (session.polarity) subFacts.push(session.polarity);
+
+  const dist = session.pillar_distribution;
+  const distEntries = dist
+    ? Object.entries(dist).filter(([, v]) => typeof v === 'number' && v > 0.05)
+        .sort((a, b) => (b[1] as number) - (a[1] as number))
+    : [];
+  const showDistribution = distEntries.length >= 2;
+
+  return (
+    <div>
+      {/* ── Top bar — nav + close ─────────────────────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
+        {(sessionCount ?? 1) > 1 && onNavigate ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <button
+              onClick={() => onNavigate(sessionIndex! - 1)}
+              disabled={sessionIndex === 0}
+              style={{
+                fontSize: 18, lineHeight: 1, background: 'none', border: 'none',
+                color: sessionIndex === 0 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.50)',
+                cursor: sessionIndex === 0 ? 'default' : 'pointer',
+                padding: 4,
+              }}
+            >←</button>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 500 }}>
+              Session {sessionIndex! + 1} of {sessionCount}
+            </span>
+            <button
+              onClick={() => onNavigate(sessionIndex! + 1)}
+              disabled={sessionIndex === sessionCount! - 1}
+              style={{
+                fontSize: 18, lineHeight: 1, background: 'none', border: 'none',
+                color: sessionIndex === sessionCount! - 1 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.50)',
+                cursor: sessionIndex === sessionCount! - 1 ? 'default' : 'pointer',
+                padding: 4,
+              }}
+            >→</button>
+          </div>
+        ) : <div />}
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          style={{
+            width: 36, height: 36, borderRadius: '50%',
+            border: '1px solid rgba(255,255,255,0.10)',
+            background: 'rgba(255,255,255,0.04)',
+            color: 'rgba(255,255,255,0.55)',
+            fontSize: 18, lineHeight: 1, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'all 160ms ease',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.color = 'rgba(255,255,255,0.95)';
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.28)';
+            e.currentTarget.style.background = 'rgba(255,255,255,0.10)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.color = 'rgba(255,255,255,0.55)';
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)';
+            e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+          }}
+        >×</button>
+      </div>
+
+      {/* ── Editorial header ─────────────────────────────────────────── */}
+      <div style={{ marginBottom: 32 }}>
+        <div className="j2-label-copper" style={{ marginBottom: 12 }}>
+          ◇ {eyebrow}
+        </div>
+        <h2
+          className="j2-serif-display j2-heading-glow"
+          style={{
+            fontSize: 56, lineHeight: 1.05, margin: 0,
+            letterSpacing: '-0.015em', color: PALE_YELLOW,
+          }}
+        >
+          {headingLabel ?? 'Session'}
+        </h2>
+        <p
+          className="j2-serif-italic"
+          style={{
+            marginTop: 12, marginBottom: 0,
+            fontSize: 18, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5,
+          }}
+        >
+          {dateLabel}
+        </p>
+      </div>
+
+      {/* ── Intention banner ─────────────────────────────────────────── */}
+      {intention && (
+        <div
+          style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '14px 18px', marginBottom: 24,
+            background: 'rgba(242,228,168,0.06)',
+            border: '1px solid rgba(242,228,168,0.14)',
+            borderRadius: 12,
+          }}
+        >
+          <span style={{ color: 'rgba(242,228,168,0.55)', fontSize: 13 }}>◈</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: PALE_YELLOW, letterSpacing: '0.01em' }}>
+            {intention.intent_label}
+          </span>
+          {intention.intent_category && (
+            <span
+              style={{
+                fontSize: 11, padding: '3px 10px', borderRadius: 999,
+                background: SURFACE_3, color: 'rgba(255,255,255,0.50)',
+                textTransform: 'capitalize', letterSpacing: '0.04em',
+              }}
+            >
+              {intention.intent_category}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* ── Pokedex hero card ────────────────────────────────────────── */}
+      {(headingLabel || selections.length > 0) && (
+        <div
+          style={{
+            background: SURFACE_2,
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: 16,
+            padding: 32,
+            marginBottom: 22,
+          }}
+        >
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: selections.length > 0 ? '1fr auto' : '1fr',
+              gap: 36,
+              alignItems: 'center',
+            }}
+          >
+            <div style={{ minWidth: 0 }}>
+              <div className="j2-label-micro" style={{ marginBottom: 12 }}>What you worked on</div>
+              <div
+                style={{
+                  fontFamily: FONT_EDITORIAL, fontWeight: 600,
+                  fontSize: 30, lineHeight: 1.1, color: PALE_YELLOW,
+                  textShadow: GLOW_SOFT, letterSpacing: '-0.005em',
+                }}
+              >
+                {headingLabel ?? 'Untitled session'}
+              </div>
+
+              {(session.sub_skill_tag || session.resonance != null) && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14, flexWrap: 'wrap' }}>
+                  {session.sub_skill_tag && (
+                    <span
+                      style={{
+                        padding: '6px 14px', borderRadius: 10,
+                        background: SURFACE_3, color: 'rgba(255,255,255,0.65)',
+                        fontSize: 13, fontWeight: 500,
+                      }}
+                    >
+                      {session.sub_skill_tag}
+                    </span>
+                  )}
+                  {session.resonance != null && (
+                    <span
+                      className="j2-serif-italic"
+                      style={{ fontSize: 14, color: COPPER, fontStyle: 'italic' }}
+                    >
+                      {resonanceLabel(session.resonance)}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {showDistribution && (
+                <div style={{ marginTop: 22, paddingTop: 18, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div
+                    style={{
+                      fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em',
+                      color: 'rgba(255,255,255,0.35)', fontWeight: 600, marginBottom: 10,
+                    }}
+                  >
+                    Distribution
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {distEntries.map(([pillar, weight]) => {
+                      const label = SKILL_TAGS.find(s => s.value === pillar)?.label ?? pillar;
+                      const pct = Math.round((weight as number) * 100);
+                      const isPrimary = pillar === session.heading;
+                      return (
+                        <span
+                          key={pillar}
+                          style={{
+                            padding: '5px 11px', borderRadius: 8,
+                            background: isPrimary ? 'rgba(196,145,95,0.18)' : 'rgba(255,255,255,0.05)',
+                            border: `1px solid ${isPrimary ? 'rgba(196,145,95,0.30)' : 'rgba(255,255,255,0.08)'}`,
+                            color: isPrimary ? COPPER : 'rgba(255,255,255,0.55)',
+                            fontSize: 12, fontWeight: 500, letterSpacing: '0.01em',
+                          }}
+                        >
+                          {label} <span style={{ opacity: 0.7, marginLeft: 4 }}>{pct}%</span>
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {selections.length > 0 && (
+              <div style={{ flex: '0 0 auto' }}>
+                <PrismShape selections={selections} size={220} showLabels={true} />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Stat strip — Duration / Intensity / Format ────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 28 }}>
+        <StatCard label="Duration" value={fmtDuration(session.duration)} valueColor={PALE_YELLOW} />
+        <StatCard
+          label="Intensity"
+          value={INTENSITY_LABEL[session.intensity] ?? '—'}
+          valueColor={intensityColor}
+          accent={
+            <div style={{ display: 'flex', gap: 4, marginTop: 12 }}>
+              {[1, 2, 3, 4, 5].map(n => (
+                <div
+                  key={n}
+                  style={{
+                    flex: 1, height: 3, borderRadius: 1.5,
+                    background: n <= session.intensity ? intensityColor : 'rgba(255,255,255,0.08)',
+                    transition: 'background 200ms ease',
+                  }}
+                />
+              ))}
+            </div>
+          }
+        />
+        <StatCard
+          label="Format"
+          value={formatLine}
+          valueColor={PALE_YELLOW}
+          valueSize={22}
+          accent={subFacts.length > 0 ? (
+            <div
+              style={{
+                marginTop: 10, fontSize: 11, color: COPPER, letterSpacing: '0.14em',
+                textTransform: 'uppercase', fontWeight: 500,
+              }}
+            >
+              {subFacts.join(' · ')}
+            </div>
+          ) : null}
+        />
+      </div>
+
+      {/* ── Journal ───────────────────────────────────────────────────── */}
+      <div style={{ marginBottom: 32 }}>
+        <div className="j2-label-copper" style={{ marginBottom: 14 }}>◇ Journal</div>
+        {session.notes?.trim() ? (
+          <p
+            style={{
+              margin: 0, fontFamily: FONT_EDITORIAL, fontSize: 17, lineHeight: 1.7,
+              color: 'rgba(255,255,255,0.78)', whiteSpace: 'pre-wrap',
+            }}
+          >
+            {session.notes.trim()}
+          </p>
+        ) : (
+          <p
+            className="j2-serif-italic"
+            style={{ margin: 0, fontSize: 16, color: 'rgba(255,255,255,0.30)' }}
+          >
+            No notes recorded.
+          </p>
+        )}
+      </div>
+
+      {/* ── Action row ────────────────────────────────────────────────── */}
+      <div
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          paddingTop: 22, borderTop: '1px solid rgba(196,145,95,0.14)',
+        }}
+      >
+        {!confirmDelete ? (
+          <button
+            onClick={() => setConfirmDelete(true)}
+            style={{
+              fontSize: 13, fontWeight: 500, padding: '10px 18px', borderRadius: 10,
+              color: 'rgba(255,255,255,0.50)', background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.10)', cursor: 'pointer',
+              transition: 'all 160ms ease',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.color = 'rgba(239,68,68,0.90)';
+              e.currentTarget.style.borderColor = 'rgba(239,68,68,0.30)';
+              e.currentTarget.style.background = 'rgba(239,68,68,0.06)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.color = 'rgba(255,255,255,0.50)';
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)';
+              e.currentTarget.style.background = 'transparent';
+            }}
+          >
+            Delete session
+          </button>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)' }}>Delete this session?</span>
+            <button
+              onClick={() => setConfirmDelete(false)}
+              style={{ fontSize: 13, color: 'rgba(255,255,255,0.50)', background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              style={{
+                fontSize: 13, fontWeight: 600, padding: '8px 14px', borderRadius: 8,
+                background: 'rgba(239,68,68,0.15)', color: 'rgba(239,68,68,0.95)',
+                border: '1px solid rgba(239,68,68,0.30)', cursor: 'pointer',
+                opacity: deleting ? 0.5 : 1,
+              }}
+            >
+              {deleting ? 'Deleting…' : 'Delete'}
+            </button>
+          </div>
+        )}
+        {!confirmDelete && (
+          <button
+            onClick={onEdit}
+            style={{
+              height: 50, padding: '0 26px',
+              background: '#DA7422', color: '#fff',
+              fontWeight: 600, fontSize: 15,
+              borderRadius: 12, border: 'none', cursor: 'pointer',
+              boxShadow: '0 0 0 1px rgba(218,116,34,0.30), 0 10px 24px -12px rgba(218,116,34,0.60)',
+              transition: 'background 180ms ease',
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#E8823A'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#DA7422'; }}
+          >
+            Edit session →
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function StatCard({
+  label, value, valueColor, valueSize = 32, accent,
+}: {
+  label: string;
+  value: string;
+  valueColor: string;
+  valueSize?: number;
+  accent?: React.ReactNode;
+}) {
+  return (
+    <div
+      style={{
+        background: SURFACE_2,
+        border: '1px solid rgba(255,255,255,0.05)',
+        borderRadius: 14,
+        padding: '20px 22px',
+      }}
+    >
+      <div className="j2-label-micro" style={{ marginBottom: 10 }}>{label}</div>
+      <div
+        style={{
+          fontFamily: FONT_EDITORIAL, fontWeight: 600,
+          fontSize: valueSize, lineHeight: 1.05, color: valueColor,
+          letterSpacing: '-0.005em',
+        }}
+      >
+        {value}
+      </div>
+      {accent}
+    </div>
   );
 }

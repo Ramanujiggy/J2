@@ -51,6 +51,11 @@ const LAYOUT_STORAGE_KEY = 'j2_intentions_layout';
 interface IntentionStats {
   sessionCount: number;       // # of sessions logged in the intention's date window
   alignment: number;          // 0–100, % of training hours matching intention.heading
+  // Hours fields back the era-level hours-weighted alignment. Without them
+  // EraStats would simple-average per-week scores, which overstates alignment
+  // on uneven eras (1h@100% + 10h@50% would read 75% instead of the correct 55%).
+  matchHours: number;         // hours trained on intention.heading in the window
+  totalHours: number;         // total hours trained in the window (all pillars)
 }
 
 export default function IntentionsPage() {
@@ -63,6 +68,19 @@ export default function IntentionsPage() {
   const [loading,     setLoading]     = useState(true);
   const [editTarget,  setEditTarget]  = useState<Intention | null>(null);
   const [createOpen,  setCreateOpen]  = useState(false);
+
+  // Layout choice — shared between desktop and mobile so the user's preference
+  // sticks if they resize across the breakpoint mid-session.
+  const [layout, setLayout] = useState<IntentionsLayout>(() => {
+    if (typeof window === 'undefined') return 'timeline';
+    const stored = window.localStorage.getItem(LAYOUT_STORAGE_KEY);
+    return stored === 'eras' ? 'eras' : 'timeline';
+  });
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(LAYOUT_STORAGE_KEY, layout);
+    }
+  }, [layout]);
 
   const fetchAll = useCallback(async () => {
     try {
@@ -81,6 +99,29 @@ export default function IntentionsPage() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  // Per-intention stats — sessionCount, alignment %, and the hours fields that
+  // back the era-level hours-weighted alignment. Computed once at the page
+  // level so the timeline rows, era card stats + bar chart, and the mobile
+  // branch all read from the same source.
+  const statsMap = useMemo<Map<string, IntentionStats>>(() => {
+    const m = new Map<string, IntentionStats>();
+    for (const i of intentions) {
+      const start = i.week_start.slice(0, 10);
+      const endStr = addDays(start, (i.duration_days ?? 7) - 1);
+      const inWindow = sessions.filter(s => {
+        const d = (typeof s.date === 'string' ? s.date : toDateString(new Date(s.date))).slice(0, 10);
+        return d >= start && d <= endStr;
+      });
+      const tagHours = tagHoursInRange(sessions, i.week_start, i.duration_days);
+      const topTag = topTagInRange(sessions, i.week_start, i.duration_days);
+      const alignment = computeAlignment(i, topTag, tagHours).score ?? 0;
+      const totalHours = Object.values(tagHours).reduce((a, b) => a + b, 0);
+      const matchHours = i.heading ? (tagHours[i.heading] ?? 0) : 0;
+      m.set(i.id, { sessionCount: inWindow.length, alignment, matchHours, totalHours });
+    }
+    return m;
+  }, [intentions, sessions]);
+
   // ── Desktop layout ────────────────────────────────────────────────────
 
   if (isDesktop) {
@@ -92,6 +133,9 @@ export default function IntentionsPage() {
         intentionsEnabled={intentionsEnabled}
         editTarget={editTarget}
         createOpen={createOpen}
+        layout={layout}
+        onLayoutChange={setLayout}
+        statsMap={statsMap}
         onOpenCreate={() => setCreateOpen(true)}
         onOpenEdit={setEditTarget}
         onCloseModal={() => { setCreateOpen(false); setEditTarget(null); }}
@@ -101,7 +145,11 @@ export default function IntentionsPage() {
     );
   }
 
-  // ── Mobile layout (preserved verbatim) ────────────────────────────────
+  // ── Mobile layout ─────────────────────────────────────────────────────
+
+  // Eras for the mobile branch — newest-first runs of consecutive same-focus
+  // weeks. No filtering on mobile (FilterBar is desktop-only).
+  const mobileEras = computeEras(intentions);
 
   return (
     <PageContent ready={!loading} loadingMessages={['Loading your intentions...']}>
@@ -129,6 +177,19 @@ export default function IntentionsPage() {
         </div>
       )}
 
+      {/* Layout toggle — same Timeline ↔ Eras choice the desktop view offers.
+          Hidden on the empty state since there's nothing to switch between. */}
+      {intentions.length > 0 && (
+        <SegmentedToggle<IntentionsLayout>
+          options={[
+            { value: 'timeline', label: 'Timeline' },
+            { value: 'eras',     label: 'Eras' },
+          ]}
+          value={layout}
+          onChange={v => v && setLayout(v)}
+        />
+      )}
+
       {intentions.length === 0 ? (
         /* ── Empty state ────────────────────────────────────── */
         <div
@@ -152,8 +213,28 @@ export default function IntentionsPage() {
             Set Your First Intention
           </button>
         </div>
+      ) : layout === 'eras' ? (
+        /* ── Eras layout (mobile) ───────────────────────────── */
+        <div className="space-y-3">
+          <p
+            className="j2-serif-italic"
+            style={{ fontSize: 12, color: 'rgba(255,255,255,0.50)', fontStyle: 'italic', marginBottom: 4 }}
+          >
+            Consecutive weeks on the same focus form an{' '}
+            <span style={{ color: COPPER }}>era</span>.
+          </p>
+          {mobileEras.map((era, idx) => (
+            <EraCard
+              key={`${era.firstWk}-${era.focus}-${idx}`}
+              era={era}
+              statsMap={statsMap}
+              compact
+              onOpen={() => navigate(`/intentions/${era.weeks[0]!.id}/journal`)}
+            />
+          ))}
+        </div>
       ) : (
-        /* ── Intention cards ────────────────────────────────── */
+        /* ── Timeline cards (mobile) ────────────────────────── */
         <div className="space-y-3">
           {intentions.map(intention => {
             const headingLabel = intention.heading
@@ -300,6 +381,9 @@ interface DesktopViewProps {
   intentionsEnabled: boolean;
   editTarget: Intention | null;
   createOpen: boolean;
+  layout: IntentionsLayout;
+  onLayoutChange: (next: IntentionsLayout) => void;
+  statsMap: Map<string, IntentionStats>;
   onOpenCreate: () => void;
   onOpenEdit: (intention: Intention) => void;
   onCloseModal: () => void;
@@ -310,6 +394,7 @@ interface DesktopViewProps {
 function DesktopIntentionsView({
   intentions, sessions, loading, intentionsEnabled,
   editTarget, createOpen,
+  layout, onLayoutChange, statsMap,
   onOpenCreate, onCloseModal, onSaved, onNavigate,
   // onOpenEdit is part of the prop contract for parity with the mobile view
   // but the redesigned desktop layout doesn't surface inline edit affordances —
@@ -318,19 +403,9 @@ function DesktopIntentionsView({
 }: DesktopViewProps) {
   const todayStr = toDateString(new Date());
 
-  // Filter + layout state — both persisted across renders within the page.
-  // Layout is also persisted to localStorage so the user's preference sticks.
+  // Filter state lives here (desktop-only feature). Layout + statsMap are
+  // owned by IntentionsPage so the mobile branch can share them.
   const [filter, setFilter] = useState<FocusFilter>('All');
-  const [layout, setLayout] = useState<IntentionsLayout>(() => {
-    if (typeof window === 'undefined') return 'timeline';
-    const stored = window.localStorage.getItem(LAYOUT_STORAGE_KEY);
-    return stored === 'eras' ? 'eras' : 'timeline';
-  });
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(LAYOUT_STORAGE_KEY, layout);
-    }
-  }, [layout]);
 
   // SessionDetailModal state — clicking a row/era opens a session.
   const [openSession, setOpenSession] = useState<SessionSummary | null>(null);
@@ -370,25 +445,6 @@ function DesktopIntentionsView({
   // into a run. Two intentions are "consecutive" if their week_start dates
   // differ by exactly the duration of the older one (typically 7 days).
   const eras = useMemo(() => computeEras(filtered), [filtered]);
-
-  // Per-intention stats — sessionCount + alignment % — computed once.
-  // Drives the timeline row alignment bar and era card stats + bar chart.
-  const statsMap = useMemo<Map<string, IntentionStats>>(() => {
-    const m = new Map<string, IntentionStats>();
-    for (const i of intentions) {
-      const start = i.week_start.slice(0, 10);
-      const endStr = addDays(start, (i.duration_days ?? 7) - 1);
-      const inWindow = sessions.filter(s => {
-        const d = (typeof s.date === 'string' ? s.date : toDateString(new Date(s.date))).slice(0, 10);
-        return d >= start && d <= endStr;
-      });
-      const tagHours = tagHoursInRange(sessions, i.week_start, i.duration_days);
-      const topTag = topTagInRange(sessions, i.week_start, i.duration_days);
-      const alignment = computeAlignment(i, topTag, tagHours).score ?? 0;
-      m.set(i.id, { sessionCount: inWindow.length, alignment });
-    }
-    return m;
-  }, [intentions, sessions]);
 
   // Click-through handler shared by Timeline rows + Era cards.
   // Timeline → first session of week (chronologically earliest).
@@ -469,7 +525,7 @@ function DesktopIntentionsView({
               { value: 'eras',     label: 'Eras' },
             ]}
             value={layout}
-            onChange={v => v && setLayout(v)}
+            onChange={v => v && onLayoutChange(v)}
           />
           {intentionsEnabled && (
             <button
@@ -721,7 +777,7 @@ function IntentionsTimeline({ byYear, statsMap, onOpen }: IntentionsTimelineProp
                 <IntentionRow
                   key={i.id}
                   intention={i}
-                  stats={statsMap.get(i.id) ?? { sessionCount: 0, alignment: 0 }}
+                  stats={statsMap.get(i.id) ?? { sessionCount: 0, alignment: 0, matchHours: 0, totalHours: 0 }}
                   onOpen={() => onOpen(i)}
                 />
               ))}
@@ -948,7 +1004,15 @@ function IntentionsEras({ eras, statsMap, onOpen }: { eras: Era[]; statsMap: Map
   );
 }
 
-function EraCard({ era, statsMap, onOpen }: { era: Era; statsMap: Map<string, IntentionStats>; onOpen: () => void }) {
+function EraCard({
+  era, statsMap, onOpen, compact = false,
+}: {
+  era: Era;
+  statsMap: Map<string, IntentionStats>;
+  onOpen: () => void;
+  /** Mobile-stacked layout. Defaults to false (desktop 3-column grid). */
+  compact?: boolean;
+}) {
   const color = FOCUS_COLORS[era.focus];
   const weeksCount = era.weeks.length;
 
@@ -970,9 +1034,9 @@ function EraCard({ era, statsMap, onOpen }: { era: Era; statsMap: Map<string, In
         position: 'relative',
         backgroundColor: CARD_BG,
         border: '1px solid rgba(255,255,255,0.10)',
-        borderRadius: 16,
-        padding: '24px 28px',
-        marginBottom: 14,
+        borderRadius: compact ? 12 : 16,
+        padding: compact ? '16px 18px' : '24px 28px',
+        marginBottom: compact ? 0 : 14,
         overflow: 'hidden',
       }}
     >
@@ -995,29 +1059,26 @@ function EraCard({ era, statsMap, onOpen }: { era: Era; statsMap: Map<string, In
           position: 'absolute',
           top: 0,
           right: 0,
-          width: 200,
-          height: 200,
+          width: compact ? 140 : 200,
+          height: compact ? 140 : 200,
           background: `radial-gradient(circle at 100% 0%, ${color}18, transparent 65%)`,
           pointerEvents: 'none',
         }}
       />
 
       <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1.4fr 1fr auto',
-          gap: 28,
-          alignItems: 'center',
-          position: 'relative',
-        }}
+        style={compact
+          ? { display: 'flex', flexDirection: 'column', gap: 14, position: 'relative' }
+          : { display: 'grid', gridTemplateColumns: '1.4fr 1fr auto', gap: 28, alignItems: 'center', position: 'relative' }
+        }
       >
-        {/* Column 1 — Title */}
+        {/* Title */}
         <div style={{ minWidth: 0 }}>
-          <div className="j2-label-micro" style={{ marginBottom: 8 }}>{eyebrow}</div>
+          <div className="j2-label-micro" style={{ marginBottom: compact ? 6 : 8 }}>{eyebrow}</div>
           <div
             className="j2-serif-display"
             style={{
-              fontSize: 32,
+              fontSize: compact ? 22 : 32,
               fontWeight: 600,
               color: PALE_YELLOW,
               lineHeight: 1.1,
@@ -1031,7 +1092,7 @@ function EraCard({ era, statsMap, onOpen }: { era: Era; statsMap: Map<string, In
             {weeksCount >= 4 && (
               <span
                 className="j2-serif-italic"
-                style={{ fontSize: 16, fontWeight: 500, color: COPPER }}
+                style={{ fontSize: compact ? 13 : 16, fontWeight: 500, color: COPPER }}
               >
                 · a chapter
               </span>
@@ -1039,10 +1100,10 @@ function EraCard({ era, statsMap, onOpen }: { era: Era; statsMap: Map<string, In
           </div>
         </div>
 
-        {/* Column 2 — Stats + bar chart */}
+        {/* Stats + bar chart */}
         <EraStats era={era} chronological={chronological} statsMap={statsMap} color={color} />
 
-        {/* Column 3 — Action */}
+        {/* Action */}
         <button
           onClick={onOpen}
           style={{
@@ -1057,6 +1118,8 @@ function EraCard({ era, statsMap, onOpen }: { era: Era; statsMap: Map<string, In
             cursor: 'pointer',
             transition: 'background 180ms ease',
             whiteSpace: 'nowrap',
+            width: compact ? '100%' : 'auto',
+            touchAction: 'manipulation',
           }}
           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; }}
           onMouseLeave={e => { e.currentTarget.style.background = SURFACE_3; }}
@@ -1078,16 +1141,26 @@ function EraStats({
 }) {
   const weeksCount = era.weeks.length;
 
-  // Total sessions across the era + alignment averaged across the era's weeks.
+  // Total sessions across the era. Each session has a single date so it falls
+  // in exactly one week — no double-counting.
   const totalSessions = era.weeks.reduce(
     (sum, i) => sum + (statsMap.get(i.id)?.sessionCount ?? 0),
     0,
   );
-  const avgAlignment = weeksCount > 0
-    ? Math.round(
-        era.weeks.reduce((sum, i) => sum + (statsMap.get(i.id)?.alignment ?? 0), 0) / weeksCount,
-      )
-    : 0;
+
+  // Hours-weighted alignment across the era. The naive simple-mean of weekly
+  // scores overstates alignment on uneven eras (e.g., 1h@100% + 10h@50% reads
+  // 75% but the true on-focus share is 55%). Quiet weeks with zero hours
+  // contribute zero on top *and* bottom, so they correctly drop out.
+  let matchSum = 0;
+  let totalSum = 0;
+  for (const i of era.weeks) {
+    const s = statsMap.get(i.id);
+    if (!s) continue;
+    matchSum += s.matchHours;
+    totalSum += s.totalHours;
+  }
+  const avgAlignment = totalSum > 0 ? Math.round((matchSum / totalSum) * 100) : 0;
 
   const topLabel = totalSessions > 0
     ? `${weeksCount} ${weeksCount === 1 ? 'week' : 'weeks'} · ${totalSessions} session${totalSessions === 1 ? '' : 's'} · ${avgAlignment}% on focus`
