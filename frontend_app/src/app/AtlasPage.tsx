@@ -37,7 +37,7 @@ const LS_TAB_KEY = 'j2_atlas_tab';
 type AtlasTab = 'timeline' | 'prism' | 'library' | 'calendar';
 const TABS: { id: AtlasTab; label: string }[] = [
   { id: 'timeline', label: 'Timeline' },
-  { id: 'prism',    label: 'Prism'    },
+  { id: 'prism',    label: 'Analytics' },
   { id: 'library',  label: 'Library'  },
   { id: 'calendar', label: 'Calendar' },
 ];
