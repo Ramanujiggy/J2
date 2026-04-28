@@ -22,7 +22,10 @@ interface LogSessionResponse {
 }
 
 type GiNoGi = 'gi' | 'no_gi';
-type SessionType = 'drilling' | 'class' | 'competition_training';
+// `competition_training` is preserved as a valid value for legacy data; new
+// sessions use `class | drilling | cla`. The form picker only surfaces the new
+// three-way taxonomy. CLA = Constraints-Led Approach.
+type SessionType = 'drilling' | 'class' | 'competition_training' | 'cla';
 type Polarity = 'offense' | 'defense' | 'neutral';
 type ScriptSource = 'directed' | 'organic';
 
@@ -38,10 +41,14 @@ interface SessionFormData {
 const _d = new Date();
 const today = `${_d.getFullYear()}-${String(_d.getMonth() + 1).padStart(2, '0')}-${String(_d.getDate()).padStart(2, '0')}`;
 
+// Three-way session taxonomy: structured class, self-directed drilling,
+// constraints-led approach (live training under a rule modification). Each
+// type slightly modifies what the form asks for (Source toggle hides on
+// drilling + CLA; Constraint picker appears on CLA only).
 const SESSION_TYPES: { value: SessionType; label: string }[] = [
-  { value: 'class',                label: 'Class' },
-  { value: 'drilling',             label: 'Drilling' },
-  { value: 'competition_training', label: 'Competition' },
+  { value: 'class',    label: 'Class' },
+  { value: 'drilling', label: 'Free Drilling' },
+  { value: 'cla',      label: 'CLA' },
 ];
 
 // ── Intensity labels ──────────────────────────────────────────────────────
@@ -57,8 +64,10 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
     session_type: defaultSessionType ?? 'class',
   });
 
-  // Duration stepper — 30-min increments, null = not yet selected
-  const [durationMinutes, setDurationMinutes] = useState<number | null>(null);
+  // Duration stepper — 30-min increments. Defaults to 60 (typical class
+  // length). The user adjusts via +/- buttons; no null state because the
+  // form opens "70% complete" per the editorial-form research.
+  const [durationMinutes, setDurationMinutes] = useState<number>(60);
   const DUR_STEP = 30;
   const DUR_MIN  = 30;
   const DUR_MAX  = 240;
@@ -130,7 +139,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
 
   const resetForm = () => {
     setForm({ date: today, notes: '', gi_nogi: 'gi', intensity: 3, session_type: 'class' });
-    setDurationMinutes(null);
+    setDurationMinutes(60);
     setSelections([]);
     setPolarity(null);
     setSubSkillTag('');
@@ -143,8 +152,10 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
     e.preventDefault();
     setError('');
 
-    if (!durationMinutes || durationMinutes < DUR_MIN) {
-      setError('Please select a duration.');
+    // Duration is always set (default 60, clamped between DUR_MIN and DUR_MAX
+    // by the +/- stepper); this is a defense-in-depth sanity check.
+    if (durationMinutes < DUR_MIN || durationMinutes > DUR_MAX) {
+      setError('Duration must be between 30 and 240 minutes.');
       return;
     }
 
@@ -168,7 +179,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
 
       const sessionSnapshot = {
         date:         form.date,
-        duration:     durationMinutes!,
+        duration:     durationMinutes,
         intensity:    form.intensity,
         gi_nogi:      form.gi_nogi,
         session_type: form.session_type,
@@ -336,7 +347,8 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
             onChange={v => v && setForm(prev => ({ ...prev, session_type: v }))}
           />
 
-          {/* Duration — stepper (±30-min increments) */}
+          {/* Duration — stepper (±30-min increments). Defaults to 60 on mount
+              and reset, so the readout is always populated; no orphan placeholder. */}
           <div className="space-y-2">
             <div
               className="flex items-center justify-center gap-3 rounded-xl py-2"
@@ -344,32 +356,36 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
             >
               <button
                 type="button"
-                onClick={() => { vibrate(8); setDurationMinutes(m => Math.max(DUR_MIN, (m ?? 60) - DUR_STEP)); }}
+                onClick={() => { vibrate(8); setDurationMinutes(m => Math.max(DUR_MIN, m - DUR_STEP)); }}
                 className="w-11 h-11 rounded-lg text-lg font-semibold transition-colors touch-manipulation"
                 style={{ backgroundColor: SURFACE_2, color: 'rgba(255,255,255,0.55)' }}
-                disabled={!!durationMinutes && durationMinutes <= DUR_MIN}
+                disabled={durationMinutes <= DUR_MIN}
+                aria-label="Decrease duration"
               >
                 −
               </button>
               <span
                 className="text-xl font-bold w-28 text-center"
-                style={{ color: durationMinutes ? PALE_YELLOW : 'rgba(255,255,255,0.22)' }}
+                style={{ color: PALE_YELLOW }}
               >
-                {durationMinutes ? fmtDuration(durationMinutes) : 'tap above'}
+                {fmtDuration(durationMinutes)}
               </span>
               <button
                 type="button"
-                onClick={() => { vibrate(8); setDurationMinutes(m => Math.min(DUR_MAX, (m ?? 0) + DUR_STEP)); }}
+                onClick={() => { vibrate(8); setDurationMinutes(m => Math.min(DUR_MAX, m + DUR_STEP)); }}
                 className="w-11 h-11 rounded-lg text-lg font-semibold transition-colors touch-manipulation"
                 style={{ backgroundColor: SURFACE_2, color: 'rgba(255,255,255,0.55)' }}
-                disabled={!!durationMinutes && durationMinutes >= DUR_MAX}
+                disabled={durationMinutes >= DUR_MAX}
+                aria-label="Increase duration"
               >
                 +
               </button>
             </div>
           </div>
 
-          {/* Intensity — color-gradient segmented bar, active shows label */}
+          {/* Intensity — color-gradient segmented bar. Every bar shows its label
+              so users can see what each option means before tapping; active bar
+              gets size + color emphasis. */}
           <div className="flex items-center gap-1.5">
             {[1, 2, 3, 4, 5].map(n => {
               const active = form.intensity === n;
@@ -385,15 +401,16 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
                     borderRadius: 10,
                     backgroundColor: active ? color : 'rgba(255,255,255,0.05)',
                     border: `1px solid ${active ? color : 'rgba(255,255,255,0.08)'}`,
-                    color: active ? 'rgba(13,26,20,0.9)' : 'rgba(255,255,255,0.55)',
-                    fontSize: 12,
-                    letterSpacing: '0.06em',
+                    color: active ? 'rgba(13,26,20,0.95)' : 'rgba(255,255,255,0.55)',
+                    fontSize: active ? 12 : 10,
+                    letterSpacing: active ? '0.06em' : '0.04em',
                     textTransform: 'uppercase',
                     transition: 'all 280ms cubic-bezier(0.2, 0.8, 0.2, 1)',
                     boxShadow: active ? `0 0 0 1px ${color}40, 0 8px 20px -8px ${color}80` : 'none',
+                    overflow: 'hidden',
                   }}
                 >
-                  {active ? INTENSITY_LABELS[n - 1] : ''}
+                  {INTENSITY_LABELS[n - 1]}
                 </button>
               );
             })}
