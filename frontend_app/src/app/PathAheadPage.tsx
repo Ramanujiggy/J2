@@ -67,19 +67,13 @@ export default function PathAheadPage() {
   // Week navigation offset (0 = current week, -1 = last week, +1 = next)
   const [weekOffset, setWeekOffset] = useState(0);
 
-  // Modals
+  // Modals — log-session state is desktop-only. On mobile the modal lives
+  // in MobileAppShell so the bottom-nav `+` FAB can launch it directly
+  // from any page without redirecting through `/home`. PathAheadPage CTAs
+  // call `openLog(...)` below which branches on viewport: desktop uses
+  // local state, mobile dispatches `journada:open-log-form`.
   const [logOpen,             setLogOpen]             = useState(false);
   const [logDate,             setLogDate]             = useState<string | null>(null);
-
-  // Listen for global "open log form" event dispatched from the bottom-nav FAB
-  useEffect(() => {
-    const handler = () => {
-      setLogDate(toDateString(new Date()));
-      setLogOpen(true);
-    };
-    window.addEventListener('journada:open-log-form', handler);
-    return () => window.removeEventListener('journada:open-log-form', handler);
-  }, []);
   // logPreset accepts both drill (existing) and constraint (CLA roulette)
   // shapes so the same modal can pre-fill from either pool.
   const [logPreset,           setLogPreset]           = useState<{
@@ -125,6 +119,40 @@ export default function PathAheadPage() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
   useOnlineRefetch(fetchAll);
+
+  // When the global (mobile) log-session modal saves, refetch this page's
+  // data so its stats / heatmap stay current. Desktop's local modal calls
+  // `fetchAll` inline via its onSuccess, so this listener is mainly for the
+  // mobile path where the modal lives in MobileAppShell.
+  useEffect(() => {
+    const handler = () => fetchAll();
+    window.addEventListener('journada:log-session-saved', handler);
+    return () => window.removeEventListener('journada:log-session-saved', handler);
+  }, [fetchAll]);
+
+  // Branching log-modal opener — desktop opens the local modal directly,
+  // mobile dispatches the event so MobileAppShell's modal opens.
+  const openLog = useCallback((opts?: {
+    date?: string;
+    preset?: {
+      heading?: string;
+      sessionType?: 'drilling' | 'cla';
+      subSkillTag?: string;
+      constraintName?: string;
+    } | null;
+  }) => {
+    const date = opts?.date ?? toDateString(new Date());
+    const preset = opts?.preset ?? null;
+    if (isDesktop) {
+      setLogDate(date);
+      setLogPreset(preset);
+      setLogOpen(true);
+    } else {
+      window.dispatchEvent(new CustomEvent('journada:open-log-form', {
+        detail: { date, preset },
+      }));
+    }
+  }, [isDesktop]);
 
   const anyModalOpen = logOpen || !!detailSession || setIntentOpen;
   useBodyScrollLock(anyModalOpen);
@@ -513,10 +541,7 @@ export default function PathAheadPage() {
         const { dayHasIntention } = getIntentionInfo(dayStr);
         setDetailIntention(dayHasIntention ? activeIntention : null);
       }}
-      onLogTap={(day) => {
-        setLogDate(toDateString(day));
-        setLogOpen(true);
-      }}
+      onLogTap={(day) => openLog({ date: toDateString(day) })}
     />
   ) : (
     <div
@@ -534,7 +559,7 @@ export default function PathAheadPage() {
             No sessions logged this week yet.
           </p>
           <button
-            onClick={() => { setLogDate(toDateString(today)); setLogOpen(true); }}
+            onClick={() => openLog()}
             className="text-sm font-semibold touch-manipulation"
             style={{
               color: COPPER,
@@ -552,7 +577,7 @@ export default function PathAheadPage() {
         <>
           {weekOffset === 0 && (sessionsByDate.get(toDateString(today)) ?? []).length === 0 && (
             <button
-              onClick={() => { setLogDate(toDateString(today)); setLogOpen(true); }}
+              onClick={() => openLog()}
               className="w-full text-left touch-manipulation"
               style={{
                 display: 'flex',
@@ -669,7 +694,7 @@ export default function PathAheadPage() {
 
   const primaryCta = (sessionsByDate.get(toDateString(today)) ?? []).length === 0 ? (
     <button
-      onClick={() => { setLogDate(toDateString(today)); setLogOpen(true); }}
+      onClick={() => openLog()}
       className="w-full rounded-xl py-3 text-base font-semibold text-white touch-manipulation"
       style={{
         backgroundColor: '#DA7422',
@@ -694,7 +719,10 @@ export default function PathAheadPage() {
 
   const modals = (
     <>
-      {logOpen && (
+      {/* Desktop-only log modal. On mobile the modal lives in MobileAppShell
+          so the bottom-nav `+` FAB launches directly without a route flip;
+          openLog() dispatches `journada:open-log-form` on mobile. */}
+      {isDesktop && logOpen && (
         <div
           data-no-page-swipe=""
           className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto px-5"
@@ -875,7 +903,7 @@ export default function PathAheadPage() {
               </button>
             )}
             <button
-              onClick={() => { setLogDate(toDateString(today)); setLogOpen(true); }}
+              onClick={() => openLog()}
               style={{
                 height: 54, padding: '0 28px',
                 background: '#DA7422', color: '#fff',
@@ -894,9 +922,9 @@ export default function PathAheadPage() {
           </div>
         </div>
 
-        {allSessions.length === 0 ? (
+        {!loading && allSessions.length === 0 ? (
           <div style={{ maxWidth: 480, margin: '0 auto' }}>
-            <FirstVisitCard onLogFirst={() => { setLogDate(toDateString(today)); setLogOpen(true); }} />
+            <FirstVisitCard onLogFirst={() => openLog()} />
           </div>
         ) : (
         <>
@@ -1179,24 +1207,15 @@ export default function PathAheadPage() {
 
         {modals}
         <RepRouletteFab onLogDrill={(preset) => {
-          setLogDate(toDateString(today));
-          // Both preset shapes (drill | constraint) fold into the same logPreset
-          // structure. Constraint presets carry constraintName + sessionType='cla';
-          // drill presets carry subSkillTag + sessionType='drilling'.
-          if (preset.pool === 'drill') {
-            setLogPreset({
-              heading: preset.heading,
-              sessionType: preset.sessionType,
-              subSkillTag: preset.subSkillTag,
-            });
-          } else {
-            setLogPreset({
-              heading: preset.heading,
-              sessionType: preset.sessionType,
-              constraintName: preset.constraintName,
-            });
-          }
-          setLogOpen(true);
+          // Both preset shapes (drill | constraint) fold into the same
+          // logPreset structure. Constraint presets carry constraintName +
+          // sessionType='cla'; drill presets carry subSkillTag +
+          // sessionType='drilling'. openLog routes desktop locally and
+          // mobile through the global event listener in MobileAppShell.
+          const presetData = preset.pool === 'drill'
+            ? { heading: preset.heading, sessionType: preset.sessionType, subSkillTag: preset.subSkillTag }
+            : { heading: preset.heading, sessionType: preset.sessionType, constraintName: preset.constraintName };
+          openLog({ date: toDateString(today), preset: presetData });
         }} />
       </div>
       </PageContent>
@@ -1250,8 +1269,8 @@ export default function PathAheadPage() {
       )}
 
       {/* ── D-H. Main content (conditional on sessions) ────────── */}
-      {allSessions.length === 0 ? (
-        <FirstVisitCard onLogFirst={() => { setLogDate(toDateString(today)); setLogOpen(true); }} />
+      {!loading && allSessions.length === 0 ? (
+        <FirstVisitCard onLogFirst={() => openLog()} />
       ) : (
       <>
         {weekSectionHeader}
@@ -1263,9 +1282,10 @@ export default function PathAheadPage() {
 
       {modals}
       <RepRouletteFab onLogDrill={(preset) => {
-        setLogDate(toDateString(today));
-        setLogPreset(preset);
-        setLogOpen(true);
+        const presetData = preset.pool === 'drill'
+          ? { heading: preset.heading, sessionType: preset.sessionType, subSkillTag: preset.subSkillTag }
+          : { heading: preset.heading, sessionType: preset.sessionType, constraintName: preset.constraintName };
+        openLog({ date: toDateString(today), preset: presetData });
       }} />
     </div>
     </PageContent>

@@ -9,7 +9,24 @@ import PageTransition from './PageTransition.tsx';
 import OfflineBanner from './OfflineBanner.tsx';
 import { useOnlineSync } from '../hooks/useOnlineSync.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock.ts';
 import DesktopAppShell from './DesktopAppShell.tsx';
+import LogSessionForm from './LogSessionForm.tsx';
+import { toDateString } from '../lib/sessionUtils.ts';
+
+// Preset shape that the bottom-nav FAB / RepRouletteFab can carry over the
+// `journada:open-log-form` window event. Mirrors the LogSessionForm
+// `default*` prop contract so the modal pre-fills cleanly.
+interface LogPresetPayload {
+  heading?: string;
+  sessionType?: 'drilling' | 'cla';
+  subSkillTag?: string;
+  constraintName?: string;
+}
+interface OpenLogFormDetail {
+  date?: string;
+  preset?: LogPresetPayload | null;
+}
 
 // Lucide-style inline SVG icons — heavier line weight + a touch larger than
 // before so the bottom nav reads as a confident, set-in-stone control rather
@@ -107,6 +124,41 @@ function MobileAppShell({ children }: Props) {
   // Page-level horizontal swipe-to-navigate has been retired — it made the
   // app feel light and "swipey" in a way that worked against the leather-
   // bound editorial register. Tap-to-navigate only.
+
+  // ── Global log-session modal ─────────────────────────────────────────
+  // Lifted out of PathAheadPage so the bottom-nav `+` FAB can launch the
+  // modal directly from any page without redirecting through `/home`.
+  // Other pages (e.g. RepRouletteFab on home) dispatch the
+  // `journada:open-log-form` event with optional `{ date, preset }` detail.
+  const [logOpen,    setLogOpen]    = useState(false);
+  const [logDate,    setLogDate]    = useState<string | null>(null);
+  const [logPreset,  setLogPreset]  = useState<LogPresetPayload | null>(null);
+
+  useBodyScrollLock(logOpen);
+
+  // Listen for the global "open log form" event — any page can dispatch it.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<OpenLogFormDetail>).detail ?? {};
+      setLogDate(detail.date ?? toDateString(new Date()));
+      setLogPreset(detail.preset ?? null);
+      setLogOpen(true);
+    };
+    window.addEventListener('journada:open-log-form', handler);
+    return () => window.removeEventListener('journada:open-log-form', handler);
+  }, []);
+
+  // Tell other surfaces (e.g. RepRouletteFab) when the modal opens / closes
+  // so they can hide themselves while it's up.
+  useEffect(() => {
+    window.dispatchEvent(new Event(logOpen ? 'journada:log-form-open' : 'journada:log-form-closed'));
+  }, [logOpen]);
+
+  const closeLogModal = useCallback(() => {
+    setLogOpen(false);
+    setLogDate(null);
+    setLogPreset(null);
+  }, []);
 
   // ── Desktop sliding tab indicator ──
   const desktopNavRef = useRef<HTMLElement>(null);
@@ -298,9 +350,12 @@ function MobileAppShell({ children }: Props) {
                 <button
                   key="fab-log"
                   onClick={() => {
-                    if (location.pathname !== '/home') navigate('/home');
-                    // Dispatch after navigation so PathAheadPage is mounted
-                    setTimeout(() => window.dispatchEvent(new CustomEvent('journada:open-log-form')), 40);
+                    // Open the modal directly — no route flip. The modal
+                    // state lives in MobileAppShell now, so it works from
+                    // any page without redirecting through /home.
+                    setLogDate(toDateString(new Date()));
+                    setLogPreset(null);
+                    setLogOpen(true);
                   }}
                   className="flex-1 flex items-center justify-center"
                   aria-label="Log a training session"
@@ -392,6 +447,51 @@ function MobileAppShell({ children }: Props) {
           return elements;
         })()}
       </nav>
+
+      {/* ── Global log-session modal ──────────────────────────────────
+          Renders here (not in PathAheadPage) so the bottom-nav `+` FAB
+          can launch it from any page without a route detour. z-[60]
+          puts it definitively above the nav (z-40) and any RepRouletteFab
+          (z-50). Backdrop fades in (animate-j2-backdrop-in) and the
+          content settles (animate-j2-modal-in). 32px aesthetic padding
+          beneath the form gives the bottom edge somewhere to land. */}
+      {logOpen && (
+        <div
+          data-no-page-swipe=""
+          role="dialog"
+          aria-modal="true"
+          aria-label="Log session"
+          className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto px-5 animate-j2-backdrop-in"
+          style={{
+            backgroundColor: 'rgba(13, 26, 20, 1)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            paddingTop: 'max(1rem, env(safe-area-inset-top))',
+            paddingBottom: 'calc(max(1rem, env(safe-area-inset-bottom)) + 32px)',
+          }}
+          onClick={closeLogModal}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            className="w-full sm:max-w-lg lg:max-w-5xl animate-j2-modal-in"
+          >
+            <LogSessionForm
+              onSuccess={() => {
+                closeLogModal();
+                // Notify any page that needs to refetch (PathAhead stats,
+                // Atlas filtered sessions, Calendar heatmap, etc.).
+                window.dispatchEvent(new Event('journada:log-session-saved'));
+              }}
+              onCancel={closeLogModal}
+              defaultDate={logDate ?? undefined}
+              defaultHeading={logPreset?.heading}
+              defaultSessionType={logPreset?.sessionType}
+              defaultSubSkillTag={logPreset?.subSkillTag}
+              defaultConstraintName={logPreset?.constraintName}
+            />
+          </div>
+        </div>
+      )}
 
     </div>
     </>

@@ -70,9 +70,26 @@ type Phase = 'fab' | 'opening' | 'open' | 'closing';
 // for ~200ms during route exit, which leaks the FAB onto other pages briefly;
 // gating here on `location.pathname` makes it disappear the instant the route
 // flips away.
+//
+// Also hidden while the global log-session modal is open (MobileAppShell
+// dispatches `journada:log-form-open` / `journada:log-form-closed` window
+// events). Without this, the FAB peeks above the modal's z-[60] backdrop
+// from below — visually wrong and user-flagged.
 export default function RepRouletteFab(props: Props) {
   const location = useLocation();
+  const [logModalOpen, setLogModalOpen] = useState(false);
+  useEffect(() => {
+    const onOpen  = () => setLogModalOpen(true);
+    const onClose = () => setLogModalOpen(false);
+    window.addEventListener('journada:log-form-open', onOpen);
+    window.addEventListener('journada:log-form-closed', onClose);
+    return () => {
+      window.removeEventListener('journada:log-form-open', onOpen);
+      window.removeEventListener('journada:log-form-closed', onClose);
+    };
+  }, []);
   if (location.pathname !== '/home') return null;
+  if (logModalOpen) return null;
   return <RepRouletteFabImpl {...props} />;
 }
 
