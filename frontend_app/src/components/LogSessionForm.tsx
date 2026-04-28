@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { api, ApiError } from '../lib/api.ts';
 import { toast } from '../hooks/use-toast.ts';
-import { CARD_BG, COPPER, SURFACE_2, SURFACE_3, PALE_YELLOW, GLOW_SOFT, FONT_EDITORIAL } from '../lib/theme.ts';
+import { CARD_BG, COPPER, SURFACE_2, SURFACE_3, PALE_YELLOW, FONT_EDITORIAL } from '../lib/theme.ts';
 import { vibrate } from '../lib/haptics.ts';
 import { INTENSITY_COLOR } from '../lib/sessionUtils.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
@@ -54,7 +54,10 @@ const SESSION_TYPES: { value: SessionType; label: string }[] = [
 ];
 
 // ── Intensity labels ──────────────────────────────────────────────────────
-const INTENSITY_LABELS = ['Light', 'Easy', 'Moderate', 'Hard', 'Max'];
+// BJJ-themed scale (matches `INT_LABELS` in theme.ts). Less fitness-app, more
+// dojo. Drill = no resistance / partner work; Light = relaxed flow; Steady =
+// honest pace; Intense = tournament-prep round; Hard roll = full send.
+const INTENSITY_LABELS = ['Drill', 'Light', 'Steady', 'Intense', 'Hard roll'];
 
 export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defaultHeading, defaultSessionType, defaultSubSkillTag, defaultConstraintName }: { onSuccess?: (sessionCount?: number) => void; onCancel?: () => void; defaultDate?: string; defaultHeading?: string; defaultSessionType?: SessionType; defaultSubSkillTag?: string; defaultConstraintName?: string }) {
   const isDesktop = useIsDesktop();
@@ -324,8 +327,8 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
             display: 'grid',
             gridTemplateColumns: '1fr 420px',
             gridTemplateRows: 'auto auto auto',
-            columnGap: 24,
-            rowGap: 20,
+            columnGap: 32,
+            rowGap: 32,
             alignItems: 'start',
           } : undefined}
         >
@@ -341,27 +344,17 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
         )}
 
         {/* ══════════════════════════════════════════════════════════════
-            SECTION 1: The Basics
+            SECTION 1: Fundamentals
             Desktop keeps its boxed SURFACE_2 card; mobile lives directly on
             the canvas — implicit containment via eyebrow + whitespace, per
             the editorial-register research (Day One / Bear / Apple Notes
             pattern). The visual weight drops without losing the structure.
             ══════════════════════════════════════════════════════════════ */}
         <div
-          className={isDesktop ? 'rounded-xl px-4 py-4 space-y-4' : 'space-y-4'}
-          style={isDesktop ? {
-            backgroundColor: SURFACE_2,
-            border: '1px solid rgba(255,255,255,0.05)',
-            gridColumn: '1', gridRow: '2',
-          } : undefined}
+          className="space-y-4"
+          style={isDesktop ? { gridColumn: '1', gridRow: '2' } : undefined}
         >
-          {isDesktop ? (
-            <span className="text-xs font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.40)' }}>
-              The Basics
-            </span>
-          ) : (
-            <div className="j2-label-copper">The Basics</div>
-          )}
+          <div className="j2-label-copper">Fundamentals</div>
 
           {/* Gi / No-Gi */}
           <SegmentedToggle
@@ -377,73 +370,91 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
             onChange={v => v && setForm(prev => ({ ...prev, session_type: v }))}
           />
 
-          {/* Duration — stepper (±30-min increments). Defaults to 60 on mount
-              and reset, so the readout is always populated; no orphan placeholder. */}
-          <div className="space-y-2">
-            <div
-              className="flex items-center justify-center gap-3 rounded-xl py-2"
-              style={{ backgroundColor: SURFACE_3 }}
-            >
-              <button
-                type="button"
-                onClick={() => { vibrate(8); setDurationMinutes(m => Math.max(DUR_MIN, m - DUR_STEP)); }}
-                className="w-11 h-11 rounded-lg text-lg font-semibold transition-colors touch-manipulation"
-                style={{ backgroundColor: SURFACE_2, color: 'rgba(255,255,255,0.55)' }}
-                disabled={durationMinutes <= DUR_MIN}
-                aria-label="Decrease duration"
+          {/* Duration + Intensity — side-by-side steppers. Both share the
+              same SURFACE_3 stepper shell so they read as a paired control.
+              Saves ~80pt of vertical real estate vs the old stacked
+              5-bar gradient. Intensity value tints in the level's color. */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Duration */}
+            <div>
+              <p className="text-[10px] mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.40)', letterSpacing: '0.14em' }}>
+                Duration
+              </p>
+              <div
+                className="flex items-center justify-center gap-1 rounded-xl py-2"
+                style={{ backgroundColor: SURFACE_3 }}
               >
-                −
-              </button>
-              <span
-                className="text-xl font-bold w-28 text-center"
-                style={{ color: PALE_YELLOW }}
-              >
-                {fmtDuration(durationMinutes)}
-              </span>
-              <button
-                type="button"
-                onClick={() => { vibrate(8); setDurationMinutes(m => Math.min(DUR_MAX, m + DUR_STEP)); }}
-                className="w-11 h-11 rounded-lg text-lg font-semibold transition-colors touch-manipulation"
-                style={{ backgroundColor: SURFACE_2, color: 'rgba(255,255,255,0.55)' }}
-                disabled={durationMinutes >= DUR_MAX}
-                aria-label="Increase duration"
-              >
-                +
-              </button>
-            </div>
-          </div>
-
-          {/* Intensity — color-gradient segmented bar. Every bar shows its label
-              so users can see what each option means before tapping; active bar
-              gets size + color emphasis. */}
-          <div className="flex items-center gap-1.5">
-            {[1, 2, 3, 4, 5].map(n => {
-              const active = form.intensity === n;
-              const color = INTENSITY_COLOR[n] ?? '#A8CB72';
-              return (
                 <button
-                  key={n}
                   type="button"
-                  onClick={() => { vibrate(10); setForm(prev => ({ ...prev, intensity: n })); }}
-                  className="flex-1 flex items-center justify-center font-semibold touch-manipulation"
+                  onClick={() => { vibrate(8); setDurationMinutes(m => Math.max(DUR_MIN, m - DUR_STEP)); }}
+                  className="w-9 h-9 rounded-lg text-base font-semibold transition-colors touch-manipulation"
+                  style={{ backgroundColor: SURFACE_2, color: 'rgba(255,255,255,0.55)' }}
+                  disabled={durationMinutes <= DUR_MIN}
+                  aria-label="Decrease duration"
+                >
+                  −
+                </button>
+                <span
+                  className="font-bold flex-1 text-center"
+                  style={{ color: PALE_YELLOW, fontSize: 17 }}
+                >
+                  {fmtDuration(durationMinutes)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { vibrate(8); setDurationMinutes(m => Math.min(DUR_MAX, m + DUR_STEP)); }}
+                  className="w-9 h-9 rounded-lg text-base font-semibold transition-colors touch-manipulation"
+                  style={{ backgroundColor: SURFACE_2, color: 'rgba(255,255,255,0.55)' }}
+                  disabled={durationMinutes >= DUR_MAX}
+                  aria-label="Increase duration"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            {/* Intensity */}
+            <div>
+              <p className="text-[10px] mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.40)', letterSpacing: '0.14em' }}>
+                Intensity
+              </p>
+              <div
+                className="flex items-center justify-center gap-1 rounded-xl py-2"
+                style={{ backgroundColor: SURFACE_3 }}
+              >
+                <button
+                  type="button"
+                  onClick={() => { vibrate(8); setForm(prev => ({ ...prev, intensity: Math.max(1, prev.intensity - 1) })); }}
+                  className="w-9 h-9 rounded-lg text-base font-semibold transition-colors touch-manipulation"
+                  style={{ backgroundColor: SURFACE_2, color: 'rgba(255,255,255,0.55)' }}
+                  disabled={form.intensity <= 1}
+                  aria-label="Decrease intensity"
+                >
+                  −
+                </button>
+                <span
+                  className="font-bold flex-1 text-center"
                   style={{
-                    height: active ? 44 : 36,
-                    borderRadius: 10,
-                    backgroundColor: active ? color : 'rgba(255,255,255,0.05)',
-                    border: `1px solid ${active ? color : 'rgba(255,255,255,0.08)'}`,
-                    color: active ? 'rgba(13,26,20,0.95)' : 'rgba(255,255,255,0.55)',
-                    fontSize: active ? 12 : 10,
-                    letterSpacing: active ? '0.06em' : '0.04em',
-                    textTransform: 'uppercase',
-                    transition: 'all 280ms cubic-bezier(0.2, 0.8, 0.2, 1)',
-                    boxShadow: active ? `0 0 0 1px ${color}40, 0 8px 20px -8px ${color}80` : 'none',
-                    overflow: 'hidden',
+                    color: INTENSITY_COLOR[form.intensity] ?? PALE_YELLOW,
+                    fontSize: 14,
+                    letterSpacing: '0.02em',
+                    textShadow: `0 0 12px ${INTENSITY_COLOR[form.intensity] ?? '#A8CB72'}40`,
                   }}
                 >
-                  {INTENSITY_LABELS[n - 1]}
+                  {INTENSITY_LABELS[form.intensity - 1]}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { vibrate(8); setForm(prev => ({ ...prev, intensity: Math.min(5, prev.intensity + 1) })); }}
+                  className="w-9 h-9 rounded-lg text-base font-semibold transition-colors touch-manipulation"
+                  style={{ backgroundColor: SURFACE_2, color: 'rgba(255,255,255,0.55)' }}
+                  disabled={form.intensity >= 5}
+                  aria-label="Increase intensity"
+                >
+                  +
                 </button>
-              );
-            })}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -461,21 +472,11 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
             "FOCUS" rhythm as the other sections — consistency over emphasis.
             ══════════════════════════════════════════════════════════════ */}
         <div
-          className={isDesktop ? 'rounded-xl px-4 py-4 space-y-4' : 'space-y-4'}
-          style={isDesktop ? {
-            backgroundColor: SURFACE_2,
-            border: '1px solid rgba(255,255,255,0.05)',
-            gridColumn: '2', gridRow: '2 / span 2',
-          } : undefined}
+          className="space-y-4"
+          style={isDesktop ? { gridColumn: '2', gridRow: '2 / span 2' } : undefined}
         >
           <div>
-            {isDesktop ? (
-              <h3 className="text-sm font-semibold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
-                Positional Focus
-              </h3>
-            ) : (
-              <div className="j2-label-copper">Positional Focus</div>
-            )}
+            <div className="j2-label-copper">Positional Focus</div>
             {currentIntention && (
               <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.30)' }}>
                 This week's focus: <span style={{ color: COPPER }}>{currentIntention.intent_label}</span>
@@ -507,7 +508,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
                 maxSelected={1}
                 defaultQuery={defaultConstraintName}
               />
-              <p className="text-[10px] mt-1.5" style={{ color: 'rgba(255,255,255,0.22)', fontStyle: 'italic' }}>
+              <p className="text-xs mt-2" style={{ color: 'rgba(255,255,255,0.40)', fontStyle: 'italic', fontFamily: FONT_EDITORIAL, fontSize: 13 }}>
                 What rule did you train under tonight?
               </p>
             </div>
@@ -528,7 +529,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
               currentPillar={derivedHeading}
               maxSelected={5}
             />
-            <p className="text-[10px] mt-1.5" style={{ color: 'rgba(255,255,255,0.30)', fontStyle: 'italic', fontFamily: FONT_EDITORIAL }}>
+            <p className="mt-2" style={{ color: 'rgba(255,255,255,0.45)', fontStyle: 'italic', fontFamily: FONT_EDITORIAL, fontSize: 13 }}>
               Each tag opens a page in your technique library.
             </p>
           </div>
@@ -546,7 +547,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
                 onChange={setPolarity}
                 deselectable
               />
-              <p className="text-[10px] mt-1.5 text-center" style={{ color: 'rgba(255,255,255,0.22)' }}>
+              <p className="mt-2 text-center" style={{ color: 'rgba(255,255,255,0.40)', fontStyle: 'italic', fontFamily: FONT_EDITORIAL, fontSize: 13 }}>
                 What side of the exchange were you primarily on?
               </p>
             </div>
@@ -566,7 +567,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
                 onChange={setScriptSource}
                 deselectable
               />
-              <p className="text-[10px] mt-1.5 text-center" style={{ color: 'rgba(255,255,255,0.22)' }}>
+              <p className="mt-2 text-center" style={{ color: 'rgba(255,255,255,0.40)', fontStyle: 'italic', fontFamily: FONT_EDITORIAL, fontSize: 13 }}>
                 Was this instructor-led or self-directed?
               </p>
             </div>
@@ -587,20 +588,10 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
             No mood scale anywhere — capture is freeform on both axes.
             ══════════════════════════════════════════════════════════════ */}
         <div
-          className={isDesktop ? 'rounded-xl px-4 py-4 space-y-3' : 'space-y-3'}
-          style={isDesktop ? {
-            backgroundColor: SURFACE_2,
-            border: '1px solid rgba(255,255,255,0.05)',
-            gridColumn: '1', gridRow: '3',
-          } : undefined}
+          className="space-y-3"
+          style={isDesktop ? { gridColumn: '1', gridRow: '3' } : undefined}
         >
-          {isDesktop ? (
-            <span className="text-xs font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.40)' }}>
-              Resonance
-            </span>
-          ) : (
-            <div className="j2-label-copper">Resonance</div>
-          )}
+          <div className="j2-label-copper">Resonance</div>
 
           {/* Embodied / reflective prose — voice-to-text mic + textarea. Per-type
               placeholder copy orients the user without dictating what they should

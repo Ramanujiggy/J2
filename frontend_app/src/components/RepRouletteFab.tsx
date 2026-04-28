@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useLocation } from 'react-router-dom';
 import { ROULETTE_DRILLS, ROULETTE_CONSTRAINTS } from '../lib/constants.ts';
 import { PALE_YELLOW, GLOW_SOFT, COPPER, COPPER_BORDER, SURFACE_3 } from '../lib/theme.ts';
 import { vibrate } from '../lib/haptics.ts';
@@ -48,7 +49,20 @@ interface Props {
 
 type Phase = 'fab' | 'opening' | 'open' | 'closing';
 
-export default function RepRouletteFab({ onLogDrill }: Props) {
+// Outer wrapper — gates rendering on the /home route. Split from the impl
+// so the route check can short-circuit BEFORE the impl's hooks run (the
+// impl declares ~10 hooks; calling them only sometimes would violate React's
+// rules-of-hooks). PageTransition holds the previous page's tree in the DOM
+// for ~200ms during route exit, which leaks the FAB onto other pages briefly;
+// gating here on `location.pathname` makes it disappear the instant the route
+// flips away.
+export default function RepRouletteFab(props: Props) {
+  const location = useLocation();
+  if (location.pathname !== '/home') return null;
+  return <RepRouletteFabImpl {...props} />;
+}
+
+function RepRouletteFabImpl({ onLogDrill }: Props) {
   const [phase, setPhase] = useState<Phase>('fab');
 
   // Pool toggle — drill (existing) or constraint (CLA prompt). Persisted to
