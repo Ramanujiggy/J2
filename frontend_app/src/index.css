@@ -425,3 +425,23 @@
   [style*="j2DotGlow"] { animation: none !important; }
 }
 
+/* Skeleton sweep — copper-gradient stripe traveling across a placeholder
+   box while data is loading. Mirrors `j2-streak-sheen` (above) but tuned
+   for a calm, ambient pulse rather than a celebratory sheen — slower,
+   continuous, lower contrast. Used by DesktopPathAheadSkeleton. The element
+   this animates is an absolutely-positioned inner <span> with a
+   `linear-gradient(90deg, transparent, rgba(196,145,95,0.18), transparent)`
+   background; the keyframe just translates it across. */
+@keyframes j2-skeleton-sweep {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(180%); }
+}
+@keyframes j2-skeleton-breathe {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 0.85; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [style*="j2-skeleton-sweep"]   { animation: none !important; }
+  [style*="j2-skeleton-breathe"] { animation: none !important; }
+}
+

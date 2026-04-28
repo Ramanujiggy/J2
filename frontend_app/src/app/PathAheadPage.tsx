@@ -23,6 +23,7 @@ import StatStrip from '../components/StatStrip.tsx';
 import IntentionHeroCard from '../components/IntentionHeroCard.tsx';
 import WeekIndicators from '../components/WeekIndicators.tsx';
 import FirstVisitCard from '../components/FirstVisitCard.tsx';
+import DesktopPathAheadSkeleton from '../components/DesktopPathAheadSkeleton.tsx';
 import { computeACWR, computeDecay, rustiest, computeACWRByPillar, spikiestPillar } from '../lib/analyticsModels.ts';
 import { sessionPillarHours } from '../lib/analyticsUtils.ts';
 import RepRouletteFab from '../components/RepRouletteFab.tsx';
@@ -854,6 +855,19 @@ export default function PathAheadPage() {
       border: '1px solid var(--j2-border-2)',
       borderRadius: 16,
     };
+
+    // Desktop loading state — render the brand-correct skeleton instead of
+    // the empty page chrome. PageContent itself short-circuits on desktop
+    // (see PageContent.tsx:82), so the proper hand-off here is to swap in
+    // the skeleton during `loading` rather than rely on the belt-tying
+    // loader (which is mobile-only by design).
+    if (loading) {
+      return (
+        <PageContent ready={true}>
+          <DesktopPathAheadSkeleton />
+        </PageContent>
+      );
+    }
 
     return (
       <PageContent ready={!loading} loadingMessages={['Shrimping down the mat...', 'Doing mat swims...', 'Pulling up gi pants...']}>
