@@ -49,11 +49,10 @@ function fmtDuration(m: number): string {
 
 interface Props {
   cachedSessions: SessionSummary[];
-  onClose: () => void;
   onRefresh: () => void;
 }
 
-export default function SessionSearchPanel({ cachedSessions, onClose, onRefresh }: Props) {
+export default function SessionSearchPanel({ cachedSessions, onRefresh }: Props) {
   const [filters, setFilters] = useState<SearchFilters>({ ...DEFAULT_FILTERS });
   const [results, setResults] = useState<SessionSummary[]>([]);
   const [total, setTotal] = useState(0);

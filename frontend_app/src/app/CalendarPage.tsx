@@ -189,7 +189,6 @@ export default function CalendarPage() {
       {searchOpen ? (
         <SessionSearchPanel
           cachedSessions={allSessions}
-          onClose={() => setSearchOpen(false)}
           onRefresh={fetchAll}
         />
       ) : (
