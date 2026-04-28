@@ -149,7 +149,7 @@ export default function AtlasPage() {
   // ── Desktop: full 4-tab editorial layout ─────────────────────────────
   return (
     <PageContent ready={!loading} loadingMessages={['Charting the year...', 'Measuring the ring...', 'Lacing up for the long look...']}>
-    <div style={{ maxWidth: 1680, margin: '0 auto', padding: '64px 64px 104px' }}>
+    <div className="j2-page-container" style={{ paddingTop: 64, paddingBottom: 104 }}>
 
       {/* ── Header ───────────────────────────────────────────────────
           On the Analytics tab the page-level editorial frame compresses to
@@ -848,7 +848,7 @@ function PrismPanel({
           onSelectTag={onSelectTag}
           viewMode={subView}
           onViewModeChange={setSubView}
-          bigPrismSize={isDesktop ? 520 : 280}
+          bigPrismSize={isDesktop ? 600 : 280}
         />
       </ErrorBoundary>
 

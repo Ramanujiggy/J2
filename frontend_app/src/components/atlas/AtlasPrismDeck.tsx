@@ -271,7 +271,7 @@ export default function AtlasPrismDeck({
     );
     if (mode === 'split') return (
       <div className="flex justify-center">
-        <div style={{ width: '100%', maxWidth: 480, aspectRatio: '1' }}>
+        <div style={{ width: '100%', maxWidth: 560, aspectRatio: '1' }}>
           <DonutChart
             segments={[
               { value: giHours,   color: SEG_GI,  label: 'Gi'    },
@@ -285,7 +285,7 @@ export default function AtlasPrismDeck({
     );
     if (mode === 'format') return (
       <div className="flex justify-center">
-        <div style={{ width: '100%', maxWidth: 480, aspectRatio: '1' }}>
+        <div style={{ width: '100%', maxWidth: 560, aspectRatio: '1' }}>
           <DonutChart
             segments={[
               { value: classHours, color: SEG_CLASS, label: 'Class'       },
@@ -554,8 +554,6 @@ export default function AtlasPrismDeck({
         style={{
           gridTemplateColumns: '1fr 460px',
           gap: 76,
-          maxWidth: 1360,
-          marginLeft: 'auto', marginRight: 'auto',
           alignItems: 'start',
         }}
       >
@@ -578,7 +576,7 @@ export default function AtlasPrismDeck({
             style={{
               maxWidth:
                 viewMode === 'prism'                    ? bigPrismSize
-              : viewMode === 'split' || viewMode === 'format' ? 520
+              : viewMode === 'split' || viewMode === 'format' ? 600
                                                               : '100%',
               width: '100%',
             }}

@@ -37,6 +37,9 @@ export interface SessionSummary {
   // migration 015 — constraint linkage for CLA sessions. Null on non-CLA rows.
   canonical_constraint_ids?: string[] | null;
   user_constraint_ids?: string[] | null;
+  // migration 016 — freetext partner names. Will grow to user_partners refs
+  // in the Journada 2.0 social layer.
+  partners?: string[] | null;
 }
 
 export interface UserTag {

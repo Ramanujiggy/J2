@@ -13,6 +13,7 @@ import PrismReceipt from './PrismReceipt.tsx';
 import SegmentedToggle from './SegmentedToggle.tsx';
 import TagPicker from './TagPicker.tsx';
 import ConstraintPicker from './ConstraintPicker.tsx';
+import PartnerInput from './PartnerInput.tsx';
 import VoiceReflectionInput from './VoiceReflectionInput.tsx';
 import { selectionsToDistribution, type ChipSelection } from '../lib/selectionsToDistribution.ts';
 import type { Intention, Pillar } from '../types/api.ts';
@@ -99,6 +100,11 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
   const [userConstraintIds, setUserConstraintIds] = useState<string[]>([]);
   const [canonicalConstraintIds, setCanonicalConstraintIds] = useState<string[]>([]);
 
+  // Partners — freetext names of who the user trained with. Lives in the
+  // Resonance section as the social-as-data layer. Migration 016. Caps at 5
+  // server-side; client mirrors the cap via PartnerInput.
+  const [partners, setPartners] = useState<string[]>([]);
+
   // Post-save receipt — shows the resulting Prism shape and auto-dismisses.
   const [receiptSelections, setReceiptSelections] = useState<ChipSelection[] | null>(null);
   const [pendingSuccessCount, setPendingSuccessCount] = useState<number | undefined>(undefined);
@@ -156,6 +162,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
     setScriptSource(null);
     setUserConstraintIds([]);
     setCanonicalConstraintIds([]);
+    setPartners([]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -215,6 +222,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
         deep_work_pillars,
         canonical_constraint_ids: sentCanonicalConstraintIds,
         user_constraint_ids: sentUserConstraintIds,
+        partners: partners.length > 0 ? partners : undefined,
       };
 
       const data = await api.post<LogSessionResponse>('/api/sessions', {
@@ -238,6 +246,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
         deep_work_pillars: sessionSnapshot.deep_work_pillars,
         canonical_constraint_ids: sessionSnapshot.canonical_constraint_ids,
         user_constraint_ids: sessionSnapshot.user_constraint_ids,
+        partners: sessionSnapshot.partners,
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -462,10 +471,10 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
           <div>
             {isDesktop ? (
               <h3 className="text-sm font-semibold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
-                What did you work on?
+                Positional Focus
               </h3>
             ) : (
-              <div className="j2-label-copper">Focus</div>
+              <div className="j2-label-copper">Positional Focus</div>
             )}
             {currentIntention && (
               <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.30)' }}>
@@ -487,7 +496,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
               preserved if the user flips session-type away and back. */}
           {form.session_type === 'cla' && (
             <div>
-              <p className="text-[10px] mt-0.5 mb-2 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.40)', letterSpacing: '0.16em' }}>
+              <p className="text-[10px] mt-0.5 mb-2 uppercase tracking-widest font-semibold" style={{ color: PALE_YELLOW, letterSpacing: '0.16em' }}>
                 Constraint
               </p>
               <ConstraintPicker
@@ -503,6 +512,26 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
               </p>
             </div>
           )}
+
+          {/* Tech Tags — moved up from the old Details section. These are the
+              technical layer of the session and the bridge to the future
+              Technique Library (each tag opens a journal page for that move).
+              Always visible, regardless of session type. */}
+          <div>
+            <p className="text-[10px] mt-0.5 mb-2 uppercase tracking-widest font-semibold" style={{ color: PALE_YELLOW, letterSpacing: '0.16em' }}>
+              Tech Tags
+            </p>
+            <TagPicker
+              selectedUserTagIds={userTagIds}
+              selectedCanonicalIds={canonicalPositionIds}
+              onChange={(u, c) => { setUserTagIds(u); setCanonicalPositionIds(c); }}
+              currentPillar={derivedHeading}
+              maxSelected={5}
+            />
+            <p className="text-[10px] mt-1.5" style={{ color: 'rgba(255,255,255,0.30)', fontStyle: 'italic', fontFamily: FONT_EDITORIAL }}>
+              Each tag opens a page in your technique library.
+            </p>
+          </div>
 
           {/* Polarity — only for guard and pins */}
           {(derivedHeading === 'guard' || derivedHeading === 'pins') && (
@@ -544,13 +573,18 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
           )}
         </div>
 
-        {/* Hairline divider — mobile only, between Focus and Details. */}
+        {/* Hairline divider — mobile only, between Positional Focus and Resonance. */}
         {!isDesktop && (
           <div style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginTop: 28, marginBottom: 28 }} />
         )}
 
         {/* ══════════════════════════════════════════════════════════════
-            SECTION 3: Details (optional)
+            SECTION 3: Resonance — the emotional layer of the session.
+            Two distinct dimensions:
+              - embodied / reflective prose (the existing notes textarea,
+                with per-type placeholder copy)
+              - social-as-data (partner chip-input below the textarea)
+            No mood scale anywhere — capture is freeform on both axes.
             ══════════════════════════════════════════════════════════════ */}
         <div
           className={isDesktop ? 'rounded-xl px-4 py-4 space-y-3' : 'space-y-3'}
@@ -562,44 +596,40 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
         >
           {isDesktop ? (
             <span className="text-xs font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.40)' }}>
-              Details
+              Resonance
             </span>
           ) : (
-            <div className="j2-label-copper">Details</div>
+            <div className="j2-label-copper">Resonance</div>
           )}
 
-          {/* Tags — user's personal vocabulary, each linked to a pillar */}
-          <div>
-            <label className="block text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.40)' }}>
-              Tags <span style={{ color: 'rgba(255,255,255,0.20)' }}>(optional, max 5)</span>
-            </label>
-            <TagPicker
-              selectedUserTagIds={userTagIds}
-              selectedCanonicalIds={canonicalPositionIds}
-              onChange={(u, c) => { setUserTagIds(u); setCanonicalPositionIds(c); }}
-              currentPillar={derivedHeading}
-              maxSelected={5}
-            />
-          </div>
+          {/* Embodied / reflective prose — voice-to-text mic + textarea. Per-type
+              placeholder copy orients the user without dictating what they should
+              feel. The section eyebrow + placeholder do the labelling work; no
+              redundant "Notes" inline label. */}
+          <VoiceReflectionInput
+            value={form.notes}
+            onChange={next => setForm(prev => ({ ...prev, notes: next }))}
+            placeholder={
+              form.session_type === 'drilling' ? 'What did you choose to drill?'
+                : form.session_type === 'cla'  ? 'What did the constraint reveal?'
+                :                                'What stayed with you?'
+            }
+            rows={2}
+            textareaName="notes"
+            textareaStyle={{ backgroundColor: SURFACE_3 }}
+          />
 
-          {/* Notes — now with voice-to-text mic. Encourages post-training use
-              (sweaty hands, tired, don't-make-them-type). Falls back to a
-              plain textarea when Web Speech API isn't available. */}
+          {/* Social layer — freetext partner chips, max 5. Captures who you
+              trained with as structured data without forcing a second textarea
+              or a mood scale. Will graduate to user_partners refs in 2.0. */}
           <div>
-            <label className="block text-xs mb-1" style={{ color: 'rgba(255,255,255,0.40)' }}>
-              Notes <span style={{ color: 'rgba(255,255,255,0.20)' }}>(optional)</span>
-            </label>
-            <VoiceReflectionInput
-              value={form.notes}
-              onChange={next => setForm(prev => ({ ...prev, notes: next }))}
-              placeholder={
-                form.session_type === 'drilling' ? 'What did you choose to drill?'
-                  : form.session_type === 'cla'  ? 'What did the constraint reveal?'
-                  :                                'What stood out today?'
-              }
-              rows={2}
-              textareaName="notes"
-              textareaStyle={{ backgroundColor: SURFACE_3 }}
+            <p className="text-[10px] mt-0.5 mb-2 uppercase tracking-widest font-semibold" style={{ color: PALE_YELLOW, letterSpacing: '0.16em' }}>
+              With
+            </p>
+            <PartnerInput
+              partners={partners}
+              onChange={setPartners}
+              maxSelected={5}
             />
           </div>
         </div>

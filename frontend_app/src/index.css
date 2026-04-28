@@ -188,6 +188,29 @@
 }
 
 /* ────────────────────────────────────────────────────────────────────
+ * Shared desktop page container.
+ * Replaces the per-page mix of max-w-6xl / max-w-7xl / inline max-widths
+ * (1152, 1280, 1360, 1520, 1680) with a single fluid cap at 1760px.
+ * On 1920 monitors content fills ~1640 (rail-relative) and breathing
+ * room is balanced at ~140-180px each side — close enough to the rail
+ * to feel anchored, far enough to feel editorial. On 2560+ monitors the
+ * cap kicks in and the gutters split a sensible ~260px instead of the
+ * old 1000+px abandoned canvas.
+ *
+ * Only horizontal padding lives in the utility — pages set their own
+ * vertical padding inline (paddingTop/paddingBottom) since each page
+ * has its own top-of-page rhythm.
+ * ──────────────────────────────────────────────────────────────────── */
+.j2-page-container {
+  width: 100%;
+  max-width: 1760px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 64px;
+  padding-right: 64px;
+}
+
+/* ────────────────────────────────────────────────────────────────────
  * FAB press feedback — used by the bottom-nav central + Log button.
  * Subtle scale on hover/press so the dome reads as a real surface that
  * acknowledges touch. Inline styles can't define :hover / :active, hence
