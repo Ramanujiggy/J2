@@ -30,7 +30,7 @@ import {
   FONT_EDITORIAL, INT_COLORS, GLOW_SOFT,
 } from '../lib/theme.ts';
 import type { SessionSummary, Intention, SessionsResponse, IntentionsResponse, CalendarIntention } from '../types/api.ts';
-import AtlasPrismDeck from '../components/atlas/AtlasPrismDeck.tsx';
+import AtlasPrismDeck, { type ViewMode as PrismViewMode } from '../components/atlas/AtlasPrismDeck.tsx';
 import TimeRangeBar from '../components/TimeRangeBar.tsx';
 
 const LS_TAB_KEY = 'j2_atlas_tab';
@@ -532,6 +532,10 @@ function PrismPanel({
   onOpenIntentionJournal: (id: string) => void;
   isDesktop: boolean;
 }) {
+  // Sub-view state lifted from AtlasPrismDeck so PrismPanel can adapt the
+  // reading sentence per view and hide the selected-vertex zoom on non-Shape
+  // sub-views (where a vertex tap is not possible).
+  const [subView, setSubView] = useState<PrismViewMode>('prism');
   // ── Hero stats — filtered to current time window ──
   const filtered = useMemo(() => {
     if (timeWindow === 'custom' && customRange) {
@@ -650,32 +654,106 @@ function PrismPanel({
   };
 
   // ── Reading sentence ────────────────────────────────────────────────────
-  // The single editorial line that frames the page. Built from filtered data
-  // so it tracks the active time window. Replaces the prior 3-stat hero strip
-  // — same numbers, narrated rather than tiled.
+  // The editorial line that frames the page. Adapts per sub-view so the
+  // headline always speaks to whatever lens the user is currently looking
+  // through — the Shape view's pillar story is irrelevant when the reader
+  // is staring at a Gi/No-Gi donut.
   const readingSentence = useMemo(() => {
     if (totalHours <= 0) return 'No training logged in this window.';
-    const trained = SKILL_TAGS
-      .map(t => ({ value: t.value, label: t.label, hours: (pillarStats[t.value]?.minutes ?? 0) / 60 }))
-      .filter(p => p.hours > 0)
-      .sort((a, b) => b.hours - a.hours);
-    const top    = trained[0];
-    const bottom = trained[trained.length - 1];
-    const hoursLabel = totalHours >= 100 ? Math.round(totalHours).toString() : totalHours.toFixed(1);
-    const pillarsWord = trained.length === 1 ? 'pillar' : 'pillars';
-    let s = `${hoursLabel}h across ${trained.length} ${pillarsWord}.`;
-    if (top) {
-      s += ` You've spent the most time on ${top.label}`;
-      // Only mention the "least" pillar when there's a meaningful gap (≥3
-      // pillars trained AND the lowest is < 40% of the highest). Below that,
-      // the shape is balanced enough that calling out a "least" feels picky.
-      if (bottom && top !== bottom && trained.length >= 3 && bottom.hours < top.hours * 0.4) {
-        s += `, and the least on ${bottom.label}`;
+
+    const hoursLabel = (h: number) =>
+      h >= 100 ? Math.round(h).toString() : h.toFixed(1);
+    const totalLabel = `${hoursLabel(totalHours)}h`;
+
+    // ── Shape — pillar-shape narrative ────────────────────────────────
+    if (subView === 'prism') {
+      const trained = SKILL_TAGS
+        .map(t => ({ value: t.value, label: t.label, hours: (pillarStats[t.value]?.minutes ?? 0) / 60 }))
+        .filter(p => p.hours > 0)
+        .sort((a, b) => b.hours - a.hours);
+      const top    = trained[0];
+      const bottom = trained[trained.length - 1];
+      const pillarsWord = trained.length === 1 ? 'pillar' : 'pillars';
+      let s = `${totalLabel} across ${trained.length} ${pillarsWord}.`;
+      if (top) {
+        s += ` You've spent the most time on ${top.label}`;
+        if (bottom && top !== bottom && trained.length >= 3 && bottom.hours < top.hours * 0.4) {
+          s += `, and the least on ${bottom.label}`;
+        }
+        s += '.';
       }
-      s += '.';
+      return s;
     }
-    return s;
-  }, [totalHours, pillarStats]);
+
+    // ── Volume — monthly cadence ──────────────────────────────────────
+    if (subView === 'volume') {
+      const monthly = Array(12).fill(0) as number[];
+      for (const s of filtered) {
+        const d = typeof s.date === 'string' ? new Date(s.date.slice(0, 10) + 'T00:00:00') : new Date(s.date);
+        if (!isNaN(d.getTime())) monthly[d.getMonth()] += (s.duration ?? 0) / 60;
+      }
+      const trainedMonths = monthly.filter(h => h > 0).length;
+      if (trainedMonths === 0) return `${totalLabel} logged in this window.`;
+      const peakIdx = monthly.indexOf(Math.max(...monthly));
+      const peakName = ['January','February','March','April','May','June','July','August','September','October','November','December'][peakIdx];
+      return `${totalLabel} logged across ${trainedMonths} ${trainedMonths === 1 ? 'month' : 'months'}. Peak was ${peakName} at ${hoursLabel(monthly[peakIdx]!)}h.`;
+    }
+
+    // ── Weekly — week-by-week rhythm ─────────────────────────────────
+    if (subView === 'weekly') {
+      const monday = (d: Date) => {
+        const c = new Date(d); const dow = c.getDay();
+        c.setDate(c.getDate() - (dow === 0 ? 6 : dow - 1));
+        c.setHours(0, 0, 0, 0); return c;
+      };
+      const weekMap = new Map<string, number>();
+      for (const s of filtered) {
+        const d = typeof s.date === 'string' ? new Date(s.date.slice(0, 10) + 'T00:00:00') : new Date(s.date);
+        if (isNaN(d.getTime())) continue;
+        const key = monday(d).toISOString().slice(0, 10);
+        weekMap.set(key, (weekMap.get(key) ?? 0) + (s.duration ?? 0) / 60);
+      }
+      const activeWeeks = weekMap.size;
+      if (activeWeeks === 0) return `${totalLabel} logged in this window.`;
+      let peakHrs = 0; let peakKey = '';
+      for (const [k, v] of weekMap) if (v > peakHrs) { peakHrs = v; peakKey = k; }
+      const peakDate = new Date(peakKey + 'T00:00:00');
+      const peakLabel = peakDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return `${totalLabel} across ${activeWeeks} active ${activeWeeks === 1 ? 'week' : 'weeks'}. Peak was the week of ${peakLabel} at ${hoursLabel(peakHrs)}h.`;
+    }
+
+    // ── Split — Gi vs No-Gi ──────────────────────────────────────────
+    if (subView === 'split') {
+      const gi    = filtered.filter(s => s.gi_nogi === 'gi').reduce((a, s) => a + (s.duration ?? 0) / 60, 0);
+      const nogi  = filtered.filter(s => s.gi_nogi === 'no_gi').reduce((a, s) => a + (s.duration ?? 0) / 60, 0);
+      const total = gi + nogi;
+      if (total <= 0) return `${totalLabel} logged — no Gi or No-Gi training tagged in this window.`;
+      const giPct   = Math.round((gi / total) * 100);
+      const nogiPct = 100 - giPct;
+      // Single-side dominance: lean into the call. Otherwise just state the ratio.
+      if (giPct >= 90)   return `${totalLabel} total. Almost entirely Gi training — No-Gi makes up just ${nogiPct}%.`;
+      if (nogiPct >= 90) return `${totalLabel} total. Almost entirely No-Gi training — Gi makes up just ${giPct}%.`;
+      return `${totalLabel} total. ${giPct}% Gi, ${nogiPct}% No-Gi.`;
+    }
+
+    // ── Format — Class / Drill / Comp ────────────────────────────────
+    if (subView === 'format') {
+      const cls   = filtered.filter(s => s.session_type === 'class').reduce((a, s) => a + (s.duration ?? 0) / 60, 0);
+      const drill = filtered.filter(s => s.session_type === 'drilling').reduce((a, s) => a + (s.duration ?? 0) / 60, 0);
+      const comp  = filtered.filter(s => s.session_type === 'competition_training').reduce((a, s) => a + (s.duration ?? 0) / 60, 0);
+      const total = cls + drill + comp;
+      if (total <= 0) return `${totalLabel} logged — no class, drill, or competition formats tagged in this window.`;
+      const clsPct   = Math.round((cls / total) * 100);
+      const drillPct = Math.round((drill / total) * 100);
+      const compPct  = Math.max(0, 100 - clsPct - drillPct);
+      if (clsPct >= 90)   return `${totalLabel} total. Almost all in class — drilling and competition are rare.`;
+      if (drillPct >= 90) return `${totalLabel} total. Almost all drilling — class and competition are rare.`;
+      if (compPct >= 90)  return `${totalLabel} total. Almost all competition training — class and drilling are rare.`;
+      return `${totalLabel} total. ${clsPct}% class, ${drillPct}% drilling, ${compPct}% competition.`;
+    }
+
+    return `${totalLabel} logged in this window.`;
+  }, [subView, totalHours, pillarStats, filtered]);
 
   return (
     <>
@@ -738,7 +816,7 @@ function PrismPanel({
           the sentence stands alone. */}
       <div
         style={{
-          maxWidth: 760,
+          maxWidth: 900,
           margin: isDesktop ? '0 0 52px' : '0 0 32px',
           padding: 0,
         }}
@@ -768,13 +846,18 @@ function PrismPanel({
           customRange={customRange}
           selectedTag={selectedTag}
           onSelectTag={onSelectTag}
+          viewMode={subView}
+          onViewModeChange={setSubView}
           bigPrismSize={isDesktop ? 520 : 280}
         />
       </ErrorBoundary>
 
       {/* ── Selected vertex zoom — chrome-less, separated by hairline ──
-          Currently always rendered as a sibling section below the deck.
-          Reads as a continuation of the page rather than a peer card. */}
+          Reads as a continuation of the Shape view. Hidden on non-Shape
+          sub-views since the user can't change the vertex from those views
+          (the donut/bar charts have no clickable per-pillar surface), so
+          the section would just freeze on whatever vertex was last chosen. */}
+      {subView === 'prism' && (
       <div
         style={{
           marginTop: isDesktop ? 80 : 48,
@@ -1034,6 +1117,7 @@ function PrismPanel({
           </div>
         </div>
       </div>
+      )}
     </>
   );
 }

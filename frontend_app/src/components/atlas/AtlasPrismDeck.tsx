@@ -45,27 +45,6 @@ const RAIL_VIEWS: { id: ViewMode; short: string }[] = [
   { id: 'weekly', short: 'Weekly'  },
 ];
 
-// Only non-prism sub-views render an in-deck title — the prism sub-view is
-// framed by the page-level reading sentence in PrismPanel.
-const VIEW_META: Partial<Record<ViewMode, { title: string; subtitle: string }>> = {
-  volume: {
-    title: 'Volume by month',
-    subtitle: 'Hours logged across the months in this window — where momentum peaks and dips.',
-  },
-  split: {
-    title: 'Gi and No-Gi',
-    subtitle: 'How mat time is divided between the two rulesets.',
-  },
-  format: {
-    title: 'Session format',
-    subtitle: 'Structured class, focused drilling, and live competition — the shape of your week.',
-  },
-  weekly: {
-    title: 'Weekly rhythm',
-    subtitle: 'Hours per week across the past 52 weeks — the cadence of your training.',
-  },
-};
-
 interface Props {
   sessions: SessionSummary[];
   /** Used for the alignment overlay — per-pillar alignment % comes from
@@ -76,16 +55,22 @@ interface Props {
   /** Lifted up so the parent can render a vertex-specific stats row beneath the deck. */
   selectedTag: string;
   onSelectTag: (tag: string) => void;
+  /** Lifted up so the parent can hide the vertex zoom on non-Shape sub-views
+   *  and adapt the reading sentence per sub-view. */
+  viewMode: ViewMode;
+  onViewModeChange: (m: ViewMode) => void;
   /** Desktop renders a larger BigPrism; mobile (Phase 2) renders compact. */
   bigPrismSize?: number;
 }
 
 export default function AtlasPrismDeck({
   sessions, intentions, timeWindow, customRange,
-  selectedTag, onSelectTag, bigPrismSize = 480,
+  selectedTag, onSelectTag,
+  viewMode, onViewModeChange,
+  bigPrismSize = 480,
 }: Props) {
   const [displayMode, setDisplayMode] = useState<'hours' | 'pct'>('hours');
-  const [viewMode, setViewMode] = useState<ViewMode>('prism');
+  const setViewMode = onViewModeChange;
   const weeklyScrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll weekly chart to current week
@@ -286,7 +271,7 @@ export default function AtlasPrismDeck({
     );
     if (mode === 'split') return (
       <div className="flex justify-center">
-        <div style={{ width: '100%', maxWidth: 280, aspectRatio: '1' }}>
+        <div style={{ width: '100%', maxWidth: 480, aspectRatio: '1' }}>
           <DonutChart
             segments={[
               { value: giHours,   color: SEG_GI,  label: 'Gi'    },
@@ -300,7 +285,7 @@ export default function AtlasPrismDeck({
     );
     if (mode === 'format') return (
       <div className="flex justify-center">
-        <div style={{ width: '100%', maxWidth: 280, aspectRatio: '1' }}>
+        <div style={{ width: '100%', maxWidth: 480, aspectRatio: '1' }}>
           <DonutChart
             segments={[
               { value: classHours, color: SEG_CLASS, label: 'Class'       },
@@ -373,11 +358,14 @@ export default function AtlasPrismDeck({
       return (
         <div className="flex flex-col gap-3">
           {[
-            { label: 'Total',  value: splitTotal > 0 ? `${splitTotal.toFixed(1)}h` : '—',                 active: splitTotal > 0,  d: delta(splitTotal,  priorSplitTotal) },
-            { label: 'Gi',     value: giHours   > 0 ? fmtVal(giHours,   splitTotal) : '—', active: giHours   > 0 },
-            { label: 'No-Gi',  value: nogiHours > 0 ? fmtVal(nogiHours, splitTotal) : '—', active: nogiHours > 0 },
-          ].map(({ label, value, active, d }) => (
+            { label: 'Total',  color: null,     value: splitTotal > 0 ? `${splitTotal.toFixed(1)}h` : '—', active: splitTotal > 0, d: delta(splitTotal,  priorSplitTotal) },
+            { label: 'Gi',     color: SEG_GI,   value: giHours   > 0 ? fmtVal(giHours,   splitTotal) : '—', active: giHours   > 0 },
+            { label: 'No-Gi',  color: SEG_NOGI, value: nogiHours > 0 ? fmtVal(nogiHours, splitTotal) : '—', active: nogiHours > 0 },
+          ].map(({ label, color, value, active, d }) => (
             <div key={label} className="flex items-baseline gap-2 flex-wrap">
+              {color && (
+                <span style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: color, alignSelf: 'center', flexShrink: 0 }} />
+              )}
               <span className="font-bold" style={{ fontSize: 14, color: PALE_YELLOW }}>{label}</span>
               <span style={{ fontSize: 14, color: 'rgba(242,228,168,0.25)' }}>|</span>
               <span className="font-bold" style={{ fontSize: 29,
@@ -394,12 +382,15 @@ export default function AtlasPrismDeck({
       return (
         <div className="flex flex-col gap-3">
           {[
-            { label: 'Total',  value: formatTotal > 0 ? `${formatTotal.toFixed(1)}h` : '—',              active: formatTotal > 0, d: delta(formatTotal, priorFormatTotal) },
-            { label: 'Class',  value: classHours > 0 ? fmtVal(classHours, formatTotal) : '—', active: classHours > 0 },
-            { label: 'Drill',  value: drillHours > 0 ? fmtVal(drillHours, formatTotal) : '—', active: drillHours > 0 },
-            { label: 'Comp',   value: compHours  > 0 ? fmtVal(compHours,  formatTotal) : '—', active: compHours  > 0 },
-          ].map(({ label, value, active, d }) => (
+            { label: 'Total',  color: null,      value: formatTotal > 0 ? `${formatTotal.toFixed(1)}h` : '—', active: formatTotal > 0, d: delta(formatTotal, priorFormatTotal) },
+            { label: 'Class',  color: SEG_CLASS, value: classHours > 0 ? fmtVal(classHours, formatTotal) : '—', active: classHours > 0 },
+            { label: 'Drill',  color: SEG_DRILL, value: drillHours > 0 ? fmtVal(drillHours, formatTotal) : '—', active: drillHours > 0 },
+            { label: 'Comp',   color: SEG_COMP,  value: compHours  > 0 ? fmtVal(compHours,  formatTotal) : '—', active: compHours  > 0 },
+          ].map(({ label, color, value, active, d }) => (
             <div key={label} className="flex items-baseline gap-2 flex-wrap">
+              {color && (
+                <span style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: color, alignSelf: 'center', flexShrink: 0 }} />
+              )}
               <span className="font-bold" style={{ fontSize: 14, color: PALE_YELLOW }}>{label}</span>
               <span style={{ fontSize: 14, color: 'rgba(242,228,168,0.25)' }}>|</span>
               <span className="font-bold" style={{ fontSize: 29,
@@ -484,7 +475,6 @@ export default function AtlasPrismDeck({
   }
 
   const isVolumeType = viewMode === 'volume' || viewMode === 'weekly';
-  const meta = VIEW_META[viewMode];
 
   // ── Editorial workspace ──────────────────────────────────────────────
   // No outer card chrome — sits directly on PAGE_BG. Mobile keeps a vertical
@@ -493,24 +483,11 @@ export default function AtlasPrismDeck({
   return (
     <div style={{ backgroundColor: 'transparent' }}>
 
-      {/* Mobile layout — vertical stack */}
+      {/* Mobile layout — vertical stack.
+          Sub-view title is intentionally omitted: the page-level reading
+          sentence (sub-view-aware in v4) tells the reader what view they're
+          on, and the sub-view rail at the bottom of the deck confirms it. */}
       <div className="sm:hidden flex flex-col gap-5">
-        {/* Sub-view title (mobile) — non-prism modes only. Prism is framed by
-            the page-level reading sentence in PrismPanel above. */}
-        {meta && (
-          <div style={{ textAlign: 'left' }}>
-            <h2
-              className="j2-serif-display"
-              style={{ fontSize: 29, color: PALE_YELLOW, textShadow: GLOW_SOFT, margin: 0, lineHeight: 1.15 }}
-            >
-              {meta.title}
-            </h2>
-            <p style={{ fontSize: 14, lineHeight: 1.55, color: 'rgba(255,255,255,0.45)', marginTop: 6 }}>
-              {meta.subtitle}
-            </p>
-          </div>
-        )}
-
         <div className="w-full flex justify-center">
           {viewMode === 'prism' ? (
             <BigPrism normalized={normalized} alignmentNormalized={alignmentNormalized} activeTag={selectedTag} onSelect={onSelectTag} size={Math.min(bigPrismSize, 320)} />
@@ -582,7 +559,12 @@ export default function AtlasPrismDeck({
           alignItems: 'start',
         }}
       >
-        {/* LEFT — visualization */}
+        {/* LEFT — visualization. Each sub-view picks its own footprint:
+            • Shape  : square BigPrism, capped at 520 (centered)
+            • Split  : large donut, capped at 480 (centered)
+            • Format : large donut, capped at 480 (centered)
+            • Volume : horizontal time-series — fills the column
+            • Weekly : 52-week scrollable strip — fills the column         */}
         <div
           style={{
             display: 'flex',
@@ -592,29 +574,23 @@ export default function AtlasPrismDeck({
             paddingTop: viewMode === 'prism' ? 0 : 16,
           }}
         >
-          <div style={{ maxWidth: viewMode === 'prism' ? bigPrismSize : 360, width: '100%' }}>
+          <div
+            style={{
+              maxWidth:
+                viewMode === 'prism'                    ? bigPrismSize
+              : viewMode === 'split' || viewMode === 'format' ? 520
+                                                              : '100%',
+              width: '100%',
+            }}
+          >
             {renderChart(viewMode)}
           </div>
         </div>
 
-        {/* RIGHT — annotations stack */}
+        {/* RIGHT — annotations stack. No sub-view title block — the
+            page-level reading sentence and the sub-view rail already convey
+            what view is active, so a heading here would be redundant. */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 34 }}>
-
-          {/* Sub-view title block — non-prism modes only. Prism is framed
-              by the page-level reading sentence in PrismPanel. */}
-          {meta && (
-            <div>
-              <h2
-                className="j2-serif-display"
-                style={{ fontSize: 26, color: PALE_YELLOW, textShadow: GLOW_SOFT, margin: 0, lineHeight: 1.15 }}
-              >
-                {meta.title}
-              </h2>
-              <p style={{ fontSize: 14, lineHeight: 1.6, color: 'rgba(255,255,255,0.45)', marginTop: 6 }}>
-                {meta.subtitle}
-              </p>
-            </div>
-          )}
 
           {/* Section: Hours per pillar (prism) / Breakdown (others) + h/% toggle */}
           <div>
