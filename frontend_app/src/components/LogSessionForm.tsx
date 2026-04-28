@@ -615,7 +615,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
               or a mood scale. Will graduate to user_partners refs in 2.0. */}
           <div>
             <p className="text-[10px] mt-0.5 mb-2 uppercase tracking-widest font-semibold" style={{ color: PALE_YELLOW, letterSpacing: '0.16em' }}>
-              With
+              Partners
             </p>
             <PartnerInput
               partners={partners}
