@@ -695,7 +695,7 @@ function PrismPanel({
           marginLeft: isDesktop ? -64 : -16,
           marginRight: isDesktop ? -64 : -16,
           marginBottom: isDesktop ? 36 : 22,
-          padding: isDesktop ? '10px 64px' : '8px 16px',
+          padding: isDesktop ? '12px 64px' : '10px 16px',
         }}
       >
         <div
@@ -704,7 +704,7 @@ function PrismPanel({
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 24,
-            maxWidth: 1280,
+            maxWidth: 1360,
             margin: '0 auto',
           }}
         >
@@ -720,7 +720,7 @@ function PrismPanel({
             <div
               style={{
                 flexShrink: 0,
-                fontSize: 10,
+                fontSize: 12,
                 color: 'rgba(255,255,255,0.42)',
                 letterSpacing: '0.20em',
                 textTransform: 'uppercase',
@@ -738,15 +738,15 @@ function PrismPanel({
           the sentence stands alone. */}
       <div
         style={{
-          maxWidth: 640,
-          margin: isDesktop ? '0 0 44px' : '0 0 26px',
+          maxWidth: 760,
+          margin: isDesktop ? '0 0 52px' : '0 0 32px',
           padding: 0,
         }}
       >
         <p
           style={{
             fontFamily: FONT_EDITORIAL,
-            fontSize: isDesktop ? 30 : 20,
+            fontSize: isDesktop ? 36 : 24,
             fontWeight: 500,
             lineHeight: 1.35,
             color: PALE_YELLOW,
@@ -797,15 +797,15 @@ function PrismPanel({
         >
           <div style={{ minWidth: 0 }}>
             <div className="j2-label-copper" style={{ marginBottom: 6 }}>◇ Selected vertex</div>
-            <div className="j2-serif-display j2-heading-glow" style={{ fontSize: isDesktop ? 44 : 32, lineHeight: 1 }}>
+            <div className="j2-serif-display j2-heading-glow" style={{ fontSize: isDesktop ? 53 : 38, lineHeight: 1 }}>
               {selectedLabel}
             </div>
             <p
               style={{
-                fontSize: isDesktop ? 14 : 13, lineHeight: 1.55,
+                fontSize: isDesktop ? 17 : 16, lineHeight: 1.55,
                 color: 'rgba(255,255,255,0.50)',
                 marginTop: 8, marginBottom: 0,
-                maxWidth: isDesktop ? 460 : 'none',
+                maxWidth: isDesktop ? 540 : 'none',
               }}
             >
               {descriptions[selectedTag] ?? 'Your training in this pillar.'}
@@ -817,7 +817,7 @@ function PrismPanel({
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(4, auto)',
-              columnGap: isDesktop ? 28 : 18,
+              columnGap: isDesktop ? 34 : 22,
               rowGap: 4,
               flexShrink: 0,
             }}
@@ -847,10 +847,10 @@ function PrismPanel({
               },
             ]).map((s, i) => (
               <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <div className="j2-label-micro" style={{ fontSize: 10, marginBottom: 2 }}>{s.k}</div>
+                <div className="j2-label-micro" style={{ fontSize: 12, marginBottom: 2 }}>{s.k}</div>
                 <div
                   style={{
-                    fontSize: isDesktop ? 24 : 20, fontFamily: FONT_EDITORIAL, fontWeight: 600,
+                    fontSize: isDesktop ? 29 : 24, fontFamily: FONT_EDITORIAL, fontWeight: 600,
                     color: PALE_YELLOW, lineHeight: 1,
                   }}
                 >
@@ -858,7 +858,7 @@ function PrismPanel({
                 </div>
                 <div
                   style={{
-                    fontSize: 10, color: 'rgba(255,255,255,0.40)',
+                    fontSize: 12, color: 'rgba(255,255,255,0.40)',
                     marginTop: 2, letterSpacing: '0.06em',
                   }}
                 >
@@ -883,7 +883,7 @@ function PrismPanel({
               ◈ Recent sessions
             </div>
             {recentSessions.length === 0 ? (
-              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.30)', fontStyle: 'italic' }}>
+              <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.30)', fontStyle: 'italic' }}>
                 {isAllTime
                   ? 'No sessions logged with this focus yet.'
                   : `No ${selectedLabel} sessions in this window.`}
@@ -923,7 +923,7 @@ function PrismPanel({
                         e.currentTarget.style.transform = 'translateY(0)';
                       }}
                     >
-                      <div className="j2-label-micro" style={{ fontSize: 10 }}>
+                      <div className="j2-label-micro" style={{ fontSize: 12 }}>
                         {new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(d)}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
@@ -937,7 +937,7 @@ function PrismPanel({
                         />
                         <div
                           style={{
-                            fontSize: 14, fontFamily: FONT_EDITORIAL,
+                            fontSize: 17, fontFamily: FONT_EDITORIAL,
                             color: 'rgba(255,255,255,0.90)',
                           }}
                         >
@@ -957,7 +957,7 @@ function PrismPanel({
               ◇ Intentions for {selectedLabel}
             </div>
             {focusIntentions.length === 0 ? (
-              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.30)', fontStyle: 'italic' }}>
+              <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.30)', fontStyle: 'italic' }}>
                 No intentions have targeted this pillar yet.
               </p>
             ) : (
@@ -997,21 +997,21 @@ function PrismPanel({
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div
                           style={{
-                            fontSize: 13, fontWeight: 600,
+                            fontSize: 16, fontWeight: 600,
                             color: 'rgba(255,255,255,0.85)',
                             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                           }}
                         >
                           {intention.intent_label || selectedLabel}
                         </div>
-                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)', marginTop: 2 }}>
+                        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.30)', marginTop: 2 }}>
                           {formatWeekShort(intention.week_start)} – {formatWeekShort(endDate)}
                         </div>
                       </div>
                       {alignment.status !== 'no-data' ? (
                         <span
                           style={{
-                            fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 999,
+                            fontSize: 13, fontWeight: 600, padding: '4px 10px', borderRadius: 999,
                             backgroundColor:
                               alignment.status === 'aligned' ? 'rgba(82,181,108,0.12)' : 'rgba(218,116,34,0.12)',
                             color:
@@ -1022,7 +1022,7 @@ function PrismPanel({
                           {alignment.score !== null ? `${alignment.score}%` : (alignment.status === 'aligned' ? 'Aligned' : 'Diverged')}
                         </span>
                       ) : (
-                        <span style={{ fontSize: 11, fontStyle: 'italic', color: 'rgba(255,255,255,0.20)', flexShrink: 0 }}>
+                        <span style={{ fontSize: 13, fontStyle: 'italic', color: 'rgba(255,255,255,0.20)', flexShrink: 0 }}>
                           No data
                         </span>
                       )}

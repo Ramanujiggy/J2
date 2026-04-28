@@ -271,8 +271,8 @@ export default function BigPrism({ normalized, alignmentNormalized, activeTag, o
         const color = SKILL_COLORS[v.value]?.stroke ?? COPPER;
         const dx = v.x - cx;
         const dy = v.y - cy;
-        const textX = v.x + (dx > 1 ? 22 : dx < -1 ? -22 : 0);
-        const textY = v.y + (dy > 1 ? 28 : dy < -1 ? -18 : 4);
+        const textX = v.x + (dx > 1 ? 26 : dx < -1 ? -26 : 0);
+        const textY = v.y + (dy > 1 ? 34 : dy < -1 ? -22 : 5);
         const anchor: 'start' | 'end' | 'middle' = dx > 1 ? 'start' : dx < -1 ? 'end' : 'middle';
         return (
           <g
@@ -293,7 +293,7 @@ export default function BigPrism({ normalized, alignmentNormalized, activeTag, o
               y={textY}
               textAnchor={anchor}
               fill={isActive ? PALE_YELLOW : 'rgba(255,255,255,0.65)'}
-              fontSize={14}
+              fontSize={17}
               fontWeight={isActive ? 700 : 500}
               letterSpacing={0.3}
               style={{ userSelect: 'none' }}

@@ -264,7 +264,7 @@ export default function AtlasPrismDeck({
       : `${total > 0 ? ((h / total) * 100).toFixed(0) : 0}%`;
   }
 
-  const BAR_MAX_PX = 80;
+  const BAR_MAX_PX = 96;
 
   // ── Chart renderer ──
   function renderChart(mode: ViewMode) {
@@ -336,13 +336,13 @@ export default function AtlasPrismDeck({
             { label: 'Avg / mo', value: avgPerMonth   > 0 ? `${avgPerMonth.toFixed(1)}h`     : '—', active: avgPerMonth   > 0 },
           ].map(({ label, value, active, d }) => (
             <div key={label} className="flex items-baseline gap-2 flex-wrap">
-              <span className="text-xs font-bold" style={{ color: PALE_YELLOW }}>{label}</span>
-              <span className="text-xs" style={{ color: 'rgba(242,228,168,0.25)' }}>|</span>
-              <span className="text-2xl font-bold" style={{
+              <span className="font-bold" style={{ fontSize: 14, color: PALE_YELLOW }}>{label}</span>
+              <span style={{ fontSize: 14, color: 'rgba(242,228,168,0.25)' }}>|</span>
+              <span className="font-bold" style={{ fontSize: 29,
                 color: active ? PALE_YELLOW : 'rgba(255,255,255,0.15)',
                 textShadow: active ? GLOW_SOFT : 'none',
               }}>{value}</span>
-              {d && <span style={{ fontSize: 11, fontWeight: 600, alignSelf: 'center', color: d.startsWith('↑') ? 'rgba(82,181,108,0.85)' : 'rgba(218,90,70,0.75)' }}>{d}</span>}
+              {d && <span style={{ fontSize: 13, fontWeight: 600, alignSelf: 'center', color: d.startsWith('↑') ? 'rgba(82,181,108,0.85)' : 'rgba(218,90,70,0.75)' }}>{d}</span>}
             </div>
           ))}
         </div>
@@ -358,9 +358,9 @@ export default function AtlasPrismDeck({
             { label: 'Avg/week', value: avgWeeklyHours > 0 ? `${avgWeeklyHours.toFixed(1)}h` : '—',    active: avgWeeklyHours > 0 },
           ].map(({ label, value, active }) => (
             <div key={label} className="flex items-baseline gap-2">
-              <span className="text-xs font-bold" style={{ color: PALE_YELLOW }}>{label}</span>
-              <span className="text-xs" style={{ color: 'rgba(242,228,168,0.25)' }}>|</span>
-              <span className="text-2xl font-bold" style={{
+              <span className="font-bold" style={{ fontSize: 14, color: PALE_YELLOW }}>{label}</span>
+              <span style={{ fontSize: 14, color: 'rgba(242,228,168,0.25)' }}>|</span>
+              <span className="font-bold" style={{ fontSize: 29,
                 color: active ? PALE_YELLOW : 'rgba(255,255,255,0.15)',
                 textShadow: active ? GLOW_SOFT : 'none',
               }}>{value}</span>
@@ -378,13 +378,13 @@ export default function AtlasPrismDeck({
             { label: 'No-Gi',  value: nogiHours > 0 ? fmtVal(nogiHours, splitTotal) : '—', active: nogiHours > 0 },
           ].map(({ label, value, active, d }) => (
             <div key={label} className="flex items-baseline gap-2 flex-wrap">
-              <span className="text-xs font-bold" style={{ color: PALE_YELLOW }}>{label}</span>
-              <span className="text-xs" style={{ color: 'rgba(242,228,168,0.25)' }}>|</span>
-              <span className="text-2xl font-bold" style={{
+              <span className="font-bold" style={{ fontSize: 14, color: PALE_YELLOW }}>{label}</span>
+              <span style={{ fontSize: 14, color: 'rgba(242,228,168,0.25)' }}>|</span>
+              <span className="font-bold" style={{ fontSize: 29,
                 color: active ? PALE_YELLOW : 'rgba(255,255,255,0.15)',
                 textShadow: active ? GLOW_SOFT : 'none',
               }}>{value}</span>
-              {d && <span style={{ fontSize: 11, fontWeight: 600, alignSelf: 'center', color: d.startsWith('↑') ? 'rgba(82,181,108,0.85)' : 'rgba(218,90,70,0.75)' }}>{d}</span>}
+              {d && <span style={{ fontSize: 13, fontWeight: 600, alignSelf: 'center', color: d.startsWith('↑') ? 'rgba(82,181,108,0.85)' : 'rgba(218,90,70,0.75)' }}>{d}</span>}
             </div>
           ))}
         </div>
@@ -400,13 +400,13 @@ export default function AtlasPrismDeck({
             { label: 'Comp',   value: compHours  > 0 ? fmtVal(compHours,  formatTotal) : '—', active: compHours  > 0 },
           ].map(({ label, value, active, d }) => (
             <div key={label} className="flex items-baseline gap-2 flex-wrap">
-              <span className="text-xs font-bold" style={{ color: PALE_YELLOW }}>{label}</span>
-              <span className="text-xs" style={{ color: 'rgba(242,228,168,0.25)' }}>|</span>
-              <span className="text-2xl font-bold" style={{
+              <span className="font-bold" style={{ fontSize: 14, color: PALE_YELLOW }}>{label}</span>
+              <span style={{ fontSize: 14, color: 'rgba(242,228,168,0.25)' }}>|</span>
+              <span className="font-bold" style={{ fontSize: 29,
                 color: active ? PALE_YELLOW : 'rgba(255,255,255,0.15)',
                 textShadow: active ? GLOW_SOFT : 'none',
               }}>{value}</span>
-              {d && <span style={{ fontSize: 11, fontWeight: 600, alignSelf: 'center', color: d.startsWith('↑') ? 'rgba(82,181,108,0.85)' : 'rgba(218,90,70,0.75)' }}>{d}</span>}
+              {d && <span style={{ fontSize: 13, fontWeight: 600, alignSelf: 'center', color: d.startsWith('↑') ? 'rgba(82,181,108,0.85)' : 'rgba(218,90,70,0.75)' }}>{d}</span>}
             </div>
           ))}
         </div>
@@ -432,8 +432,8 @@ export default function AtlasPrismDeck({
                   }}
                 />
                 <span
-                  className="text-xs font-bold"
-                  style={{ color: isDominant ? color : PALE_YELLOW }}
+                  className="font-bold"
+                  style={{ fontSize: 14, color: isDominant ? color : PALE_YELLOW }}
                 >
                   {label}{isDominant && h > 0 ? ' ★' : ''}
                 </span>
@@ -450,7 +450,8 @@ export default function AtlasPrismDeck({
                   transition: 'width 450ms cubic-bezier(0.4,0,0.2,1), height 300ms ease, border-radius 300ms ease',
                 }}
               />
-              <span className="text-sm font-bold" style={{
+              <span className="font-bold" style={{
+                fontSize: 17,
                 color: h > 0 ? PALE_YELLOW : 'rgba(255,255,255,0.2)',
                 textShadow: h > 0 ? GLOW_SOFT : 'none',
               }}>
@@ -469,10 +470,10 @@ export default function AtlasPrismDeck({
             <div className="flex items-baseline gap-2 pt-2 mt-1" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
               <span className="text-xs font-bold" style={{ color: PALE_YELLOW }}>Diversity</span>
               <span className="text-xs" style={{ color: 'rgba(242,228,168,0.25)' }}>|</span>
-              <span className="text-sm font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
+              <span className="font-bold" style={{ fontSize: 17, color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
                 {entropy.score.toFixed(2)}
               </span>
-              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.30)' }}>
+              <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.30)' }}>
                 {entropy.label}
               </span>
             </div>
@@ -500,11 +501,11 @@ export default function AtlasPrismDeck({
           <div style={{ textAlign: 'left' }}>
             <h2
               className="j2-serif-display"
-              style={{ fontSize: 24, color: PALE_YELLOW, textShadow: GLOW_SOFT, margin: 0, lineHeight: 1.15 }}
+              style={{ fontSize: 29, color: PALE_YELLOW, textShadow: GLOW_SOFT, margin: 0, lineHeight: 1.15 }}
             >
               {meta.title}
             </h2>
-            <p style={{ fontSize: 12, lineHeight: 1.55, color: 'rgba(255,255,255,0.45)', marginTop: 6 }}>
+            <p style={{ fontSize: 14, lineHeight: 1.55, color: 'rgba(255,255,255,0.45)', marginTop: 6 }}>
               {meta.subtitle}
             </p>
           </div>
@@ -525,7 +526,7 @@ export default function AtlasPrismDeck({
           >
             <span
               className="j2-label-micro"
-              style={{ fontSize: 10, color: 'rgba(242,228,168,0.55)' }}
+              style={{ fontSize: 12, color: 'rgba(242,228,168,0.55)' }}
             >
               {viewMode === 'prism' ? 'Hours per pillar' : 'Breakdown'}
             </span>
@@ -574,9 +575,9 @@ export default function AtlasPrismDeck({
       <div
         className="hidden sm:grid"
         style={{
-          gridTemplateColumns: '1fr 380px',
-          gap: 64,
-          maxWidth: 1280,
+          gridTemplateColumns: '1fr 460px',
+          gap: 76,
+          maxWidth: 1360,
           marginLeft: 'auto', marginRight: 'auto',
           alignItems: 'start',
         }}
@@ -597,7 +598,7 @@ export default function AtlasPrismDeck({
         </div>
 
         {/* RIGHT — annotations stack */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 34 }}>
 
           {/* Sub-view title block — non-prism modes only. Prism is framed
               by the page-level reading sentence in PrismPanel. */}
@@ -605,11 +606,11 @@ export default function AtlasPrismDeck({
             <div>
               <h2
                 className="j2-serif-display"
-                style={{ fontSize: 22, color: PALE_YELLOW, textShadow: GLOW_SOFT, margin: 0, lineHeight: 1.15 }}
+                style={{ fontSize: 26, color: PALE_YELLOW, textShadow: GLOW_SOFT, margin: 0, lineHeight: 1.15 }}
               >
                 {meta.title}
               </h2>
-              <p style={{ fontSize: 12, lineHeight: 1.6, color: 'rgba(255,255,255,0.45)', marginTop: 6 }}>
+              <p style={{ fontSize: 14, lineHeight: 1.6, color: 'rgba(255,255,255,0.45)', marginTop: 6 }}>
                 {meta.subtitle}
               </p>
             </div>
@@ -627,7 +628,7 @@ export default function AtlasPrismDeck({
             >
               <span
                 className="j2-label-micro"
-                style={{ fontSize: 10, color: 'rgba(242,228,168,0.55)', letterSpacing: '0.16em' }}
+                style={{ fontSize: 12, color: 'rgba(242,228,168,0.55)', letterSpacing: '0.16em' }}
               >
                 {viewMode === 'prism' ? 'Hours per pillar' : 'Breakdown'}
               </span>
@@ -673,7 +674,7 @@ export default function AtlasPrismDeck({
               style={{
                 display: 'block',
                 marginBottom: 14,
-                fontSize: 10,
+                fontSize: 12,
                 color: 'rgba(242,228,168,0.55)',
                 letterSpacing: '0.16em',
               }}
@@ -716,7 +717,7 @@ function SubViewRail({
               onClick={() => onChange(id)}
               style={{
                 position: 'relative',
-                fontSize: 14,
+                fontSize: 17,
                 fontWeight: active ? 600 : 500,
                 color: active ? PALE_YELLOW : 'rgba(255,255,255,0.50)',
                 background: 'transparent',
@@ -761,7 +762,7 @@ function SubViewRail({
             <button
               onClick={() => onChange(id)}
               style={{
-                fontSize: 13,
+                fontSize: 16,
                 fontWeight: active ? 600 : 500,
                 color: active ? PALE_YELLOW : 'rgba(255,255,255,0.50)',
                 background: 'transparent',
@@ -778,7 +779,7 @@ function SubViewRail({
               {short}
             </button>
             {i < RAIL_VIEWS.length - 1 && (
-              <span aria-hidden style={{ color: 'rgba(255,255,255,0.18)', fontSize: 12 }}>·</span>
+              <span aria-hidden style={{ color: 'rgba(255,255,255,0.18)', fontSize: 14 }}>·</span>
             )}
           </span>
         );
