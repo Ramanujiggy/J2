@@ -3,7 +3,7 @@
 // sticky left rail (wordmark, nav, focus card, practitioner pill) beside a
 // flex-1 content canvas. See desktop redesign plan, Phase 2.
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext.tsx';
 import { useActiveIntention } from '../context/ActiveIntentionContext.tsx';
@@ -128,19 +128,13 @@ export default function DesktopAppShell({ children }: Props) {
     [intentionsEnabled],
   );
   const activeTab = items.find(it => location.pathname.startsWith(it.path))?.path ?? '/home';
-  const activeIdx = items.findIndex(it => it.path === activeTab);
 
-  // Directional page transitions, matching mobile behaviour
-  const [navDirection, setNavDirection] = useState<'forward' | 'back' | null>(null);
-  const prevIdxRef = useRef(activeIdx);
-
+  // PageTransition is now non-directional (single fade-and-settle), so the
+  // mobile-matching forward/back state machine that used to live here is
+  // gone. Just navigate.
   const go = useCallback((path: string) => {
-    const fromIdx = prevIdxRef.current;
-    const toIdx   = items.findIndex(it => it.path === path);
-    setNavDirection(toIdx > fromIdx ? 'forward' : 'back');
-    prevIdxRef.current = toIdx;
     navigate(path);
-  }, [items, navigate]);
+  }, [navigate]);
 
   const initials = (name ?? '').split(' ').map(s => s[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'J';
 
@@ -423,7 +417,7 @@ export default function DesktopAppShell({ children }: Props) {
         }}
       >
         <OfflineBanner />
-        <PageTransition direction={navDirection}>{children}</PageTransition>
+        <PageTransition>{children}</PageTransition>
       </main>
     </div>
   );

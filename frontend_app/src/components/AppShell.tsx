@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { Plus } from 'lucide-react';
 import { useProfile } from '../context/ProfileContext.tsx';
 import WaveBackground from './WaveBackground.tsx';
 import BeltBar, { type BeltRank, BELT_COLORS, PATCH_COLORS } from './BeltBar.tsx';
@@ -10,10 +11,12 @@ import { useOnlineSync } from '../hooks/useOnlineSync.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import DesktopAppShell from './DesktopAppShell.tsx';
 
-// Lucide-style inline SVG icons — no extra dep needed
+// Lucide-style inline SVG icons — heavier line weight + a touch larger than
+// before so the bottom nav reads as a confident, set-in-stone control rather
+// than a thin utility strip. strokeWidth bumps 1.7→2 inactive, 2.2→2.6 active.
 function HomeIcon({ active }: { active: boolean }) {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.7} strokeLinecap="round" strokeLinejoin="round">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.6 : 2} strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.5z" />
       <path d="M9 21V12h6v9" />
     </svg>
@@ -21,7 +24,7 @@ function HomeIcon({ active }: { active: boolean }) {
 }
 function CalendarIcon({ active }: { active: boolean }) {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.7} strokeLinecap="round" strokeLinejoin="round">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.6 : 2} strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="4" width="18" height="18" rx="2" />
       <path d="M16 2v4M8 2v4M3 10h18" />
     </svg>
@@ -29,7 +32,7 @@ function CalendarIcon({ active }: { active: boolean }) {
 }
 function ProfileIcon({ active }: { active: boolean }) {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.7} strokeLinecap="round" strokeLinejoin="round">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.6 : 2} strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="8" r="4" />
       <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
     </svg>
@@ -37,7 +40,7 @@ function ProfileIcon({ active }: { active: boolean }) {
 }
 function JournalIcon({ active }: { active: boolean }) {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.7} strokeLinecap="round" strokeLinejoin="round">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.6 : 2} strokeLinecap="round" strokeLinejoin="round">
       <path d="M4 4h7a3 3 0 013 3v13a3 3 0 00-3-3H4z" />
       <path d="M20 4h-7a3 3 0 00-3 3v13a3 3 0 013-3h7z" />
     </svg>
@@ -101,36 +104,9 @@ function MobileAppShell({ children }: Props) {
   const activeTab = TABS.find(t => location.pathname.startsWith(t.path))?.path ?? '/home';
   const activeIdx = TABS.findIndex(t => t.path === activeTab);
 
-  // ── Directional navigation ──
-  const [navDirection, setNavDirection] = useState<'forward' | 'back' | null>(null);
-
-  const navigateDirectional = useCallback((path: string) => {
-    const fromIdx = TABS.findIndex(t => t.path === activeTab);
-    const toIdx   = TABS.findIndex(t => t.path === path);
-    setNavDirection(toIdx > fromIdx ? 'forward' : 'back');
-    navigate(path);
-  }, [TABS, activeTab, navigate]);
-
-  // ── Swipe gesture on <main> ──
-  const touchStartX    = useRef(0);
-  const touchStartY    = useRef(0);
-  const touchStartTime = useRef(0);
-
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    touchStartX.current    = e.touches[0].clientX;
-    touchStartY.current    = e.touches[0].clientY;
-    touchStartTime.current = Date.now();
-  }, []);
-
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if ((e.target as Element).closest('[data-no-page-swipe]')) return;
-    const dx  = e.changedTouches[0].clientX - touchStartX.current;
-    const dy  = e.changedTouches[0].clientY - touchStartY.current;
-    const vel = Math.abs(dx) / Math.max(Date.now() - touchStartTime.current, 1);
-    if (Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx) * 0.7 || vel < 0.2) return;
-    const newIdx = Math.max(0, Math.min(TABS.length - 1, activeIdx + (dx < 0 ? 1 : -1)));
-    if (newIdx !== activeIdx) navigateDirectional(TABS[newIdx]!.path);
-  }, [TABS, activeIdx, navigateDirectional]);
+  // Page-level horizontal swipe-to-navigate has been retired — it made the
+  // app feel light and "swipey" in a way that worked against the leather-
+  // bound editorial register. Tap-to-navigate only.
 
   // ── Desktop sliding tab indicator ──
   const desktopNavRef = useRef<HTMLElement>(null);
@@ -214,7 +190,7 @@ function MobileAppShell({ children }: Props) {
               <button
                 key={path}
                 ref={el => { if (el) desktopTabRefs.current.set(path, el); }}
-                onClick={() => navigateDirectional(path)}
+                onClick={() => navigate(path)}
                 className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium rounded-t-lg relative"
                 style={{
                   color: isActive ? PALE_YELLOW : 'rgba(255,255,255,0.4)',
@@ -257,22 +233,37 @@ function MobileAppShell({ children }: Props) {
       <main
         className="flex-1 overflow-auto sm:pb-0 j2-app-scroll"
         style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px) + 8px)' }}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
       >
-        <PageTransition direction={navDirection}>{children}</PageTransition>
+        <PageTransition>{children}</PageTransition>
       </main>
 
-      {/* ── Mobile bottom nav — hidden on sm+ — solid bg, floating + Log FAB ── */}
+      {/* ── Mobile bottom nav — hidden on sm+ ────────────────────────
+          Taller bar, heavier icons, active pill behind icon, copper
+          hairline above the existing border (a "stitched seam") so the
+          edge has more presence. */}
       <nav
         className="sm:hidden fixed bottom-0 left-0 right-0 flex border-t z-40"
         style={{
           backgroundColor: CARD_BG,
           borderTopColor: COPPER_BORDER,
-          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
-          boxShadow: '0 -8px 24px -12px rgba(0,0,0,0.5)',
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 10px)',
+          paddingTop: 6,
+          boxShadow: '0 -10px 28px -10px rgba(0,0,0,0.55)',
         }}
       >
+        {/* Stitched-seam hairline above the existing border */}
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            top: -1,
+            left: 0,
+            right: 0,
+            height: 1,
+            background: 'linear-gradient(to right, transparent, rgba(196,145,95,0.35), transparent)',
+            pointerEvents: 'none',
+          }}
+        />
         {/* Sliding top-bar indicator (visual index accounts for the inserted FAB slot) */}
         {(() => {
           const midIdx = Math.floor(TABS.length / 2);
@@ -286,11 +277,11 @@ function MobileAppShell({ children }: Props) {
                 top: 0,
                 left: `${(visualIdx / totalSlots) * 100 + 50 / totalSlots - 2}%`,
                 width: '4%',
-                minWidth: 28,
-                height: 2,
+                minWidth: 32,
+                height: 2.5,
                 borderRadius: 1,
                 backgroundColor: PALE_YELLOW,
-                boxShadow: '0 0 8px rgba(242,228,168,0.5)',
+                boxShadow: '0 0 10px rgba(242,228,168,0.65), 0 0 20px rgba(196,145,95,0.35)',
                 transition: 'left 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
                 pointerEvents: 'none',
               }}
@@ -313,23 +304,37 @@ function MobileAppShell({ children }: Props) {
                   }}
                   className="flex-1 flex items-center justify-center"
                   aria-label="Log a training session"
-                  style={{ padding: '6px 0' }}
+                  style={{ padding: '6px 0', background: 'transparent', border: 'none' }}
                 >
+                  {/* Real-button FAB: vertical gradient dome, pale-yellow inner
+                      ring, layered outer shadows (copper halo + directional
+                      drop + warm ambient), lucide Plus icon (no anemic text "+"),
+                      press feedback via .j2-fab-log. */}
                   <span
+                    className="j2-fab-log"
                     style={{
-                      width: 52, height: 52, borderRadius: '50%',
-                      backgroundColor: '#DA7422',
-                      color: '#fff',
+                      width: 56, height: 56, borderRadius: '50%',
+                      background: 'linear-gradient(180deg, #E8893A 0%, #C46E1E 55%, #B95E18 100%)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      boxShadow: '0 10px 24px -8px rgba(218,116,34,0.6), 0 0 0 1px rgba(218,116,34,0.3)',
-                      border: '2px solid rgba(242,228,168,0.2)',
-                      marginTop: -18,
-                      fontSize: 26,
-                      fontWeight: 300,
-                      lineHeight: 1,
+                      marginTop: -20,
+                      cursor: 'pointer',
+                      // Outer (drop + halo + ambient) and inner (top highlight + bottom shadow) shadows
+                      boxShadow: [
+                        '0 12px 28px -10px rgba(218,116,34,0.70)',           // directional drop
+                        '0 0 0 1.5px rgba(242,228,168,0.32)',                // pale-yellow inner ring
+                        '0 0 0 4px rgba(218,116,34,0.14)',                   // soft copper halo
+                        '0 0 32px rgba(242,228,168,0.14)',                   // warm ambient
+                        'inset 0 1px 0 rgba(255,255,255,0.22)',              // top highlight (light hits dome)
+                        'inset 0 -3px 6px rgba(74,30,4,0.30)',               // bottom inner shadow (dome bottom)
+                      ].join(', '),
                     }}
                   >
-                    +
+                    <Plus
+                      size={22}
+                      strokeWidth={2.75}
+                      color={PALE_YELLOW}
+                      style={{ filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.25))' }}
+                    />
                   </span>
                 </button>
               );
@@ -340,14 +345,47 @@ function MobileAppShell({ children }: Props) {
               <button
                 key={path}
                 onClick={() => navigate(path)}
-                className="flex-1 relative flex flex-col items-center justify-center py-2.5 gap-0.5"
+                className="flex-1 relative flex flex-col items-center justify-center gap-1"
                 style={{
-                  color: isActive ? PALE_YELLOW : 'rgba(255,255,255,0.35)',
+                  paddingTop: 10, paddingBottom: 6,
+                  color: isActive ? PALE_YELLOW : 'rgba(255,255,255,0.40)',
                   transition: 'color 0.3s ease',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
                 }}
               >
-                <Icon active={isActive} />
-                <span className="text-[10px] font-medium leading-none">{label}</span>
+                {/* Icon container with active pill behind it. The pill ties the
+                    icon to its name and gives the active state more weight than
+                    a bare color change. */}
+                <span style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 32 }}>
+                  {isActive && (
+                    <span
+                      aria-hidden
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        borderRadius: 10,
+                        background: 'rgba(242,228,168,0.08)',
+                        boxShadow: 'inset 0 0 0 1px rgba(242,228,168,0.10)',
+                      }}
+                    />
+                  )}
+                  <span style={{ position: 'relative', textShadow: isActive ? GLOW_NAV : 'none' }}>
+                    <Icon active={isActive} />
+                  </span>
+                </span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: isActive ? 600 : 500,
+                    letterSpacing: '0.04em',
+                    lineHeight: 1,
+                    textShadow: isActive ? GLOW_NAV : 'none',
+                  }}
+                >
+                  {label}
+                </span>
               </button>
             );
           });
