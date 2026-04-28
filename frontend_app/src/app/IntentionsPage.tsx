@@ -591,12 +591,10 @@ function DesktopIntentionsView({
 
   return (
     <PageContent ready={!loading} loadingMessages={['Loading your intentions...']}>
-    {/* Responsive container — was a fixed 1100px (handoff spec) which felt cramped
-        on 24"+ monitors, leaving large dead margins on either side. Cascades through
-        Tailwind breakpoints so it grows into the available space without filling
-        100% (modals on top of the rail still want the editorial column feel).
-        max-w-6xl (1152) at lg/xl, max-w-7xl (1280) at xl+, 1520 at 2xl. */}
-    <div className="mx-auto w-full max-w-6xl xl:max-w-7xl 2xl:max-w-[1520px]" style={{ padding: '40px 56px 104px' }}>
+    {/* Shared desktop container — see .j2-page-container in index.css.
+        Replaces the prior breakpoint cascade (1152/1280/1520) with a single
+        fluid cap at 1760 so the page rhythm matches every other desktop view. */}
+    <div className="j2-page-container" style={{ paddingTop: 40, paddingBottom: 104 }}>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 28, gap: 24 }}>

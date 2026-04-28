@@ -217,7 +217,7 @@ export default function JournalIndexPage() {
 
   return (
     <PageContent ready={!loading} loadingMessages={['Pulling entries...', 'Dusting the pages...', 'Finding the margin notes...']}>
-    <div style={{ maxWidth: 1360, margin: '0 auto', padding: '64px 64px 104px' }}>
+    <div className="j2-page-container" style={{ paddingTop: 64, paddingBottom: 104 }}>
 
       {/* ── Header ─────────────────────────────────────────── */}
       <div style={{ marginBottom: 48 }}>

@@ -185,7 +185,7 @@ export default function ProfilePage() {
   return (
     <div className="flex flex-col">
 
-      <main className={`flex-1 w-full mx-auto ${isDesktop ? 'max-w-7xl px-10 py-12' : 'max-w-xl px-4 sm:px-6 py-6'}`}>
+      <main className={`flex-1 ${isDesktop ? 'j2-page-container' : 'w-full mx-auto max-w-xl px-4 sm:px-6'}`} style={isDesktop ? { paddingTop: 48, paddingBottom: 48 } : { paddingTop: 24, paddingBottom: 24 }}>
         {/* Editorial header — desktop */}
         {isDesktop ? (
           <div className="mb-10">

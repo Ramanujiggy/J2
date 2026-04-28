@@ -97,7 +97,7 @@ export default function CalendarPage() {
       </div>
     )}
 
-    <div className={`mx-auto space-y-5 ${isDesktop ? 'max-w-7xl px-8 py-5' : 'max-w-5xl px-4 sm:px-6 py-6'}`}>
+    <div className={`space-y-5 ${isDesktop ? 'j2-page-container' : 'mx-auto max-w-5xl px-4 sm:px-6'}`} style={isDesktop ? { paddingTop: 20, paddingBottom: 20 } : { paddingTop: 24, paddingBottom: 24 }}>
 
       {/* Header row */}
       <div className="flex items-center justify-between">

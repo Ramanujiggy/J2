@@ -69,7 +69,7 @@ export default function MovesLibraryPage() {
 
   return (
     <PageContent ready={!loading} loadingMessages={['Loading the library...']}>
-      <div className={`mx-auto space-y-5 ${isDesktop ? 'max-w-6xl px-8 py-5' : 'max-w-5xl px-4 sm:px-6 py-6'}`}>
+      <div className={`space-y-5 ${isDesktop ? 'j2-page-container' : 'mx-auto max-w-5xl px-4 sm:px-6'}`} style={isDesktop ? { paddingTop: 20, paddingBottom: 20 } : { paddingTop: 24, paddingBottom: 24 }}>
 
         {/* Header */}
         <div className="flex items-start justify-between gap-3">

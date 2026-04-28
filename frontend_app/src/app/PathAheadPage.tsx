@@ -829,7 +829,7 @@ export default function PathAheadPage() {
 
     return (
       <PageContent ready={!loading} loadingMessages={['Shrimping down the mat...', 'Doing mat swims...', 'Pulling up gi pants...']}>
-      <div style={{ maxWidth: 1680, margin: '0 auto', padding: '64px 64px 104px' }}>
+      <div className="j2-page-container" style={{ paddingTop: 64, paddingBottom: 104 }}>
         {styleBlock}
 
         {/* ── Header ──────────────────────────────────────────────── */}
