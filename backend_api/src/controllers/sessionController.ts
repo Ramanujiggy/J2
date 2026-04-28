@@ -3,10 +3,13 @@ import { query } from '../config/db.js';
 import { createSession, getSessionsByUser, searchSessions, updateSession as updateSessionModel, deleteSession as deleteSessionModel, bulkInsertSessions, type SessionFilter, type BulkSessionInput, type PillarDistribution } from '../models/sessionModel.js';
 import { getUserTagsByIds } from '../models/userTagModel.js';
 import { filterExistingCanonicalIds } from '../models/canonicalPositionModel.js';
+import { filterExistingCanonicalConstraintIds } from '../models/canonicalConstraintModel.js';
+import { getUserConstraintsByIds } from '../models/userConstraintModel.js';
 
 const VALID_TAGS        = new Set(['standup', 'passing', 'pins', 'submissions', 'guard']);
 const VALID_GI_NOGI     = new Set(['gi', 'no_gi']);
-const VALID_SESSION_TYPES = new Set(['class', 'drilling', 'competition_training']);
+// `cla` joins the original three; `competition_training` is preserved for legacy rows.
+const VALID_SESSION_TYPES = new Set(['class', 'drilling', 'competition_training', 'cla']);
 const VALID_POLARITIES  = new Set(['offense', 'defense', 'neutral']);
 const VALID_SOURCES     = new Set(['directed', 'organic']);
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -101,6 +104,30 @@ function sanitizeNonNegInt(raw: unknown): number | null {
 }
 
 /**
+ * Sanitize a canonical_constraint_ids input — same shape as the position pattern.
+ */
+async function sanitizeCanonicalConstraintIds(raw: unknown): Promise<string[] | null> {
+    if (!Array.isArray(raw)) return null;
+    const wellFormed = raw.filter((s: unknown): s is string => typeof s === 'string' && UUID_RE.test(s));
+    const deduped = [...new Set(wellFormed)];
+    if (deduped.length === 0) return [];
+    return filterExistingCanonicalConstraintIds(deduped);
+}
+
+/**
+ * Sanitize a user_constraint_ids input — verify ownership of each ID.
+ */
+async function sanitizeUserConstraintIds(userId: string, raw: unknown): Promise<string[] | null> {
+    if (!Array.isArray(raw)) return null;
+    const wellFormed = raw.filter((s: unknown): s is string => typeof s === 'string' && UUID_RE.test(s));
+    const deduped = [...new Set(wellFormed)];
+    if (deduped.length === 0) return [];
+    const owned = await getUserConstraintsByIds(userId, deduped);
+    const ownedSet = new Set(owned.map(c => c.id));
+    return deduped.filter(id => ownedSet.has(id));
+}
+
+/**
  * Sanitize the deep_work_pillars input from the client:
  * - must be an array of valid pillar strings (unknown values dropped)
  * - dedupe
@@ -123,7 +150,8 @@ export const logSession = async (req: Request, res: Response): Promise<void> => 
 
         const { date, duration, notes, gi_nogi, intensity, session_type, tags,
                 heading, polarity, sub_skill_tag, script_source, resonance, user_tag_ids, pillar_distribution,
-                canonical_position_ids, had_primary, had_deep_work, selection_count, deep_work_pillars } = req.body;
+                canonical_position_ids, had_primary, had_deep_work, selection_count, deep_work_pillars,
+                canonical_constraint_ids, user_constraint_ids } = req.body;
 
         if (!date || duration === undefined || !gi_nogi || intensity === undefined || !session_type) {
             res.status(400).json({ message: 'Date, duration, gi/no-gi, intensity, and session type are required.' });
@@ -153,7 +181,7 @@ export const logSession = async (req: Request, res: Response): Promise<void> => 
         }
 
         if (!VALID_SESSION_TYPES.has(session_type)) {
-            res.status(400).json({ message: 'session_type must be "class", "drilling", or "competition_training".' });
+            res.status(400).json({ message: 'session_type must be "class", "drilling", "cla", or "competition_training".' });
             return;
         }
 
@@ -195,6 +223,10 @@ export const logSession = async (req: Request, res: Response): Promise<void> => 
         // Sanitize canonical_position_ids: UUID + dedupe + filter to existing rows
         const canonicalIds = await sanitizeCanonicalPositionIds(canonical_position_ids);
 
+        // Sanitize constraint linkage (mig 015) — both canonical and user-scoped.
+        const canonicalConstraintIds = await sanitizeCanonicalConstraintIds(canonical_constraint_ids);
+        const userConstraintIds = await sanitizeUserConstraintIds(userId, user_constraint_ids);
+
         // Sanitize pillar_distribution; fall back to { heading: 1.0 } if not supplied
         let dist = sanitizePillarDistribution(pillar_distribution);
         if (!dist && heading) dist = { [heading as 'guard']: 1.0 } as PillarDistribution;
@@ -205,6 +237,7 @@ export const logSession = async (req: Request, res: Response): Promise<void> => 
             userTagIds, dist, canonicalIds,
             sanitizeBool(had_primary), sanitizeBool(had_deep_work), sanitizeNonNegInt(selection_count),
             sanitizeDeepWorkPillars(deep_work_pillars),
+            canonicalConstraintIds, userConstraintIds,
         );
         res.status(201).json({ message: 'Session logged.', session, session_count: session.session_count });
     } catch (err) {
@@ -444,7 +477,8 @@ export const updateSession = async (req: Request, res: Response): Promise<void> 
         const { id } = req.params;
         const { duration, gi_nogi, intensity, session_type, notes, tags,
                 heading, polarity, sub_skill_tag, script_source, resonance, user_tag_ids, pillar_distribution,
-                canonical_position_ids, had_primary, had_deep_work, selection_count, deep_work_pillars } = req.body;
+                canonical_position_ids, had_primary, had_deep_work, selection_count, deep_work_pillars,
+                canonical_constraint_ids, user_constraint_ids } = req.body;
 
         if (duration === undefined || !gi_nogi || intensity === undefined || !session_type) {
             res.status(400).json({ message: 'Duration, gi/no-gi, intensity, and session type are required.' });
@@ -469,7 +503,7 @@ export const updateSession = async (req: Request, res: Response): Promise<void> 
         }
 
         if (!VALID_SESSION_TYPES.has(session_type)) {
-            res.status(400).json({ message: 'session_type must be "class", "drilling", or "competition_training".' });
+            res.status(400).json({ message: 'session_type must be "class", "drilling", "cla", or "competition_training".' });
             return;
         }
 
@@ -501,6 +535,8 @@ export const updateSession = async (req: Request, res: Response): Promise<void> 
 
         const userTagIds = await sanitizeUserTagIds(userId, user_tag_ids);
         const canonicalIds = await sanitizeCanonicalPositionIds(canonical_position_ids);
+        const canonicalConstraintIds = await sanitizeCanonicalConstraintIds(canonical_constraint_ids);
+        const userConstraintIds = await sanitizeUserConstraintIds(userId, user_constraint_ids);
 
         let dist = sanitizePillarDistribution(pillar_distribution);
         if (!dist && heading) dist = { [heading as 'guard']: 1.0 } as PillarDistribution;
@@ -513,6 +549,7 @@ export const updateSession = async (req: Request, res: Response): Promise<void> 
             userTagIds, dist, canonicalIds,
             sanitizeBool(had_primary), sanitizeBool(had_deep_work), sanitizeNonNegInt(selection_count),
             sanitizeDeepWorkPillars(deep_work_pillars),
+            canonicalConstraintIds, userConstraintIds,
         );
 
         if (!session) {

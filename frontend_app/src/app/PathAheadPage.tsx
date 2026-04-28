@@ -80,7 +80,14 @@ export default function PathAheadPage() {
     window.addEventListener('journada:open-log-form', handler);
     return () => window.removeEventListener('journada:open-log-form', handler);
   }, []);
-  const [logPreset,           setLogPreset]           = useState<{ heading?: string; sessionType?: 'drilling'; subSkillTag?: string } | null>(null);
+  // logPreset accepts both drill (existing) and constraint (CLA roulette)
+  // shapes so the same modal can pre-fill from either pool.
+  const [logPreset,           setLogPreset]           = useState<{
+    heading?: string;
+    sessionType?: 'drilling' | 'cla';
+    subSkillTag?: string;
+    constraintName?: string;
+  } | null>(null);
   const [setIntentOpen,       setSetIntentOpen]       = useState(false);
   const [editIntention,       setEditIntention]       = useState<Intention | null>(null);
   const [detailSessions,      setDetailSessions]      = useState<SessionSummary[]>([]);
@@ -719,6 +726,7 @@ export default function PathAheadPage() {
               defaultHeading={logPreset?.heading}
               defaultSessionType={logPreset?.sessionType}
               defaultSubSkillTag={logPreset?.subSkillTag}
+              defaultConstraintName={logPreset?.constraintName}
             />
           </div>
         </div>
@@ -1172,7 +1180,22 @@ export default function PathAheadPage() {
         {modals}
         <RepRouletteFab onLogDrill={(preset) => {
           setLogDate(toDateString(today));
-          setLogPreset(preset);
+          // Both preset shapes (drill | constraint) fold into the same logPreset
+          // structure. Constraint presets carry constraintName + sessionType='cla';
+          // drill presets carry subSkillTag + sessionType='drilling'.
+          if (preset.pool === 'drill') {
+            setLogPreset({
+              heading: preset.heading,
+              sessionType: preset.sessionType,
+              subSkillTag: preset.subSkillTag,
+            });
+          } else {
+            setLogPreset({
+              heading: preset.heading,
+              sessionType: preset.sessionType,
+              constraintName: preset.constraintName,
+            });
+          }
           setLogOpen(true);
         }} />
       </div>

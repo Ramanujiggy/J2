@@ -12,6 +12,7 @@ import FocusAreaChips from './FocusAreaChips.tsx';
 import PrismReceipt from './PrismReceipt.tsx';
 import SegmentedToggle from './SegmentedToggle.tsx';
 import TagPicker from './TagPicker.tsx';
+import ConstraintPicker from './ConstraintPicker.tsx';
 import VoiceReflectionInput from './VoiceReflectionInput.tsx';
 import { selectionsToDistribution, type ChipSelection } from '../lib/selectionsToDistribution.ts';
 import type { Intention, Pillar } from '../types/api.ts';
@@ -54,7 +55,7 @@ const SESSION_TYPES: { value: SessionType; label: string }[] = [
 // ── Intensity labels ──────────────────────────────────────────────────────
 const INTENSITY_LABELS = ['Light', 'Easy', 'Moderate', 'Hard', 'Max'];
 
-export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defaultHeading, defaultSessionType, defaultSubSkillTag }: { onSuccess?: (sessionCount?: number) => void; onCancel?: () => void; defaultDate?: string; defaultHeading?: string; defaultSessionType?: SessionType; defaultSubSkillTag?: string }) {
+export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defaultHeading, defaultSessionType, defaultSubSkillTag, defaultConstraintName }: { onSuccess?: (sessionCount?: number) => void; onCancel?: () => void; defaultDate?: string; defaultHeading?: string; defaultSessionType?: SessionType; defaultSubSkillTag?: string; defaultConstraintName?: string }) {
   const isDesktop = useIsDesktop();
   const [form, setForm] = useState<SessionFormData>({
     date:         defaultDate ?? today,
@@ -90,6 +91,13 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
   const [userTagIds,           setUserTagIds]           = useState<string[]>([]);
   const [canonicalPositionIds, setCanonicalPositionIds] = useState<string[]>([]);
   const [scriptSource, setScriptSource] = useState<ScriptSource | null>(null);
+
+  // Constraints — only collected for CLA sessions, but state lives at the form
+  // level so values are preserved if the user flips session-type away and back
+  // (per the Wise / PayPal pattern from the Refero research). Empty arrays are
+  // sent on save when session_type !== 'cla'.
+  const [userConstraintIds, setUserConstraintIds] = useState<string[]>([]);
+  const [canonicalConstraintIds, setCanonicalConstraintIds] = useState<string[]>([]);
 
   // Post-save receipt — shows the resulting Prism shape and auto-dismisses.
   const [receiptSelections, setReceiptSelections] = useState<ChipSelection[] | null>(null);
@@ -146,6 +154,8 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
     setUserTagIds([]);
     setCanonicalPositionIds([]);
     setScriptSource(null);
+    setUserConstraintIds([]);
+    setCanonicalConstraintIds([]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -177,6 +187,13 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
       // be rehydrated with halo rings when the user reopens this session.
       const deep_work_pillars = selections.filter(s => s.deep_work).map(s => s.pillar);
 
+      // Constraint linkage is only sent for CLA sessions; held form-state
+      // is preserved if the user flips back, but never persisted to a non-CLA
+      // session record (the picker was hidden, so the user never confirmed).
+      const isCLA = form.session_type === 'cla';
+      const sentCanonicalConstraintIds = isCLA && canonicalConstraintIds.length > 0 ? canonicalConstraintIds : undefined;
+      const sentUserConstraintIds = isCLA && userConstraintIds.length > 0 ? userConstraintIds : undefined;
+
       const sessionSnapshot = {
         date:         form.date,
         duration:     durationMinutes,
@@ -196,6 +213,8 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
         had_deep_work,
         selection_count,
         deep_work_pillars,
+        canonical_constraint_ids: sentCanonicalConstraintIds,
+        user_constraint_ids: sentUserConstraintIds,
       };
 
       const data = await api.post<LogSessionResponse>('/api/sessions', {
@@ -217,6 +236,8 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
         had_deep_work:   sessionSnapshot.had_deep_work,
         selection_count: sessionSnapshot.selection_count,
         deep_work_pillars: sessionSnapshot.deep_work_pillars,
+        canonical_constraint_ids: sessionSnapshot.canonical_constraint_ids,
+        user_constraint_ids: sessionSnapshot.user_constraint_ids,
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -460,6 +481,29 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
             defaultPrimaryPillar={defaultHeading as Pillar | undefined}
           />
 
+          {/* Constraint picker — CLA only. Vertical reflow under the chip grid
+              when session_type === 'cla' (the Wise / PayPal pattern from the
+              Refero research). Form state lives at this level so values are
+              preserved if the user flips session-type away and back. */}
+          {form.session_type === 'cla' && (
+            <div>
+              <p className="text-[10px] mt-0.5 mb-2 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.40)', letterSpacing: '0.16em' }}>
+                Constraint
+              </p>
+              <ConstraintPicker
+                selectedUserConstraintIds={userConstraintIds}
+                selectedCanonicalConstraintIds={canonicalConstraintIds}
+                onChange={(u, c) => { setUserConstraintIds(u); setCanonicalConstraintIds(c); }}
+                currentPillar={derivedHeading}
+                maxSelected={1}
+                defaultQuery={defaultConstraintName}
+              />
+              <p className="text-[10px] mt-1.5" style={{ color: 'rgba(255,255,255,0.22)', fontStyle: 'italic' }}>
+                What rule did you train under tonight?
+              </p>
+            </div>
+          )}
+
           {/* Polarity — only for guard and pins */}
           {(derivedHeading === 'guard' || derivedHeading === 'pins') && (
             <div>
@@ -479,21 +523,25 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
             </div>
           )}
 
-          {/* Source */}
-          <div>
-            <SegmentedToggle
-              options={[
-                { value: 'directed' as ScriptSource, label: 'Coach-led' },
-                { value: 'organic' as ScriptSource, label: 'Open Mat' },
-              ]}
-              value={scriptSource}
-              onChange={setScriptSource}
-              deselectable
-            />
-            <p className="text-[10px] mt-1.5 text-center" style={{ color: 'rgba(255,255,255,0.22)' }}>
-              Was this instructor-led or self-directed?
-            </p>
-          </div>
+          {/* Source — only for traditional Class. Free Drilling is self-directed
+              by definition; CLA is coach-set by the constraint itself. Hiding
+              the toggle removes a meaningless decision from those flows. */}
+          {form.session_type === 'class' && (
+            <div>
+              <SegmentedToggle
+                options={[
+                  { value: 'directed' as ScriptSource, label: 'Coach-led' },
+                  { value: 'organic' as ScriptSource, label: 'Open Mat' },
+                ]}
+                value={scriptSource}
+                onChange={setScriptSource}
+                deselectable
+              />
+              <p className="text-[10px] mt-1.5 text-center" style={{ color: 'rgba(255,255,255,0.22)' }}>
+                Was this instructor-led or self-directed?
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Hairline divider — mobile only, between Focus and Details. */}
@@ -544,7 +592,11 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
             <VoiceReflectionInput
               value={form.notes}
               onChange={next => setForm(prev => ({ ...prev, notes: next }))}
-              placeholder="What stood out today?"
+              placeholder={
+                form.session_type === 'drilling' ? 'What did you choose to drill?'
+                  : form.session_type === 'cla'  ? 'What did the constraint reveal?'
+                  :                                'What stood out today?'
+              }
               rows={2}
               textareaName="notes"
               textareaStyle={{ backgroundColor: SURFACE_3 }}

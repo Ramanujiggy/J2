@@ -5,13 +5,17 @@ export type Pillar = 'standup' | 'passing' | 'pins' | 'submissions' | 'guard';
 /** Map of pillar → weight in [0, 1]. Weights sum to ~1.0 (server renormalizes). */
 export type PillarDistribution = Partial<Record<Pillar, number>>;
 
+// `competition_training` is preserved as a legacy value; new sessions use
+// `class | drilling | cla` (Constraints-Led Approach).
+export type SessionType = 'class' | 'drilling' | 'competition_training' | 'cla';
+
 export interface SessionSummary {
   id: string;
   date: string;
   duration: number;
   intensity: number;
   gi_nogi: 'gi' | 'no_gi';
-  session_type: 'class' | 'drilling' | 'competition_training';
+  session_type: SessionType;
   notes?: string;
   tags: string[];
   // Dynamic Pillar Engine fields (nullable — older sessions won't have them)
@@ -30,6 +34,9 @@ export interface SessionSummary {
   had_primary?: boolean | null;
   had_deep_work?: boolean | null;
   selection_count?: number | null;
+  // migration 015 — constraint linkage for CLA sessions. Null on non-CLA rows.
+  canonical_constraint_ids?: string[] | null;
+  user_constraint_ids?: string[] | null;
 }
 
 export interface UserTag {
@@ -56,6 +63,36 @@ export interface CanonicalPosition {
 
 export interface CanonicalPositionsResponse {
   positions: CanonicalPosition[];
+}
+
+// migration 015 — Constraints library. Mirrors the canonical_positions /
+// user_tags pair for "rule modifications" the user trains under during a
+// CLA session (e.g., "only attack from closed guard"). Optional parent_pillar
+// because some constraints span multiple pillars (e.g., "no grips").
+export interface CanonicalConstraint {
+  id: string;
+  name: string;
+  parent_pillar: Pillar | null;
+  aliases: string[];
+  description?: string | null;
+  created_at: string;
+}
+
+export interface UserConstraint {
+  id: string;
+  user_id: string;
+  name: string;
+  parent_pillar: Pillar | null;
+  aliases: string[];
+  created_at: string;
+}
+
+export interface CanonicalConstraintsResponse {
+  constraints: CanonicalConstraint[];
+}
+
+export interface UserConstraintsResponse {
+  constraints: UserConstraint[];
 }
 
 export interface UserTagVideoUpdate {
