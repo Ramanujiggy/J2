@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import LoadingScreen from './LoadingScreen.tsx';
+import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 
 type Phase = 'loading' | 'waiting' | 'fading' | 'ready';
 
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export default function PageContent({ ready, children, loadingMessages }: Props) {
+  const isDesktop = useIsDesktop();
   const [phase, setPhase] = useState<Phase>(ready ? 'ready' : 'loading');
   const safetyTimer = useRef<ReturnType<typeof setTimeout>>();
   const fadeTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -71,6 +73,13 @@ export default function PageContent({ ready, children, loadingMessages }: Props)
       clearTimeout(fadeTimer.current);
     };
   }, []);
+
+  // Desktop short-circuit — never show the full-screen loader on desktop.
+  // Modern web apps (Linear, Vercel, Stripe, Notion, GitHub, Anthropic
+  // Console) render content immediately and let data stream in via skeleton
+  // / empty states. Mobile keeps the brand-coherent Prism-trace loader
+  // because cold-start mobile networks justify a "moment of waiting."
+  if (isDesktop) return <>{children}</>;
 
   if (phase === 'ready') return <>{children}</>;
 

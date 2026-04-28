@@ -72,12 +72,56 @@ export interface CanonicalPositionsResponse {
 // user_tags pair for "rule modifications" the user trains under during a
 // CLA session (e.g., "only attack from closed guard"). Optional parent_pillar
 // because some constraints span multiple pillars (e.g., "no grips").
+
+// migration 017 — rich game metadata. Captures the pedagogical structure
+// of a CLA game: family, role taxonomy, goals per side, cues, etc. JSONB
+// in the DB; optional everywhere so older rows without details still work.
+//
+// The `your_role` taxonomy is BJJ-specific and intentionally distinguishes
+// the two flavors of "bottom":
+//   - guard_player    — on your back with legs between you and them
+//                       (offense from below; closed/open/half guard)
+//   - pin_escaper     — they're past your legs (recovery from a dominant pin)
+// "Bottom" alone is ambiguous; these two roles are different problems.
+export type ConstraintRole =
+  | 'guard_player'
+  | 'pin_escaper'
+  | 'top_passer'
+  | 'pin_holder'
+  | 'back_attacker'
+  | 'back_escaper'
+  | 'turtle_attacker'
+  | 'turtle_defender'
+  | 'standing';
+
+export interface ConstraintDetails {
+  family?: string;
+  full_label?: string;
+  your_role?: ConstraintRole;
+  start_position?: string;
+  continuous_goals?: { top?: string; bottom?: string };
+  terminal_goals?:  { top?: string; bottom?: string };
+  reset_condition?: string;
+  difficulty?: 'low' | 'medium' | 'high' | 'mixed';
+  recommended_level?: string;
+  duration_minutes?: number;
+  cues?: string[];
+  metrics?: string[];
+  common_errors?: string;
+  safety_notes?: string;
+  progression?: string;
+  regression?: string;
+  source?: string;
+  roulette_eligible?: boolean;
+}
+
 export interface CanonicalConstraint {
   id: string;
   name: string;
   parent_pillar: Pillar | null;
   aliases: string[];
   description?: string | null;
+  details?: ConstraintDetails | null;
   created_at: string;
 }
 

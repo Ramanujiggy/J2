@@ -1,9 +1,11 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
-import { ROULETTE_DRILLS, ROULETTE_CONSTRAINTS } from '../lib/constants.ts';
+import { ROULETTE_DRILLS } from '../lib/constants.ts';
+import { useCanonicalConstraints } from '../hooks/useCanonicalConstraints.ts';
 import { PALE_YELLOW, GLOW_SOFT, COPPER, COPPER_BORDER, SURFACE_3 } from '../lib/theme.ts';
 import { vibrate } from '../lib/haptics.ts';
+import type { Pillar } from '../types/api.ts';
 
 // ── Drill / constraint focus → pillar tag mapping ────────────────────────
 
@@ -14,6 +16,18 @@ const FOCUS_TO_TAG: Record<string, string> = {
   'Guard Passing':  'passing',
   'Submissions':    'submissions',
   'Guard Retention':'guard',
+};
+
+// Pillar → focus label used in the roulette card (mirrors the existing
+// drill `focus` field). Cross-pillar constraints (parent_pillar = NULL)
+// label as "Cross-Pillar" since the pool no longer ships hand-picked focus
+// strings — it's now derived from canonical_constraints.
+const PILLAR_TO_FOCUS_LABEL: Record<Pillar, string> = {
+  guard:       'Guard',
+  passing:     'Guard Passing',
+  pins:        'Dynamic Pins',
+  submissions: 'Submissions',
+  standup:     'Stand-up',
 };
 
 // ── Pool persistence (localStorage) ──────────────────────────────────────
@@ -75,15 +89,41 @@ function RepRouletteFabImpl({ onLogDrill }: Props) {
     }
   }, [pool]);
 
+  // Constraints pool — derived from canonical_constraints filtered by
+  // details.roulette_eligible. Single source of truth: the same DB rows
+  // feed the ConstraintPicker on the log form. Card shape is { name,
+  // focus, suggestion, description } so it slots into the existing render
+  // path without further refactor.
+  const { constraints: allCanonicalConstraints } = useCanonicalConstraints();
+  const rouletteConstraints = useMemo(() => {
+    return allCanonicalConstraints
+      .filter(c => c.details?.roulette_eligible)
+      .map(c => ({
+        name: c.name,
+        focus: c.parent_pillar ? PILLAR_TO_FOCUS_LABEL[c.parent_pillar] : 'Cross-Pillar',
+        suggestion: c.details?.duration_minutes
+          ? `${c.details.duration_minutes}-min round`
+          : 'Live round',
+        description: c.description ?? c.details?.full_label ?? '',
+      }));
+  }, [allCanonicalConstraints]);
+
   // Independent history per pool — switching pools doesn't lose your place.
   const [drillHistory, setDrillHistory] = useState<number[]>(
     () => [Math.floor(Math.random() * ROULETTE_DRILLS.length)]
   );
   const [drillHistoryIndex, setDrillHistoryIndex] = useState(0);
-  const [constraintHistory, setConstraintHistory] = useState<number[]>(
-    () => ROULETTE_CONSTRAINTS.length > 0 ? [Math.floor(Math.random() * ROULETTE_CONSTRAINTS.length)] : [0]
-  );
+  const [constraintHistory, setConstraintHistory] = useState<number[]>([]);
   const [constraintHistoryIndex, setConstraintHistoryIndex] = useState(0);
+
+  // Seed the constraint history on first arrival of the API data — the
+  // hook returns [] before the fetch resolves, then populates. Without this,
+  // a user opening the FAB on a cold cache would land on no constraint.
+  useEffect(() => {
+    if (rouletteConstraints.length > 0 && constraintHistory.length === 0) {
+      setConstraintHistory([Math.floor(Math.random() * rouletteConstraints.length)]);
+    }
+  }, [rouletteConstraints.length, constraintHistory.length]);
 
   // Swipe state
   const touchStartX    = useRef(0);
@@ -96,8 +136,8 @@ function RepRouletteFabImpl({ onLogDrill }: Props) {
 
   // Active item from the active pool.
   const drill = ROULETTE_DRILLS[drillHistory[drillHistoryIndex]];
-  const constraint = ROULETTE_CONSTRAINTS.length > 0
-    ? ROULETTE_CONSTRAINTS[constraintHistory[constraintHistoryIndex] % ROULETTE_CONSTRAINTS.length]
+  const constraint = rouletteConstraints.length > 0 && constraintHistory.length > 0
+    ? rouletteConstraints[constraintHistory[constraintHistoryIndex] % rouletteConstraints.length]
     : null;
   const item = pool === 'drill' ? drill : constraint;
 
@@ -137,7 +177,7 @@ function RepRouletteFabImpl({ onLogDrill }: Props) {
   // both stacks.
   const activeIndex = pool === 'drill' ? drillHistoryIndex : constraintHistoryIndex;
   const activeHistory = pool === 'drill' ? drillHistory : constraintHistory;
-  const activePoolLength = pool === 'drill' ? ROULETTE_DRILLS.length : ROULETTE_CONSTRAINTS.length;
+  const activePoolLength = pool === 'drill' ? ROULETTE_DRILLS.length : rouletteConstraints.length;
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     const rawDx = e.touches[0].clientX - touchStartX.current;

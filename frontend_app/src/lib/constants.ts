@@ -12,34 +12,11 @@ export const REFLECTION_PROMPTS = [
   "When did the mat last surprise you?",
 ] as const;
 
-// CLA constraint prompts for the Rep Roulette FAB's second pool. Same shape
-// as ROULETTE_DRILLS — `focus` maps to a pillar tag, `suggestion` is the
-// rule modification's reach, `description` orients the user.
-//
-// Starter set — placeholder until the seed-list agent ships the full
-// canonical_constraints DB seed (mig 015 schema is in place but unseeded).
-export const ROULETTE_CONSTRAINTS = [
-  { name: 'Closed Guard Only',      focus: 'Guard',           suggestion: 'Roll start to finish',
-    description: 'Both partners begin and stay in closed guard. The bottom player can sweep, submit, or lose position; the top player can pass, but the bottom player resets to closed if posture is broken. Forces patience and attack from a single position.' },
-  { name: 'No Grips',               focus: 'Guard',           suggestion: 'Roll continuous',
-    description: 'Neither partner can grab the gi or pinch with the hands. Forces hooks, frames, head positioning, and elbow play. Reveals what your game looks like without your usual handles.' },
-  { name: 'Submission Only',        focus: 'Submissions',     suggestion: '5-min rounds',
-    description: 'Position points and sweeps don\'t count. Score is binary: tap or no tap. Sharpens finishing intent and exposes which submissions you actually trust.' },
-  { name: 'Single Submission',      focus: 'Submissions',     suggestion: 'Pick one before the round',
-    description: 'You can only finish via a single nominated submission (e.g., armbar only, RNC only). Forces deep familiarity with one chain and the entries that lead to it.' },
-  { name: 'Back Take Only',         focus: 'Submissions',     suggestion: 'Roll continuous',
-    description: 'No other scoring positions count — only the back. Aggressive seatbelt hunting, scrambles into back exposure, turtle play. Builds a back-take-driven game.' },
-  { name: 'Knee Slice Only',        focus: 'Guard Passing',   suggestion: 'Top player constraint',
-    description: 'The top player can only pass via knee slice. Forces commitment to a single passing line and the cross-face / under-hook details that make it work.' },
-  { name: 'No Hands Defense',       focus: 'Guard',           suggestion: 'Bottom player constraint',
-    description: 'Bottom player cannot use hands to defend. Forces shoulder, hip, and leg framing. Teaches what protects you when grip-fighting fails.' },
-  { name: 'Top Pressure Only',      focus: 'Dynamic Pins',    suggestion: '3-min rounds',
-    description: 'Top player must maintain heavy pressure — no jumping, no guard passing acrobatics. Forces weight distribution, knee on belly transitions, and slow methodical advancement.' },
-  { name: 'Five Submission Streak', focus: 'Submissions',     suggestion: 'Solo flow drill',
-    description: 'Chain five different submission attempts in sequence without resetting position. Each blocked attempt must transition directly into the next. Builds attack chains and threats-create-openings.' },
-  { name: 'Standup First',          focus: 'Stand-up',        suggestion: 'Both partners',
-    description: 'Begin every round on the feet. The takedown is the first scoring opportunity; the round only progresses to ground play after a successful entry. Forces engagement with the most-neglected phase.' },
-] as const;
+// Note: the Rep Roulette's constraint pool is no longer hardcoded here.
+// As of mig 017/018 it derives directly from `canonical_constraints` filtered
+// by `details.roulette_eligible === true` via `useCanonicalConstraints()`.
+// Single source of truth: the same DB rows feed both the ConstraintPicker
+// on the log form and the Roulette spin pool.
 
 export const ROULETTE_DRILLS = [
   { name: 'Hip Escape Drill',        focus: 'Guard',           suggestion: '3 × 10 each side',
