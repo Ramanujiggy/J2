@@ -151,8 +151,8 @@ export default function LoginPage() {
           className="j2-serif-italic"
           style={{
             marginTop: isDesktop ? 18 : 16,
-            fontSize: isDesktop ? 18 : 16.5,
-            color: 'rgba(255,255,255,0.60)',
+            fontSize: isDesktop ? 21 : 19,
+            color: 'rgba(255,255,255,0.65)',
             lineHeight: 1.4,
           }}
         >
@@ -330,29 +330,73 @@ export default function LoginPage() {
               </button>
             </form>
 
-            {/* Secondary link */}
-            {mode === 'login' && (
-              <button
-                onClick={() => switchMode('forgot')}
-                className="mt-5 w-full text-xs transition-colors"
-                style={{ color: 'rgba(255,255,255,0.35)' }}
-                onMouseEnter={e => (e.currentTarget.style.color = COPPER)}
-                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.35)')}
-              >
-                Forgot your password?
-              </button>
-            )}
-
-            {mode === 'forgot' && (
-              <button
-                onClick={() => switchMode('login')}
-                className="mt-5 w-full text-xs transition-colors"
-                style={{ color: 'rgba(255,255,255,0.35)' }}
-                onMouseEnter={e => (e.currentTarget.style.color = COPPER)}
-                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.35)')}
-              >
-                ← Back to Log In
-              </button>
+            {/* Secondary link — wrapped in a section that gets:
+                  • generous top margin (32px) so the link doesn't crowd the CTA
+                  • a small centered copper hairline rule above it (gives the
+                    under-button area a sense of transition without going heavy)
+                  • copper italic-serif on the link itself so it reads as part
+                    of the editorial brand voice, not a utility footer link */}
+            {(mode === 'login' || mode === 'forgot') && (
+              <div className="mt-8 flex flex-col items-center" style={{ gap: 14 }}>
+                <span
+                  aria-hidden
+                  style={{
+                    width: 64,
+                    height: 1,
+                    background: 'rgba(196,145,95,0.22)',
+                  }}
+                />
+                {mode === 'login' && (
+                  <button
+                    onClick={() => switchMode('forgot')}
+                    className="j2-serif-italic transition-colors"
+                    style={{
+                      fontSize: 14,
+                      color: 'rgba(196,145,95,0.78)',
+                      lineHeight: 1.2,
+                      background: 'transparent',
+                      border: 'none',
+                      padding: '4px 8px',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.color = COPPER;
+                      e.currentTarget.style.textShadow = '0 0 12px rgba(196,145,95,0.35)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.color = 'rgba(196,145,95,0.78)';
+                      e.currentTarget.style.textShadow = 'none';
+                    }}
+                  >
+                    Forgot your password?
+                  </button>
+                )}
+                {mode === 'forgot' && (
+                  <button
+                    onClick={() => switchMode('login')}
+                    className="j2-serif-italic transition-colors"
+                    style={{
+                      fontSize: 14,
+                      color: 'rgba(196,145,95,0.78)',
+                      lineHeight: 1.2,
+                      background: 'transparent',
+                      border: 'none',
+                      padding: '4px 8px',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.color = COPPER;
+                      e.currentTarget.style.textShadow = '0 0 12px rgba(196,145,95,0.35)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.color = 'rgba(196,145,95,0.78)';
+                      e.currentTarget.style.textShadow = 'none';
+                    }}
+                  >
+                    ← Back to Log In
+                  </button>
+                )}
+              </div>
             )}
           </>
         )}
