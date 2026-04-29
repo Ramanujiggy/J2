@@ -106,6 +106,11 @@ export interface SessionFilter {
     intensity_min?: number;
     intensity_max?: number;
     user_tag_id?: string;
+    /** Freetext partner name; matched case-insensitively against any element of `partners`. */
+    partner?: string;
+    /** Constraint IDs (canonical or user-scoped) — matches if any session column array
+     *  contains any of these IDs. Empty array disables the filter. */
+    constraint_ids?: string[];
     limit?: number;
     offset?: number;
 }
@@ -126,6 +131,18 @@ export const searchSessions = async (
     if (filters.intensity_min != null) { params.push(filters.intensity_min); conditions.push(`intensity >= $${params.length}`); }
     if (filters.intensity_max != null) { params.push(filters.intensity_max); conditions.push(`intensity <= $${params.length}`); }
     if (filters.user_tag_id) { params.push(filters.user_tag_id); conditions.push(`$${params.length}::uuid = ANY(user_tag_ids)`); }
+    if (filters.partner) {
+        params.push(filters.partner);
+        const idx = params.length;
+        // Case-insensitive partner match across the freetext partners array.
+        conditions.push(`EXISTS (SELECT 1 FROM unnest(partners) p WHERE p ILIKE $${idx})`);
+    }
+    if (filters.constraint_ids && filters.constraint_ids.length > 0) {
+        params.push(filters.constraint_ids);
+        const idx = params.length;
+        // Match if any of the requested constraint IDs are in either array.
+        conditions.push(`(canonical_constraint_ids && $${idx}::uuid[] OR user_constraint_ids && $${idx}::uuid[])`);
+    }
     if (filters.q) {
         params.push(`%${filters.q}%`);
         const idx = params.length;

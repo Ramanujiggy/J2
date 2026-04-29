@@ -305,7 +305,17 @@ export const searchSessionsHandler = async (req: Request, res: Response): Promis
         }
 
         const { from, to, q, gi_nogi, session_type, heading, polarity,
-                intensity_min, intensity_max, user_tag_id, limit, offset } = req.query as Record<string, string | undefined>;
+                intensity_min, intensity_max, user_tag_id, partner, limit, offset } = req.query as Record<string, string | undefined>;
+        // constraint_id may arrive as a single string or as an array (?constraint_id=a&constraint_id=b).
+        const rawConstraintIds = req.query.constraint_id;
+        const constraintIds: string[] = Array.isArray(rawConstraintIds)
+            ? rawConstraintIds.filter((v): v is string => typeof v === 'string')
+            : (typeof rawConstraintIds === 'string' && rawConstraintIds.length > 0 ? [rawConstraintIds] : []);
+        const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (constraintIds.some(id => !UUID_RE.test(id))) {
+            res.status(400).json({ message: 'Invalid constraint_id.' });
+            return;
+        }
 
         if (from && !DATE_RE.test(from)) { res.status(400).json({ message: 'from must be YYYY-MM-DD.' }); return; }
         if (to && !DATE_RE.test(to)) { res.status(400).json({ message: 'to must be YYYY-MM-DD.' }); return; }
@@ -328,6 +338,8 @@ export const searchSessionsHandler = async (req: Request, res: Response): Promis
         if (intensity_min) filters.intensity_min = Number(intensity_min);
         if (intensity_max) filters.intensity_max = Number(intensity_max);
         if (user_tag_id) filters.user_tag_id = user_tag_id;
+        if (partner && partner.trim().length > 0) filters.partner = partner.trim();
+        if (constraintIds.length > 0) filters.constraint_ids = constraintIds;
 
         const result = await searchSessions(userId, filters);
         res.json({ sessions: result.sessions, total: result.total });

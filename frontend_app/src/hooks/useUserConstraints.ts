@@ -2,7 +2,7 @@
 // Mirrors useUserTags but constraints carry no video metadata and parent_pillar
 // is nullable (some constraints span multiple pillars).
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '../lib/api.ts';
 import type { UserConstraint, UserConstraintsResponse, Pillar } from '../types/api.ts';
 
@@ -50,8 +50,15 @@ export function useUserConstraints() {
     }
   }, []);
 
+  const byId = useMemo(() => {
+    const m = new Map<string, UserConstraint>();
+    for (const c of constraints) m.set(c.id, c);
+    return m;
+  }, [constraints]);
+
   return {
     constraints,
+    byId,
     loading,
     error,
     refetch: fetchConstraints,

@@ -141,9 +141,16 @@ export function useUserTags() {
     return grouped;
   }, [tags]);
 
+  const byId = useMemo(() => {
+    const m = new Map<string, UserTag>();
+    for (const t of tags) m.set(t.id, t);
+    return m;
+  }, [tags]);
+
   return {
     tags,
     tagsByPillar,
+    byId,
     loading,
     error,
     refetch: fetchTags,

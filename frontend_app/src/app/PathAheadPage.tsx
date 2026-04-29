@@ -24,6 +24,8 @@ import IntentionHeroCard from '../components/IntentionHeroCard.tsx';
 import WeekIndicators from '../components/WeekIndicators.tsx';
 import FirstVisitCard from '../components/FirstVisitCard.tsx';
 import DesktopPathAheadSkeleton from '../components/DesktopPathAheadSkeleton.tsx';
+import TopPartnersCard from '../components/TopPartnersCard.tsx';
+import RecentConstraintsCard from '../components/RecentConstraintsCard.tsx';
 import { computeACWR, computeDecay, rustiest, computeACWRByPillar, spikiestPillar } from '../lib/analyticsModels.ts';
 import { sessionPillarHours } from '../lib/analyticsUtils.ts';
 import RepRouletteFab from '../components/RepRouletteFab.tsx';
@@ -1138,6 +1140,12 @@ export default function PathAheadPage() {
                 <span>Light</span><span>Moderate</span><span>High</span>
               </div>
             </div>
+
+            {/* Top partners — last 30 days. Self-hides when no partner data. */}
+            <TopPartnersCard sessions={allSessions} softCardStyle={softCardStyle} />
+
+            {/* Recent constraints — last 30 days. Self-hides when empty. */}
+            <RecentConstraintsCard sessions={allSessions} softCardStyle={softCardStyle} />
 
             {/* Week section — moved here from the left column.
                 The carousel + list view both fit comfortably at 440px. */}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../lib/api.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
@@ -11,6 +11,10 @@ import PrismShape from './PrismShape.tsx';
 import TagPicker from './TagPicker.tsx';
 import { selectionsToDistribution, sessionToSelections, type ChipSelection } from '../lib/selectionsToDistribution.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
+import { useUserTags } from '../hooks/useUserTags.ts';
+import { useCanonicalPositions } from '../hooks/useCanonicalPositions.ts';
+import { useUserConstraints } from '../hooks/useUserConstraints.ts';
+import { useCanonicalConstraints } from '../hooks/useCanonicalConstraints.ts';
 import type { SessionSummary } from './TrainingHeatmap.tsx';
 import type { Pillar } from '../types/api.ts';
 
@@ -88,6 +92,43 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
 
   // Reconstruct chip selections from the existing session record.
   const [selections, setSelections] = useState<ChipSelection[]>(() => sessionToSelections(session));
+
+  // Resolve constraint / tag IDs to display names. Hooks fire once per modal
+  // mount; the by-id maps cache reactively. When a session has no tag /
+  // constraint / partner data, the resolved arrays are empty and the
+  // corresponding chip rows simply don't render.
+  const { byId: userTagById } = useUserTags();
+  const { byId: canonicalPositionById } = useCanonicalPositions();
+  const { byId: userConstraintById } = useUserConstraints();
+  const { byId: canonicalConstraintById } = useCanonicalConstraints();
+
+  const resolvedTechTags = useMemo<string[]>(() => {
+    const names: string[] = [];
+    for (const id of session.canonical_position_ids ?? []) {
+      const p = canonicalPositionById.get(id);
+      if (p) names.push(p.name);
+    }
+    for (const id of session.user_tag_ids ?? []) {
+      const t = userTagById.get(id);
+      if (t) names.push(t.name);
+    }
+    return names;
+  }, [session.canonical_position_ids, session.user_tag_ids, canonicalPositionById, userTagById]);
+
+  const resolvedConstraints = useMemo<string[]>(() => {
+    const names: string[] = [];
+    for (const id of session.canonical_constraint_ids ?? []) {
+      const c = canonicalConstraintById.get(id);
+      if (c) names.push(c.name);
+    }
+    for (const id of session.user_constraint_ids ?? []) {
+      const c = userConstraintById.get(id);
+      if (c) names.push(c.name);
+    }
+    return names;
+  }, [session.canonical_constraint_ids, session.user_constraint_ids, canonicalConstraintById, userConstraintById]);
+
+  const resolvedPartners = session.partners ?? [];
 
   // Heading is derived from selections — primary chip wins, else top-weighted
   // (ties broken by selection order).
@@ -326,6 +367,9 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                   intensityColor={intensityColor}
                   headingLabel={headingLabel}
                   selections={selections}
+                  resolvedConstraints={resolvedConstraints}
+                  resolvedTechTags={resolvedTechTags}
+                  resolvedPartners={resolvedPartners}
                   sessionCount={sessionCount}
                   sessionIndex={sessionIndex}
                   onNavigate={onNavigate}
@@ -447,6 +491,46 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                       )}
                     </div>
 
+                    {/* Constraint row — CLA / any session with a constraint logged */}
+                    {resolvedConstraints.length > 0 && (
+                      <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                        <div className="text-[10px] uppercase tracking-widest font-semibold mb-1.5" style={{ color: PALE_YELLOW, letterSpacing: '0.16em' }}>
+                          Constraint
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {resolvedConstraints.map(name => (
+                            <span
+                              key={name}
+                              className="px-2.5 py-1 rounded-md text-xs font-medium"
+                              style={{ backgroundColor: 'rgba(196,145,95,0.18)', color: COPPER }}
+                            >
+                              {name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Tech Tags row — canonical positions + user customs combined */}
+                    {resolvedTechTags.length > 0 && (
+                      <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                        <div className="text-[10px] uppercase tracking-widest font-semibold mb-1.5" style={{ color: PALE_YELLOW, letterSpacing: '0.16em' }}>
+                          Tech Tags
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {resolvedTechTags.map(name => (
+                            <span
+                              key={name}
+                              className="px-2.5 py-1 rounded-md text-xs font-medium"
+                              style={{ backgroundColor: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.65)' }}
+                            >
+                              {name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Distribution chips — only shown when session has multi-pillar IDW data */}
                     {(() => {
                       const dist = session.pillar_distribution;
@@ -482,10 +566,12 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                   </div>
                 )}
 
-                {/* ── Journal card ─────────────────────────── */}
+                {/* ── Resonance card ─────────────────────────
+                    Holds embodied/reflective prose AND social layer (partners).
+                    Renamed from "Journal" to mirror the log form's section eyebrow. */}
                 <div className="rounded-xl px-4 py-4" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
                   <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.25)' }}>
-                    Journal
+                    Resonance
                   </span>
                   {session.notes?.trim() ? (
                     <p className="text-sm leading-relaxed mt-2" style={{ color: 'rgba(255,255,255,0.6)', whiteSpace: 'pre-wrap' }}>
@@ -493,6 +579,26 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                     </p>
                   ) : (
                     <p className="text-xs italic mt-2" style={{ color: 'rgba(255,255,255,0.20)' }}>No notes recorded.</p>
+                  )}
+
+                  {/* Partners chip strip — social-as-data layer */}
+                  {resolvedPartners.length > 0 && (
+                    <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                      <div className="text-[10px] uppercase tracking-widest font-semibold mb-1.5" style={{ color: PALE_YELLOW, letterSpacing: '0.16em' }}>
+                        Partners
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {resolvedPartners.map((name, i) => (
+                          <span
+                            key={`${name}-${i}`}
+                            className="px-2.5 py-1 rounded-md text-xs font-medium"
+                            style={{ backgroundColor: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.65)' }}
+                          >
+                            {name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
@@ -782,6 +888,10 @@ interface DesktopViewContentProps {
   intensityColor: string;
   headingLabel: string | null;
   selections: ChipSelection[];
+  // Resolved display arrays from canonical/user lookups (parent computes via hooks)
+  resolvedConstraints: string[];
+  resolvedTechTags: string[];
+  resolvedPartners: string[];
   sessionCount?: number;
   sessionIndex?: number;
   onNavigate?: (index: number) => void;
@@ -803,6 +913,7 @@ function resonanceLabel(r: number): string {
 
 function DesktopViewContent({
   session, date, dateLabel, intention, intensityColor, headingLabel, selections,
+  resolvedConstraints, resolvedTechTags, resolvedPartners,
   sessionCount, sessionIndex, onNavigate, onClose, onEdit,
   confirmDelete, setConfirmDelete, handleDelete, deleting,
 }: DesktopViewContentProps) {
@@ -991,6 +1102,54 @@ function DesktopViewContent({
                 </div>
               )}
 
+              {/* Constraint row — CLA / any session with a constraint logged */}
+              {resolvedConstraints.length > 0 && (
+                <div style={{ marginTop: 22, paddingTop: 18, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{
+                    fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em',
+                    color: PALE_YELLOW, fontWeight: 600, marginBottom: 10, opacity: 0.85,
+                  }}>
+                    Constraint
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {resolvedConstraints.map(name => (
+                      <span key={name} style={{
+                        padding: '6px 12px', borderRadius: 8,
+                        background: 'rgba(196,145,95,0.18)',
+                        border: '1px solid rgba(196,145,95,0.30)',
+                        color: COPPER, fontSize: 13, fontWeight: 500, letterSpacing: '0.01em',
+                      }}>
+                        {name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Tech Tags row — canonical positions + user customs combined */}
+              {resolvedTechTags.length > 0 && (
+                <div style={{ marginTop: 22, paddingTop: 18, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{
+                    fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em',
+                    color: PALE_YELLOW, fontWeight: 600, marginBottom: 10, opacity: 0.85,
+                  }}>
+                    Tech Tags
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {resolvedTechTags.map(name => (
+                      <span key={name} style={{
+                        padding: '6px 12px', borderRadius: 8,
+                        background: 'rgba(255,255,255,0.05)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        color: 'rgba(255,255,255,0.70)', fontSize: 13, fontWeight: 500, letterSpacing: '0.01em',
+                      }}>
+                        {name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {showDistribution && (
                 <div style={{ marginTop: 22, paddingTop: 18, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                   <div
@@ -1075,9 +1234,11 @@ function DesktopViewContent({
         />
       </div>
 
-      {/* ── Journal ───────────────────────────────────────────────────── */}
+      {/* ── Resonance ─────────────────────────────────────────────────
+          Renamed from "Journal" to mirror the log form's section eyebrow.
+          Carries embodied/reflective prose AND the social layer (partners). */}
       <div style={{ marginBottom: 32 }}>
-        <div className="j2-label-copper" style={{ marginBottom: 14 }}>◇ Journal</div>
+        <div className="j2-label-copper" style={{ marginBottom: 14 }}>◇ Resonance</div>
         {session.notes?.trim() ? (
           <p
             style={{
@@ -1094,6 +1255,30 @@ function DesktopViewContent({
           >
             No notes recorded.
           </p>
+        )}
+
+        {/* Partners chip strip — social-as-data layer */}
+        {resolvedPartners.length > 0 && (
+          <div style={{ marginTop: 20 }}>
+            <div style={{
+              fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em',
+              color: PALE_YELLOW, fontWeight: 600, marginBottom: 10, opacity: 0.85,
+            }}>
+              Partners
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {resolvedPartners.map((name, i) => (
+                <span key={`${name}-${i}`} style={{
+                  padding: '6px 12px', borderRadius: 8,
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  color: 'rgba(255,255,255,0.70)', fontSize: 13, fontWeight: 500, letterSpacing: '0.01em',
+                }}>
+                  {name}
+                </span>
+              ))}
+            </div>
+          </div>
         )}
       </div>
 
