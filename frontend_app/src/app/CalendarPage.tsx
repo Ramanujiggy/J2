@@ -97,7 +97,25 @@ export default function CalendarPage() {
       </div>
     )}
 
-    <div className={`space-y-5 ${isDesktop ? 'j2-page-container' : 'mx-auto max-w-5xl px-4 sm:px-6'}`} style={isDesktop ? { paddingTop: 20, paddingBottom: 20 } : { paddingTop: 24, paddingBottom: 24 }}>
+    <div
+      className={isDesktop
+        ? 'space-y-5 j2-page-container'
+        : 'mx-auto max-w-5xl w-full px-4 sm:px-6'}
+      style={isDesktop
+        ? { paddingTop: 20, paddingBottom: 20 }
+        : {
+            paddingTop: 16,
+            paddingBottom: 16,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16,
+            // Fill the AppShell <main> content area without spawning an outer scroll.
+            // Only the calendar grid inside scrolls.
+            height: '100%',
+            minHeight: 0,
+            overflow: 'hidden',
+          }}
+    >
 
       {/* Header row */}
       <div className="flex items-center justify-between">
@@ -196,9 +214,12 @@ export default function CalendarPage() {
           <div
             key={displayYear}
             onAnimationEnd={() => setFlipDir(null)}
-            style={flipDir ? {
-              animation: `j2PageFlip${flipDir === 'forward' ? 'Forward' : 'Back'} 380ms ease-out both`,
-            } : undefined}
+            style={{
+              ...(isDesktop ? null : { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }),
+              ...(flipDir ? {
+                animation: `j2PageFlip${flipDir === 'forward' ? 'Forward' : 'Back'} 380ms ease-out both`,
+              } : null),
+            }}
           >
             {calView === 'compact' ? (
               isDesktop ? (
@@ -212,6 +233,7 @@ export default function CalendarPage() {
                   sessions={allSessions}
                   year={displayYear}
                   loading={loading}
+                  fillHeight
                 />
               )
             ) : (
@@ -223,6 +245,7 @@ export default function CalendarPage() {
                 onGoToToday={() => setDisplayYear(currentYear)}
                 onLogSession={(dateKey) => setLogDate(dateKey)}
                 year={displayYear}
+                fillHeight={!isDesktop}
               />
             )}
           </div>

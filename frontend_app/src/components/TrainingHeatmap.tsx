@@ -10,7 +10,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import SessionDetailModal from './SessionDetailModal.tsx';
-import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, HEATMAP_REST, HEATMAP_FUTURE, HEATMAP_HEADER_BG, PALE_YELLOW, GLOW_SOFT, SURFACE_2 } from '../lib/theme.ts';
+import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, HEATMAP_REST, HEATMAP_FUTURE, HEATMAP_HEADER_BG, PALE_YELLOW, GLOW_SOFT, SURFACE_2, INT_COLORS } from '../lib/theme.ts';
 import type { SessionSummary, CalendarIntention } from '../types/api.ts';
 export type { SessionSummary };
 
@@ -35,11 +35,11 @@ const MONTH_ABBR = [
 const WEEKBAR_HEIGHT = 36;
 
 const LEGEND = [
-  { color: HEATMAP_REST, label: 'Rest',     range: ''    },
-  { color: '#A8CB72',    label: 'Easy',     range: '1–2' },
-  { color: '#4BA862',    label: 'Moderate', range: '3'   },
-  { color: '#D4A040',    label: 'Hard',     range: '4'   },
-  { color: '#DA7422',    label: 'Max',      range: '5'   },
+  { color: HEATMAP_REST,  label: 'Rest',     range: ''    },
+  { color: INT_COLORS[1], label: 'Easy',     range: '1–2' },
+  { color: INT_COLORS[3], label: 'Moderate', range: '3'   },
+  { color: INT_COLORS[4], label: 'Hard',     range: '4'   },
+  { color: INT_COLORS[5], label: 'Max',      range: '5'   },
 ] as const;
 
 // Particles for the intention column on the active week
@@ -79,10 +79,10 @@ export const EMPTY_DAY: DayData = { count: 0, totalMinutes: 0, maxIntensity: 0, 
 
 export function cellColor(day: DayData): string {
   if (day.count === 0)          return HEATMAP_REST;
-  if (day.maxIntensity <= 2)    return '#A8CB72';
-  if (day.maxIntensity === 3)   return '#4BA862';
-  if (day.maxIntensity === 4)   return '#D4A040';   // warm amber — bridges green→orange
-  return '#DA7422';
+  if (day.maxIntensity <= 2)    return INT_COLORS[day.maxIntensity === 1 ? 1 : 2];
+  if (day.maxIntensity === 3)   return INT_COLORS[3];
+  if (day.maxIntensity === 4)   return INT_COLORS[4];
+  return INT_COLORS[5];
 }
 
 export function buildDayMap(sessions: SessionSummary[]): Map<string, DayData> {
@@ -219,6 +219,9 @@ interface TrainingHeatmapProps {
   onGoToToday?: () => void;
   onLogSession?: (dateKey: string) => void;
   year?: number;
+  /** When true, the card fills its parent's height (parent must clamp).
+   *  The grid scrolls internally via flex:1 instead of computed maxHeight. */
+  fillHeight?: boolean;
 }
 
 // Skeleton shimmer shown while sessions are fetching.
@@ -249,7 +252,7 @@ function HeatmapSkeleton() {
   );
 }
 
-export default function TrainingHeatmap({ sessions = [], intentions = [], loading = false, onSessionUpdated, onGoToToday, onLogSession, year: yearProp }: TrainingHeatmapProps) {
+export default function TrainingHeatmap({ sessions = [], intentions = [], loading = false, onSessionUpdated, onGoToToday, onLogSession, year: yearProp, fillHeight = false }: TrainingHeatmapProps) {
   const [selectedSession, setSelectedSession] = useState<{ session: SessionSummary; date: Date } | null>(null);
   const [showGiSplit, setShowGiSplit] = useState(false);
   const [gridMaxH, setGridMaxH] = useState<number | undefined>(undefined);
@@ -263,8 +266,10 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
   // it read as a transient app-y indicator instead of the editorial ledger
   // feel we want.
 
-  // Measure available height for the grid: viewport minus the grid's top offset minus bottom nav
+  // Measure available height for the grid: viewport minus the grid's top offset minus bottom nav.
+  // Skipped when `fillHeight` is set — the parent flex chain handles sizing.
   useEffect(() => {
+    if (fillHeight) return;
     function measure() {
       const el = scrollContainerRef.current;
       if (!el) return;
@@ -277,7 +282,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
     measure();
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
-  }, [loading, showGiSplit]);
+  }, [loading, showGiSplit, fillHeight]);
 
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -424,36 +429,66 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
       }
     `}</style>
     {/* Stacked journal pages peeking out below-right */}
-    <div className="rounded-2xl p-6" style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}>
+    <div
+      className="rounded-2xl p-6"
+      style={{
+        backgroundColor: CARD_BG,
+        border: `1px solid ${CARD_GLOW_BORDER}`,
+        boxShadow: CARD_GLOW,
+        ...(fillHeight ? { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 } : null),
+      }}
+    >
 
-      {/* Stats — 3 primary metrics on a consistent grid */}
-      <div className="grid grid-cols-3 gap-4 mb-4 pb-4 border-b border-white/10">
-        <div>
-          <p className="text-2xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>{Math.round(animSessions)}</p>
-          <p className="text-xs mt-0.5" style={{ color: 'rgba(242,228,168,0.5)' }}>Sessions</p>
+      {/* Stats + intensity legend — one combined row to save vertical space.
+          Left: Sessions / Hours / Streak as a 3-up grid. Right: 5-tile
+          intensity ladder with a single "Intensity" caption underneath. */}
+      <div className="flex items-end gap-4 mb-4 pb-4 border-b border-white/10">
+        <div className="grid grid-cols-3 gap-4 flex-1 min-w-0">
+          <div>
+            <p className="text-2xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>{Math.round(animSessions)}</p>
+            <p className="text-xs mt-0.5" style={{ color: 'rgba(242,228,168,0.5)' }}>Sessions</p>
+          </div>
+          <div>
+            <button
+              onClick={() => setShowGiSplit(s => !s)}
+              className="text-left w-full group"
+            >
+              <p className="text-2xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>{hours}h</p>
+              <p className="text-xs mt-0.5 flex items-center gap-1" style={{ color: 'rgba(242,228,168,0.5)' }}>
+                Hours
+                <svg
+                  width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"
+                  className="transition-transform"
+                  style={{ transform: showGiSplit ? 'rotate(180deg)' : 'rotate(0)' }}
+                >
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </p>
+            </button>
+          </div>
+          <div>
+            <p className="text-2xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>{Math.round(animStreak)}</p>
+            <p className="text-xs mt-0.5" style={{ color: 'rgba(196,145,95,0.65)' }}>Day streak</p>
+          </div>
         </div>
-        <div>
-          <button
-            onClick={() => setShowGiSplit(s => !s)}
-            className="text-left w-full group"
-          >
-            <p className="text-2xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>{hours}h</p>
-            <p className="text-xs mt-0.5 flex items-center gap-1" style={{ color: 'rgba(242,228,168,0.5)' }}>
-              Hours
-              <svg
-                width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"
-                className="transition-transform"
-                style={{ transform: showGiSplit ? 'rotate(180deg)' : 'rotate(0)' }}
-              >
-                <path d="M6 9l6 6 6-6" />
-              </svg>
-            </p>
-          </button>
-        </div>
-        <div>
-          <p className="text-2xl font-bold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>{Math.round(animStreak)}</p>
-          <p className="text-xs mt-0.5" style={{ color: 'rgba(196,145,95,0.65)' }}>Day streak</p>
-        </div>
+
+        {/* Intensity ladder — 5 tiles, single caption. The Rest swatch is
+            implied by the empty-day cells; it doesn't earn a tile here. */}
+        {sessions.length > 0 && (
+          <div className="flex flex-col items-end gap-1 flex-shrink-0">
+            <div className="flex gap-0.5">
+              {LEGEND.slice(1).map(({ color, label }) => (
+                <div
+                  key={label}
+                  style={{ width: 16, height: 10, borderRadius: 2, backgroundColor: color }}
+                />
+              ))}
+            </div>
+            <span className="text-[10px] leading-none" style={{ color: 'rgba(196,145,95,0.7)', letterSpacing: '0.08em' }}>
+              Easy → Max
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Gi / No-Gi breakdown — expandable under Hours */}
@@ -467,20 +502,6 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
             <p className="text-lg font-bold" style={{ color: PALE_YELLOW }}>{nogiHours}h</p>
             <p className="text-[10px] mt-0.5" style={{ color: 'rgba(242,228,168,0.4)' }}>No-Gi</p>
           </div>
-        </div>
-      )}
-
-      {/* Intensity legend — visible before scrolling into the grid */}
-      {sessions.length > 0 && (
-        <div className="flex items-center gap-4 mb-5 pb-4 border-b border-white/10">
-          <span className="text-xs font-medium flex-shrink-0 self-center" style={{ color: 'rgba(196,145,95,0.7)' }}>Intensity</span>
-          {LEGEND.map(({ color, label, range }) => (
-            <div key={label} className="flex flex-col items-center gap-0.5">
-              <div style={{ width: 28, height: 10, borderRadius: 3, backgroundColor: color }} />
-              <span className="text-[10px] leading-none" style={{ color: 'rgba(242,228,168,0.65)' }}>{label}</span>
-              <span className="text-[9px] leading-none" style={{ color: range ? 'rgba(255,255,255,0.32)' : 'transparent' }}>{range || '—'}</span>
-            </div>
-          ))}
         </div>
       )}
 
@@ -519,7 +540,15 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
       )}
 
       {/* Calendar grid — fills remaining viewport, scrolls internally */}
-      {sessions.length > 0 && <div ref={scrollContainerRef} role="grid" aria-label={`Training calendar for ${year}`} className="overflow-y-auto relative" style={gridMaxH ? { maxHeight: gridMaxH } : undefined}>
+      {sessions.length > 0 && <div
+        ref={scrollContainerRef}
+        role="grid"
+        aria-label={`Training calendar for ${year}`}
+        className="overflow-y-auto relative"
+        style={fillHeight
+          ? { flex: 1, minHeight: 0 }
+          : (gridMaxH ? { maxHeight: gridMaxH } : undefined)}
+      >
 
         {/* Sticky column headers */}
         <div
@@ -553,6 +582,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
         {monthGroups.map((group, gi) => (
           <section
             key={`m-${year}-${group.monthIndex}`}
+            data-month={group.monthIndex}
             style={{
               position: 'relative',
               borderTop: gi > 0 ? '1px solid rgba(255,255,255,0.10)' : undefined,
@@ -886,10 +916,10 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
           className="absolute bottom-5 right-5 z-30 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all shadow-lg"
           style={{
             backgroundColor: 'rgba(21,46,34,0.92)',
-            border: '1px solid rgba(242,228,168,0.28)',
+            border: '1px solid rgba(196,145,95,0.40)',
             color: 'rgba(242,228,168,0.85)',
             backdropFilter: 'blur(8px)',
-            boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.4), 0 0 18px rgba(196,145,95,0.18)',
           }}
         >
           Today

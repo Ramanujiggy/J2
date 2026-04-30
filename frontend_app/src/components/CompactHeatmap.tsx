@@ -6,17 +6,17 @@ import { useCountUp } from '../hooks/useCountUp.ts';
 import { localDateKey, buildDayMap, cellColor, computeStats, EMPTY_DAY } from './TrainingHeatmap.tsx';
 import type { DayData } from './TrainingHeatmap.tsx';
 import type { SessionSummary } from '../types/api.ts';
-import { CARD_BG, COPPER_BORDER, CARD_SHADOW, HEATMAP_REST, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_2_BORDER } from '../lib/theme.ts';
+import { CARD_BG, CARD_GLOW_BORDER, CARD_GLOW, HEATMAP_REST, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_2_BORDER, INT_COLORS } from '../lib/theme.ts';
 
 const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const DOW_LABELS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 const CELL_GAP = 4;
 
 const LEGEND = [
-  { color: HEATMAP_REST, label: 'Rest' },
-  { color: '#CDDFA0',    label: 'Easy' },
-  { color: '#6FD08C',    label: 'Moderate' },
-  { color: '#DA7422',    label: 'High' },
+  { color: HEATMAP_REST,  label: 'Rest' },
+  { color: INT_COLORS[2], label: 'Easy' },
+  { color: INT_COLORS[3], label: 'Moderate' },
+  { color: INT_COLORS[5], label: 'High' },
 ] as const;
 
 interface WeekColumn {
@@ -61,7 +61,7 @@ function CompactSkeleton() {
   return (
     <div
       className="rounded-2xl p-6"
-      style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}
+      style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}
     >
       {/* Stats skeleton */}
       <div className="flex gap-3 mb-5">
@@ -85,9 +85,11 @@ interface CompactHeatmapProps {
   sessions: SessionSummary[];
   year: number;
   loading?: boolean;
+  /** When true, the card fills its parent's height (parent must clamp). */
+  fillHeight?: boolean;
 }
 
-export default function CompactHeatmap({ sessions, year, loading = false }: CompactHeatmapProps) {
+export default function CompactHeatmap({ sessions, year, loading = false, fillHeight = false }: CompactHeatmapProps) {
   if (loading) return <CompactSkeleton />;
 
   const dayMap = useMemo(() => buildDayMap(sessions), [sessions]);
@@ -124,7 +126,12 @@ export default function CompactHeatmap({ sessions, year, loading = false }: Comp
   return (
     <div
       className="rounded-2xl p-5 sm:p-6"
-      style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}
+      style={{
+        backgroundColor: CARD_BG,
+        border: `1px solid ${CARD_GLOW_BORDER}`,
+        boxShadow: CARD_GLOW,
+        ...(fillHeight ? { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 } : null),
+      }}
     >
       {/* ── Stats row ───────────────────────────────────────────────── */}
       <div className="grid grid-cols-4 gap-2 sm:gap-3 mb-5">
@@ -160,8 +167,8 @@ export default function CompactHeatmap({ sessions, year, loading = false }: Comp
         style={{
           overflowY: 'auto',
           scrollbarWidth: 'none',
-          maxHeight: 'min(480px, 60dvh)',
           WebkitOverflowScrolling: 'touch',
+          ...(fillHeight ? { flex: 1, minHeight: 0 } : { maxHeight: 'min(480px, 60dvh)' }),
         }}
       >
         {/* Sticky day-of-week header */}

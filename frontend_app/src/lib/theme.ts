@@ -113,14 +113,17 @@ export const FONT_EDITORIAL = '"Cormorant Garamond", Georgia, serif' as const;
 export const FONT_WORDMARK = '"Cormorant Garamond", "Cormorant", Georgia, serif' as const;
 
 /** Session-intensity color scale. Level 0 is the "rest / empty" swatch.
- *  Indices 1-5 map to Drill → Light → Steady → Intense → Hard roll. */
+ *  Indices 1-5 map to Drill → Light → Steady → Intense → Hard roll.
+ *  The ladder walks moss → champagne → copper, staying inside the brand
+ *  register (forest / copper / champagne) instead of pivoting through
+ *  saturated lime green and fluorescent orange. */
 export const INT_COLORS = {
   0: 'rgba(255,255,255,0.06)',
-  1: '#A8CB72',
-  2: '#7AC374',
-  3: '#52B56C',
-  4: '#D4A040',
-  5: '#DA7422',
+  1: '#5E8A5C',   // Drill: muted moss — sits gently on forest card
+  2: '#7BA177',   // Light: warmer moss — readable but quiet
+  3: '#A8B97A',   // Steady: champagne-touched green — the pivot point
+  4: '#D4B86A',   // Intense: champagne — fully gold, no neon
+  5: '#C4915F',   // Hard roll: COPPER — brand caramel, no fluorescent orange
 } as const;
 
 /** Human labels for the intensity scale, aligned with INT_COLORS indices. */
