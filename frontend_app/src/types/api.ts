@@ -186,3 +186,33 @@ export interface SearchSessionsResponse {
 export interface ProfileResponse {
   profile: { name: string | null; belt_rank: string | null; stripes: number; intentions_enabled: boolean } | null;
 }
+
+// ── Class schedules + push notifications (mig 019/020/021) ──────────────────
+
+export interface ClassSchedule {
+  id: string;
+  user_id: string;
+  name: string;
+  day_of_week: number;            // 0=Sun … 6=Sat
+  start_time: string;             // 'HH:MM:SS'
+  duration_min: number;
+  gi_nogi: 'gi' | 'no_gi' | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface ClassSchedulesResponse {
+  schedules: ClassSchedule[];
+}
+
+export interface ClassScheduleResponse {
+  schedule: ClassSchedule;
+}
+
+export interface ClassScheduleInput {
+  name: string;
+  day_of_week: number;
+  start_time: string;
+  duration_min: number;
+  gi_nogi: 'gi' | 'no_gi' | null;
+}

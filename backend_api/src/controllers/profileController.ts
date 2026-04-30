@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { getProfile, updateProfile } from '../models/profileModel.js';
+import { updateUserTimezone } from '../models/userModel.js';
 
 const BELT_RANKS = ['white', 'blue', 'purple', 'brown', 'black'] as const;
 
@@ -59,6 +60,32 @@ export const saveProfile = async (req: Request, res: Response): Promise<void> =>
         res.json({ message: 'Profile saved.', profile: updated });
     } catch (err) {
         console.error('❌ Error saving profile:', err);
+        res.status(500).json({ message: 'Server error.' });
+    }
+};
+
+// Validates an IANA timezone string. Falls back to a length+character check if
+// `Intl.supportedValuesOf` is unavailable (older Node versions).
+function isValidTimezone(tz: string): boolean {
+    if (typeof tz !== 'string' || tz.length === 0 || tz.length > 64) return false;
+    try {
+        new Intl.DateTimeFormat(undefined, { timeZone: tz });
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+export const saveTimezone = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) { res.status(401).json({ message: 'Unauthorized.' }); return; }
+        const tz = (req.body ?? {}).timezone;
+        if (!isValidTimezone(tz)) { res.status(400).json({ message: 'Invalid timezone.' }); return; }
+        await updateUserTimezone(userId, tz);
+        res.json({ timezone: tz });
+    } catch (err) {
+        console.error('❌ Error saving timezone:', err);
         res.status(500).json({ message: 'Server error.' });
     }
 };

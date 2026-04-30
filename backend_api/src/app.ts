@@ -13,6 +13,8 @@ import userTagRoutes from './routes/userTagRoutes.js';
 import canonicalPositionRoutes from './routes/canonicalPositionRoutes.js';
 import canonicalConstraintRoutes from './routes/canonicalConstraintRoutes.js';
 import userConstraintRoutes from './routes/userConstraintRoutes.js';
+import classScheduleRoutes from './routes/classScheduleRoutes.js';
+import pushSubscriptionRoutes from './routes/pushSubscriptionRoutes.js';
 // db import triggers pool connection test on startup
 import { query } from './config/db.js';
 
@@ -157,6 +159,8 @@ app.use('/api/user-tags', userTagRoutes);
 app.use('/api/canonical-positions', canonicalPositionRoutes);
 app.use('/api/canonical-constraints', canonicalConstraintRoutes);
 app.use('/api/user-constraints', userConstraintRoutes);
+app.use('/api/class-schedules', classScheduleRoutes);
+app.use('/api/push-subscriptions', pushSubscriptionRoutes);
 
 
 // Catch-all JSON error handler — must be registered after all routes.

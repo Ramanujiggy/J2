@@ -12,28 +12,14 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: false,
-      workbox: {
+      // injectManifest strategy lets us ship a hand-written `src/sw.ts` that
+      // adds Web Push handlers (push + notificationclick) on top of the
+      // Workbox-managed precaching/runtime caching the plugin still injects.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: 'StaleWhileRevalidate',
-            options: { cacheName: 'google-fonts-css', expiration: { maxEntries: 4, maxAgeSeconds: 365 * 24 * 60 * 60 } },
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: { cacheName: 'google-fonts-woff', expiration: { maxEntries: 20, maxAgeSeconds: 365 * 24 * 60 * 60 }, cacheableResponse: { statuses: [0, 200] } },
-          },
-          {
-            urlPattern: /\/api\/.*/i,
-            method: 'GET',
-            handler: 'NetworkFirst',
-            options: { cacheName: 'api-cache', networkTimeoutSeconds: 5, expiration: { maxEntries: 50, maxAgeSeconds: 24 * 60 * 60 }, cacheableResponse: { statuses: [0, 200] } },
-          },
-        ],
-        navigateFallback: 'index.html',
-        navigateFallbackDenylist: [/^\/api/, /^\/auth/],
       },
     }),
   ],

@@ -40,3 +40,10 @@ export const createUser = async (email: string, passwordHash: string): Promise<U
 export const updatePasswordHash = async (id: string, passwordHash: string, exec: Executor | PoolClient = defaultExec): Promise<void> => {
     await exec.query('UPDATE users SET password_hash = $1 WHERE id = $2', [passwordHash, id]);
 };
+
+// Update a user's IANA timezone (e.g. "America/Los_Angeles"). Synced from the
+// client on first load. Used by the notification scheduler to convert UTC ticks
+// into user-local clock for matching against class_schedules.start_time.
+export const updateUserTimezone = async (id: string, timezone: string): Promise<void> => {
+    await query('UPDATE users SET timezone = $1 WHERE id = $2', [timezone, id]);
+};
