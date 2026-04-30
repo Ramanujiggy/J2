@@ -85,11 +85,9 @@ interface CompactHeatmapProps {
   sessions: SessionSummary[];
   year: number;
   loading?: boolean;
-  /** When true, the card fills its parent's height (parent must clamp). */
-  fillHeight?: boolean;
 }
 
-export default function CompactHeatmap({ sessions, year, loading = false, fillHeight = false }: CompactHeatmapProps) {
+export default function CompactHeatmap({ sessions, year, loading = false }: CompactHeatmapProps) {
   if (loading) return <CompactSkeleton />;
 
   const dayMap = useMemo(() => buildDayMap(sessions), [sessions]);
@@ -126,12 +124,7 @@ export default function CompactHeatmap({ sessions, year, loading = false, fillHe
   return (
     <div
       className="rounded-2xl p-5 sm:p-6"
-      style={{
-        backgroundColor: CARD_BG,
-        border: `1px solid ${CARD_GLOW_BORDER}`,
-        boxShadow: CARD_GLOW,
-        ...(fillHeight ? { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 } : null),
-      }}
+      style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}
     >
       {/* ── Stats row ───────────────────────────────────────────────── */}
       <div className="grid grid-cols-4 gap-2 sm:gap-3 mb-5">
@@ -167,8 +160,8 @@ export default function CompactHeatmap({ sessions, year, loading = false, fillHe
         style={{
           overflowY: 'auto',
           scrollbarWidth: 'none',
+          maxHeight: 'min(480px, 60dvh)',
           WebkitOverflowScrolling: 'touch',
-          ...(fillHeight ? { flex: 1, minHeight: 0 } : { maxHeight: 'min(480px, 60dvh)' }),
         }}
       >
         {/* Sticky day-of-week header */}

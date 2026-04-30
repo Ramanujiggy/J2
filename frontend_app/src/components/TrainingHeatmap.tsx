@@ -219,9 +219,6 @@ interface TrainingHeatmapProps {
   onGoToToday?: () => void;
   onLogSession?: (dateKey: string) => void;
   year?: number;
-  /** When true, the card fills its parent's height (parent must clamp).
-   *  The grid scrolls internally via flex:1 instead of computed maxHeight. */
-  fillHeight?: boolean;
 }
 
 // Skeleton shimmer shown while sessions are fetching.
@@ -252,7 +249,7 @@ function HeatmapSkeleton() {
   );
 }
 
-export default function TrainingHeatmap({ sessions = [], intentions = [], loading = false, onSessionUpdated, onGoToToday, onLogSession, year: yearProp, fillHeight = false }: TrainingHeatmapProps) {
+export default function TrainingHeatmap({ sessions = [], intentions = [], loading = false, onSessionUpdated, onGoToToday, onLogSession, year: yearProp }: TrainingHeatmapProps) {
   const [selectedSession, setSelectedSession] = useState<{ session: SessionSummary; date: Date } | null>(null);
   const [showGiSplit, setShowGiSplit] = useState(false);
   const [gridMaxH, setGridMaxH] = useState<number | undefined>(undefined);
@@ -266,23 +263,33 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
   // it read as a transient app-y indicator instead of the editorial ledger
   // feel we want.
 
-  // Measure available height for the grid: viewport minus the grid's top offset minus bottom nav.
-  // Skipped when `fillHeight` is set — the parent flex chain handles sizing.
+  // Measure available height for the grid so the whole card fits within the
+  // visible main-content area — no outer page scroll, only the grid scrolls.
+  // On mobile we read the bottom-nav's actual top edge (it's `position: fixed`,
+  // so its rect already accounts for safe-area-inset-bottom on notched devices)
+  // and subtract just the chrome that lives between the grid and the nav:
+  // card padding-bottom (24) + page padding-bottom (24) + small buffer (4).
   useEffect(() => {
-    if (fillHeight) return;
     function measure() {
       const el = scrollContainerRef.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
-      // Bottom chrome: mobile bottom nav (~80px) + card padding-bottom (24px) + page padding-bottom (24px)
-      const bottomChrome = window.innerWidth < 640 ? 100 : 48;
-      const available = window.innerHeight - rect.top - bottomChrome;
+      const isMobile = window.innerWidth < 640;
+
+      let viewportBottom = window.innerHeight;
+      if (isMobile) {
+        const nav = document.querySelector('nav.sm\\:hidden') as HTMLElement | null;
+        if (nav) viewportBottom = nav.getBoundingClientRect().top;
+      }
+
+      const belowGrid = isMobile ? 52 : 48;
+      const available = viewportBottom - rect.top - belowGrid;
       setGridMaxH(Math.max(200, available));
     }
     measure();
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
-  }, [loading, showGiSplit, fillHeight]);
+  }, [loading, showGiSplit]);
 
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -429,15 +436,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
       }
     `}</style>
     {/* Stacked journal pages peeking out below-right */}
-    <div
-      className="rounded-2xl p-6"
-      style={{
-        backgroundColor: CARD_BG,
-        border: `1px solid ${CARD_GLOW_BORDER}`,
-        boxShadow: CARD_GLOW,
-        ...(fillHeight ? { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 } : null),
-      }}
-    >
+    <div className="rounded-2xl p-6" style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}>
 
       {/* Stats + intensity legend — one combined row to save vertical space.
           Left: Sessions / Hours / Streak as a 3-up grid. Right: 5-tile
@@ -540,15 +539,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
       )}
 
       {/* Calendar grid — fills remaining viewport, scrolls internally */}
-      {sessions.length > 0 && <div
-        ref={scrollContainerRef}
-        role="grid"
-        aria-label={`Training calendar for ${year}`}
-        className="overflow-y-auto relative"
-        style={fillHeight
-          ? { flex: 1, minHeight: 0 }
-          : (gridMaxH ? { maxHeight: gridMaxH } : undefined)}
-      >
+      {sessions.length > 0 && <div ref={scrollContainerRef} role="grid" aria-label={`Training calendar for ${year}`} className="overflow-y-auto relative" style={gridMaxH ? { maxHeight: gridMaxH } : undefined}>
 
         {/* Sticky column headers */}
         <div
