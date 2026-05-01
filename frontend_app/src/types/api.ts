@@ -184,7 +184,15 @@ export interface SearchSessionsResponse {
 }
 
 export interface ProfileResponse {
-  profile: { name: string | null; belt_rank: string | null; stripes: number; intentions_enabled: boolean } | null;
+  profile: {
+    name: string | null;
+    belt_rank: string | null;
+    stripes: number;
+    intentions_enabled: boolean;
+    // migration 019 — IANA TZ ("America/Chicago") set via PATCH /api/profile/timezone.
+    // Nullable for legacy rows that predate the migration.
+    timezone?: string | null;
+  } | null;
 }
 
 // ── Class schedules + push notifications (mig 019/020/021) ──────────────────
