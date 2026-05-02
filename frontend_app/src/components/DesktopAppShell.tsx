@@ -69,6 +69,14 @@ function UserIcon({ active }: IconProps) {
   );
 }
 
+function ShieldIcon({ active }: IconProps) {
+  return (
+    <svg {...iconAttrs(active)}>
+      <path d="M12 3 4 6v6c0 5 3.5 8.5 8 9 4.5-.5 8-4 8-9V6l-8-3z" />
+    </svg>
+  );
+}
+
 // ─── Nav definition ──────────────────────────────────────────────────────────
 // Labels here are the Phase 2 starting set. Rename lands in later phases
 // (Calendar → Atlas in Phase 4, Analytics folds into Atlas at the same time).
@@ -77,7 +85,7 @@ type NavItem = {
   path: string;
   label: string;
   Icon: (p: IconProps) => JSX.Element;
-  gated?: 'intentions';
+  gated?: 'intentions' | 'admin';
 };
 
 // Atlas absorbs what used to be Calendar + Analytics. /calendar still
@@ -89,6 +97,10 @@ const NAV_ITEMS: readonly NavItem[] = [
   { path: '/atlas',      label: 'Atlas',      Icon: MapIcon },
   { path: '/intentions', label: 'Intentions', Icon: DiamondIcon, gated: 'intentions' },
   { path: '/profile',    label: 'Profile',    Icon: UserIcon },
+  // Admin gate (mig 023). Only renders for users with users.is_admin = true.
+  // The route /admin needs to appear in NAV_ITEMS for activeTab's prefix
+  // match to highlight it correctly when the founder is on the dashboard.
+  { path: '/admin',      label: 'Admin',      Icon: ShieldIcon, gated: 'admin' },
 ] as const;
 
 // ─── Shell ───────────────────────────────────────────────────────────────────
@@ -98,7 +110,7 @@ interface Props { children: React.ReactNode; }
 export default function DesktopAppShell({ children }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { name, beltRank, stripes, intentionsEnabled } = useProfile();
+  const { name, beltRank, stripes, intentionsEnabled, isAdmin } = useProfile();
   const { activeIntention } = useActiveIntention();
 
   useOnlineSync();
@@ -124,8 +136,12 @@ export default function DesktopAppShell({ children }: Props) {
   }, [activeIntention]);
 
   const items = useMemo(
-    () => NAV_ITEMS.filter(it => it.gated !== 'intentions' || intentionsEnabled),
-    [intentionsEnabled],
+    () => NAV_ITEMS.filter(it => {
+      if (it.gated === 'intentions') return intentionsEnabled;
+      if (it.gated === 'admin')      return isAdmin;
+      return true;
+    }),
+    [intentionsEnabled, isAdmin],
   );
   const activeTab = items.find(it => location.pathname.startsWith(it.path))?.path ?? '/home';
 

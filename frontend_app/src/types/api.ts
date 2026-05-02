@@ -233,6 +233,12 @@ export interface AdminStats {
   total_users: number;
   users_24h: number;
   users_7d: number;
+  // Test-user counts (emails matching @journada-e2e.com or @example.com).
+  // Frontend subtracts these from displayed totals when "Show test users"
+  // is off. Added in the admin dashboard polish pass alongside mig 025.
+  test_user_count: number;
+  test_users_24h: number;
+  test_users_7d: number;
   total_sessions: number;
   sessions_24h: number;
   sessions_7d: number;

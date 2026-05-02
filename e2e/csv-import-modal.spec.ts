@@ -1,14 +1,9 @@
 /**
  * CSV Import Modal — desktop sizing verification.
  *
- * After the editorial resize pass (planned in
- * `~/.claude/plans/wondrous-questing-bonbon.md`), the modal should render
- * at ~1180px wide on desktop with the editorial header, while staying within
- * the viewport on mobile.
- *
- * Each test gets a fresh browser context, so we register-or-login in
- * `beforeEach` against a stable per-project email so subsequent tests reuse
- * the same account.
+ * Uses the shared persistent test account (e2e/test-account.ts) so we
+ * don't accumulate a new user per run. The first test ever run on a
+ * fresh DB registers the account; every run after just logs in.
  *
  * Run:
  *   cd project/J2
@@ -17,27 +12,11 @@
  */
 import { test, expect, Page } from '@playwright/test';
 import path from 'node:path';
-
-const TEST_PASSWORD = 'TestPass123!';
-
-// Fresh email per test — avoids any cross-test auth coupling. Cheap.
-function freshEmail(projectName: string): string {
-  const stamp = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-  return `csv-${projectName}-${stamp}@journada-e2e.com`;
-}
+import { loginAsTestUser } from './test-account';
 
 async function waitForPageReady(page: Page) {
   await page.waitForLoadState('networkidle').catch(() => { /* ok */ });
   await page.waitForTimeout(450); // PageContent crossfade buffer
-}
-
-async function registerAndLogin(page: Page, email: string) {
-  await page.goto('/login?mode=register');
-  await page.getByPlaceholder('you@example.com').fill(email);
-  await page.getByPlaceholder('••••••••').fill(TEST_PASSWORD);
-  await page.locator('form').getByRole('button', { name: 'Create Account' }).click();
-  await page.waitForURL('**/home', { timeout: 20_000 });
-  await waitForPageReady(page);
 }
 
 async function openImportModal(page: Page) {
@@ -49,8 +28,9 @@ async function openImportModal(page: Page) {
 }
 
 test.describe('CSV Import modal — sizing verification', () => {
-  test.beforeEach(async ({ page }, testInfo) => {
-    await registerAndLogin(page, freshEmail(testInfo.project.name));
+  test.beforeEach(async ({ page }) => {
+    await loginAsTestUser(page);
+    await waitForPageReady(page);
   });
 
   test('desktop modal opens between 1100–1200px wide', async ({ page }, testInfo) => {

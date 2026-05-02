@@ -10,21 +10,33 @@ import { listCases, updateCase } from '../models/supportCaseModel.js';
 // Single-row aggregate. Cheap enough to run on every dashboard load.
 export const getStats = async (_req: Request, res: Response): Promise<void> => {
     try {
+        // Test-user predicate (mirrored on the frontend filter logic): emails
+        // ending in @journada-e2e.com OR @example.com count as test users.
+        // The dashboard subtracts these from displayed totals when the
+        // "Show test users" toggle is off.
+        const testWhere = `(email LIKE '%@journada-e2e.com' OR email LIKE '%@example.com')`;
+
         const result = await query(`
             SELECT
-              (SELECT COUNT(*) FROM users)                                                              AS total_users,
-              (SELECT COUNT(*) FROM users             WHERE created_at > NOW() - INTERVAL '24 hours')   AS users_24h,
-              (SELECT COUNT(*) FROM users             WHERE created_at > NOW() - INTERVAL '7 days')     AS users_7d,
-              (SELECT COUNT(*) FROM training_sessions)                                                  AS total_sessions,
-              (SELECT COUNT(*) FROM training_sessions WHERE created_at > NOW() - INTERVAL '24 hours')   AS sessions_24h,
-              (SELECT COUNT(*) FROM training_sessions WHERE created_at > NOW() - INTERVAL '7 days')     AS sessions_7d,
-              (SELECT COUNT(*) FROM support_cases     WHERE status = 'open')                            AS cases_open,
-              (SELECT COUNT(*) FROM support_cases     WHERE status = 'in_progress')                     AS cases_in_progress
+              (SELECT COUNT(*) FROM users)                                                                  AS total_users,
+              (SELECT COUNT(*) FROM users             WHERE created_at > NOW() - INTERVAL '24 hours')       AS users_24h,
+              (SELECT COUNT(*) FROM users             WHERE created_at > NOW() - INTERVAL '7 days')         AS users_7d,
+              (SELECT COUNT(*) FROM users             WHERE ${testWhere})                                   AS test_users,
+              (SELECT COUNT(*) FROM users             WHERE ${testWhere} AND created_at > NOW() - INTERVAL '24 hours')  AS test_users_24h,
+              (SELECT COUNT(*) FROM users             WHERE ${testWhere} AND created_at > NOW() - INTERVAL '7 days')    AS test_users_7d,
+              (SELECT COUNT(*) FROM training_sessions)                                                      AS total_sessions,
+              (SELECT COUNT(*) FROM training_sessions WHERE created_at > NOW() - INTERVAL '24 hours')       AS sessions_24h,
+              (SELECT COUNT(*) FROM training_sessions WHERE created_at > NOW() - INTERVAL '7 days')         AS sessions_7d,
+              (SELECT COUNT(*) FROM support_cases     WHERE status = 'open')                                AS cases_open,
+              (SELECT COUNT(*) FROM support_cases     WHERE status = 'in_progress')                         AS cases_in_progress
         `);
         const r = result.rows[0] as {
             total_users: string;
             users_24h: string;
             users_7d: string;
+            test_users: string;
+            test_users_24h: string;
+            test_users_7d: string;
             total_sessions: string;
             sessions_24h: string;
             sessions_7d: string;
@@ -37,6 +49,9 @@ export const getStats = async (_req: Request, res: Response): Promise<void> => {
                 total_users:       Number(r.total_users),
                 users_24h:         Number(r.users_24h),
                 users_7d:          Number(r.users_7d),
+                test_user_count:    Number(r.test_users),
+                test_users_24h:     Number(r.test_users_24h),
+                test_users_7d:      Number(r.test_users_7d),
                 total_sessions:    Number(r.total_sessions),
                 sessions_24h:      Number(r.sessions_24h),
                 sessions_7d:       Number(r.sessions_7d),

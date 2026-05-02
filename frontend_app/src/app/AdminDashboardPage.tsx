@@ -58,12 +58,14 @@ export default function AdminDashboardPage() {
     const { isAdmin, loaded } = useProfile();
     const isDesktop = useIsDesktop();
 
-    const [stats,      setStats]      = useState<AdminStats | null>(null);
-    const [cases,      setCases]      = useState<SupportCaseWithUser[]>([]);
-    const [users,      setUsers]      = useState<AdminUserSummary[]>([]);
-    const [statusFilt, setStatusFilt] = useState<StatusFilter>('all');
-    const [loading,    setLoading]    = useState(true);
-    const [error,      setError]      = useState<string | null>(null);
+    const [stats,         setStats]         = useState<AdminStats | null>(null);
+    const [cases,         setCases]         = useState<SupportCaseWithUser[]>([]);
+    const [users,         setUsers]         = useState<AdminUserSummary[]>([]);
+    const [statusFilt,    setStatusFilt]    = useState<StatusFilter>('all');
+    const [minSessions,   setMinSessions]   = useState<number>(0);
+    const [showTestUsers, setShowTestUsers] = useState<boolean>(false);
+    const [loading,       setLoading]       = useState(true);
+    const [error,         setError]         = useState<string | null>(null);
 
     useEffect(() => {
         let cancelled = false;
@@ -99,6 +101,39 @@ export default function AdminDashboardPage() {
         if (statusFilt === 'all') return cases;
         return cases.filter(c => c.status === statusFilt);
     }, [cases, statusFilt]);
+
+    // Test-user predicate — must mirror the backend's testWhere clause in
+    // adminController.getStats so the displayed totals match the user list.
+    const isTestEmail = (email: string): boolean => {
+        return /@journada-e2e\.com$/i.test(email) || /@example\.com$/i.test(email);
+    };
+
+    // Displayed stats: subtract test-user counts when "Show test users" is
+    // off so the founder sees real-user numbers by default. Server returns
+    // the raw + the test deltas, frontend does the math.
+    const displayedStats = useMemo(() => {
+        if (!stats) return null;
+        if (showTestUsers) return stats;
+        return {
+            ...stats,
+            total_users: stats.total_users - stats.test_user_count,
+            users_24h:   stats.users_24h   - stats.test_users_24h,
+            users_7d:    stats.users_7d    - stats.test_users_7d,
+        };
+    }, [stats, showTestUsers]);
+
+    // Filtered + sorted recent users — apply min-sessions threshold + the
+    // test-user toggle, sort by session_count DESC (most active first),
+    // then cap to 10 for the rendered list.
+    const VISIBLE_USERS_CAP = 10;
+    const filteredUsersAll = useMemo(() => {
+        return users
+            .filter(u => u.session_count >= minSessions)
+            .filter(u => showTestUsers || !isTestEmail(u.email))
+            .sort((a, b) => b.session_count - a.session_count);
+    }, [users, minSessions, showTestUsers]);
+    const visibleUsers = filteredUsersAll.slice(0, VISIBLE_USERS_CAP);
+    const hiddenUserCount = Math.max(0, filteredUsersAll.length - VISIBLE_USERS_CAP);
 
     const onCaseUpdated = (updated: SupportCaseWithUser) => {
         setCases(prev => prev.map(c => c.id === updated.id ? { ...c, ...updated } : c));
@@ -158,23 +193,30 @@ export default function AdminDashboardPage() {
 
                 {/* ── Health strip ── */}
                 <Card>
-                    <SectionLabel>Health</SectionLabel>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+                        <SectionLabel>Health</SectionLabel>
+                        <ShowTestUsersToggle
+                            value={showTestUsers}
+                            onChange={setShowTestUsers}
+                            testCount={stats?.test_user_count ?? 0}
+                        />
+                    </div>
                     <div
                         style={{
                             display: 'grid',
                             gridTemplateColumns: isDesktop ? 'repeat(8, 1fr)' : 'repeat(2, 1fr)',
                             gap: isDesktop ? 18 : 14,
-                            marginTop: 14,
+                            marginTop: 18,
                         }}
                     >
-                        <Stat label="Total users"   value={stats?.total_users} />
-                        <Stat label="Users 24h"     value={stats?.users_24h} />
-                        <Stat label="Users 7d"      value={stats?.users_7d} />
-                        <Stat label="Sessions"      value={stats?.total_sessions} />
-                        <Stat label="Sessions 24h"  value={stats?.sessions_24h} />
-                        <Stat label="Sessions 7d"   value={stats?.sessions_7d} />
-                        <Stat label="Cases open"    value={stats?.cases_open} accent={!!stats && stats.cases_open > 0 ? COPPER : undefined} />
-                        <Stat label="In progress"   value={stats?.cases_in_progress} />
+                        <Stat label="Total users"   value={displayedStats?.total_users} />
+                        <Stat label="Users 24h"     value={displayedStats?.users_24h} />
+                        <Stat label="Users 7d"      value={displayedStats?.users_7d} />
+                        <Stat label="Sessions"      value={displayedStats?.total_sessions} />
+                        <Stat label="Sessions 24h"  value={displayedStats?.sessions_24h} />
+                        <Stat label="Sessions 7d"   value={displayedStats?.sessions_7d} />
+                        <Stat label="Cases open"    value={displayedStats?.cases_open} accent={!!displayedStats && displayedStats.cases_open > 0 ? COPPER : undefined} />
+                        <Stat label="In progress"   value={displayedStats?.cases_in_progress} />
                     </div>
                 </Card>
 
@@ -217,12 +259,43 @@ export default function AdminDashboardPage() {
 
                 {/* ── Recent users ── */}
                 <Card style={{ marginTop: 24 }}>
-                    <SectionLabel>Recent users</SectionLabel>
-                    <div style={{ marginTop: 14 }}>
-                        {users.length === 0 ? (
-                            <EmptyRow text="No users yet." />
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+                        <SectionLabel>Recent users</SectionLabel>
+                        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
+                                <span style={{ letterSpacing: '0.06em', textTransform: 'uppercase', fontSize: 10, color: 'rgba(255,255,255,0.40)' }}>Min sessions</span>
+                                <input
+                                    type="number"
+                                    min={0}
+                                    value={minSessions}
+                                    onChange={e => setMinSessions(Math.max(0, Number(e.target.value) || 0))}
+                                    style={{
+                                        width: 56,
+                                        padding: '6px 8px',
+                                        background: SURFACE_2,
+                                        border: `1px solid ${SURFACE_2_BORDER}`,
+                                        borderRadius: 8,
+                                        color: 'rgba(255,255,255,0.88)',
+                                        fontSize: 13,
+                                        textAlign: 'center',
+                                        outline: 'none',
+                                    }}
+                                />
+                            </label>
+                        </div>
+                    </div>
+                    <div style={{ marginTop: 18 }}>
+                        {visibleUsers.length === 0 ? (
+                            <EmptyRow text={users.length === 0 ? 'No users yet.' : 'No users match the current filter.'} />
                         ) : (
-                            users.map(u => <UserRow key={u.id} user={u} />)
+                            <>
+                                {visibleUsers.map(u => <UserRow key={u.id} user={u} />)}
+                                {hiddenUserCount > 0 && (
+                                    <div style={{ paddingTop: 14, color: 'rgba(255,255,255,0.40)', fontSize: 13, fontStyle: 'italic' }}>
+                                        +{hiddenUserCount} more match the filter (raise the min-sessions threshold to narrow further).
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 </Card>
@@ -263,13 +336,57 @@ function Card({ children, style }: { children: React.ReactNode; style?: React.CS
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
+    // Editorial section header — small-caps copper kicker over a serif
+    // display title. Same pattern the page-level header uses (◇ Admin /
+    // "Dashboard"); applying it per section gives the dashboard chapter-
+    // book hierarchy instead of the prior 11.5px small-caps caption-only
+    // treatment.
     return (
-        <p
-            className="j2-label-copper"
-            style={{ margin: 0 }}
+        <div>
+            <p className="j2-label-copper" style={{ margin: 0, marginBottom: 4 }}>◇ {children}</p>
+            <h2
+                className="j2-serif-display j2-heading-glow"
+                style={{
+                    fontSize: 30,
+                    color: PALE_YELLOW,
+                    margin: 0,
+                    lineHeight: 1.1,
+                    letterSpacing: '-0.005em',
+                }}
+            >
+                {children}
+            </h2>
+        </div>
+    );
+}
+
+function ShowTestUsersToggle({
+    value,
+    onChange,
+    testCount,
+}: {
+    value: boolean;
+    onChange: (v: boolean) => void;
+    testCount: number;
+}) {
+    return (
+        <button
+            onClick={() => onChange(!value)}
+            style={{
+                fontSize: 12,
+                fontWeight: 600,
+                padding: '6px 12px',
+                borderRadius: 999,
+                background: value ? COPPER : SURFACE_2,
+                color: value ? '#fff' : 'rgba(255,255,255,0.55)',
+                border: `1px solid ${value ? COPPER : SURFACE_2_BORDER}`,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+            }}
+            title={value ? 'Hide test users' : 'Show test users'}
         >
-            ◇ {children}
-        </p>
+            {value ? '✓ Test users shown' : `Show ${testCount} test users`}
+        </button>
     );
 }
 
