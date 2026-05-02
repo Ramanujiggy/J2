@@ -12,7 +12,7 @@ export interface Session {
     notes?: string;
     gi_nogi: 'gi' | 'no_gi';
     intensity: number;
-    session_type: 'drilling' | 'class' | 'competition_training';
+    session_type: 'drilling' | 'class' | 'competition_training' | 'cla';
     tags: string[];
     heading?: string | null;
     polarity?: 'offense' | 'defense' | 'neutral' | null;
@@ -182,7 +182,7 @@ export interface BulkSessionInput {
     duration: number;
     gi_nogi: 'gi' | 'no_gi';
     intensity: number;
-    session_type: 'drilling' | 'class' | 'competition_training';
+    session_type: 'drilling' | 'class' | 'competition_training' | 'cla';
     tags: string[];
     notes: string;
     heading?: string | null;
