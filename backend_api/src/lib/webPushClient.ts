@@ -1,23 +1,29 @@
-// Thin wrapper around the `web-push` library. Loads VAPID config from env at
-// boot and exposes a typed sendPush() that maps WebPushError 410/404 to a
-// "subscription is dead" signal so the scheduler can clean up stale rows.
+// Thin wrapper around the `web-push` library. Reads VAPID config from env
+// LAZILY (inside the functions, not at module load) so we don't capture
+// empty strings on machines where dotenv.config() runs after this module
+// is imported.
 
 import webPush from 'web-push';
 
-const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY ?? '';
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY ?? '';
-const VAPID_SUBJECT = process.env.VAPID_SUBJECT ?? '';
-
 let configured = false;
+
+function readVapidEnv() {
+    return {
+        publicKey: process.env.VAPID_PUBLIC_KEY ?? '',
+        privateKey: process.env.VAPID_PRIVATE_KEY ?? '',
+        subject: process.env.VAPID_SUBJECT ?? '',
+    };
+}
 
 export function configureWebPush(): boolean {
     if (configured) return true;
-    if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY || !VAPID_SUBJECT) {
+    const { publicKey, privateKey, subject } = readVapidEnv();
+    if (!publicKey || !privateKey || !subject) {
         console.warn('⚠️  Web Push: VAPID env vars missing — notifications disabled.');
         return false;
     }
     try {
-        webPush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+        webPush.setVapidDetails(subject, publicKey, privateKey);
         configured = true;
         return true;
     } catch (err) {
@@ -27,7 +33,7 @@ export function configureWebPush(): boolean {
 }
 
 export function getVapidPublicKey(): string | null {
-    return VAPID_PUBLIC_KEY || null;
+    return readVapidEnv().publicKey || null;
 }
 
 export interface PushTarget {
