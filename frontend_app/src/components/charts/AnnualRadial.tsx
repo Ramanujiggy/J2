@@ -4,14 +4,26 @@
 // minutes trained that week. Wedge fill color is derived from the intention
 // active during that week (falling back to the most-used session tag, then
 // to a neutral copper). Individual session dots sit just outside the outer
-// ring, placed at each session's day-of-year angle, sized by intensity.
+// ring; same-day sessions fan radially outward (bead-string, never stacked
+// at the same point).
 //
-// Center: year label + session + hour totals.
+// Polish pass (Refero anchors: Stardust `309eb326`, Kin `a83c7ff1`, Lumy
+// `d8a03f78`, Picnic `65440f81`, TIDE `f769be7a`):
+//   • 7-stop center gradient kills the banding the user could see.
+//   • Solid copper hairlines replace dashed guide rings (less visual noise).
+//   • viewBox padded ±56px so cardinal-position month labels never clip.
+//   • Month labels unified to tracked sans micro-caps (Plus Jakarta Sans).
+//   • Year stays Cormorant; totals collapse to one tracked sans line.
+//   • Session dots constant 3.2px copper, opacity encodes intensity, halo
+//     via a Gaussian-blur SVG filter to lift them off the wedge beneath.
+//   • Same-day collisions fan outward at +3.2px per session.
+//   • 3-stage mount animation: hairlines first, wedges sweep with index
+//     stagger, dots scale in last. No spinner needed.
 
 import { useMemo } from 'react';
 import type { SessionSummary, Intention } from '../../types/api.ts';
 import { SKILL_COLORS } from './RadarChart.tsx';
-import { INTENSITY_COLOR, toDateString } from '../../lib/sessionUtils.ts';
+import { toDateString } from '../../lib/sessionUtils.ts';
 import { PALE_YELLOW, COPPER } from '../../lib/theme.ts';
 
 // Fallback wedge color for weeks with no intention + no session-tag signal
@@ -47,6 +59,10 @@ export default function AnnualRadial({
   const rInner = size * 0.22;
   const rOuter = size * 0.46;
 
+  // viewBox padding so month labels at the cardinal points don't clip.
+  // Calibrated against the label radius below (rOuter + 32).
+  const PAD = Math.round(size * 0.12);
+
   // ── Group sessions by week ─────────────────────────────────────────────
   const byWeek = useMemo(() => {
     const yearStart = new Date(year, 0, 1);
@@ -76,7 +92,6 @@ export default function AnnualRadial({
       const midStr = toDateString(weekMid);
       const cov = intentions.find(i => {
         const start = i.week_start.slice(0, 10);
-        // Compute end from start + duration_days - 1
         const endDate = new Date(start + 'T00:00:00');
         endDate.setDate(endDate.getDate() + (i.duration_days ?? 7) - 1);
         const endStr = toDateString(endDate);
@@ -136,35 +151,122 @@ export default function AnnualRadial({
     return m;
   }, [byWeek]);
 
+  // ── Session dot positions (fan same-day collisions outward) ────────────
+  const dotPlacements = useMemo(() => {
+    type Placement = { id: string; x: number; y: number; intensity: number };
+    // Group sessions by day so we can fan radially.
+    const byDay = new Map<string, SessionSummary[]>();
+    sessions.forEach(s => {
+      const key = typeof s.date === 'string' ? s.date.slice(0, 10) : toDateString(new Date(s.date));
+      const d = new Date(key + 'T00:00:00');
+      if (d.getFullYear() !== year) return;
+      (byDay.get(key) ?? byDay.set(key, []).get(key)!).push(s);
+    });
+    const out: Placement[] = [];
+    byDay.forEach((bucket, key) => {
+      // Highest-intensity session sits closest to the ring; lower-intensity
+      // sessions fan outward. Stable secondary sort by id for deterministic layout.
+      const ordered = [...bucket].sort((a, b) => {
+        const dI = (b.intensity ?? 3) - (a.intensity ?? 3);
+        return dI !== 0 ? dI : a.id.localeCompare(b.id);
+      });
+      const d = new Date(key + 'T00:00:00');
+      const dayOfYear = (d.getTime() - new Date(year, 0, 1).getTime()) / 86_400_000;
+      const angle = (dayOfYear / 365) * 360 - 90;
+      const a = (angle * Math.PI) / 180;
+      ordered.forEach((s, idx) => {
+        const r = rOuter + 12 + idx * 3.2;
+        const intensity = Math.max(1, Math.min(5, s.intensity ?? 3));
+        out.push({
+          id: s.id,
+          x: cx + r * Math.cos(a),
+          y: cy + r * Math.sin(a),
+          intensity,
+        });
+      });
+    });
+    return out;
+  }, [sessions, year, cx, cy, rOuter]);
+
   const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  const labelRadius = rOuter + 32;
 
   return (
-    <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} style={{ display: 'block' }}>
+    <svg
+      viewBox={`${-PAD} ${-PAD} ${size + PAD * 2} ${size + PAD * 2}`}
+      width={size}
+      height={size}
+      style={{ display: 'block' }}
+    >
       <defs>
+        {/* Soft champagne→copper falloff. Seven stops — Refero TIDE
+            (`f769be7a`) + Calm hold-knob (`87a76086`) — kill the banding
+            the 3-stop version showed on dark surfaces. */}
         <radialGradient id="ar-center-glow" cx="50%" cy="50%">
-          <stop offset="0%"   stopColor={PALE_YELLOW} stopOpacity="0.15" />
-          <stop offset="60%"  stopColor={COPPER}      stopOpacity="0.04" />
+          <stop offset="0%"   stopColor={PALE_YELLOW} stopOpacity="0.18" />
+          <stop offset="12%"  stopColor={PALE_YELLOW} stopOpacity="0.13" />
+          <stop offset="28%"  stopColor={PALE_YELLOW} stopOpacity="0.08" />
+          <stop offset="45%"  stopColor={COPPER}      stopOpacity="0.06" />
+          <stop offset="62%"  stopColor={COPPER}      stopOpacity="0.03" />
+          <stop offset="80%"  stopColor={COPPER}      stopOpacity="0.012" />
           <stop offset="100%" stopColor="#000"        stopOpacity="0" />
         </radialGradient>
+
+        {/* Halo behind each session dot — lifts them off the wedge below. */}
+        <filter id="ar-dot-glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="1.5" />
+        </filter>
       </defs>
 
+      <style>{`
+        @keyframes ar-fade-in {
+          from { opacity: 0; }
+          to   { opacity: 1; }
+        }
+        @keyframes ar-wedge-in {
+          from { opacity: 0; }
+          to   { opacity: var(--ar-op, 0.62); }
+        }
+        @keyframes ar-dot-in {
+          from { opacity: 0; transform: scale(0.4); }
+          to   { opacity: 1; transform: scale(1); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .ar-anim { animation: none !important; opacity: 1 !important; transform: none !important; }
+        }
+      `}</style>
+
       {/* Ambient center glow */}
-      <circle cx={cx} cy={cy} r={rOuter * 1.1} fill="url(#ar-center-glow)" />
+      <circle
+        cx={cx} cy={cy} r={rOuter * 1.1}
+        fill="url(#ar-center-glow)"
+        className="ar-anim"
+        style={{ animation: 'ar-fade-in 540ms ease-out both' }}
+      />
 
-      {/* 3 concentric guide rings (40/70/100% of the annular span) */}
-      {[0.4, 0.7, 1].map((t, i) => (
-        <circle
-          key={i}
-          cx={cx}
-          cy={cy}
-          r={rInner + (rOuter - rInner) * t}
-          fill="none"
-          stroke="rgba(196,145,95,0.12)"
-          strokeDasharray="2 4"
-        />
-      ))}
+      {/* Two faint inner guide rings + one solid copper hairline at the outer
+          edge. Refero Kin (`a83c7ff1`) + Lumy (`d8a03f78`) — solid hairlines
+          read editorial, dashes read engineering. */}
+      <circle
+        cx={cx} cy={cy} r={rInner + (rOuter - rInner) * 0.4}
+        fill="none" stroke="rgba(196,145,95,0.06)" strokeWidth={1}
+        className="ar-anim"
+        style={{ animation: 'ar-fade-in 420ms ease-out both' }}
+      />
+      <circle
+        cx={cx} cy={cy} r={rInner + (rOuter - rInner) * 0.7}
+        fill="none" stroke="rgba(196,145,95,0.06)" strokeWidth={1}
+        className="ar-anim"
+        style={{ animation: 'ar-fade-in 420ms ease-out 60ms both' }}
+      />
+      <circle
+        cx={cx} cy={cy} r={rOuter}
+        fill="none" stroke="rgba(196,145,95,0.30)" strokeWidth={1}
+        className="ar-anim"
+        style={{ animation: 'ar-fade-in 420ms ease-out 120ms both' }}
+      />
 
-      {/* Week wedges */}
+      {/* Week wedges — index-staggered sweep-in. */}
       {Array.from({ length: 52 }).map((_, w) => {
         const bucket = byWeek.get(w);
         const minutes = bucket ? bucket.reduce((a, s) => a + (s.duration ?? 0), 0) : 0;
@@ -173,17 +275,20 @@ export default function AnnualRadial({
         const color = weekColor[w];
         const isActive = activeWeek === w;
         const hasData = (bucket?.length ?? 0) > 0;
+        const targetOpacity = isActive ? 1 : (hasData ? 0.62 : 0.08);
         return (
           <path
             key={w}
             d={weekArc(w, rInner, rEnd)}
             fill={color}
-            opacity={isActive ? 1 : (hasData ? 0.62 : 0.08)}
             stroke={isActive ? PALE_YELLOW : 'none'}
             strokeWidth={1}
+            className="ar-anim"
             style={{
               cursor: hasData && onWeekClick ? 'pointer' : 'default',
               transition: 'opacity 180ms ease',
+              animation: `ar-wedge-in 540ms ease-out ${260 + w * 11}ms both`,
+              ['--ar-op' as string]: targetOpacity,
             }}
             onClick={() => { if (hasData && bucket) onWeekClick?.(w, bucket); }}
           >
@@ -196,84 +301,91 @@ export default function AnnualRadial({
         );
       })}
 
-      {/* Individual session dots — just outside the outer ring */}
-      {sessions.map(s => {
-        const key = typeof s.date === 'string' ? s.date.slice(0, 10) : toDateString(new Date(s.date));
-        const d = new Date(key + 'T00:00:00');
-        if (d.getFullYear() !== year) return null;
-        const dayOfYear = (d.getTime() - new Date(year, 0, 1).getTime()) / 86_400_000;
-        const angle = (dayOfYear / 365) * 360 - 90;
-        const a = (angle * Math.PI) / 180;
-        const intensity = Math.max(1, Math.min(5, s.intensity ?? 3));
-        const r = rOuter + 10 + intensity * 1.6;
+      {/* Session dots — constant size + opacity-encoded intensity, copper hue,
+          haloed. Same-day sessions fan radially outward (bead-string) instead
+          of stacking at one angle. */}
+      {dotPlacements.map((p, idx) => {
+        const haloOpacity = 0.18 + (p.intensity - 1) * 0.04; // 0.18..0.34
+        const dotOpacity  = 0.50 + (p.intensity - 1) * 0.12; // 0.50..0.98
         return (
-          <circle
-            key={s.id}
-            cx={cx + r * Math.cos(a)}
-            cy={cy + r * Math.sin(a)}
-            r={1.8}
-            fill={INTENSITY_COLOR[intensity] ?? '#CDDFA0'}
-            opacity={0.9}
-          />
+          <g
+            key={p.id}
+            className="ar-anim"
+            style={{
+              transformOrigin: `${p.x}px ${p.y}px`,
+              animation: `ar-dot-in 320ms ease-out ${900 + idx * 6}ms both`,
+            }}
+          >
+            <circle
+              cx={p.x} cy={p.y} r={4.6}
+              fill={COPPER}
+              opacity={haloOpacity}
+              filter="url(#ar-dot-glow)"
+            />
+            <circle
+              cx={p.x} cy={p.y} r={1.9}
+              fill={COPPER}
+              opacity={dotOpacity}
+            />
+          </g>
         );
       })}
 
-      {/* Month labels — outer */}
+      {/* Month labels — tracked sans micro-caps. Picnic (`65440f81`) +
+          Stardust (`6d2995b2`) register: small, tracked, never overpowering
+          the data. */}
       {months.map((m, i) => {
         const a = ((i / 12) * 360 - 90 - 3) * Math.PI / 180;
-        const r = rOuter + 34;
         return (
           <text
             key={m}
-            x={cx + r * Math.cos(a)}
-            y={cy + r * Math.sin(a)}
+            x={cx + labelRadius * Math.cos(a)}
+            y={cy + labelRadius * Math.sin(a)}
             textAnchor="middle"
             dominantBaseline="middle"
-            fontSize={13}
-            fontWeight={600}
-            letterSpacing={2.2}
-            fill="rgba(255,255,255,0.58)"
+            fontFamily='"Plus Jakarta Sans", system-ui, -apple-system, sans-serif'
+            fontSize={10}
+            fontWeight={500}
+            letterSpacing={1.6}
+            fill="rgba(242,228,168,0.62)"
+            className="ar-anim"
+            style={{ animation: 'ar-fade-in 420ms ease-out 80ms both' }}
           >
             {m}
           </text>
         );
       })}
 
-      {/* Center text — year + totals */}
-      <text
-        x={cx}
-        y={cy - 10}
-        textAnchor="middle"
-        fontFamily='"Cormorant Garamond", Georgia, serif'
-        fontSize={36}
-        fontWeight={600}
-        fill={PALE_YELLOW}
-        style={{ filter: 'drop-shadow(0 0 14px rgba(242,228,168,0.5))' }}
+      {/* Center text — year (Cormorant) + a single tracked-sans totals line. */}
+      <g
+        className="ar-anim"
+        style={{ animation: 'ar-fade-in 540ms ease-out 300ms both' }}
       >
-        {year}
-      </text>
-      <text
-        x={cx}
-        y={cy + 14}
-        textAnchor="middle"
-        fontSize={10.5}
-        letterSpacing={2}
-        fontWeight={700}
-        fill="rgba(255,255,255,0.40)"
-      >
-        {totalSessions} SESSION{totalSessions === 1 ? '' : 'S'}
-      </text>
-      <text
-        x={cx}
-        y={cy + 30}
-        textAnchor="middle"
-        fontSize={10.5}
-        letterSpacing={2}
-        fontWeight={500}
-        fill="rgba(196,145,95,0.80)"
-      >
-        {totalHours} HOUR{totalHours === 1 ? '' : 'S'}
-      </text>
+        <text
+          x={cx}
+          y={cy - 4}
+          textAnchor="middle"
+          fontFamily='"Cormorant Garamond", Georgia, serif'
+          fontSize={size * 0.11}
+          fontWeight={500}
+          fill={PALE_YELLOW}
+          style={{ filter: 'drop-shadow(0 0 14px rgba(242,228,168,0.45))' }}
+        >
+          {year}
+        </text>
+        <text
+          x={cx}
+          y={cy + 24}
+          textAnchor="middle"
+          fontFamily='"Plus Jakarta Sans", system-ui, -apple-system, sans-serif'
+          fontSize={9.5}
+          fontWeight={600}
+          letterSpacing={1.6}
+          fill="rgba(242,228,168,0.55)"
+        >
+          {totalSessions} {totalSessions === 1 ? 'SESSION' : 'SESSIONS'} · {totalHours} {totalHours === 1 ? 'HR' : 'HRS'}
+        </text>
+      </g>
     </svg>
   );
 }
