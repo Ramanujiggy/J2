@@ -1,27 +1,42 @@
-// Ambient rail background — one composed piece, tuned from Refero flagship
-// research (TIDE, Endel, Headspace, Stardust). Prior revision was invisible
-// on dark theme: 0.9px strokes at 0.32 alpha sit below the dark-UI
-// perceptibility floor, and there was no blur/halo — which is what flagship
-// ambient motifs actually rely on to register peripherally.
+// Ambient rail background — v3 polish pass.
 //
-// Key moves in this revision:
-//   • BLUR HALO layer — a strokeWidth 6 pentagon behind the crisp stroke with
-//     feGaussianBlur stdDeviation 3.5. Breathes opacity 0.35↔0.65 on a
-//     continuous 5s loop. This is the primary visible "glow" — it's always
-//     on, so peripheral vision always has something to see.
-//   • Crisp pentagon stroke raised to 1.6px / 0.55 peak opacity (was 0.9px / 0.32).
-//   • R dropped 260 → 230 so the pentagon sits inside the rail as a closed
-//     emblem (parsable by the eye) rather than an edge-clipped texture.
-//   • Master form/dissolve cycle compressed 42s → 14s so the formation event
-//     lands within a typical attention fixation (~3–10s window).
-//   • Particle count cut: 15 drifters → 6, 8 travellers → 3, alpha ceiling
-//     lifted 0.28 → 0.40 and concentrated around the pentagon, not scattered
-//     to noise across the whole rail.
+// Refero anchors (Stardust, Endel, Moonly, Remy, mobile WaveBackground):
+// the user's complaint was "it just seems like static floating right now."
+// Diagnosis: the prior Prism's form-and-dissolve cycle was correct in
+// spirit but the perimeter satellites read as a loading spinner, the rhythms
+// (14s + 5s + 7s + 16s) were coprime so the eye registered chaos rather than
+// breath, and there was no texture *behind* the focal motif.
 //
-// Still respects: pointer-events none, z-index: -1 (with `isolation: isolate`
-// on the rail aside), reduced-motion static tableau.
+// This revision makes 8 specific moves:
+//
+//   1. Master 12s breath clock. All motion uses multiples of 12s (12 / 24 / 36 / 72).
+//      Coprime rhythms read as static; harmonic rhythms read as alive.
+//   2. Focal Prism is now permanently visible and breathes in opacity
+//      (50% → 85%) on the 12s clock. Form-and-dissolve is retired —
+//      it was the source of the "static floating" feel because the rest
+//      phase had no kinetic anchor.
+//   3. 9 mini-pentagons in three phase-staggered groups of three, copper
+//      hairline at 8% opacity, drifting in/out on 36s. Always ~6 visible.
+//      Answers the user's "maybe a lot of small prisms" cue.
+//   4. Starfield: 5 far / 6 mid / 3 near at differential drift speeds —
+//      parallax depth without overt motion. Replaces the prior 6 drifters
+//      and 3 bezier travelers (which were jittery).
+//   5. Copper seigaiha layer behind everything at 4% alpha, drifting 36s
+//      diagonally — same fish-scale tile as mobile's WaveBackground but
+//      slower and quieter for the rail.
+//   6. Crystallization moments — one of three pre-defined copper hairline
+//      connections fades in and out over 72s, so every ~24s a line briefly
+//      draws between two mini-pentagons.
+//   7. Single champagne mote rides one edge of the focal pentagon every
+//      12s — replaces the two perimeter satellites (which read as a
+//      loading spinner).
+//   8. Vertical 3% gradient anchors the rail so the seigaiha doesn't read
+//      as flat tile.
+//
+// Still respects: pointer-events: none, z-index: -1 with `isolation: isolate`
+// on the rail aside, full reduced-motion fallback.
 
-import { useSyncExternalStore } from 'react';
+import { useId, useSyncExternalStore } from 'react';
 import { COPPER, PALE_YELLOW } from '../lib/theme.ts';
 
 // ── Reduced-motion store (same pattern as useIsDesktop) ─────────────────────
@@ -44,148 +59,82 @@ const W = 280;
 const H = 1000;
 const CX = 140;
 const CY = 500;
-// A regular pentagon's horizontal extent is R × cos(18°) ≈ R × 0.951. With a
-// 280-wide rail (±140 from center) and the halo stroke adding ~6 units to
-// the visual edge, R=125 lands the widest vertices at x≈21 / x≈259 with ~15
-// units of margin — pentagon reads clearly as a 5-pointed shape, not a
-// triangle-shaped fragment. Earlier R=230 had two vertices clipped off-rail.
-const R = 125;
+const R  = 125;
 
-// Pentagon vertices (top vertex first, clockwise).
+// Focal pentagon vertices (top vertex first, clockwise).
 const VERTS: [number, number][] = Array.from({ length: 5 }).map((_, i) => {
   const a = -Math.PI / 2 + (i * 2 * Math.PI) / 5;
   return [CX + R * Math.cos(a), CY + R * Math.sin(a)];
 });
 
-// Pentagon perimeter for stroke-dasharray.
-const PERIM = Math.round(
-  VERTS.reduce((sum, v, i) => {
-    const n = VERTS[(i + 1) % VERTS.length]!;
-    return sum + Math.hypot(n[0] - v[0], n[1] - v[1]);
-  }, 0),
-);
+const PENTAGON_PATH =
+  VERTS.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(2)},${p[1].toFixed(2)}`).join(' ') + ' Z';
 
-// Resting positions for the five vertex motes — each rest sits in the same
-// quadrant as its target vertex, well outside the pentagon, so formation
-// reads as "crystallizing inward from all directions" with clear travel
-// distance (~230–340 units each) and no crossed paths.
-//   VERTS[0] top            (140, 375) — rests above pentagon, top-center
-//   VERTS[1] upper-right    (259, 461) — rests above-right
-//   VERTS[2] lower-right    (214, 601) — rests below-right
-//   VERTS[3] lower-left     ( 66, 601) — rests below-left
-//   VERTS[4] upper-left     ( 21, 461) — rests above-left
-const VERT_RESTS: [number, number][] = [
-  [140,  50],
-  [258, 190],
-  [258, 870],
-  [ 22, 870],
-  [ 22, 190],
+// Top edge of the focal pentagon — used by the single champagne mote that
+// rides "one edge" per 12s breath (move #7).
+const TOP_EDGE = `M ${VERTS[0][0]} ${VERTS[0][1]} L ${VERTS[1][0]} ${VERTS[1][1]}`;
+
+// Mini pentagon path generator — returns a path centered at (cx, cy).
+function miniPentagon(cx: number, cy: number, r: number): string {
+  return Array.from({ length: 5 }).map((_, i) => {
+    const a = -Math.PI / 2 + (i * 2 * Math.PI) / 5;
+    return `${i ? 'L' : 'M'}${(cx + r * Math.cos(a)).toFixed(2)},${(cy + r * Math.sin(a)).toFixed(2)}`;
+  }).join(' ') + ' Z';
+}
+
+// Hand-placed scatter of 9 mini-pentagons — Poisson-disk-feel without an RNG.
+// Distributed across the rail's available negative space:
+//   - 2 in the top gutter (above the wordmark)
+//   - 4 flanking the focal pentagon (left/right gutters)
+//   - 3 below the focus card (above the practitioner pill)
+// Group index assigns the phase-staggered fade-in band (move #3).
+const MINIS: { x: number; y: number; r: number; group: 0 | 1 | 2 }[] = [
+  { x:  56, y:  68, r:  9, group: 0 },
+  { x: 222, y:  88, r: 12, group: 1 },
+  { x:  18, y: 380, r:  9, group: 2 },
+  { x: 262, y: 360, r:  8, group: 0 },
+  { x:  18, y: 620, r: 10, group: 1 },
+  { x: 262, y: 640, r:  8, group: 2 },
+  { x:  68, y: 740, r: 13, group: 0 },
+  { x: 210, y: 760, r: 10, group: 1 },
+  { x: 142, y: 815, r:  8, group: 2 },
 ];
 
-// ── Deterministic scatter ──────────────────────────────────────────────────
+// Three pre-defined connection pairs for the crystallization moment (move #6).
+// Each pair's two endpoints sit on visible mini-pentagons, picked so the line
+// crosses the rail without intersecting the focal Prism's body.
+const CRYST_PAIRS: [number, number][] = [
+  [0, 6], // top-left → bottom-left band
+  [1, 5], // top-right → mid-right
+  [2, 8], // mid-left → bottom-center
+];
 
-function rng(seed: number): number {
-  let t = seed + 0x6D2B79F5;
-  t = Math.imul(t ^ (t >>> 15), t | 1);
-  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-}
-
-// Content-aware exclusion — keep drifters out of the densest content bands.
-const NAV_BAND: [number, number]  = [110, 340];
-const PILL_BAND: [number, number] = [870, 1000];
-
-type Scatter = { x: number; y: number; r: number };
-
-/** Sample a small deterministic scatter concentrated around the pentagon
- *  (Refero rec: "fewer, brighter, concentrated around the hero" vs
- *  "many, dim, scattered to noise"). */
-function buildScatter(count: number, seedBase: number, opts: {
-  minDist: number;
-  sizeMin: number;
-  sizeMax: number;
-}): Scatter[] {
-  const { minDist, sizeMin, sizeMax } = opts;
-  const out: Scatter[] = [];
-  let s = seedBase;
-  let guard = 0;
-  while (out.length < count && guard < count * 60) {
-    guard++;
-    s++;
-    const x = rng(s) * W;
-    // Biased sample: 75% within the pentagon vertical extent (y 270–730),
-    // 25% in the rail body so the whole rail still feels alive.
-    let y: number;
-    if (rng(s * 3 + 1) < 0.75) {
-      y = 260 + rng(s * 5 + 2) * 480;
-    } else {
-      y = rng(s * 7 + 3) * H;
-    }
-    const r = sizeMin + rng(s * 11 + 5) * (sizeMax - sizeMin);
-
-    // Reject motes in the nav band unless they're in the outer gutters.
-    if (y >= NAV_BAND[0] && y <= NAV_BAND[1]) {
-      if (x > 32 && x < W - 32) continue;
-    }
-    // Reject motes in the practitioner pill band entirely — that zone is
-    // content-dense and a mote there looks like dirt on the screen.
-    if (y >= PILL_BAND[0] && y <= PILL_BAND[1]) continue;
-
-    // Min-distance against existing motes.
-    let ok = true;
-    for (const p of out) {
-      if (Math.hypot(p.x - x, p.y - y) < minDist) { ok = false; break; }
-    }
-    if (!ok) continue;
-
-    out.push({ x, y, r });
-  }
-  return out;
-}
-
-const DRIFTERS = buildScatter(6, 1000, {
-  minDist: 70, sizeMin: 0.9, sizeMax: 1.6,
-});
-const TRAVELLER_ANCHORS = buildScatter(3, 5000, {
-  minDist: 90, sizeMin: 0.9, sizeMax: 1.3,
-});
-
-// Each traveller drifts between its anchor and a bezier-offset partner.
-const TRAVELLERS = TRAVELLER_ANCHORS.map((a, i) => {
-  const bearing = rng(9000 + i) * Math.PI * 2;
-  const dist = 50 + rng(9500 + i) * 40;
-  const bx = Math.max(10, Math.min(W - 10, a.x + Math.cos(bearing) * dist));
-  const by = Math.max(10, Math.min(H - 10, a.y + Math.sin(bearing) * dist));
-  return {
-    from: [a.x, a.y] as const,
-    to:   [bx, by] as const,
-    r:    a.r,
-    dur:  14 + rng(9900 + i) * 6,
-    delay: rng(9750 + i) * 3,
-  };
-});
-
-// ── Master-cycle keyTimes (fractions of a 14s loop) ─────────────────────────
-// 0–4s  form   (0.00 → 0.286)
-// 4–7s  hold   (0.286 → 0.500)
-// 7–11s dissolve (0.500 → 0.786)
-// 11–14s rest  (0.786 → 1.000)
-
-const MASTER = '14s';
-const KT = {
-  formEnd:    0.286,
-  holdEnd:    0.500,
-  dissolveEnd: 0.786,
-} as const;
-
-const EASE = '0.4 0 0.2 1';
+// Starfield — three depths, hand-distributed. Far is dimmest + smallest,
+// near is brightest + largest. All deterministic so SSR matches client.
+const FAR_STARS: { x: number; y: number }[] = [
+  { x:  92, y: 195 }, { x: 188, y: 275 }, { x:  42, y: 545 },
+  { x: 248, y: 685 }, { x: 110, y: 905 },
+];
+const MID_STARS: { x: number; y: number; dx: number; dy: number }[] = [
+  { x:  34, y: 125, dx:  4, dy:  3 },
+  { x: 240, y: 195, dx: -3, dy:  4 },
+  { x:  50, y: 425, dx:  3, dy: -2 },
+  { x: 232, y: 460, dx: -2, dy:  3 },
+  { x:  76, y: 685, dx:  4, dy:  3 },
+  { x: 196, y: 880, dx: -3, dy: -3 },
+];
+const NEAR_STARS: { x: number; y: number; dx: number; dy: number }[] = [
+  { x: 118, y: 360, dx:  6, dy:  4 },
+  { x: 156, y: 660, dx: -5, dy:  6 },
+  { x:  68, y: 840, dx:  6, dy: -4 },
+];
 
 // ── Component ───────────────────────────────────────────────────────────────
 
 export default function RailAmbient() {
   const reduced = usePrefersReducedMotion();
-  const pathD =
-    VERTS.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(2)},${p[1].toFixed(2)}`).join(' ') + ' Z';
+  const uid = useId();
+  const seigaihaId = `rail-seigaiha-${uid}`;
 
   return (
     <div
@@ -206,265 +155,286 @@ export default function RailAmbient() {
         style={{ display: 'block' }}
       >
         <defs>
-          {/* Core halo filter — this is what makes the ambient prism read as
-              intentional glow rather than a thin disappearing line. */}
-          <filter id="rail-amb-halo-blur" x="-20%" y="-20%" width="140%" height="140%">
+          {/* Halo blur — used by the focal-prism halo and the champagne edge mote. */}
+          <filter id="rail-halo-blur" x="-20%" y="-20%" width="140%" height="140%">
             <feGaussianBlur stdDeviation="3.5" />
           </filter>
-          {/* Soft center wash — gives the pentagon a faint presence even
-              during the rest phase when the crisp stroke is invisible. */}
-          <radialGradient id="rail-amb-wash" cx="50%" cy="50%" r="50%">
-            <stop offset="0%"  stopColor={PALE_YELLOW} stopOpacity="0.07" />
+
+          {/* Move #8 — vertical 3% gradient anchors the rail so the seigaiha
+              doesn't read as flat tile. Forest-green at top → very slightly
+              warmer copper-tinted at bottom. */}
+          <linearGradient id="rail-vgrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="#0D1A14" stopOpacity="0" />
+            <stop offset="100%" stopColor={COPPER}  stopOpacity="0.025" />
+          </linearGradient>
+
+          {/* Center wash behind the focal Prism — gives it ground even at
+              opacity trough. */}
+          <radialGradient id="rail-center-wash" cx="50%" cy="50%" r="50%">
+            <stop offset="0%"  stopColor={PALE_YELLOW} stopOpacity="0.06" />
             <stop offset="70%" stopColor={PALE_YELLOW} stopOpacity="0" />
           </radialGradient>
+
+          {/* Move #5 — copper seigaiha tile at very low alpha. 48×48 (mobile
+              uses 36×36 — bigger here so the rail's narrower width still
+              shows ~6 columns rather than crowding). */}
+          <pattern id={seigaihaId} width="48" height="48" patternUnits="userSpaceOnUse">
+            <g fill="none" stroke={COPPER} strokeLinecap="round">
+              {[
+                { cx:  0, cy: 24 },
+                { cx: 48, cy: 24 },
+                { cx: 24, cy: 48 },
+              ].map(({ cx, cy }) =>
+                [22, 15, 8].map((r, i) => (
+                  <path
+                    key={`${cx}-${cy}-${r}`}
+                    d={`M${cx - r},${cy} A${r},${r} 0 0 1 ${cx + r},${cy}`}
+                    strokeWidth={i === 0 ? 1.4 : i === 1 ? 1.0 : 0.7}
+                    strokeOpacity={0.85}
+                  />
+                )),
+              )}
+            </g>
+          </pattern>
         </defs>
 
-        {/* Ambient center wash — always on. */}
-        <circle cx={CX} cy={CY} r={R * 1.2} fill="url(#rail-amb-wash)" />
+        {/* Vertical anchor gradient (move #8) */}
+        <rect x={0} y={0} width={W} height={H} fill="url(#rail-vgrad)" />
 
-        {/* ── Prism group ───────────────────────────────────────── */}
-        {/* Nested-group SMIL scale pattern: outer translate moves the origin
-            to the pentagon center, middle group animates scale (which is
-            origin-relative in SVG), inner translate undoes the offset so the
-            paths stay in their original coord system. Net effect: scale
-            centered at (CX, CY). 7s period — intentionally different from
-            the 5s halo-opacity breath so the two rhythms don't lock. */}
-        <g transform={`translate(${CX} ${CY})`}>
+        {/* Seigaiha texture (move #5) — drifting diagonally on 36s, behind
+            everything else. 4% alpha — pattern is at 0.85 stroke opacity
+            internally but the parent group's opacity multiplies down. */}
+        <g opacity={0.04}>
           <g>
             {!reduced && (
               <animateTransform
                 attributeName="transform"
-                type="scale"
-                values="1;1.04;1"
-                keyTimes="0;0.5;1"
-                dur="7s"
+                type="translate"
+                from="0 0"
+                to="48 -48"
+                dur="36s"
                 repeatCount="indefinite"
               />
             )}
-            <g transform={`translate(${-CX} ${-CY})`}>
-              {/* HALO layer — strokeWidth 6, blurred, copper-hued. Primary
-                  visible glow. 5s opacity breath underneath the scale breath. */}
-              <path
-                d={pathD}
-                fill="none"
-                stroke={COPPER}
-                strokeWidth={6}
-                strokeLinejoin="round"
-                filter="url(#rail-amb-halo-blur)"
-                opacity={reduced ? 0.45 : 0.35}
-              >
-                {!reduced && (
-                  <animate
-                    attributeName="opacity"
-                    values="0.35;0.65;0.35"
-                    dur="5s"
-                    repeatCount="indefinite"
-                  />
-                )}
-              </path>
-
-              {/* Ghost stroke — thin, always-on reference line. */}
-              <path
-                d={pathD}
-                fill="none"
-                stroke={PALE_YELLOW}
-                strokeOpacity={0.10}
-                strokeWidth={0.7}
-                strokeLinejoin="round"
-              />
-
-              {/* Active crisp stroke — draws in during form, holds, fades on
-                  dissolve via opacity (not stroke-reverse, reads as glitch). */}
-              <path
-                d={pathD}
-                fill="none"
-                stroke={PALE_YELLOW}
-                strokeWidth={1.6}
-                strokeLinejoin="round"
-                strokeDasharray={PERIM}
-                strokeOpacity={reduced ? 0.55 : 0}
-                strokeDashoffset={reduced ? 0 : PERIM}
-              >
-                {!reduced && (
-                  <>
-                    <animate
-                      attributeName="stroke-dashoffset"
-                      dur={MASTER}
-                      keyTimes={`0;${KT.formEnd};${KT.holdEnd};${KT.dissolveEnd};1`}
-                      values={`${PERIM};0;0;0;${PERIM}`}
-                      calcMode="spline"
-                      keySplines={`${EASE};0 0 1 1;0 0 1 1;0 0 1 1`}
-                      repeatCount="indefinite"
-                    />
-                    <animate
-                      attributeName="stroke-opacity"
-                      dur={MASTER}
-                      keyTimes={`0;${KT.formEnd};${KT.holdEnd};${KT.dissolveEnd};1`}
-                      values="0;0.55;0.55;0;0"
-                      calcMode="spline"
-                      keySplines={`${EASE};0 0 1 1;${EASE};0 0 1 1`}
-                      repeatCount="indefinite"
-                    />
-                  </>
-                )}
-              </path>
-            </g>
+            <rect x={-48} y={-48} width={W + 96} height={H + 96} fill={`url(#${seigaihaId})`} />
           </g>
         </g>
 
-        {/* ── Orbital light satellites ──────────────────────────────
-            Two dots travel the pentagon perimeter continuously via
-            animateMotion along pathD. The primary (champagne) has a blurred
-            comet head bonded to it; the secondary (copper) is phase-offset
-            by half the loop so the two satellites are always 180° apart,
-            chasing each other around the prism. This is the "circling"
-            the user asked for — the pentagon itself now has continuous,
-            clearly kinetic motion on-screen at all times (not gated by
-            the 14s form cycle). */}
-        {!reduced && (
-          <>
-            {/* Primary comet head — soft blurred glow, travels with the primary dot. */}
-            <circle r={5.5} fill={PALE_YELLOW} opacity={0.22} filter="url(#rail-amb-halo-blur)">
-              <animateMotion dur="16s" repeatCount="indefinite" path={pathD} />
-            </circle>
-            {/* Primary satellite — bright champagne pinpoint. */}
-            <circle r={2.5} fill={PALE_YELLOW} opacity={0.85}>
-              <animateMotion dur="16s" repeatCount="indefinite" rotate="auto" path={pathD} />
-            </circle>
-            {/* Secondary satellite — dimmer copper, 180° out of phase.
-                begin="-8s" starts the animation 8s in the past, so at t=0
-                it is already halfway along the 16s path. */}
-            <circle r={2} fill={COPPER} opacity={0.55}>
-              <animateMotion dur="16s" begin="-8s" repeatCount="indefinite" rotate="auto" path={pathD} />
-            </circle>
-          </>
-        )}
+        {/* Center wash behind the Prism */}
+        <circle cx={CX} cy={CY} r={R * 1.2} fill="url(#rail-center-wash)" />
 
-        {/* ── Ambient drifters — 6 twinkling motes around the prism ─── */}
-        {DRIFTERS.map((p, i) => {
-          const base = 0.16 + rng(2000 + i) * 0.08;
-          const peak = 0.32 + rng(2100 + i) * 0.08;
-          const dur = 4 + rng(2200 + i) * 4;
-          const delay = rng(2300 + i) * 3;
+        {/* ── Starfield (move #4) ───────────────────────────────────────
+            Three depths at differential drift speeds. Far stars don't move;
+            mid stars drift slowly; near stars drift faster. The eye reads
+            this as parallax depth without overt motion. */}
+
+        {/* Far stars — 1px, 15% opacity, no motion */}
+        {FAR_STARS.map((s, i) => (
+          <circle key={`far-${i}`} cx={s.x} cy={s.y} r={1} fill={PALE_YELLOW} opacity={0.15} />
+        ))}
+
+        {/* Mid stars — 1.5px, 30% opacity, slow drift via animateTransform */}
+        {MID_STARS.map((s, i) => (
+          <g key={`mid-${i}`}>
+            {!reduced && (
+              <animateTransform
+                attributeName="transform"
+                type="translate"
+                values={`0 0; ${s.dx} ${s.dy}; 0 0`}
+                keyTimes="0;0.5;1"
+                dur="36s"
+                repeatCount="indefinite"
+              />
+            )}
+            <circle cx={s.x} cy={s.y} r={1.5} fill={PALE_YELLOW} opacity={0.30} />
+          </g>
+        ))}
+
+        {/* Near stars — 2px, 50% opacity, faster drift */}
+        {NEAR_STARS.map((s, i) => (
+          <g key={`near-${i}`}>
+            {!reduced && (
+              <animateTransform
+                attributeName="transform"
+                type="translate"
+                values={`0 0; ${s.dx} ${s.dy}; 0 0`}
+                keyTimes="0;0.5;1"
+                dur="24s"
+                repeatCount="indefinite"
+              />
+            )}
+            <circle cx={s.x} cy={s.y} r={2} fill={PALE_YELLOW} opacity={0.50} />
+          </g>
+        ))}
+
+        {/* ── Mini-pentagons (move #3) ──────────────────────────────────
+            9 small prisms grouped by phase. Each group fades in/out over
+            a 36s cycle, staggered by 12s, so 6 of 9 are visible at any
+            moment — answers the user's "lots of small prisms" cue. */}
+        {MINIS.map((m, i) => {
+          const begin = m.group * 12;
           return (
-            <circle
-              key={`dr-${i}`}
-              cx={p.x} cy={p.y} r={p.r}
-              fill={COPPER}
-              opacity={reduced ? (base + peak) / 2 : base}
+            <path
+              key={`mini-${i}`}
+              d={miniPentagon(m.x, m.y, m.r)}
+              fill="none"
+              stroke={COPPER}
+              strokeWidth={0.9}
+              strokeLinejoin="round"
+              opacity={reduced ? 0.06 : 0}
             >
               {!reduced && (
                 <animate
                   attributeName="opacity"
-                  values={`${base};${peak};${base}`}
-                  dur={`${dur}s`}
-                  begin={`${delay}s`}
+                  values="0;0.10;0.10;0;0"
+                  keyTimes="0;0.111;0.667;0.778;1"
+                  dur="36s"
+                  begin={`${begin}s`}
                   repeatCount="indefinite"
+                  calcMode="spline"
+                  keySplines="0.4 0 0.2 1;0 0 1 1;0.4 0 0.2 1;0 0 1 1"
                 />
               )}
-            </circle>
+            </path>
           );
         })}
 
-        {/* ── Travellers — 3 drifting motes on short bezier paths ─── */}
-        {!reduced && TRAVELLERS.map((t, i) => {
-          const mx = (t.from[0] + t.to[0]) / 2 + (rng(3000 + i) - 0.5) * 24;
-          const my = (t.from[1] + t.to[1]) / 2 + (rng(3100 + i) - 0.5) * 24;
-          const d = `M ${t.from[0]} ${t.from[1]} Q ${mx} ${my} ${t.to[0]} ${t.to[1]}`;
+        {/* ── Crystallization lines (move #6) ───────────────────────────
+            Three pre-defined hairline connections between mini-pentagons,
+            phase-staggered on a 72s cycle. Each line: draw 1.8s, hold 4s,
+            fade 2.2s. Eight seconds of visibility per 72s, but staggered
+            so a line is visible roughly every 24s. */}
+        {!reduced && CRYST_PAIRS.map(([aIdx, bIdx], i) => {
+          const a = MINIS[aIdx]!;
+          const b = MINIS[bIdx]!;
+          const lineLen = Math.hypot(b.x - a.x, b.y - a.y);
+          const begin = i * 24;
           return (
-            <circle key={`tr-${i}`} r={t.r} fill={COPPER} opacity={0.32}>
-              <animateMotion
-                dur={`${t.dur}s`}
-                begin={`${t.delay}s`}
+            <line
+              key={`cryst-${i}`}
+              x1={a.x} y1={a.y} x2={b.x} y2={b.y}
+              stroke={COPPER}
+              strokeWidth={0.6}
+              strokeOpacity={0}
+              strokeDasharray={lineLen}
+              strokeDashoffset={lineLen}
+            >
+              {/* Draw the line in over 1.8s, hold, fade out, then rest. */}
+              <animate
+                attributeName="stroke-dashoffset"
+                values={`${lineLen};0;0;0;${lineLen};${lineLen}`}
+                keyTimes="0;0.025;0.08;0.111;0.139;1"
+                dur="72s"
+                begin={`${begin}s`}
                 repeatCount="indefinite"
-                path={d}
-                keyPoints="0;1;0"
-                keyTimes="0;0.5;1"
-                calcMode="spline"
-                keySplines={`${EASE};${EASE}`}
               />
               <animate
-                attributeName="opacity"
-                values="0.18;0.40;0.18"
-                dur={`${t.dur}s`}
-                begin={`${t.delay}s`}
+                attributeName="stroke-opacity"
+                values="0;0.18;0.18;0;0"
+                keyTimes="0;0.025;0.111;0.139;1"
+                dur="72s"
+                begin={`${begin}s`}
                 repeatCount="indefinite"
               />
-            </circle>
+            </line>
           );
         })}
-        {reduced && TRAVELLERS.map((t, i) => (
-          <circle key={`tr-static-${i}`} cx={t.from[0]} cy={t.from[1]} r={t.r} fill={COPPER} opacity={0.26} />
+
+        {/* ── Focal Prism (move #2) ─────────────────────────────────────
+            Permanent. Halo + ghost + crisp stroke, all breathing on the
+            12s master clock. No more form-and-dissolve cycle. */}
+
+        {/* Halo — strokeWidth 6, blurred. Breathes opacity 0.32 → 0.55. */}
+        <path
+          d={PENTAGON_PATH}
+          fill="none"
+          stroke={COPPER}
+          strokeWidth={6}
+          strokeLinejoin="round"
+          filter="url(#rail-halo-blur)"
+          opacity={reduced ? 0.42 : 0.32}
+        >
+          {!reduced && (
+            <animate
+              attributeName="opacity"
+              values="0.32;0.55;0.32"
+              keyTimes="0;0.5;1"
+              dur="12s"
+              repeatCount="indefinite"
+              calcMode="spline"
+              keySplines="0.4 0 0.6 1;0.4 0 0.6 1"
+            />
+          )}
+        </path>
+
+        {/* Ghost stroke — always-on faint reference. */}
+        <path
+          d={PENTAGON_PATH}
+          fill="none"
+          stroke={PALE_YELLOW}
+          strokeOpacity={0.10}
+          strokeWidth={0.7}
+          strokeLinejoin="round"
+        />
+
+        {/* Crisp stroke — breathes 0.50 → 0.85 opacity on 12s. */}
+        <path
+          d={PENTAGON_PATH}
+          fill="none"
+          stroke={PALE_YELLOW}
+          strokeWidth={1}
+          strokeLinejoin="round"
+          opacity={reduced ? 0.65 : 0.50}
+        >
+          {!reduced && (
+            <animate
+              attributeName="opacity"
+              values="0.50;0.85;0.50"
+              keyTimes="0;0.5;1"
+              dur="12s"
+              repeatCount="indefinite"
+              calcMode="spline"
+              keySplines="0.4 0 0.6 1;0.4 0 0.6 1"
+            />
+          )}
+        </path>
+
+        {/* Vertex pinpoints — brighten to champagne at apex of breath. */}
+        {VERTS.map((v, i) => (
+          <circle
+            key={`vertex-${i}`}
+            cx={v[0]} cy={v[1]} r={1.6}
+            fill={PALE_YELLOW}
+            opacity={reduced ? 0.85 : 0.60}
+          >
+            {!reduced && (
+              <animate
+                attributeName="opacity"
+                values="0.60;0.95;0.60"
+                keyTimes="0;0.5;1"
+                dur="12s"
+                repeatCount="indefinite"
+                calcMode="spline"
+                keySplines="0.4 0 0.6 1;0.4 0 0.6 1"
+              />
+            )}
+          </circle>
         ))}
 
-        {/* ── Vertex motes — the 5 hero "form the prism" motes ─────── */}
-        {VERTS.map((v, i) => {
-          const rest = VERT_RESTS[i]!;
-          // 14s cycle is tight; stagger 0.12s each so formation isn't
-          // mechanical but still completes within the form phase.
-          const stagger = i * 0.12;
-          const kt = `0;${KT.formEnd};${KT.holdEnd};${KT.dissolveEnd};1`;
-
-          if (reduced) {
-            return (
-              <circle
-                key={`vm-${i}`}
-                cx={v[0]} cy={v[1]} r={1.8}
-                fill={PALE_YELLOW}
-                opacity={0.7}
-              />
-            );
-          }
-
-          // x/y: rest → vertex → vertex → rest → rest
-          const xs = `${rest[0]};${v[0]};${v[0]};${rest[0]};${rest[0]}`;
-          const ys = `${rest[1]};${v[1]};${v[1]};${rest[1]};${rest[1]}`;
-          // opacity: 0.4 drift → 0.95 vertex → 0.95 held → 0.4 drift → 0.4
-          const os = '0.40;0.95;0.95;0.40;0.40';
-          const splines = `${EASE};0 0 1 1;${EASE};0 0 1 1`;
-
-          return (
-            <circle
-              key={`vm-${i}`}
-              cx={rest[0]}
-              cy={rest[1]}
-              r={1.8}
-              fill={PALE_YELLOW}
-              opacity={0.4}
-            >
-              <animate
-                attributeName="cx"
-                dur={MASTER}
-                begin={`${stagger}s`}
-                keyTimes={kt}
-                values={xs}
-                calcMode="spline"
-                keySplines={splines}
-                repeatCount="indefinite"
-              />
-              <animate
-                attributeName="cy"
-                dur={MASTER}
-                begin={`${stagger}s`}
-                keyTimes={kt}
-                values={ys}
-                calcMode="spline"
-                keySplines={splines}
-                repeatCount="indefinite"
-              />
-              <animate
-                attributeName="opacity"
-                dur={MASTER}
-                begin={`${stagger}s`}
-                keyTimes={kt}
-                values={os}
-                calcMode="spline"
-                keySplines={splines}
-                repeatCount="indefinite"
-              />
+        {/* ── Edge mote (move #7) ───────────────────────────────────────
+            Single champagne mote that rides the top edge of the focal
+            pentagon, one trip per 12s breath. Replaces the two perimeter
+            satellites which read as a loading spinner. */}
+        {!reduced && (
+          <>
+            <circle r={4} fill={PALE_YELLOW} opacity={0.30} filter="url(#rail-halo-blur)">
+              <animateMotion dur="12s" repeatCount="indefinite" path={TOP_EDGE} />
             </circle>
-          );
-        })}
+            <circle r={2} fill={PALE_YELLOW} opacity={0.85}>
+              <animateMotion dur="12s" repeatCount="indefinite" path={TOP_EDGE} />
+            </circle>
+          </>
+        )}
       </svg>
     </div>
   );
