@@ -7,6 +7,7 @@
 // of attempting requestPermission() (which silently rejects in a tab).
 
 import { useEffect, useState } from 'react';
+import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import {
   isPushSupported,
   isStandaloneInstall,
@@ -55,6 +56,7 @@ interface Props {
 }
 
 export default function NotificationPermissionPrimer({ open, onClose, onSubscribed }: Props) {
+  const isDesktop = useIsDesktop();
   const [flags, setFlags] = useState<SubscriptionCategories>({
     pre_class: true,
     intention_check: true,
@@ -116,8 +118,11 @@ export default function NotificationPermissionPrimer({ open, onClose, onSubscrib
       aria-label="Enable notifications"
       style={{
         position: 'fixed', inset: 0, zIndex: 200,
-        display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+        display: 'flex',
+        alignItems: isDesktop ? 'center' : 'flex-end',
+        justifyContent: 'center',
         background: 'rgba(0,0,0,0.55)',
+        padding: isDesktop ? 24 : 0,
       }}
       onClick={onClose}
     >
@@ -127,7 +132,7 @@ export default function NotificationPermissionPrimer({ open, onClose, onSubscrib
           backgroundColor: CARD_BG,
           border: `1px solid ${CARD_GLOW_BORDER}`,
           boxShadow: CARD_GLOW,
-          borderRadius: '20px 20px 0 0',
+          borderRadius: isDesktop ? 20 : '20px 20px 0 0',
           width: '100%',
           maxWidth: 520,
           padding: '28px 24px 24px',

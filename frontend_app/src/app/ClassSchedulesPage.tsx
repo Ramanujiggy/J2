@@ -10,6 +10,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { api } from '../lib/api.ts';
+import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import {
   CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, COPPER, COPPER_BORDER,
   PALE_YELLOW, SURFACE_2, SURFACE_2_BORDER, FONT_EDITORIAL, GLOW_SOFT,
@@ -35,6 +36,7 @@ const CATEGORY_LABELS: Record<keyof SubscriptionCategories, string> = {
 
 export default function ClassSchedulesPage() {
   const navigate = useNavigate();
+  const isDesktop = useIsDesktop();
   const [schedules, setSchedules] = useState<ClassSchedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [primerOpen, setPrimerOpen] = useState(false);
@@ -309,12 +311,15 @@ export default function ClassSchedulesPage() {
             aria-modal="true"
             style={{
               position: 'fixed', inset: 0, zIndex: 200,
-              display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-              background: 'rgba(0,0,0,0.55)', padding: 16,
+              display: 'flex',
+              alignItems: isDesktop ? 'center' : 'flex-end',
+              justifyContent: 'center',
+              background: 'rgba(0,0,0,0.55)',
+              padding: isDesktop ? 24 : 16,
             }}
             onClick={() => setEditing(null)}
           >
-            <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 520 }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 520, maxHeight: '92vh', overflowY: 'auto' }}>
               <ClassScheduleEditor
                 initial={editing === 'new' ? undefined : editing}
                 isEdit={editing !== 'new'}
