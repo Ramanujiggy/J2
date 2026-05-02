@@ -62,8 +62,18 @@ function urlBase64ToUint8Array(base64Url: string): Uint8Array {
 }
 
 async function getRegistration(): Promise<ServiceWorkerRegistration> {
-  const reg = await navigator.serviceWorker.ready;
-  return reg;
+  // Defensive 10s timeout: if the SW never activates (e.g. dev mode without
+  // `devOptions.enabled`, or an early registration failure), surface an error
+  // to the user instead of silently hanging on `navigator.serviceWorker.ready`.
+  return await Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new Error('Service worker did not activate in time. Reload the page and try again.')),
+        10_000,
+      ),
+    ),
+  ]);
 }
 
 export async function fetchSubscriptionState(): Promise<SubscriptionState> {

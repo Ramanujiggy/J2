@@ -21,6 +21,15 @@ export default defineConfig({
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
       },
+      // Without this, the SW only registers on production builds — meaning
+      // pushManager.subscribe() (and any code awaiting navigator.serviceWorker.ready)
+      // hangs forever in `npm run dev`. `type: 'module'` is required so the
+      // TS-source SW can use ES module imports during dev.
+      devOptions: {
+        enabled: true,
+        type: 'module',
+        navigateFallback: 'index.html',
+      },
     }),
   ],
   resolve: {
