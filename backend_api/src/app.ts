@@ -120,6 +120,14 @@ async function runMigrations() {
 
 const app = express();
 
+// Railway (and any hosted Node platform) sits behind a reverse proxy that
+// adds an X-Forwarded-For header. Without `trust proxy`, Express uses the
+// proxy's loopback IP as the client IP, and `express-rate-limit` rejects
+// the request with ERR_ERL_UNEXPECTED_X_FORWARDED_FOR. `1` trusts exactly
+// one hop (the Railway edge) — safer than `true` which trusts an arbitrary
+// chain.
+app.set('trust proxy', 1);
+
 
 //security middleware
 app.use(helmet());
