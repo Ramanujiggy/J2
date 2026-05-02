@@ -54,7 +54,8 @@ export default function LoginPage() {
         return;
       }
 
-      if (mode === 'register') {
+      const wasRegister = mode === 'register';
+      if (wasRegister) {
         const registerData = await api.post<RegisterResponse>('/auth/register', { email, password });
         if (registerData.message !== 'User registered successfully.') {
           setError(registerData.message ?? 'Registration failed.');
@@ -69,7 +70,11 @@ export default function LoginPage() {
       }
 
       login(loginData.token);
-      navigate('/home');
+      // Brand-new users land in the guided onboarding flow. Returning users
+      // go to /home — if their onboarding_completed_at is null (e.g. they
+      // bailed mid-flow last time), the OnboardingGate inside ProtectedShell
+      // will redirect them to /onboarding/name automatically.
+      navigate(wasRegister ? '/onboarding/name' : '/home');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : err instanceof Error ? err.message : String(err));
     } finally {

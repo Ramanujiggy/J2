@@ -16,6 +16,8 @@ import PageContent from '../components/PageContent.tsx';
 import SetIntentionModal from '../components/SetIntentionModal.tsx';
 import SessionDetailModal from '../components/SessionDetailModal.tsx';
 import SegmentedToggle from '../components/SegmentedToggle.tsx';
+import Coachmark from '../components/Coachmark.tsx';
+import { useCoachmark } from '../hooks/useCoachmark.ts';
 import { formatWeekShort, topTagInRange, computeAlignment, tagHoursInRange } from '../lib/analyticsUtils.ts';
 
 // Focus dot/bar colors. These are the 5 colors from the desktop redesign
@@ -71,6 +73,7 @@ export default function IntentionsPage() {
   const navigate = useNavigate();
   const isDesktop = useIsDesktop();
   const { intentionsEnabled } = useProfile();
+  const intentionsCoachmark = useCoachmark('intentions');
   const { refresh: refreshRailIntention } = useActiveIntention();
   const [intentions,  setIntentions]  = useState<Intention[]>([]);
   const [sessions,    setSessions]    = useState<SessionSummary[]>([]);
@@ -135,22 +138,31 @@ export default function IntentionsPage() {
 
   if (isDesktop) {
     return (
-      <DesktopIntentionsView
-        intentions={intentions}
-        sessions={sessions}
-        loading={loading}
-        intentionsEnabled={intentionsEnabled}
-        editTarget={editTarget}
-        createOpen={createOpen}
-        layout={layout}
-        onLayoutChange={setLayout}
-        statsMap={statsMap}
-        onOpenCreate={() => setCreateOpen(true)}
-        onOpenEdit={setEditTarget}
-        onCloseModal={() => { setCreateOpen(false); setEditTarget(null); }}
-        onSaved={() => { fetchAll(); refreshRailIntention(); }}
-        onNavigate={navigate}
-      />
+      <>
+        <DesktopIntentionsView
+          intentions={intentions}
+          sessions={sessions}
+          loading={loading}
+          intentionsEnabled={intentionsEnabled}
+          editTarget={editTarget}
+          createOpen={createOpen}
+          layout={layout}
+          onLayoutChange={setLayout}
+          statsMap={statsMap}
+          onOpenCreate={() => setCreateOpen(true)}
+          onOpenEdit={setEditTarget}
+          onCloseModal={() => { setCreateOpen(false); setEditTarget(null); }}
+          onSaved={() => { fetchAll(); refreshRailIntention(); }}
+          onNavigate={navigate}
+        />
+        <Coachmark
+          open={intentionsCoachmark.isOpen}
+          onDismiss={intentionsCoachmark.dismiss}
+          eyebrow="◇ Intentions"
+          title="Set what you're working on this week."
+          body="We'll surface it on every session you log — and look back on whether you trained it."
+        />
+      </>
     );
   }
 
@@ -376,6 +388,14 @@ export default function IntentionsPage() {
           onClose={() => { setEditTarget(null); setCreateOpen(false); }}
         />
       )}
+
+      <Coachmark
+        open={intentionsCoachmark.isOpen}
+        onDismiss={intentionsCoachmark.dismiss}
+        eyebrow="◇ Intentions"
+        title="Set what you're working on this week."
+        body="We'll surface it on every session you log — and look back on whether you trained it."
+      />
     </div>
     </PageContent>
   );

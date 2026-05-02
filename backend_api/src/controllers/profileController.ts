@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { getProfile, updateProfile } from '../models/profileModel.js';
-import { updateUserTimezone } from '../models/userModel.js';
+import { updateUserTimezone, markOnboardingComplete } from '../models/userModel.js';
 
 const BELT_RANKS = ['white', 'blue', 'purple', 'brown', 'black'] as const;
 
@@ -75,6 +75,19 @@ function isValidTimezone(tz: string): boolean {
         return false;
     }
 }
+
+export const completeOnboarding = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) { res.status(401).json({ message: 'Unauthorized.' }); return; }
+        await markOnboardingComplete(userId);
+        const profile = await getProfile(userId);
+        res.json({ profile });
+    } catch (err) {
+        console.error('❌ Error completing onboarding:', err);
+        res.status(500).json({ message: 'Server error.' });
+    }
+};
 
 export const saveTimezone = async (req: Request, res: Response): Promise<void> => {
     try {

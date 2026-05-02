@@ -13,6 +13,7 @@ import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import PageContent from '../components/PageContent.tsx';
 import SessionDetailModal from '../components/SessionDetailModal.tsx';
+import JournalEmptyHero from '../components/empty/JournalEmptyHero.tsx';
 import { SKILL_TAGS } from '../lib/constants.ts';
 import { toDateString, DAY_NAMES, SESSION_TYPE_LABELS, INTENSITY_COLOR, formatDuration } from '../lib/sessionUtils.ts';
 import {
@@ -477,6 +478,9 @@ function MobileJournalRow({ session, onOpen }: { session: SessionSummary; onOpen
 }
 
 function EmptyState({ hasAny }: { hasAny: boolean }) {
+  // No sessions at all → editorial hero (chapter title pattern).
+  if (!hasAny) return <JournalEmptyHero />;
+  // Has sessions but filter yields zero — keep the lighter inline empty.
   return (
     <div
       style={{
@@ -490,12 +494,10 @@ function EmptyState({ hasAny }: { hasAny: boolean }) {
       }}
     >
       <h2 className="j2-serif-display" style={{ fontSize: 26, margin: 0 }}>
-        {hasAny ? 'No sessions match.' : 'No entries yet.'}
+        No sessions match.
       </h2>
       <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.50)', lineHeight: 1.6, marginTop: 10 }}>
-        {hasAny
-          ? 'Adjust the filter or search — your training is wider than it looks.'
-          : 'Log your first session from the Path Ahead and it will live here.'}
+        Adjust the filter or search — your training is wider than it looks.
       </p>
     </div>
   );

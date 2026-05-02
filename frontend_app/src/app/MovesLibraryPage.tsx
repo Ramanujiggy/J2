@@ -12,6 +12,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContent from '../components/PageContent.tsx';
 import VideoPlayerModal from '../components/VideoPlayerModal.tsx';
+import LibraryEmptyHero from '../components/empty/LibraryEmptyHero.tsx';
 import { useUserTags } from '../hooks/useUserTags.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import { PALE_YELLOW, GLOW_SOFT, COPPER, SURFACE_2, SURFACE_3 } from '../lib/theme.ts';
@@ -114,20 +115,8 @@ export default function MovesLibraryPage() {
 
         {error && <p className="text-sm text-red-400">{error}</p>}
 
-        {/* Empty state */}
-        {!loading && tags.length === 0 && (
-          <div
-            className="rounded-xl px-6 py-10 text-center"
-            style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.06)' }}
-          >
-            <p className="text-sm mb-1" style={{ color: 'rgba(255,255,255,0.40)' }}>
-              No tags yet.
-            </p>
-            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.22)' }}>
-              Create tags by adding them to a session in the log form.
-            </p>
-          </div>
-        )}
+        {/* Empty state — editorial chapter title pattern */}
+        {!loading && tags.length === 0 && <LibraryEmptyHero />}
 
         {/* Grid */}
         {filtered.length > 0 && (

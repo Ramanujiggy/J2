@@ -9,12 +9,15 @@ import LogSessionForm from '../components/LogSessionForm.tsx';
 import ErrorBoundary from '../components/ErrorBoundary.tsx';
 import { LayoutGrid, CalendarDays, Search, X } from 'lucide-react';
 import SessionSearchPanel from '../components/SessionSearchPanel.tsx';
+import Coachmark from '../components/Coachmark.tsx';
+import { useCoachmark } from '../hooks/useCoachmark.ts';
 import { PALE_YELLOW, GLOW_SOFT, COPPER, SURFACE_2 } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import type { SessionSummary, CalendarIntention, SessionsResponse, IntentionsResponse } from '../types/api.ts';
 
 export default function CalendarPage() {
   const isDesktop = useIsDesktop();
+  const calendarCoachmark = useCoachmark('calendar');
   const [sessions,    setSessions]    = useState<SessionSummary[]>([]);
   const [intentions,  setIntentions]  = useState<CalendarIntention[]>([]);
   const [loading,     setLoading]     = useState(true);
@@ -229,6 +232,14 @@ export default function CalendarPage() {
         </ErrorBoundary>
       )}
     </div>
+
+    <Coachmark
+      open={calendarCoachmark.isOpen}
+      onDismiss={calendarCoachmark.dismiss}
+      eyebrow="◇ Calendar"
+      title="Every session lands here."
+      body="Tap a date to log one or open it. Swipe through months in the grid to look back."
+    />
     </>
   );
 }

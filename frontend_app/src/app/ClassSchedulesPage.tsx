@@ -25,6 +25,8 @@ import {
 import { detectTimezone, formatScheduleSummary } from '../lib/timeUtils.ts';
 import NotificationPermissionPrimer from '../components/NotificationPermissionPrimer.tsx';
 import ClassScheduleEditor from '../components/ClassScheduleEditor.tsx';
+import Coachmark from '../components/Coachmark.tsx';
+import { useCoachmark } from '../hooks/useCoachmark.ts';
 import PageContent from '../components/PageContent.tsx';
 import type { ClassSchedule, ClassScheduleInput, ClassSchedulesResponse, ClassScheduleResponse } from '../types/api.ts';
 
@@ -37,6 +39,7 @@ const CATEGORY_LABELS: Record<keyof SubscriptionCategories, string> = {
 export default function ClassSchedulesPage() {
   const navigate = useNavigate();
   const isDesktop = useIsDesktop();
+  const classesCoachmark = useCoachmark('classes');
   const [schedules, setSchedules] = useState<ClassSchedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [primerOpen, setPrimerOpen] = useState(false);
@@ -335,6 +338,14 @@ export default function ClassSchedulesPage() {
           open={primerOpen}
           onClose={() => setPrimerOpen(false)}
           onSubscribed={() => void loadSubState()}
+        />
+
+        <Coachmark
+          open={classesCoachmark.isOpen}
+          onDismiss={classesCoachmark.dismiss}
+          eyebrow="◇ Class times"
+          title="Add your weekly schedule."
+          body="We'll quietly nudge you before, after, and on the drive home — so the round is fresh when you log it."
         />
       </div>
     </PageContent>

@@ -47,3 +47,11 @@ export const updatePasswordHash = async (id: string, passwordHash: string, exec:
 export const updateUserTimezone = async (id: string, timezone: string): Promise<void> => {
     await query('UPDATE users SET timezone = $1 WHERE id = $2', [timezone, id]);
 };
+
+// Mark the first-time onboarding flow as complete. Called from
+// POST /api/profile/onboarding-complete after the user finishes the guided
+// flow. NULL → timestamp; the frontend gate keeps users on /onboarding/* until
+// this is set.
+export const markOnboardingComplete = async (id: string): Promise<void> => {
+    await query('UPDATE users SET onboarding_completed_at = NOW() WHERE id = $1 AND onboarding_completed_at IS NULL', [id]);
+};

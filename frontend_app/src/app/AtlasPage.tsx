@@ -32,6 +32,7 @@ import {
 import type { SessionSummary, Intention, SessionsResponse, IntentionsResponse, CalendarIntention } from '../types/api.ts';
 import AtlasPrismDeck, { type ViewMode as PrismViewMode } from '../components/atlas/AtlasPrismDeck.tsx';
 import TimeRangeBar from '../components/TimeRangeBar.tsx';
+import AtlasEmptyHero from '../components/empty/AtlasEmptyHero.tsx';
 
 const LS_TAB_KEY = 'j2_atlas_tab';
 type AtlasTab = 'timeline' | 'prism' | 'library' | 'calendar';
@@ -128,19 +129,23 @@ export default function AtlasPage() {
             </p>
           </div>
           {fetchError && <p className="text-sm text-red-400">{fetchError}</p>}
-          <PrismPanel
-            sessions={allSessions}
-            intentions={intentions}
-            timeWindow={timeWindow}
-            onWindowChange={setTimeWindow}
-            customRange={customRange}
-            onCustomRangeChange={setCustomRange}
-            selectedTag={selectedTag}
-            onSelectTag={setSelectedTag}
-            onOpenSession={(id) => navigate(`/journal/${id}`)}
-            onOpenIntentionJournal={(id) => navigate(`/intentions/${id}/journal`)}
-            isDesktop={false}
-          />
+          {!loading && allSessions.length === 0 ? (
+            <AtlasEmptyHero />
+          ) : (
+            <PrismPanel
+              sessions={allSessions}
+              intentions={intentions}
+              timeWindow={timeWindow}
+              onWindowChange={setTimeWindow}
+              customRange={customRange}
+              onCustomRangeChange={setCustomRange}
+              selectedTag={selectedTag}
+              onSelectTag={setSelectedTag}
+              onOpenSession={(id) => navigate(`/journal/${id}`)}
+              onOpenIntentionJournal={(id) => navigate(`/intentions/${id}/journal`)}
+              isDesktop={false}
+            />
+          )}
         </div>
       </PageContent>
     );
