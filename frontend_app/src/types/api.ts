@@ -192,8 +192,69 @@ export interface ProfileResponse {
     // migration 019 — IANA TZ ("America/Chicago") set via PATCH /api/profile/timezone.
     // Nullable for legacy rows that predate the migration.
     timezone?: string | null;
+    // migration 022 — NULL = user hasn't completed first-time onboarding.
+    // Frontend gates routing on this; POST /api/profile/onboarding-complete sets it.
+    onboarding_completed_at?: string | null;
+    // migration 023 — admin flag. Granted via direct DB UPDATE; not editable
+    // via API. Drives the conditional "Admin Dashboard" link on the profile
+    // page and the route guard on /admin.
+    is_admin?: boolean;
   } | null;
 }
+
+// ── Support cases + admin dashboard (mig 023) ────────────────────────────
+
+export type CaseStatus   = 'open' | 'in_progress' | 'closed';
+export type CaseSeverity = 'low' | 'normal' | 'high' | 'urgent';
+
+export interface SupportCase {
+  id: string;
+  user_id: string;
+  status: CaseStatus;
+  severity: CaseSeverity;
+  subject: string;
+  description: string;
+  page_url: string | null;
+  user_agent: string | null;
+  app_version: string | null;
+  admin_notes: string | null;
+  created_at: string;
+  updated_at: string;
+  closed_at: string | null;
+}
+
+// Admin's case list joins on users → email + name come along for free.
+export interface SupportCaseWithUser extends SupportCase {
+  user_email: string;
+  user_name: string | null;
+}
+
+export interface AdminStats {
+  total_users: number;
+  users_24h: number;
+  users_7d: number;
+  total_sessions: number;
+  sessions_24h: number;
+  sessions_7d: number;
+  cases_open: number;
+  cases_in_progress: number;
+}
+
+export interface AdminUserSummary {
+  id: string;
+  email: string;
+  name: string | null;
+  belt_rank: string | null;
+  created_at: string;
+  session_count: number;
+  last_session_at: string | null;
+}
+
+export interface AdminStatsResponse  { stats: AdminStats; }
+export interface AdminCasesResponse  { cases: SupportCaseWithUser[]; }
+export interface AdminUsersResponse  { users: AdminUserSummary[]; }
+export interface SubmitCaseResponse  { case: SupportCase; }
+export interface UpdateCaseResponse  { case: SupportCase; }
 
 // ── Class schedules + push notifications (mig 019/020/021) ──────────────────
 

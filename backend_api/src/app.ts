@@ -15,6 +15,8 @@ import canonicalConstraintRoutes from './routes/canonicalConstraintRoutes.js';
 import userConstraintRoutes from './routes/userConstraintRoutes.js';
 import classScheduleRoutes from './routes/classScheduleRoutes.js';
 import pushSubscriptionRoutes from './routes/pushSubscriptionRoutes.js';
+import caseRoutes from './routes/caseRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
 // db import triggers pool connection test on startup
 import { query } from './config/db.js';
 
@@ -169,6 +171,8 @@ app.use('/api/canonical-constraints', canonicalConstraintRoutes);
 app.use('/api/user-constraints', userConstraintRoutes);
 app.use('/api/class-schedules', classScheduleRoutes);
 app.use('/api/push-subscriptions', pushSubscriptionRoutes);
+app.use('/api/cases', caseRoutes);
+app.use('/api/admin', adminRoutes);
 
 
 // Catch-all JSON error handler — must be registered after all routes.

@@ -1,0 +1,521 @@
+// AdminDashboardPage — admin-only troubleshooting surface.
+//
+// Three zones, top-down:
+//   1. Health strip   — totals (users, sessions) + 24h/7d deltas + open cases
+//   2. Cases queue    — user-submitted reports with status filter, inline expand
+//                       to read description / debug context, change status / notes
+//   3. Recent users   — last 50 signups + session count for spot-checking activity
+//
+// Route-guarded: anyone hitting /admin without `is_admin === true` gets sent
+// to /home. Backend endpoints under /api/admin/* are also gated by the
+// requireAdmin middleware, so even direct API calls from a non-admin token
+// fail with 403 — the frontend redirect is just for UX.
+
+import { useEffect, useMemo, useState } from 'react';
+import { Navigate } from 'react-router-dom';
+import PageContent from '../components/PageContent.tsx';
+import { useProfile } from '../context/ProfileContext.tsx';
+import { useIsDesktop } from '../hooks/useIsDesktop.ts';
+import { api, ApiError } from '../lib/api.ts';
+import {
+    PALE_YELLOW, COPPER, CARD_BG, CARD_GLOW, CARD_GLOW_BORDER,
+    SURFACE_2, SURFACE_2_BORDER, FONT_EDITORIAL, GLOW_SOFT,
+} from '../lib/theme.ts';
+import type {
+    AdminStats, AdminStatsResponse,
+    AdminCasesResponse, AdminUsersResponse,
+    SupportCaseWithUser, AdminUserSummary,
+    CaseStatus,
+} from '../types/api.ts';
+
+type StatusFilter = 'all' | CaseStatus;
+
+const STATUS_LABEL: Record<CaseStatus, string> = {
+    open:         'Open',
+    in_progress:  'In progress',
+    closed:       'Closed',
+};
+
+const STATUS_PILL_BG: Record<CaseStatus, string> = {
+    open:         'rgba(196,145,95,0.18)',
+    in_progress:  'rgba(242,228,168,0.18)',
+    closed:       'rgba(255,255,255,0.06)',
+};
+const STATUS_PILL_FG: Record<CaseStatus, string> = {
+    open:         COPPER,
+    in_progress:  PALE_YELLOW,
+    closed:       'rgba(255,255,255,0.45)',
+};
+
+const SEVERITY_LABEL: Record<string, string> = {
+    low:     'Low',
+    normal:  'Normal',
+    high:    'High',
+    urgent:  'Urgent',
+};
+
+export default function AdminDashboardPage() {
+    const { isAdmin, loaded } = useProfile();
+    const isDesktop = useIsDesktop();
+
+    const [stats,      setStats]      = useState<AdminStats | null>(null);
+    const [cases,      setCases]      = useState<SupportCaseWithUser[]>([]);
+    const [users,      setUsers]      = useState<AdminUserSummary[]>([]);
+    const [statusFilt, setStatusFilt] = useState<StatusFilter>('all');
+    const [loading,    setLoading]    = useState(true);
+    const [error,      setError]      = useState<string | null>(null);
+
+    useEffect(() => {
+        let cancelled = false;
+        async function load() {
+            try {
+                setLoading(true);
+                setError(null);
+                const [s, c, u] = await Promise.all([
+                    api.get<AdminStatsResponse>('/api/admin/stats'),
+                    api.get<AdminCasesResponse>('/api/admin/cases'),
+                    api.get<AdminUsersResponse>('/api/admin/users'),
+                ]);
+                if (cancelled) return;
+                setStats(s.stats);
+                setCases(c.cases);
+                setUsers(u.users);
+            } catch (e) {
+                if (cancelled) return;
+                if (e instanceof ApiError && e.status === 403) {
+                    setError('Admin access required.');
+                } else {
+                    setError('Could not load admin data. Refresh to retry.');
+                }
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        }
+        if (loaded && isAdmin) void load();
+        return () => { cancelled = true; };
+    }, [loaded, isAdmin]);
+
+    const filteredCases = useMemo(() => {
+        if (statusFilt === 'all') return cases;
+        return cases.filter(c => c.status === statusFilt);
+    }, [cases, statusFilt]);
+
+    const onCaseUpdated = (updated: SupportCaseWithUser) => {
+        setCases(prev => prev.map(c => c.id === updated.id ? { ...c, ...updated } : c));
+        // Refresh open/in-progress counts in the health strip after a status flip.
+        if (stats) {
+            void api.get<AdminStatsResponse>('/api/admin/stats').then(s => setStats(s.stats));
+        }
+    };
+
+    // ── Auth gates ───────────────────────────────────────────────────
+    // Wait for the profile fetch to resolve so we don't redirect on cold load.
+    if (!loaded) return <PageContent ready={false} loadingMessages={['Loading…']}>{null}</PageContent>;
+    if (!isAdmin) return <Navigate to="/home" replace />;
+
+    return (
+        <PageContent ready={!loading} loadingMessages={['Loading admin data…']}>
+            <div
+                className={isDesktop ? 'j2-page-container' : 'mx-auto max-w-5xl px-4 sm:px-6'}
+                style={isDesktop ? { paddingTop: 64, paddingBottom: 104 } : { paddingTop: 24, paddingBottom: 40 }}
+            >
+                {/* Editorial header */}
+                <div style={{ marginBottom: isDesktop ? 36 : 24 }}>
+                    <p className="j2-label-copper" style={{ marginBottom: 10 }}>◇ Admin</p>
+                    <h1
+                        className="j2-serif-display j2-heading-glow"
+                        style={{
+                            fontSize: isDesktop ? 64 : 36,
+                            lineHeight: 1, margin: 0,
+                            letterSpacing: '-0.01em',
+                        }}
+                    >
+                        Dashboard
+                    </h1>
+                    <p
+                        className="j2-serif-italic"
+                        style={{ marginTop: 14, fontSize: isDesktop ? 18 : 15, color: 'rgba(255,255,255,0.55)' }}
+                    >
+                        Stats, cases, and recent activity.
+                    </p>
+                </div>
+
+                {error && (
+                    <div
+                        style={{
+                            backgroundColor: 'rgba(248,113,113,0.10)',
+                            border: '1px solid rgba(248,113,113,0.25)',
+                            borderRadius: 12,
+                            padding: '12px 16px',
+                            color: 'rgba(248,113,113,0.95)',
+                            fontSize: 14,
+                            marginBottom: 24,
+                        }}
+                    >
+                        {error}
+                    </div>
+                )}
+
+                {/* ── Health strip ── */}
+                <Card>
+                    <SectionLabel>Health</SectionLabel>
+                    <div
+                        style={{
+                            display: 'grid',
+                            gridTemplateColumns: isDesktop ? 'repeat(8, 1fr)' : 'repeat(2, 1fr)',
+                            gap: isDesktop ? 18 : 14,
+                            marginTop: 14,
+                        }}
+                    >
+                        <Stat label="Total users"   value={stats?.total_users} />
+                        <Stat label="Users 24h"     value={stats?.users_24h} />
+                        <Stat label="Users 7d"      value={stats?.users_7d} />
+                        <Stat label="Sessions"      value={stats?.total_sessions} />
+                        <Stat label="Sessions 24h"  value={stats?.sessions_24h} />
+                        <Stat label="Sessions 7d"   value={stats?.sessions_7d} />
+                        <Stat label="Cases open"    value={stats?.cases_open} accent={!!stats && stats.cases_open > 0 ? COPPER : undefined} />
+                        <Stat label="In progress"   value={stats?.cases_in_progress} />
+                    </div>
+                </Card>
+
+                {/* ── Cases queue ── */}
+                <Card style={{ marginTop: 24 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+                        <SectionLabel>Cases</SectionLabel>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            {(['all','open','in_progress','closed'] as const).map(f => (
+                                <button
+                                    key={f}
+                                    onClick={() => setStatusFilt(f)}
+                                    style={{
+                                        fontSize: 12,
+                                        fontWeight: 600,
+                                        padding: '6px 12px',
+                                        borderRadius: 999,
+                                        background: statusFilt === f ? COPPER : SURFACE_2,
+                                        color: statusFilt === f ? '#fff' : 'rgba(255,255,255,0.55)',
+                                        border: `1px solid ${statusFilt === f ? COPPER : SURFACE_2_BORDER}`,
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    {f === 'all' ? 'All' : STATUS_LABEL[f]}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div style={{ marginTop: 18 }}>
+                        {filteredCases.length === 0 ? (
+                            <EmptyRow text={statusFilt === 'all' ? 'No cases yet — quiet is good.' : `No ${STATUS_LABEL[statusFilt as CaseStatus].toLowerCase()} cases.`} />
+                        ) : (
+                            filteredCases.map(c => (
+                                <CaseRow key={c.id} caseItem={c} onUpdated={onCaseUpdated} />
+                            ))
+                        )}
+                    </div>
+                </Card>
+
+                {/* ── Recent users ── */}
+                <Card style={{ marginTop: 24 }}>
+                    <SectionLabel>Recent users</SectionLabel>
+                    <div style={{ marginTop: 14 }}>
+                        {users.length === 0 ? (
+                            <EmptyRow text="No users yet." />
+                        ) : (
+                            users.map(u => <UserRow key={u.id} user={u} />)
+                        )}
+                    </div>
+                </Card>
+
+                {/* ── System info ── */}
+                <Card style={{ marginTop: 24 }}>
+                    <SectionLabel>System</SectionLabel>
+                    <div style={{ marginTop: 14, fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.7 }}>
+                        <div>App version: <span style={{ color: PALE_YELLOW }}>{(import.meta as { env?: { VITE_APP_VERSION?: string } }).env?.VITE_APP_VERSION ?? 'dev'}</span></div>
+                        <div>API connected: <span style={{ color: error ? '#F87171' : '#52B56C' }}>{error ? 'failed' : 'ok'}</span></div>
+                        <div>Loaded at: <span style={{ color: PALE_YELLOW }}>{new Date().toLocaleString()}</span></div>
+                    </div>
+                </Card>
+            </div>
+        </PageContent>
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Small components
+// ─────────────────────────────────────────────────────────────────────────
+
+function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+    return (
+        <div
+            style={{
+                backgroundColor: CARD_BG,
+                border: `1px solid ${CARD_GLOW_BORDER}`,
+                boxShadow: CARD_GLOW,
+                borderRadius: 16,
+                padding: 24,
+                ...style,
+            }}
+        >
+            {children}
+        </div>
+    );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+    return (
+        <p
+            className="j2-label-copper"
+            style={{ margin: 0 }}
+        >
+            ◇ {children}
+        </p>
+    );
+}
+
+function Stat({ label, value, accent }: { label: string; value: number | undefined; accent?: string }) {
+    return (
+        <div>
+            <div
+                style={{
+                    fontFamily: FONT_EDITORIAL,
+                    fontSize: 28,
+                    fontWeight: 600,
+                    color: accent ?? PALE_YELLOW,
+                    textShadow: GLOW_SOFT,
+                    lineHeight: 1,
+                }}
+            >
+                {value === undefined ? '—' : value.toLocaleString()}
+            </div>
+            <div
+                style={{
+                    fontSize: 11,
+                    color: 'rgba(255,255,255,0.45)',
+                    marginTop: 6,
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                }}
+            >
+                {label}
+            </div>
+        </div>
+    );
+}
+
+function EmptyRow({ text }: { text: string }) {
+    return (
+        <div
+            style={{
+                padding: '16px 0',
+                color: 'rgba(255,255,255,0.40)',
+                fontSize: 14,
+                fontStyle: 'italic',
+            }}
+        >
+            {text}
+        </div>
+    );
+}
+
+// ── Case row ──────────────────────────────────────────────────────────────
+
+function CaseRow({
+    caseItem,
+    onUpdated,
+}: {
+    caseItem: SupportCaseWithUser;
+    onUpdated: (c: SupportCaseWithUser) => void;
+}) {
+    const [expanded, setExpanded] = useState(false);
+    const [savingStatus, setSavingStatus] = useState<CaseStatus | null>(null);
+    const [notes, setNotes] = useState(caseItem.admin_notes ?? '');
+    const [savingNotes, setSavingNotes] = useState(false);
+
+    const handleStatus = async (next: CaseStatus) => {
+        setSavingStatus(next);
+        try {
+            const r = await api.patch<{ case: SupportCaseWithUser }>(`/api/admin/cases/${caseItem.id}`, { status: next });
+            onUpdated({ ...caseItem, ...r.case });
+        } catch {
+            // Optimistic feel — drop and let user retry.
+        } finally {
+            setSavingStatus(null);
+        }
+    };
+
+    const handleSaveNotes = async () => {
+        setSavingNotes(true);
+        try {
+            const r = await api.patch<{ case: SupportCaseWithUser }>(`/api/admin/cases/${caseItem.id}`, { admin_notes: notes });
+            onUpdated({ ...caseItem, ...r.case });
+        } catch {
+            //
+        } finally {
+            setSavingNotes(false);
+        }
+    };
+
+    const created = new Date(caseItem.created_at).toLocaleString();
+
+    return (
+        <div
+            style={{
+                borderTop: '1px solid rgba(255,255,255,0.06)',
+                padding: '14px 0',
+            }}
+        >
+            <div
+                style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}
+                onClick={() => setExpanded(e => !e)}
+            >
+                <StatusPill status={caseItem.status} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, color: 'rgba(255,255,255,0.92)', fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {caseItem.subject}
+                    </div>
+                    <div style={{ color: 'rgba(255,255,255,0.40)', fontSize: 12, marginTop: 2 }}>
+                        {caseItem.user_name ?? caseItem.user_email} · {created} · {SEVERITY_LABEL[caseItem.severity]}
+                    </div>
+                </div>
+                <div style={{ color: 'rgba(255,255,255,0.30)', fontSize: 12 }}>
+                    {expanded ? '▾' : '▸'}
+                </div>
+            </div>
+
+            {expanded && (
+                <div style={{ marginTop: 14, marginLeft: 8, paddingLeft: 18, borderLeft: '2px solid rgba(196,145,95,0.20)' }}>
+                    <p style={{ color: 'rgba(255,255,255,0.78)', fontSize: 14, lineHeight: 1.55, margin: '0 0 14px', whiteSpace: 'pre-wrap' }}>
+                        {caseItem.description}
+                    </p>
+
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginBottom: 14, lineHeight: 1.6 }}>
+                        {caseItem.page_url     && <div>URL: <span style={{ color: 'rgba(255,255,255,0.65)' }}>{caseItem.page_url}</span></div>}
+                        {caseItem.user_agent   && <div>UA: <span style={{ color: 'rgba(255,255,255,0.65)' }}>{caseItem.user_agent}</span></div>}
+                        {caseItem.app_version  && <div>App version: <span style={{ color: 'rgba(255,255,255,0.65)' }}>{caseItem.app_version}</span></div>}
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+                        {(['open','in_progress','closed'] as CaseStatus[]).map(s => (
+                            <button
+                                key={s}
+                                onClick={() => handleStatus(s)}
+                                disabled={caseItem.status === s || savingStatus === s}
+                                style={{
+                                    fontSize: 12,
+                                    fontWeight: 600,
+                                    padding: '6px 12px',
+                                    borderRadius: 8,
+                                    cursor: caseItem.status === s ? 'default' : 'pointer',
+                                    opacity: caseItem.status === s ? 0.55 : 1,
+                                    background: caseItem.status === s ? STATUS_PILL_BG[s] : SURFACE_2,
+                                    color: caseItem.status === s ? STATUS_PILL_FG[s] : 'rgba(255,255,255,0.65)',
+                                    border: `1px solid ${SURFACE_2_BORDER}`,
+                                }}
+                            >
+                                {savingStatus === s ? '...' : `Set ${STATUS_LABEL[s]}`}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div>
+                        <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.40)' }}>
+                            Admin notes
+                        </label>
+                        <textarea
+                            value={notes}
+                            onChange={e => setNotes(e.target.value)}
+                            rows={3}
+                            placeholder="Triage notes, repro steps…"
+                            style={{
+                                width: '100%',
+                                marginTop: 6,
+                                padding: '10px 12px',
+                                background: SURFACE_2,
+                                border: `1px solid ${SURFACE_2_BORDER}`,
+                                borderRadius: 10,
+                                color: 'rgba(255,255,255,0.90)',
+                                fontSize: 13,
+                                resize: 'vertical',
+                                outline: 'none',
+                                fontFamily: 'inherit',
+                            }}
+                        />
+                        <button
+                            onClick={handleSaveNotes}
+                            disabled={savingNotes || (notes === (caseItem.admin_notes ?? ''))}
+                            style={{
+                                marginTop: 8,
+                                fontSize: 12,
+                                fontWeight: 600,
+                                padding: '6px 14px',
+                                background: COPPER,
+                                color: '#fff',
+                                border: 'none',
+                                borderRadius: 8,
+                                cursor: 'pointer',
+                                opacity: (savingNotes || notes === (caseItem.admin_notes ?? '')) ? 0.5 : 1,
+                            }}
+                        >
+                            {savingNotes ? 'Saving…' : 'Save notes'}
+                        </button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function StatusPill({ status }: { status: CaseStatus }) {
+    return (
+        <span
+            style={{
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: '0.10em',
+                textTransform: 'uppercase',
+                padding: '4px 10px',
+                borderRadius: 999,
+                background: STATUS_PILL_BG[status],
+                color: STATUS_PILL_FG[status],
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+            }}
+        >
+            {STATUS_LABEL[status]}
+        </span>
+    );
+}
+
+// ── User row ──────────────────────────────────────────────────────────────
+
+function UserRow({ user }: { user: AdminUserSummary }) {
+    return (
+        <div
+            style={{
+                borderTop: '1px solid rgba(255,255,255,0.06)',
+                padding: '12px 0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+            }}
+        >
+            <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ color: 'rgba(255,255,255,0.92)', fontSize: 14, fontWeight: 600 }}>
+                    {user.name ?? '(no name)'}
+                </div>
+                <div style={{ color: 'rgba(255,255,255,0.42)', fontSize: 12, marginTop: 2 }}>
+                    {user.email} · {user.belt_rank ?? 'no belt'} · joined {new Date(user.created_at).toLocaleDateString()}
+                </div>
+            </div>
+            <div style={{ textAlign: 'right', fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
+                <div style={{ fontFamily: FONT_EDITORIAL, fontSize: 18, color: PALE_YELLOW }}>
+                    {user.session_count}
+                </div>
+                <div style={{ fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.40)' }}>
+                    sessions
+                </div>
+            </div>
+        </div>
+    );
+}

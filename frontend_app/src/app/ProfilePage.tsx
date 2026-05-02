@@ -7,6 +7,7 @@ import { useAuth } from '../hooks/useAuth.ts';
 import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, SURFACE_2, SURFACE_2_BORDER, SURFACE_3, COPPER } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import CsvImportModal from '../components/CsvImportModal.tsx';
+import ReportProblemModal from '../components/ReportProblemModal.tsx';
 import { exportSessionsCsv, exportIntentionsCsv } from '../lib/csvExport.ts';
 import type { SessionSummary, Intention } from '../types/api.ts';
 import PageContent from '../components/PageContent.tsx';
@@ -78,7 +79,7 @@ function blurCopper(el: HTMLInputElement) {
 
 export default function ProfilePage() {
   const isDesktop = useIsDesktop();
-  const { refreshProfile } = useProfile();
+  const { refreshProfile, isAdmin } = useProfile();
   const { logout } = useAuth();
   const navigate = useNavigate();
   const gymInputRef = useRef<HTMLInputElement>(null);
@@ -97,6 +98,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [importOpen, setImportOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const [existingDates, setExistingDates] = useState<Set<string>>(new Set());
   const [exporting, setExporting] = useState(false);
   const [storage, setStorage] = useState<StorageEstimate | null>(null);
@@ -628,7 +630,72 @@ export default function ProfilePage() {
           </div>
         </PageContent>
 
-        <div className={`flex justify-center ${isDesktop ? 'mt-12' : 'mt-8'}`}>
+        {/* ── Admin + support actions ──────────────────────────────────
+            Admin Dashboard link only renders for users with is_admin = true
+            (mig 023). Report a Problem is visible for any authed user; the
+            modal silently auto-attaches debug context so the admin gets
+            full triage info from a 2-field form. */}
+        <div className={`${isDesktop ? 'mt-10' : 'mt-6'} flex flex-col items-center`} style={{ gap: 12 }}>
+          {isAdmin && (
+            <button
+              onClick={() => navigate('/admin')}
+              className={isDesktop ? 'rounded-xl transition-all' : 'w-full rounded-xl transition-all touch-manipulation j2-press'}
+              style={isDesktop ? {
+                padding: '12px 32px',
+                fontSize: 14,
+                fontWeight: 600,
+                color: COPPER,
+                backgroundColor: 'rgba(196,145,95,0.10)',
+                border: '1px solid rgba(196,145,95,0.30)',
+              } : {
+                height: 48,
+                fontSize: 14,
+                fontWeight: 600,
+                color: COPPER,
+                backgroundColor: 'rgba(196,145,95,0.12)',
+                border: '1px solid rgba(196,145,95,0.30)',
+              }}
+              onMouseEnter={isDesktop ? (e => {
+                e.currentTarget.style.backgroundColor = 'rgba(196,145,95,0.18)';
+                e.currentTarget.style.borderColor = 'rgba(196,145,95,0.55)';
+              }) : undefined}
+              onMouseLeave={isDesktop ? (e => {
+                e.currentTarget.style.backgroundColor = 'rgba(196,145,95,0.10)';
+                e.currentTarget.style.borderColor = 'rgba(196,145,95,0.30)';
+              }) : undefined}
+            >
+              ◇ Admin Dashboard
+            </button>
+          )}
+
+          <button
+            onClick={() => setReportOpen(true)}
+            className={isDesktop ? 'text-sm rounded-xl transition-colors' : 'w-full text-sm rounded-xl transition-colors touch-manipulation j2-press'}
+            style={isDesktop ? {
+              padding: '12px 32px',
+              color: 'rgba(255,255,255,0.55)',
+              backgroundColor: 'transparent',
+              border: '1px solid rgba(255,255,255,0.10)',
+            } : {
+              height: 44,
+              color: 'rgba(255,255,255,0.65)',
+              backgroundColor: 'transparent',
+              border: '1px solid rgba(255,255,255,0.12)',
+            }}
+            onMouseEnter={isDesktop ? (e => {
+              e.currentTarget.style.color = COPPER;
+              e.currentTarget.style.borderColor = 'rgba(196,145,95,0.40)';
+            }) : undefined}
+            onMouseLeave={isDesktop ? (e => {
+              e.currentTarget.style.color = 'rgba(255,255,255,0.55)';
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)';
+            }) : undefined}
+          >
+            Report a problem
+          </button>
+        </div>
+
+        <div className={`flex justify-center ${isDesktop ? 'mt-8' : 'mt-6'}`}>
           {isDesktop ? (
             <button
               onClick={() => { logout(); navigate('/'); }}
@@ -675,6 +742,10 @@ export default function ProfilePage() {
           onClose={() => setImportOpen(false)}
           onImported={() => {}}
         />
+      )}
+
+      {reportOpen && (
+        <ReportProblemModal onClose={() => setReportOpen(false)} />
       )}
     </div>
   );
