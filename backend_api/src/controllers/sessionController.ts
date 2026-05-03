@@ -7,7 +7,9 @@ import { filterExistingCanonicalConstraintIds } from '../models/canonicalConstra
 import { getUserConstraintsByIds } from '../models/userConstraintModel.js';
 
 const VALID_TAGS        = new Set(['standup', 'passing', 'pins', 'submissions', 'guard']);
-const VALID_GI_NOGI     = new Set(['gi', 'no_gi']);
+// 'both' (mig 025) — for sessions that mixed gi and no-gi work. Analytics
+// rollups treat 'both' as a 50/50 split between the two single-mode buckets.
+const VALID_GI_NOGI     = new Set(['gi', 'no_gi', 'both']);
 // `cla` joins the original three; `competition_training` is preserved for legacy rows.
 const VALID_SESSION_TYPES = new Set(['class', 'drilling', 'competition_training', 'cla']);
 const VALID_POLARITIES  = new Set(['offense', 'defense', 'neutral']);

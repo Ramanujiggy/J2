@@ -10,7 +10,7 @@ export interface Session {
     date: string;
     duration: number;
     notes?: string;
-    gi_nogi: 'gi' | 'no_gi';
+    gi_nogi: 'gi' | 'no_gi' | 'both';
     intensity: number;
     session_type: 'drilling' | 'class' | 'competition_training' | 'cla';
     tags: string[];
@@ -43,7 +43,7 @@ export const createSession = async (
     date: string,
     duration: number,
     notes: string,
-    gi_nogi: 'gi' | 'no_gi',
+    gi_nogi: 'gi' | 'no_gi' | 'both',
     intensity: number,
     session_type: 'drilling' | 'class' | 'competition_training',
     tags: string[],
@@ -180,7 +180,7 @@ export const deleteSession = async (id: string, userId: string): Promise<boolean
 export interface BulkSessionInput {
     date: string;
     duration: number;
-    gi_nogi: 'gi' | 'no_gi';
+    gi_nogi: 'gi' | 'no_gi' | 'both';
     intensity: number;
     session_type: 'drilling' | 'class' | 'competition_training' | 'cla';
     tags: string[];
@@ -235,7 +235,7 @@ export const updateSession = async (
     id: string,
     userId: string,
     duration: number,
-    gi_nogi: 'gi' | 'no_gi',
+    gi_nogi: 'gi' | 'no_gi' | 'both',
     intensity: number,
     session_type: 'drilling' | 'class' | 'competition_training',
     notes: string,

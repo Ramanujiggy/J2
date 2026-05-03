@@ -23,7 +23,7 @@ interface LogSessionResponse {
   session_count?: number;
 }
 
-type GiNoGi = 'gi' | 'no_gi';
+type GiNoGi = 'gi' | 'no_gi' | 'both';
 // `competition_training` is preserved as a valid value for legacy data; new
 // sessions use `class | drilling | cla`. The form picker only surfaces the new
 // three-way taxonomy. CLA = Constraints-Led Approach.
@@ -200,9 +200,12 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
       // Constraint linkage is only sent for CLA sessions; held form-state
       // is preserved if the user flips back, but never persisted to a non-CLA
       // session record (the picker was hidden, so the user never confirmed).
-      const isCLA = form.session_type === 'cla';
-      const sentCanonicalConstraintIds = isCLA && canonicalConstraintIds.length > 0 ? canonicalConstraintIds : undefined;
-      const sentUserConstraintIds = isCLA && userConstraintIds.length > 0 ? userConstraintIds : undefined;
+      // Constraints are now auxiliary metadata that attaches to any session
+      // type — a traditional class with constraint-game segments, a drilling
+      // block under no-grips, etc. session_type still defines the dominant
+      // mode; constraints just record what rules were in play.
+      const sentCanonicalConstraintIds = canonicalConstraintIds.length > 0 ? canonicalConstraintIds : undefined;
+      const sentUserConstraintIds = userConstraintIds.length > 0 ? userConstraintIds : undefined;
 
       const sessionSnapshot = {
         date:         form.date,
@@ -356,9 +359,15 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
         >
           <div className="j2-label-copper">Fundamentals</div>
 
-          {/* Gi / No-Gi */}
+          {/* Gi / No-Gi / Both — 'both' (mig 025) for sessions that mixed
+              gi and no-gi work in one block (e.g. gi for warmup + drilling,
+              no-gi for live rolls). Analytics weight 'both' as 0.5/0.5. */}
           <SegmentedToggle
-            options={[{ value: 'gi' as GiNoGi, label: 'Gi' }, { value: 'no_gi' as GiNoGi, label: 'No-Gi' }]}
+            options={[
+              { value: 'gi'    as GiNoGi, label: 'Gi'    },
+              { value: 'no_gi' as GiNoGi, label: 'No-Gi' },
+              { value: 'both'  as GiNoGi, label: 'Both'  },
+            ]}
             value={form.gi_nogi}
             onChange={v => v && setForm(prev => ({ ...prev, gi_nogi: v }))}
           />
@@ -491,28 +500,36 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
             defaultPrimaryPillar={defaultHeading as Pillar | undefined}
           />
 
-          {/* Constraint picker — CLA only. Vertical reflow under the chip grid
-              when session_type === 'cla' (the Wise / PayPal pattern from the
-              Refero research). Form state lives at this level so values are
-              preserved if the user flips session-type away and back. */}
-          {form.session_type === 'cla' && (
-            <div>
-              <p className="text-[10px] mt-0.5 mb-2 uppercase tracking-widest font-semibold" style={{ color: PALE_YELLOW, letterSpacing: '0.16em' }}>
-                Constraint
-              </p>
-              <ConstraintPicker
-                selectedUserConstraintIds={userConstraintIds}
-                selectedCanonicalConstraintIds={canonicalConstraintIds}
-                onChange={(u, c) => { setUserConstraintIds(u); setCanonicalConstraintIds(c); }}
-                currentPillar={derivedHeading}
-                maxSelected={1}
-                defaultQuery={defaultConstraintName}
-              />
-              <p className="text-xs mt-2" style={{ color: 'rgba(255,255,255,0.40)', fontStyle: 'italic', fontFamily: FONT_EDITORIAL, fontSize: 13 }}>
-                What rule did you train under tonight?
-              </p>
-            </div>
-          )}
+          {/* Constraint picker — available on any session type. CLA sessions
+              are constraint-driven by definition; class / drilling / comp
+              sessions can also carry constraint metadata when a portion of
+              the session ran under one (e.g. "class with positional sparring
+              from closed guard"). session_type still defines the dominant
+              mode — this is auxiliary, not a parallel axis. Form state lives
+              at this level so values persist if the user flips session-type. */}
+          <div>
+            <p className="text-[10px] mt-0.5 mb-2 uppercase tracking-widest font-semibold" style={{ color: PALE_YELLOW, letterSpacing: '0.16em' }}>
+              Constraint
+              {form.session_type !== 'cla' && (
+                <span style={{ color: 'rgba(255,255,255,0.35)', marginLeft: 8, fontWeight: 500 }}>
+                  · optional
+                </span>
+              )}
+            </p>
+            <ConstraintPicker
+              selectedUserConstraintIds={userConstraintIds}
+              selectedCanonicalConstraintIds={canonicalConstraintIds}
+              onChange={(u, c) => { setUserConstraintIds(u); setCanonicalConstraintIds(c); }}
+              currentPillar={derivedHeading}
+              maxSelected={1}
+              defaultQuery={defaultConstraintName}
+            />
+            <p className="text-xs mt-2" style={{ color: 'rgba(255,255,255,0.40)', fontStyle: 'italic', fontFamily: FONT_EDITORIAL, fontSize: 13 }}>
+              {form.session_type === 'cla'
+                ? 'What rule did you train under tonight?'
+                : 'Did any portion of the session run under a constraint?'}
+            </p>
+          </div>
 
           {/* Tech Tags — moved up from the old Details section. These are the
               technical layer of the session and the bridge to the future

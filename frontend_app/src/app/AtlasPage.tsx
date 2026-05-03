@@ -20,7 +20,7 @@ import TrainingHeatmap from '../components/TrainingHeatmap.tsx';
 import ErrorBoundary from '../components/ErrorBoundary.tsx';
 import { SKILL_COLORS } from '../components/charts/RadarChart.tsx';
 import { SKILL_TAGS } from '../lib/constants.ts';
-import { toDateString, formatDuration, addDays } from '../lib/sessionUtils.ts';
+import { toDateString, formatDuration, addDays, giShare, nogiShare } from '../lib/sessionUtils.ts';
 import {
   type TimeWindow, WINDOW_DAYS,
   sessionPillarHours, computeAlignment, topTagInRange, tagHoursInRange, formatWeekShort,
@@ -793,8 +793,9 @@ function PrismPanel({
 
     // ── Split — Gi vs No-Gi ──────────────────────────────────────────
     if (subView === 'split') {
-      const gi    = filtered.filter(s => s.gi_nogi === 'gi').reduce((a, s) => a + (s.duration ?? 0) / 60, 0);
-      const nogi  = filtered.filter(s => s.gi_nogi === 'no_gi').reduce((a, s) => a + (s.duration ?? 0) / 60, 0);
+      // 'both' (mig 025) counts 0.5 toward each side.
+      const gi    = filtered.reduce((a, s) => a + (s.duration ?? 0) / 60 * giShare(s.gi_nogi), 0);
+      const nogi  = filtered.reduce((a, s) => a + (s.duration ?? 0) / 60 * nogiShare(s.gi_nogi), 0);
       const total = gi + nogi;
       if (total <= 0) return `${totalLabel} logged — no Gi or No-Gi training tagged in this window.`;
       const giPct   = Math.round((gi / total) * 100);

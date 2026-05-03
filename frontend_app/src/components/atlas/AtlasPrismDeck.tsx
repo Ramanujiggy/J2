@@ -15,6 +15,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { SKILL_TAGS, MONTH_NAMES } from '../../lib/constants.ts';
 import { COPPER, PALE_YELLOW, GLOW_SOFT, SURFACE_3_BORDER, PAGE_BG } from '../../lib/theme.ts';
 import { WINDOW_DAYS, type TimeWindow, sessionPillarHours, tagHoursInRange } from '../../lib/analyticsUtils.ts';
+import { giShare, nogiShare } from '../../lib/sessionUtils.ts';
 import type { SessionSummary } from '../TrainingHeatmap.tsx';
 import type { Intention } from '../../types/api.ts';
 import { SKILL_COLORS, DEFAULT_COLORS } from '../charts/RadarChart.tsx';
@@ -163,8 +164,9 @@ export default function AtlasPrismDeck({
   const dominantIndex    = hours.indexOf(Math.max(...hours));
 
   // ── Split / Format / Volume / Weekly stats ──
-  const giHours    = filtered.filter(s => s.gi_nogi === 'gi').reduce((sum, s) => sum + s.duration / 60, 0);
-  const nogiHours  = filtered.filter(s => s.gi_nogi === 'no_gi').reduce((sum, s) => sum + s.duration / 60, 0);
+  // 'both' (mig 025) counts 0.5 toward each side via giShare/nogiShare.
+  const giHours    = filtered.reduce((sum, s) => sum + s.duration / 60 * giShare(s.gi_nogi), 0);
+  const nogiHours  = filtered.reduce((sum, s) => sum + s.duration / 60 * nogiShare(s.gi_nogi), 0);
   const splitTotal = giHours + nogiHours;
 
   const classHours  = filtered.filter(s => s.session_type === 'class').reduce((sum, s) => sum + s.duration / 60, 0);
@@ -220,7 +222,7 @@ export default function AtlasPrismDeck({
   // ── Prior period stats ──
   const priorVolHours    = priorFiltered?.reduce((sum, s) => sum + s.duration / 60, 0) ?? null;
   const priorSplitTotal  = priorFiltered
-    ? priorFiltered.filter(s => s.gi_nogi === 'gi' || s.gi_nogi === 'no_gi').reduce((sum, s) => sum + s.duration / 60, 0)
+    ? priorFiltered.reduce((sum, s) => sum + s.duration / 60 * (giShare(s.gi_nogi) + nogiShare(s.gi_nogi)), 0)
     : null;
   const priorFormatTotal = priorFiltered
     ? priorFiltered.filter(s => ['class','drilling','competition_training'].includes(s.session_type)).reduce((sum, s) => sum + s.duration / 60, 0)

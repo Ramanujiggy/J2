@@ -14,7 +14,7 @@ export interface SessionSummary {
   date: string;
   duration: number;
   intensity: number;
-  gi_nogi: 'gi' | 'no_gi';
+  gi_nogi: 'gi' | 'no_gi' | 'both';
   session_type: SessionType;
   notes?: string;
   tags: string[];
@@ -295,7 +295,7 @@ export interface AdminUserSession {
   date: string;
   duration: number;
   intensity: number;
-  gi_nogi: 'gi' | 'no_gi';
+  gi_nogi: 'gi' | 'no_gi' | 'both';
   session_type: SessionType;
   heading: string | null;
   notes: string | null;
@@ -328,7 +328,7 @@ export interface ClassSchedule {
   day_of_week: number;            // 0=Sun … 6=Sat
   start_time: string;             // 'HH:MM:SS'
   duration_min: number;
-  gi_nogi: 'gi' | 'no_gi' | null;
+  gi_nogi: 'gi' | 'no_gi' | 'both' | null;
   is_active: boolean;
   created_at: string;
 }
@@ -346,5 +346,5 @@ export interface ClassScheduleInput {
   day_of_week: number;
   start_time: string;
   duration_min: number;
-  gi_nogi: 'gi' | 'no_gi' | null;
+  gi_nogi: 'gi' | 'no_gi' | 'both' | null;
 }

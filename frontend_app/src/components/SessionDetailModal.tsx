@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { api } from '../lib/api.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
 import { COPPER, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3, CARD_GLOW, CARD_GLOW_BORDER, FONT_EDITORIAL } from '../lib/theme.ts';
-import { INTENSITY_COLOR } from '../lib/sessionUtils.ts';
+import { INTENSITY_COLOR, formatGiNogi } from '../lib/sessionUtils.ts';
 import { vibrate } from '../lib/haptics.ts';
 import SegmentedToggle from './SegmentedToggle.tsx';
 import FocusAreaChips from './FocusAreaChips.tsx';
@@ -432,7 +432,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                   {/* Style + Type pills */}
                   <div className="flex gap-2">
                     <span className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ backgroundColor: SURFACE_3, color: 'rgba(255,255,255,0.65)' }}>
-                      {session.gi_nogi === 'gi' ? 'Gi' : 'No-Gi'}
+                      {formatGiNogi(session.gi_nogi)}
                     </span>
                     <span className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ backgroundColor: SURFACE_3, color: 'rgba(255,255,255,0.65)' }}>
                       {SESSION_TYPE_LABELS[session.session_type] ?? session.session_type}
@@ -922,7 +922,7 @@ function DesktopViewContent({
   }).toUpperCase();
 
   const formatLine = [
-    session.gi_nogi === 'gi' ? 'Gi' : 'No-Gi',
+    formatGiNogi(session.gi_nogi),
     SESSION_TYPE_LABELS[session.session_type] ?? session.session_type,
   ].filter(Boolean).join(' · ');
 

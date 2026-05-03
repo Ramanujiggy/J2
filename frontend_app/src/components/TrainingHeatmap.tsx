@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/tooltip';
 import SessionDetailModal from './SessionDetailModal.tsx';
 import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, HEATMAP_REST, HEATMAP_FUTURE, HEATMAP_HEADER_BG, PALE_YELLOW, GLOW_SOFT, SURFACE_2, INT_COLORS } from '../lib/theme.ts';
+import { giShare, nogiShare } from '../lib/sessionUtils.ts';
 import type { SessionSummary, CalendarIntention } from '../types/api.ts';
 export type { SessionSummary };
 
@@ -148,8 +149,9 @@ export function computeStats(sessions: SessionSummary[], year: number) {
   const thisYear = sessions.filter(s => toDateKey(s.date).slice(0, 4) === String(year));
   const totalSessions = thisYear.length;
   const totalMinutes = thisYear.reduce((sum, s) => sum + Number(s.duration), 0);
-  const giMinutes    = thisYear.filter(s => s.gi_nogi === 'gi').reduce((sum, s) => sum + Number(s.duration), 0);
-  const nogiMinutes  = thisYear.filter(s => s.gi_nogi === 'no_gi').reduce((sum, s) => sum + Number(s.duration), 0);
+  // 'both' (mig 025) counts 0.5 toward each side via giShare/nogiShare.
+  const giMinutes    = thisYear.reduce((sum, s) => sum + Number(s.duration) * giShare(s.gi_nogi), 0);
+  const nogiMinutes  = thisYear.reduce((sum, s) => sum + Number(s.duration) * nogiShare(s.gi_nogi), 0);
 
   const daySet = new Set(sessions.map(s => toDateKey(s.date)));
 

@@ -8,7 +8,7 @@ import {
 } from '../models/classScheduleModel.js';
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/;
-const VALID_GI_NOGI = new Set(['gi', 'no_gi']);
+const VALID_GI_NOGI = new Set(['gi', 'no_gi', 'both']);
 
 function sanitize(body: unknown): { input: ClassScheduleInput | null; error: string | null } {
     if (!body || typeof body !== 'object') return { input: null, error: 'Invalid body.' };
@@ -30,12 +30,12 @@ function sanitize(body: unknown): { input: ClassScheduleInput | null; error: str
         return { input: null, error: 'duration_min must be 15–480.' };
     }
 
-    let giNogi: 'gi' | 'no_gi' | null = null;
+    let giNogi: 'gi' | 'no_gi' | 'both' | null = null;
     if (b.gi_nogi != null && b.gi_nogi !== '') {
         if (typeof b.gi_nogi !== 'string' || !VALID_GI_NOGI.has(b.gi_nogi)) {
-            return { input: null, error: 'gi_nogi must be "gi" or "no_gi".' };
+            return { input: null, error: 'gi_nogi must be "gi", "no_gi", or "both".' };
         }
-        giNogi = b.gi_nogi as 'gi' | 'no_gi';
+        giNogi = b.gi_nogi as 'gi' | 'no_gi' | 'both';
     }
 
     return { input: { name, day_of_week: day, start_time: start, duration_min: dur, gi_nogi: giNogi }, error: null };
