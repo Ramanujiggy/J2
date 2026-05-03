@@ -6,14 +6,11 @@
 import { useCallback, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext.tsx';
-import { useActiveIntention } from '../context/ActiveIntentionContext.tsx';
 import BeltBar from './BeltBar.tsx';
 import RailAmbient from './RailAmbient.tsx';
 import OfflineBanner from './OfflineBanner.tsx';
 import PageTransition from './PageTransition.tsx';
 import { useOnlineSync } from '../hooks/useOnlineSync.ts';
-import { SKILL_TAGS } from '../lib/constants.ts';
-import { toDateString, addDays } from '../lib/sessionUtils.ts';
 import { PAGE_BG, PALE_YELLOW, COPPER } from '../lib/theme.ts';
 
 // ─── Icons (inline SVG, matches AppShell style) ──────────────────────────────
@@ -111,29 +108,8 @@ export default function DesktopAppShell({ children }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
   const { name, beltRank, stripes, intentionsEnabled, isAdmin } = useProfile();
-  const { activeIntention } = useActiveIntention();
 
   useOnlineSync();
-
-  // Days remaining on the active intention (inclusive). Null when no intention.
-  const daysRemaining = useMemo(() => {
-    if (!activeIntention) return null;
-    const start = activeIntention.week_start.slice(0, 10);
-    const end = addDays(start, (activeIntention.duration_days ?? 7) - 1);
-    const todayStr = toDateString(new Date());
-    const diff = Math.max(0, Math.round(
-      (new Date(end + 'T00:00:00').getTime() - new Date(todayStr + 'T00:00:00').getTime()) / 86_400_000
-    ));
-    return diff; // 0 means "ends today"
-  }, [activeIntention]);
-
-  const focusLabel = useMemo(() => {
-    if (!activeIntention) return null;
-    if (activeIntention.heading) {
-      return SKILL_TAGS.find(t => t.value === activeIntention.heading)?.label ?? activeIntention.heading;
-    }
-    return activeIntention.intent_label || 'Focus';
-  }, [activeIntention]);
 
   const items = useMemo(
     () => NAV_ITEMS.filter(it => {
@@ -258,92 +234,11 @@ export default function DesktopAppShell({ children }: Props) {
           })}
         </nav>
 
-        {/* Focus card — reads activeIntention from ActiveIntentionContext.
-            Hidden when intentions feature is gated off so the rail doesn't
-            advertise a destination the user can't reach. */}
-        {intentionsEnabled && (
-        <div
-          style={{
-            padding: 20,
-            border: '1px solid rgba(196,145,95,0.22)',
-            borderRadius: 14,
-            background: 'rgba(196,145,95,0.04)',
-            position: 'relative',
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            aria-hidden
-            style={{
-              position: 'absolute', inset: 0,
-              background: 'radial-gradient(circle at 100% 0%, rgba(242,228,168,0.08), transparent 60%)',
-              pointerEvents: 'none',
-            }}
-          />
-          <div className="j2-label-copper" style={{ marginBottom: 10 }}>◇ This week</div>
-          {activeIntention && focusLabel ? (
-            <>
-              <div className="j2-serif-display" style={{ fontSize: 28, lineHeight: 1.1 }}>
-                {focusLabel}
-              </div>
-              {activeIntention.intent_label
-                && activeIntention.intent_label.trim().toLowerCase() !== focusLabel.toLowerCase() && (
-                <div
-                  style={{
-                    marginTop: 6,
-                    fontSize: 14,
-                    color: 'rgba(255,255,255,0.60)',
-                    fontStyle: 'italic',
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}
-                >
-                  {activeIntention.intent_label}
-                </div>
-              )}
-              {daysRemaining !== null && (
-                <div
-                  style={{
-                    marginTop: 14,
-                    fontSize: 12.5, letterSpacing: '0.14em',
-                    textTransform: 'uppercase', fontWeight: 700,
-                    color: 'rgba(255,255,255,0.40)',
-                  }}
-                >
-                  {daysRemaining === 0 ? 'Ends today' : `${daysRemaining} day${daysRemaining === 1 ? '' : 's'} left`}
-                </div>
-              )}
-              <button
-                onClick={() => go('/intentions')}
-                style={{
-                  marginTop: 14, fontSize: 14, fontWeight: 600,
-                  color: COPPER, borderBottom: `1px solid ${COPPER}40`,
-                  cursor: 'pointer', background: 'transparent',
-                  padding: 0,
-                }}
-              >
-                View Intentions →
-              </button>
-            </>
-          ) : (
-            <>
-              <div className="j2-serif-display" style={{ fontSize: 26, lineHeight: 1.1 }}>
-                Set your focus
-              </div>
-              <button
-                onClick={() => go('/intentions')}
-                style={{
-                  marginTop: 14, fontSize: 14, fontWeight: 600,
-                  color: COPPER, borderBottom: `1px solid ${COPPER}40`,
-                  cursor: 'pointer', background: 'transparent',
-                  padding: 0,
-                }}
-              >
-                Open Intentions →
-              </button>
-            </>
-          )}
-        </div>
-        )}
+        {/* Focus card retired from the rail — IntentionHeroCard on the Path
+            Ahead page now uses this same chrome and serves as the single
+            home for the active intention. Removing it from the rail also
+            removes the duplicate copy of the same week-focus message and
+            lets the rail breathe more (nav + practitioner pill only). */}
 
         {/* Practitioner pill — avatar + name + animated belt identity.
             The belt ties on mount (login/refresh), then sits as an ambient

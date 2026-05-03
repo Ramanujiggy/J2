@@ -1,8 +1,25 @@
+// IntentionHeroCard — the active-intention card on the Path Ahead page.
+//
+// Visual chrome adopted from the (now-retired) DesktopAppShell rail focus
+// card: copper-tinted bg, copper-at-22% border, radial champagne highlight
+// from the top-right, ◇ kicker + serif display title + italic intent_label
+// dek + small-caps "X days left" status. The rail card was duplicating
+// this same surface, and the user preferred its restrained aesthetic over
+// the prior animated particle/pulse treatment.
+//
+// Preserved from the prior implementation:
+//   • weekSessionCount progress bar (functional — shows weekly traction)
+//   • Edit / Journal / Delete action row (functional)
+//   • Invitational empty state when no intention is set
+// Removed:
+//   • Animated champagne particles rising from the bottom
+//   • Purple radial pulse + yellow lowlight pulse
+//   • The yellow border + yellow-tint background
+
 import { useState } from 'react';
 import type { Intention } from '../types/api.ts';
-import { PALE_YELLOW, GLOW_SOFT, SURFACE_2, COPPER } from '../lib/theme.ts';
+import { COPPER, PALE_YELLOW } from '../lib/theme.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
-import { INTENT_PARTICLES } from '../lib/particles.ts';
 import { addDays, toDateString } from '../lib/sessionUtils.ts';
 
 interface Props {
@@ -14,7 +31,14 @@ interface Props {
   onDeleteIntent: () => void;
 }
 
-export default function IntentionHeroCard({ intention, weekSessionCount = 0, onSetIntent, onEditIntent, onViewJournal, onDeleteIntent }: Props) {
+export default function IntentionHeroCard({
+  intention,
+  weekSessionCount = 0,
+  onSetIntent,
+  onEditIntent,
+  onViewJournal,
+  onDeleteIntent,
+}: Props) {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   const handleDelete = () => {
@@ -27,7 +51,7 @@ export default function IntentionHeroCard({ intention, weekSessionCount = 0, onS
     onDeleteIntent();
   };
 
-  // Days remaining
+  // Days remaining (inclusive). 0 → ends today.
   const today = toDateString(new Date());
   let daysRemaining = 0;
   if (intention) {
@@ -38,183 +62,224 @@ export default function IntentionHeroCard({ intention, weekSessionCount = 0, onS
     daysRemaining = Math.max(0, Math.round((endDate.getTime() - todayDate.getTime()) / 86400000));
   }
 
-  return (
-    <>
-      <style>{`
-        @keyframes j2IntentParticleRise {
-          0%   { transform: translateY(0) translateX(0); opacity: 0; }
-          8%   { opacity: 1; }
-          85%  { opacity: 0.7; }
-          100% { transform: translateY(-52px) translateX(var(--drift)); opacity: 0; }
-        }
-        @keyframes j2IntentPurplePulse {
-          0%   { opacity: 0.35; transform: scale(1); }
-          50%  { opacity: 0.65; transform: scale(1.08); }
-          100% { opacity: 0.35; transform: scale(1); }
-        }
-        @keyframes j2IntentYellowPulse {
-          0%   { opacity: 0.4; transform: scaleX(1); }
-          50%  { opacity: 0.7; transform: scaleX(1.03); }
-          100% { opacity: 0.4; transform: scaleX(1); }
-        }
-      `}</style>
+  const focusLabel = intention
+    ? (intention.heading
+        ? (SKILL_TAGS.find(s => s.value === intention.heading)?.label ?? intention.heading)
+        : intention.intent_label)
+    : null;
 
-      {intention ? (
-        /* ── Active intention ─────────────────────────────────────── */
+  // Show the dek (italic intent_label below the title) only when it adds
+  // information beyond the focusLabel — i.e. the user typed a flavor line
+  // distinct from the auto-derived pillar label.
+  const showDek = !!intention?.intent_label
+    && !!focusLabel
+    && intention.intent_label.trim().toLowerCase() !== focusLabel.toLowerCase();
+
+  // ── Empty state ─────────────────────────────────────────────────────────
+  if (!intention) {
+    return (
+      <button
+        onClick={onSetIntent}
+        className="w-full rounded-xl px-5 py-5 text-left touch-manipulation j2-press"
+        style={{
+          backgroundColor: 'rgba(196,145,95,0.04)',
+          border: '1px solid rgba(196,145,95,0.22)',
+          borderRadius: 14,
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
         <div
-          className="rounded-xl px-5 py-5"
+          aria-hidden
           style={{
-            position: 'relative',
-            overflow: 'hidden',
-            backgroundColor: 'rgba(242,228,168,0.06)',
-            border: '1px solid rgba(242,228,168,0.18)',
-            boxShadow: '0 0 12px rgba(242,228,168,0.08)',
+            position: 'absolute', inset: 0,
+            background: 'radial-gradient(circle at 100% 0%, rgba(242,228,168,0.08), transparent 60%)',
+            pointerEvents: 'none',
           }}
-        >
-          {/* Purple glow */}
-          <div style={{
-            position: 'absolute', bottom: -12, left: '50%', transform: 'translateX(-50%)',
-            width: '60%', height: 48, borderRadius: '50%',
-            background: 'radial-gradient(ellipse at center bottom, rgba(167,139,250,0.22) 0%, rgba(167,139,250,0.08) 50%, transparent 80%)',
-            animation: 'j2IntentPurplePulse 4.2s ease-in-out infinite',
-            zIndex: 0, pointerEvents: 'none',
-          }} />
-
-          {/* Yellow lowlight */}
-          <div style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0, height: 28,
-            background: 'linear-gradient(to top, rgba(242,228,168,0.09) 0%, transparent 100%)',
-            animation: 'j2IntentYellowPulse 3.1s ease-in-out infinite',
-            transformOrigin: 'center bottom', zIndex: 0, pointerEvents: 'none',
-          }} />
-
-          {/* Particles */}
-          <div style={{
-            position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none',
-            WebkitMaskImage: 'linear-gradient(to top, black 0%, rgba(0,0,0,0.85) 50%, transparent 100%)',
-            maskImage: 'linear-gradient(to top, black 0%, rgba(0,0,0,0.85) 50%, transparent 100%)',
-          }}>
-            {INTENT_PARTICLES.map((p, i) => (
-              <span
-                key={i}
-                style={{
-                  position: 'absolute', left: p.left, bottom: p.bottom,
-                  width: p.size, height: p.size, borderRadius: '50%',
-                  backgroundColor: 'rgba(242,228,168,0.9)',
-                  boxShadow: '0 0 6px 2px rgba(242,228,168,0.75)',
-                  filter: 'brightness(1.15)',
-                  ['--drift' as string]: p.drift,
-                  animation: `j2IntentParticleRise ${p.duration}s ease-in-out infinite ${p.delay}s`,
-                  userSelect: 'none',
-                } as React.CSSProperties}
-              />
-            ))}
-          </div>
-
-          {/* Content */}
-          <div style={{ position: 'relative', zIndex: 2 }}>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-sm" style={{ color: 'rgba(242,228,168,0.5)' }}>◈</span>
-              <span className="text-xs uppercase tracking-wide font-medium" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                This week's focus
-              </span>
-            </div>
-            <p className="text-lg font-display font-semibold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
-              {intention.heading
-                ? (SKILL_TAGS.find(s => s.value === intention.heading)?.label ?? intention.heading)
-                : intention.intent_label}
-            </p>
-            {intention.heading && intention.intent_label && intention.intent_label !== intention.heading && (
-              <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                {intention.intent_label}
-              </p>
-            )}
-            <div className="flex items-center gap-2 mt-1.5">
-              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.30)' }}>
-                {daysRemaining === 0 ? 'Last day' : `${daysRemaining}d remaining`}
-              </span>
-            </div>
-
-            {/* Session progress */}
-            <div className="flex items-center gap-2.5 mt-3">
-              <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
-                <div
-                  className="h-full rounded-full"
-                  style={{
-                    width: '100%',
-                    background: weekSessionCount >= 3
-                      ? 'linear-gradient(90deg, #A8CB72, #C4915F 70%, #F2E4A8)'
-                      : COPPER,
-                    transform: `scaleX(${Math.min(1, weekSessionCount / 3)})`,
-                    transformOrigin: 'left center',
-                    transition: 'transform 600ms cubic-bezier(0.16, 1, 0.3, 1), background 400ms ease',
-                    boxShadow: weekSessionCount >= 3 ? '0 0 14px rgba(242,228,168,0.25)' : 'none',
-                  }}
-                />
-              </div>
-              <span className="text-xs flex-shrink-0" style={{ color: 'rgba(255,255,255,0.40)' }}>
-                {weekSessionCount} session{weekSessionCount !== 1 ? 's' : ''}
-              </span>
-            </div>
-
-            {/* Action row */}
-            <div className="flex items-center gap-1 mt-3 pt-2.5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-              {onEditIntent && (
-                <button
-                  onClick={onEditIntent}
-                  className="px-3 py-2 rounded-lg text-xs font-medium touch-manipulation j2-press min-h-[40px]"
-                  style={{ color: COPPER }}
-                >
-                  Edit
-                </button>
-              )}
-              {onViewJournal && (
-                <button
-                  onClick={onViewJournal}
-                  className="px-3 py-2 rounded-lg text-xs font-medium touch-manipulation j2-press min-h-[40px]"
-                  style={{ color: 'rgba(255,255,255,0.45)' }}
-                >
-                  Journal
-                </button>
-              )}
-              <div className="flex-1" />
-              {deleteConfirm && (
-                <button
-                  onClick={() => setDeleteConfirm(false)}
-                  className="px-3 py-2 rounded-lg text-xs text-white/25 transition-colors touch-manipulation min-h-[40px]"
-                >
-                  Cancel
-                </button>
-              )}
-              <button
-                onClick={handleDelete}
-                className="px-3 py-2 rounded-lg text-xs transition-colors touch-manipulation min-h-[40px]"
-                style={{ color: deleteConfirm ? 'rgba(248,113,113,0.85)' : 'rgba(255,255,255,0.20)' }}
-              >
-                {deleteConfirm ? 'Confirm?' : 'Delete'}
-              </button>
-            </div>
-          </div>
+        />
+        <div className="j2-label-copper" style={{ marginBottom: 10 }}>◇ This week</div>
+        <div className="j2-serif-display" style={{ fontSize: 26, lineHeight: 1.1, color: PALE_YELLOW }}>
+          Set your focus
         </div>
-      ) : (
-        /* ── No intention — invitational ─────────────────────────── */
-        <button
-          onClick={onSetIntent}
-          className="w-full rounded-xl px-5 py-4 text-left touch-manipulation j2-press"
+        <div
           style={{
-            backgroundColor: SURFACE_2,
-            border: `1px dashed rgba(196,145,95,0.35)`,
-            transition: 'border-color 200ms ease',
+            marginTop: 14,
+            fontSize: 14, fontWeight: 600,
+            color: COPPER, borderBottom: `1px solid ${COPPER}40`,
+            display: 'inline-block',
           }}
         >
-          <p className="text-sm mb-1" style={{ color: 'rgba(255,255,255,0.40)' }}>
-            What's your focus this week?
-          </p>
-          <span className="text-sm font-medium" style={{ color: COPPER }}>
-            + Set intent
+          + Set intent →
+        </div>
+      </button>
+    );
+  }
+
+  // ── Active intention ────────────────────────────────────────────────────
+  const progressFraction = Math.min(1, weekSessionCount / 3);
+
+  return (
+    <div
+      style={{
+        padding: 20,
+        border: '1px solid rgba(196,145,95,0.22)',
+        borderRadius: 14,
+        background: 'rgba(196,145,95,0.04)',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Radial champagne highlight from the top-right — same as the rail's */}
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute', inset: 0,
+          background: 'radial-gradient(circle at 100% 0%, rgba(242,228,168,0.08), transparent 60%)',
+          pointerEvents: 'none',
+        }}
+      />
+
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        {/* Kicker */}
+        <div className="j2-label-copper" style={{ marginBottom: 10 }}>◇ This week</div>
+
+        {/* Serif title — pillar label, or intent_label if no heading set */}
+        <div
+          className="j2-serif-display"
+          style={{ fontSize: 28, lineHeight: 1.1, color: PALE_YELLOW }}
+        >
+          {focusLabel}
+        </div>
+
+        {/* Italic dek — flavor text distinct from the title */}
+        {showDek && (
+          <div
+            style={{
+              marginTop: 6,
+              fontSize: 14,
+              color: 'rgba(255,255,255,0.60)',
+              fontStyle: 'italic',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}
+          >
+            {intention.intent_label}
+          </div>
+        )}
+
+        {/* Days-left status */}
+        <div
+          style={{
+            marginTop: 14,
+            fontSize: 12.5, letterSpacing: '0.14em',
+            textTransform: 'uppercase', fontWeight: 700,
+            color: 'rgba(255,255,255,0.40)',
+          }}
+        >
+          {daysRemaining === 0 ? 'Ends today' : `${daysRemaining} day${daysRemaining === 1 ? '' : 's'} left`}
+        </div>
+
+        {/* Weekly session progress bar — quieter than the prior animated
+            version. 3 sessions/week is the soft cap; bar fills to that. */}
+        <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div
+            style={{
+              flex: 1,
+              height: 3,
+              borderRadius: 999,
+              backgroundColor: 'rgba(255,255,255,0.08)',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                width: '100%',
+                height: '100%',
+                borderRadius: 999,
+                background: weekSessionCount >= 3
+                  ? 'linear-gradient(90deg, #A8CB72, #C4915F 70%, #F2E4A8)'
+                  : COPPER,
+                transform: `scaleX(${progressFraction})`,
+                transformOrigin: 'left center',
+                transition: 'transform 600ms cubic-bezier(0.16, 1, 0.3, 1), background 400ms ease',
+                boxShadow: weekSessionCount >= 3 ? '0 0 10px rgba(242,228,168,0.20)' : 'none',
+              }}
+            />
+          </div>
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)', flexShrink: 0, letterSpacing: '0.04em' }}>
+            {weekSessionCount} session{weekSessionCount !== 1 ? 's' : ''}
           </span>
-        </button>
-      )}
-    </>
+        </div>
+
+        {/* Action row — quieter than before. Edit/Journal copper + faint
+            white; Delete only blooms red on confirm. */}
+        <div
+          style={{
+            marginTop: 14, paddingTop: 12,
+            borderTop: '1px solid rgba(255,255,255,0.06)',
+            display: 'flex', alignItems: 'center', gap: 4,
+          }}
+        >
+          {onEditIntent && (
+            <button
+              onClick={onEditIntent}
+              className="touch-manipulation j2-press"
+              style={{
+                padding: '8px 12px', borderRadius: 8,
+                fontSize: 13, fontWeight: 600,
+                color: COPPER, background: 'transparent', border: 'none',
+                minHeight: 40, cursor: 'pointer',
+              }}
+            >
+              Edit
+            </button>
+          )}
+          {onViewJournal && (
+            <button
+              onClick={onViewJournal}
+              className="touch-manipulation j2-press"
+              style={{
+                padding: '8px 12px', borderRadius: 8,
+                fontSize: 13, fontWeight: 500,
+                color: 'rgba(255,255,255,0.50)',
+                background: 'transparent', border: 'none',
+                minHeight: 40, cursor: 'pointer',
+              }}
+            >
+              Journal
+            </button>
+          )}
+          <div style={{ flex: 1 }} />
+          {deleteConfirm && (
+            <button
+              onClick={() => setDeleteConfirm(false)}
+              className="touch-manipulation"
+              style={{
+                padding: '8px 10px', borderRadius: 8,
+                fontSize: 12, color: 'rgba(255,255,255,0.30)',
+                background: 'transparent', border: 'none',
+                minHeight: 40, cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </button>
+          )}
+          <button
+            onClick={handleDelete}
+            className="touch-manipulation"
+            style={{
+              padding: '8px 10px', borderRadius: 8,
+              fontSize: 12,
+              color: deleteConfirm ? 'rgba(248,113,113,0.85)' : 'rgba(255,255,255,0.25)',
+              background: 'transparent', border: 'none',
+              minHeight: 40, cursor: 'pointer',
+              transition: 'color 160ms ease',
+            }}
+          >
+            {deleteConfirm ? 'Confirm?' : 'Delete'}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
+
