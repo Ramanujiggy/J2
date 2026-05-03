@@ -5,6 +5,7 @@ import {
     getCases,
     patchCase,
     getUsers,
+    getUserDetail,
 } from '../controllers/adminController.js';
 
 const router = Router();
@@ -16,5 +17,6 @@ router.get('/stats',          getStats);
 router.get('/cases',          getCases);
 router.patch('/cases/:id',    patchCase);
 router.get('/users',          getUsers);
+router.get('/users/:id',      getUserDetail);
 
 export default router;

@@ -9,8 +9,9 @@ import type { SessionSummary, Intention, IntentionsResponse, SessionsResponse } 
 import LogSessionForm from '../components/LogSessionForm.tsx';
 import SessionDetailModal from '../components/SessionDetailModal.tsx';
 import SetIntentionModal from '../components/SetIntentionModal.tsx';
-import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER, COPPER_BORDER, SURFACE_2, SURFACE_2_BORDER, WHISPER_BORDER, CARD_GLOW, CARD_GLOW_BORDER, FONT_EDITORIAL, INT_COLORS, PRESTIGE_TEAL, PRESTIGE_TEAL_GLOW } from '../lib/theme.ts';
-import AnnualRadial from '../components/charts/AnnualRadial.tsx';
+import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER, COPPER_BORDER, SURFACE_2, SURFACE_2_BORDER, WHISPER_BORDER, FONT_EDITORIAL, INT_COLORS, PRESTIGE_TEAL, PRESTIGE_TEAL_GLOW } from '../lib/theme.ts';
+// AnnualRadial moved to AtlasPage's Prism tab — Path Ahead is operational
+// (week-and-narrower); the year-shaped reflection lives on Atlas.
 import { SKILL_COLORS } from '../components/charts/RadarChart.tsx';
 import { CalendarDays, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from '../hooks/use-toast.ts';
@@ -802,7 +803,6 @@ export default function PathAheadPage() {
          • Recent intentions row (full-width)
        ═══════════════════════════════════════════════════════════════════ */
 
-    const year = today.getFullYear();
     const todayLabel = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).format(today).toUpperCase();
 
     // Streak subtitle — tiered copy based on consistent weeks
@@ -846,12 +846,9 @@ export default function PathAheadPage() {
     // Recent intentions — latest 6 (already sorted newest-first from API)
     const recentIntentions = intentions.slice(0, 6);
 
-    const heroCardStyle: React.CSSProperties = {
-      backgroundColor: CARD_BG,
-      border: `1px solid ${CARD_GLOW_BORDER}`,
-      boxShadow: CARD_GLOW,
-      borderRadius: 16,
-    };
+    // heroCardStyle was used by the now-retired AnnualRadial hero block.
+    // Removed with the IA migration to Atlas → Prism. Re-introduce only if a
+    // new hero card lands on Path Ahead.
     const softCardStyle: React.CSSProperties = {
       backgroundColor: CARD_BG,
       border: '1px solid var(--j2-border-2)',
@@ -1028,56 +1025,11 @@ export default function PathAheadPage() {
 
           {/* LEFT column ─────────────────────────────────── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 28, minWidth: 0 }}>
-            {/* Annual radial — hero */}
-            <div style={{ ...heroCardStyle, padding: 40, position: 'relative' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 24 }}>
-                <div>
-                  <div className="j2-label-copper">◈ The Path · {year}</div>
-                  <div className="j2-serif-display" style={{ fontSize: 30, marginTop: 8 }}>
-                    A year of training at a glance
-                  </div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '14px 0 28px' }}>
-                <AnnualRadial
-                  sessions={allSessions}
-                  intentions={intentions}
-                  year={year}
-                  size={620}
-                />
-              </div>
-              {/* Pillar legend */}
-              <div
-                style={{
-                  display: 'flex', justifyContent: 'space-between', gap: 14,
-                  paddingTop: 22, borderTop: '1px solid var(--j2-border-2)',
-                }}
-              >
-                {SKILL_TAGS.map(tag => {
-                  const count = allSessions.filter(s =>
-                    new Date((typeof s.date === 'string' ? s.date : toDateString(new Date(s.date))) + 'T00:00:00').getFullYear() === year
-                    && s.tags?.[0] === tag.value
-                  ).length;
-                  const color = SKILL_COLORS[tag.value]?.stroke ?? COPPER;
-                  return (
-                    <div key={tag.value} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-                      <span
-                        style={{
-                          width: 14, height: 14, borderRadius: '50%',
-                          background: color,
-                          boxShadow: `0 0 12px ${color}80`,
-                        }}
-                      />
-                      <div className="j2-label-micro" style={{ fontSize: 12 }}>{tag.label}</div>
-                      <div style={{ fontSize: 19, color: PALE_YELLOW, fontFamily: FONT_EDITORIAL }}>{count}</div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Heatmap — moved here from the right sidebar so the full year
-                of training reads at a glance alongside the annual radial. */}
+            {/* Path Ahead is operational, week-and-narrower. The year-shaped
+                AnnualRadial reflection lives on /atlas → Prism tab. The
+                last-30-days heatmap stays here as the page's recent-rhythm
+                pulse — short enough that "this is what the past month looks
+                like" reads in a glance, not a year. */}
             {heatmapSection}
 
             {telemetryContent}

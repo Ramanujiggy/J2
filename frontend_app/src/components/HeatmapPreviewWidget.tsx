@@ -1,6 +1,9 @@
-// HeatmapPreviewWidget — horizontal-scroll training-rhythm card for the home page.
-// Purely visual: no per-cell interactions. Tap anywhere → navigate to /calendar.
-// Shows a rolling 24-week (6-month) window. Today is always in the rightmost column.
+// HeatmapPreviewWidget — operational training-rhythm card for the home page
+// (Path Ahead). Re-scoped from a 24-week reflective view to a focused
+// last-30-days ribbon: Path Ahead is week-and-narrower; the year-shaped
+// reflection lives on Atlas → Prism. Today is always in the rightmost column.
+//
+// Purely visual — no per-cell interactions. Tap anywhere → /calendar.
 
 import { useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -9,8 +12,12 @@ import type { DayData } from './TrainingHeatmap.tsx';
 import type { SessionSummary } from '../types/api.ts';
 import { CARD_BG, COPPER, CARD_GLOW, CARD_GLOW_BORDER } from '../lib/theme.ts';
 
-const WEEKS     = 24;   // 6 months of rolling history
-const CELL_SIZE = 14;   // px — ~20% smaller than the old 18px compact heatmap
+// 5 weeks (35 days) covers the last 30 days plus a few extra columns at the
+// left so the most recent month doesn't end mid-week. Keeps the familiar
+// 7-row × N-col grid format readers already know from CompactHeatmap, just
+// drastically shorter.
+const WEEKS     = 5;
+const CELL_SIZE = 16;   // px — slightly larger than the old 14px since fewer columns means more room
 const CELL_GAP  = 3;    // px
 
 const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -94,7 +101,7 @@ export default function HeatmapPreviewWidget({ sessions }: HeatmapPreviewWidgetP
             letterSpacing: '0.1em',
           }}
         >
-          Training Rhythm
+          Last 30 days
         </span>
         <span
           style={{

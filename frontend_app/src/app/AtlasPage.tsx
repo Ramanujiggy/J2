@@ -33,6 +33,7 @@ import type { SessionSummary, Intention, SessionsResponse, IntentionsResponse, C
 import AtlasPrismDeck, { type ViewMode as PrismViewMode } from '../components/atlas/AtlasPrismDeck.tsx';
 import TimeRangeBar from '../components/TimeRangeBar.tsx';
 import AtlasEmptyHero from '../components/empty/AtlasEmptyHero.tsx';
+import AnnualRadial from '../components/charts/AnnualRadial.tsx';
 
 const LS_TAB_KEY = 'j2_atlas_tab';
 type AtlasTab = 'timeline' | 'prism' | 'library' | 'calendar';
@@ -193,19 +194,82 @@ export default function AtlasPage() {
       )}
 
       {tab === 'prism' && (
-        <PrismPanel
-          sessions={allSessions}
-          intentions={intentions}
-          timeWindow={timeWindow}
-          onWindowChange={setTimeWindow}
-          customRange={customRange}
-          onCustomRangeChange={setCustomRange}
-          selectedTag={selectedTag}
-          onSelectTag={setSelectedTag}
-          onOpenSession={(id) => navigate(`/journal/${id}`)}
-          onOpenIntentionJournal={(id) => navigate(`/intentions/${id}/journal`)}
-          isDesktop={true}
-        />
+        <>
+          {/* Annual radial — moved here from /home (Path Ahead) since the
+              year-shaped reflection belongs to Atlas's reflective register,
+              not the operational dashboard. Sits at the top of the Prism tab
+              as a hero before the existing PrismPanel content. */}
+          <div
+            style={{
+              backgroundColor: CARD_BG,
+              border: `1px solid ${CARD_GLOW_BORDER}`,
+              boxShadow: CARD_GLOW,
+              borderRadius: 16,
+              padding: 40,
+              marginBottom: 28,
+              position: 'relative',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 24 }}>
+              <div>
+                <div className="j2-label-copper">◈ The Path · {currentYear}</div>
+                <div className="j2-serif-display" style={{ fontSize: 30, marginTop: 8 }}>
+                  A year of training at a glance
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '14px 0 28px' }}>
+              <AnnualRadial
+                sessions={allSessions}
+                intentions={intentions}
+                year={currentYear}
+                size={620}
+              />
+            </div>
+            {/* Pillar legend */}
+            <div
+              style={{
+                display: 'flex', justifyContent: 'space-between', gap: 14,
+                paddingTop: 22, borderTop: '1px solid var(--j2-border-2)',
+              }}
+            >
+              {SKILL_TAGS.map(tag => {
+                const count = allSessions.filter(s =>
+                  new Date((typeof s.date === 'string' ? s.date : toDateString(new Date(s.date))) + 'T00:00:00').getFullYear() === currentYear
+                  && s.tags?.[0] === tag.value
+                ).length;
+                const color = SKILL_COLORS[tag.value]?.stroke ?? COPPER;
+                return (
+                  <div key={tag.value} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+                    <span
+                      style={{
+                        width: 14, height: 14, borderRadius: '50%',
+                        background: color,
+                        boxShadow: `0 0 12px ${color}80`,
+                      }}
+                    />
+                    <div className="j2-label-micro" style={{ fontSize: 12 }}>{tag.label}</div>
+                    <div style={{ fontSize: 19, color: PALE_YELLOW, fontFamily: FONT_EDITORIAL }}>{count}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <PrismPanel
+            sessions={allSessions}
+            intentions={intentions}
+            timeWindow={timeWindow}
+            onWindowChange={setTimeWindow}
+            customRange={customRange}
+            onCustomRangeChange={setCustomRange}
+            selectedTag={selectedTag}
+            onSelectTag={setSelectedTag}
+            onOpenSession={(id) => navigate(`/journal/${id}`)}
+            onOpenIntentionJournal={(id) => navigate(`/intentions/${id}/journal`)}
+            isDesktop={true}
+          />
+        </>
       )}
 
       {tab === 'library' && <LibraryComingSoon />}
