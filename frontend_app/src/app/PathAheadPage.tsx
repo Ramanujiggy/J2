@@ -30,7 +30,7 @@ import RecentConstraintsCard from '../components/RecentConstraintsCard.tsx';
 import { computeACWR, computeDecay, rustiest, computeACWRByPillar, spikiestPillar } from '../lib/analyticsModels.ts';
 import { sessionPillarHours } from '../lib/analyticsUtils.ts';
 import RepRouletteFab from '../components/RepRouletteFab.tsx';
-import { toDateString, addDays, formatDuration, DAY_NAMES, INTENSITY_COLOR, SESSION_TYPE_LABELS } from '../lib/sessionUtils.ts';
+import { toDateString, addDays, formatDuration, DAY_NAMES, INTENSITY_COLOR, SESSION_TYPE_LABELS, formatGiNogi } from '../lib/sessionUtils.ts';
 import { STATS_PARTICLES } from '../lib/particles.ts';
 import { computeStats } from '../components/TrainingHeatmap.tsx';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
@@ -608,7 +608,7 @@ export default function PathAheadPage() {
             const daySessions = sessionsByDate.get(dayStr) ?? [];
             const isToday = dayStr === toDateString(today);
             const intensityColor = INTENSITY_COLOR[session.intensity] ?? '#CDDFA0';
-            const giLabel = session.gi_nogi === 'gi' ? 'Gi' : 'No-Gi';
+            const giLabel = formatGiNogi(session.gi_nogi);
             const typeLabel = SESSION_TYPE_LABELS[session.session_type] ?? session.session_type;
             const primaryTag = session.tags?.[0]
               ? (SKILL_TAGS.find(s => s.value === session.tags[0])?.label ?? session.tags[0])
@@ -1304,7 +1304,7 @@ function MostRecentSessionCard({ mostRecent, softCardStyle }: {
     ? mostRecent.date.slice(0, 10)
     : toDateString(new Date(mostRecent.date));
   const dateObj = new Date(dateStr + 'T00:00:00');
-  const giLabel = mostRecent.gi_nogi === 'gi' ? 'Gi' : 'No-Gi';
+  const giLabel = formatGiNogi(mostRecent.gi_nogi);
   const typeLabel = SESSION_TYPE_LABELS[mostRecent.session_type] ?? mostRecent.session_type;
   // Prefer `heading` (mig 007 dynamic-pillar primary) over the older `tags[0]`.
   const headingPillar = (mostRecent.heading ?? mostRecent.tags?.[0]) as string | undefined;

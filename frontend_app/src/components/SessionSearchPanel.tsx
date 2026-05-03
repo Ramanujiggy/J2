@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, X } from 'lucide-react';
 import { api } from '../lib/api.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
-import { INTENSITY_COLOR, SESSION_TYPE_LABELS } from '../lib/sessionUtils.ts';
+import { INTENSITY_COLOR, SESSION_TYPE_LABELS, formatGiNogi } from '../lib/sessionUtils.ts';
 import {
   COPPER, COPPER_BORDER, SURFACE_2, SURFACE_3,
   CARD_BG, CARD_SHADOW, PALE_YELLOW,
@@ -355,7 +355,7 @@ export default function SessionSearchPanel({ cachedSessions, onRefresh }: Props)
                     {fmtDuration(s.duration)}
                   </span>
                   <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                    {s.gi_nogi === 'gi' ? 'Gi' : 'No-Gi'}
+                    {formatGiNogi(s.gi_nogi)}
                   </span>
                   {s.heading && (
                     <span

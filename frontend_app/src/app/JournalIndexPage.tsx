@@ -15,7 +15,7 @@ import PageContent from '../components/PageContent.tsx';
 import SessionDetailModal from '../components/SessionDetailModal.tsx';
 import JournalEmptyHero from '../components/empty/JournalEmptyHero.tsx';
 import { SKILL_TAGS } from '../lib/constants.ts';
-import { toDateString, DAY_NAMES, SESSION_TYPE_LABELS, INTENSITY_COLOR, formatDuration } from '../lib/sessionUtils.ts';
+import { toDateString, DAY_NAMES, SESSION_TYPE_LABELS, INTENSITY_COLOR, formatDuration, formatGiNogi } from '../lib/sessionUtils.ts';
 import {
   PALE_YELLOW, COPPER, CARD_BG, FONT_EDITORIAL,
 } from '../lib/theme.ts';
@@ -327,7 +327,7 @@ function JournalRow({ session, onOpen }: { session: SessionSummary; onOpen: () =
   const primary = session.tags?.[0];
   const focusLabel = primary ? (SKILL_TAGS.find(t => t.value === primary)?.label ?? primary) : 'Free rolling';
   const classLabel = SESSION_TYPE_LABELS[session.session_type] ?? session.session_type;
-  const giLabel = session.gi_nogi === 'gi' ? 'Gi' : 'No-Gi';
+  const giLabel = formatGiNogi(session.gi_nogi);
   const secondaryTags = session.tags?.slice(1, 4) ?? [];
   const secondaryLabels = secondaryTags.map(t => SKILL_TAGS.find(x => x.value === t)?.label ?? t);
 
@@ -418,7 +418,7 @@ function MobileJournalRow({ session, onOpen }: { session: SessionSummary; onOpen
   const primary = session.tags?.[0];
   const focusLabel = primary ? (SKILL_TAGS.find(t => t.value === primary)?.label ?? primary) : 'Free rolling';
   const classLabel = SESSION_TYPE_LABELS[session.session_type] ?? session.session_type;
-  const giLabel = session.gi_nogi === 'gi' ? 'Gi' : 'No-Gi';
+  const giLabel = formatGiNogi(session.gi_nogi);
 
   return (
     <button

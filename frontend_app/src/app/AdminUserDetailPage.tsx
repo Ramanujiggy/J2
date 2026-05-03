@@ -18,7 +18,7 @@ import {
     PALE_YELLOW, COPPER, CARD_BG, CARD_GLOW, CARD_GLOW_BORDER,
     SURFACE_2, SURFACE_2_BORDER, FONT_EDITORIAL, GLOW_SOFT,
 } from '../lib/theme.ts';
-import { formatDuration, SESSION_TYPE_LABELS, INTENSITY_COLOR } from '../lib/sessionUtils.ts';
+import { formatDuration, SESSION_TYPE_LABELS, INTENSITY_COLOR, formatGiNogi } from '../lib/sessionUtils.ts';
 import type {
     AdminUserDetailResponse,
     AdminUserSession,
@@ -375,7 +375,7 @@ function SessionRow({ session }: { session: AdminUserSession }) {
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {SESSION_TYPE_LABELS[session.session_type] ?? session.session_type}
                 {session.heading && ` · ${cap(session.heading)}`}
-                {session.gi_nogi && ` · ${session.gi_nogi === 'gi' ? 'Gi' : 'No-Gi'}`}
+                {session.gi_nogi && ` · ${formatGiNogi(session.gi_nogi)}`}
             </div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.30)' }}>↗</div>
         </Link>

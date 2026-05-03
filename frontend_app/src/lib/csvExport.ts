@@ -1,6 +1,7 @@
 import Papa from 'papaparse';
 import type { SessionSummary, Intention } from '../types/api.ts';
 import { SKILL_TAGS } from './constants.ts';
+import { formatGiNogi } from './sessionUtils.ts';
 
 const SESSION_TYPE_DISPLAY: Record<string, string> = {
   class: 'Class',
@@ -41,7 +42,7 @@ export function exportSessionsCsv(sessions: SessionSummary[]): void {
   const rows = sorted.map(s => ({
     'Date': s.date,
     'Duration (min)': s.duration,
-    'Gi / No-Gi': s.gi_nogi === 'gi' ? 'Gi' : 'No-Gi',
+    'Gi / No-Gi': formatGiNogi(s.gi_nogi),
     'Type': SESSION_TYPE_DISPLAY[s.session_type] ?? s.session_type,
     'Intensity': s.intensity,
     'Pillar': headingLabel(s.heading),

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { SKILL_TAGS, MONTH_NAMES } from '../lib/constants.ts';
 import type { SessionSummary, Intention } from '../types/api.ts';
 import { CARD_BG, PAGE_BG, SURFACE_2_BORDER, SURFACE_3 } from '../lib/theme.ts';
-import { toDateString, formatDuration, DAY_NAMES, INTENSITY_COLOR, SESSION_TYPE_LABELS } from '../lib/sessionUtils.ts';
+import { toDateString, formatDuration, DAY_NAMES, INTENSITY_COLOR, SESSION_TYPE_LABELS, formatGiNogi } from '../lib/sessionUtils.ts';
 import { generateDayParticles } from '../lib/particles.ts';
 
 // ── Tooltip ────────────────────────────────────────────────────────────────
@@ -154,7 +154,7 @@ export default function DayCard({ day, today, sessions, intention, intentionBrig
           <p className="text-[12px] mb-2" style={{ color: 'rgba(255,255,255,0.45)' }}>
             {SESSION_TYPE_LABELS[primarySession!.session_type] ?? primarySession!.session_type}
             {' · '}
-            {primarySession!.gi_nogi === 'gi' ? 'Gi' : 'No-Gi'}
+            {formatGiNogi(primarySession!.gi_nogi)}
           </p>
           {/* Tags (up to 4) */}
           {primarySession!.tags && primarySession!.tags.length > 0 && (

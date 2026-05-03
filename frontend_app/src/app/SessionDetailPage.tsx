@@ -11,7 +11,7 @@ import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import PageContent from '../components/PageContent.tsx';
 import MiniPrism from '../components/charts/MiniPrism.tsx';
 import { SKILL_TAGS, MONTH_NAMES } from '../lib/constants.ts';
-import { toDateString, DAY_NAMES, INTENSITY_COLOR, SESSION_TYPE_LABELS, formatDuration } from '../lib/sessionUtils.ts';
+import { toDateString, DAY_NAMES, INTENSITY_COLOR, SESSION_TYPE_LABELS, formatDuration, formatGiNogi } from '../lib/sessionUtils.ts';
 import {
   PALE_YELLOW, COPPER, CARD_BG, FONT_EDITORIAL, INT_LABELS,
 } from '../lib/theme.ts';
@@ -159,7 +159,7 @@ function StatsRow({ session }: { session: SessionSummary }) {
   const intensity = Math.max(1, Math.min(5, session.intensity ?? 3));
   const intColor = INTENSITY_COLOR[intensity] ?? '#A8CB72';
   const intLabel = INT_LABELS[intensity] || 'Steady';
-  const giLabel = session.gi_nogi === 'gi' ? 'Gi' : 'No-Gi';
+  const giLabel = formatGiNogi(session.gi_nogi);
   const typeLabel = SESSION_TYPE_LABELS[session.session_type] ?? session.session_type;
   const stats: { k: string; v: React.ReactNode }[] = [
     { k: 'Duration', v: formatDuration(session.duration ?? 0) },
