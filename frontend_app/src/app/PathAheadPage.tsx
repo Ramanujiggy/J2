@@ -12,6 +12,7 @@ import SetIntentionModal from '../components/SetIntentionModal.tsx';
 import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER, COPPER_BORDER, SURFACE_2, SURFACE_2_BORDER, WHISPER_BORDER, FONT_EDITORIAL, INT_COLORS, PRESTIGE_TEAL, PRESTIGE_TEAL_GLOW } from '../lib/theme.ts';
 // AnnualRadial moved to AtlasPage's Prism tab — Path Ahead is operational
 // (week-and-narrower); the year-shaped reflection lives on Atlas.
+import TodayCard from '../components/today/TodayCard.tsx';
 import { SKILL_COLORS } from '../components/charts/RadarChart.tsx';
 import { CalendarDays, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from '../hooks/use-toast.ts';
@@ -1025,11 +1026,22 @@ export default function PathAheadPage() {
 
           {/* LEFT column ─────────────────────────────────── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 28, minWidth: 0 }}>
+            {/* TodayCard — operational centerpiece. Time-aware: surfaces
+                today's class from class_schedules (Sprint 10) and transforms
+                in place across the day (pre / in-session / drive-home /
+                logged). When no class is scheduled, offers a quiet log CTA. */}
+            <SectionLabel>today</SectionLabel>
+            <TodayCard
+              sessions={allSessions}
+              onLogSession={(ctx) => openLog({ date: ctx.date })}
+            />
+
             {/* Path Ahead is operational, week-and-narrower. The year-shaped
                 AnnualRadial reflection lives on /atlas → Prism tab. The
                 last-30-days heatmap stays here as the page's recent-rhythm
                 pulse — short enough that "this is what the past month looks
                 like" reads in a glance, not a year. */}
+            <SectionLabel>pulse</SectionLabel>
             {heatmapSection}
 
             {telemetryContent}
@@ -1399,6 +1411,43 @@ function MostRecentSessionCard({ mostRecent, softCardStyle }: {
       <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.40)', marginTop: 8 }}>
         {DAY_NAMES[dateObj.getDay()]}, {MONTH_NAMES[dateObj.getMonth()]} {dateObj.getDate()}
       </div>
+    </div>
+  );
+}
+
+// SectionLabel — italic Cormorant lowercase + trailing copper hairline.
+// Refero anchor: 222's "INVITES 6 ─────" pattern (`daf006a1-…`). Defines
+// the page's vertical rhythm without adding card chrome.
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 14,
+        marginTop: 8,
+      }}
+    >
+      <span
+        style={{
+          fontFamily: FONT_EDITORIAL,
+          fontStyle: 'italic',
+          fontSize: 15,
+          color: 'rgba(242,228,168,0.55)',
+          letterSpacing: '0.02em',
+          lineHeight: 1,
+        }}
+      >
+        {children}
+      </span>
+      <span
+        aria-hidden
+        style={{
+          flex: 1,
+          height: 1,
+          background: 'rgba(196,145,95,0.22)',
+        }}
+      />
     </div>
   );
 }
