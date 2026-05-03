@@ -18,6 +18,7 @@ import ProfilePage from './app/ProfilePage.tsx';
 import ClassSchedulesPage from './app/ClassSchedulesPage.tsx';
 import MovesLibraryPage from './app/MovesLibraryPage.tsx';
 import AdminDashboardPage from './app/AdminDashboardPage.tsx';
+import AdminUserDetailPage from './app/AdminUserDetailPage.tsx';
 import WelcomeSplashPage from './app/WelcomeSplashPage.tsx';
 import OnboardingNamePage from './app/OnboardingNamePage.tsx';
 import OnboardingBeltPage from './app/OnboardingBeltPage.tsx';
@@ -104,7 +105,8 @@ function App() {
       <Route path="/profile"          element={<ProtectedShell><ProfilePage /></ProtectedShell>} />
       <Route path="/profile/classes"  element={<ProtectedShell><ClassSchedulesPage /></ProtectedShell>} />
       <Route path="/library"     element={<ProtectedShell><MovesLibraryPage /></ProtectedShell>} />
-      <Route path="/admin"       element={<ProtectedShell><AdminDashboardPage /></ProtectedShell>} />
+      <Route path="/admin"            element={<ProtectedShell><AdminDashboardPage /></ProtectedShell>} />
+      <Route path="/admin/users/:userId" element={<ProtectedShell><AdminUserDetailPage /></ProtectedShell>} />
 
       {/* Legacy route — keep for any bookmarks */}
       <Route path="/dashboard"   element={<Navigate to="/home" replace />} />

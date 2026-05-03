@@ -262,6 +262,63 @@ export interface AdminUsersResponse  { users: AdminUserSummary[]; }
 export interface SubmitCaseResponse  { case: SupportCase; }
 export interface UpdateCaseResponse  { case: SupportCase; }
 
+// ── Admin user detail ────────────────────────────────────────────────────
+// Backs /admin/users/:id — single round-trip with profile + activity stats
+// + recent sessions + intentions + cases. Read-only in v1.
+
+export interface AdminUserProfile {
+  id: string;
+  email: string;
+  name: string | null;
+  belt_rank: string | null;
+  stripes: number;
+  home_gym_name: string | null;
+  home_gym_address: string | null;
+  timezone: string | null;
+  intentions_enabled: boolean;
+  is_admin: boolean;
+  onboarding_completed_at: string | null;
+  created_at: string;
+}
+
+export interface AdminUserActivityStats {
+  total_sessions: number;
+  total_minutes: number;
+  last_session_at: string | null;
+  sessions_7d: number;
+}
+
+// Subset of SessionSummary that the detail endpoint returns — keep it
+// loose since the admin view doesn't need every column.
+export interface AdminUserSession {
+  id: string;
+  date: string;
+  duration: number;
+  intensity: number;
+  gi_nogi: 'gi' | 'no_gi';
+  session_type: SessionType;
+  heading: string | null;
+  notes: string | null;
+}
+
+export interface AdminUserIntention {
+  id: string;
+  week_start: string;
+  intent_label: string;
+  heading: string | null;
+  duration_days: number;
+  journal_entry: string | null;
+  created_at: string;
+}
+
+export interface AdminUserDetailResponse {
+  user: AdminUserProfile;
+  stats: AdminUserActivityStats;
+  recent_sessions:   AdminUserSession[];
+  recent_intentions: AdminUserIntention[];
+  cases:             SupportCase[];
+}
+
 // ── Class schedules + push notifications (mig 019/020/021) ──────────────────
 
 export interface ClassSchedule {

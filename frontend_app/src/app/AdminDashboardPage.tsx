@@ -12,7 +12,7 @@
 // fail with 403 — the frontend redirect is just for UX.
 
 import { useEffect, useMemo, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Link } from 'react-router-dom';
 import PageContent from '../components/PageContent.tsx';
 import { useProfile } from '../context/ProfileContext.tsx';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
@@ -492,7 +492,16 @@ function CaseRow({
                         {caseItem.subject}
                     </div>
                     <div style={{ color: 'rgba(255,255,255,0.40)', fontSize: 12, marginTop: 2 }}>
-                        {caseItem.user_name ?? caseItem.user_email} · {created} · {SEVERITY_LABEL[caseItem.severity]}
+                        <Link
+                            to={`/admin/users/${caseItem.user_id}`}
+                            onClick={e => e.stopPropagation()}
+                            style={{ color: 'rgba(196,145,95,0.85)', textDecoration: 'none' }}
+                            onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
+                            onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
+                        >
+                            {caseItem.user_name ?? caseItem.user_email}
+                        </Link>
+                        {' · '}{created} · {SEVERITY_LABEL[caseItem.severity]}
                     </div>
                 </div>
                 <div style={{ color: 'rgba(255,255,255,0.30)', fontSize: 12 }}>
@@ -607,15 +616,25 @@ function StatusPill({ status }: { status: CaseStatus }) {
 // ── User row ──────────────────────────────────────────────────────────────
 
 function UserRow({ user }: { user: AdminUserSummary }) {
+    // Whole row is a link to the user-detail page (/admin/users/:id).
+    // Hover shifts the bg subtly and turns the email copper to telegraph
+    // affordance without going noisy.
     return (
-        <div
+        <Link
+            to={`/admin/users/${user.id}`}
             style={{
                 borderTop: '1px solid rgba(255,255,255,0.06)',
-                padding: '12px 0',
+                padding: '12px 8px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 12,
+                textDecoration: 'none',
+                color: 'inherit',
+                borderRadius: 8,
+                transition: 'background-color 160ms ease',
             }}
+            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)')}
+            onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
         >
             <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ color: 'rgba(255,255,255,0.92)', fontSize: 14, fontWeight: 600 }}>
@@ -633,6 +652,7 @@ function UserRow({ user }: { user: AdminUserSummary }) {
                     sessions
                 </div>
             </div>
-        </div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.30)', marginLeft: 4 }}>↗</div>
+        </Link>
     );
 }
