@@ -9,7 +9,7 @@ import type { SessionSummary, Intention, IntentionsResponse, SessionsResponse } 
 import LogSessionForm from '../components/LogSessionForm.tsx';
 import SessionDetailModal from '../components/SessionDetailModal.tsx';
 import SetIntentionModal from '../components/SetIntentionModal.tsx';
-import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER, COPPER_BORDER, SURFACE_2, SURFACE_2_BORDER, WHISPER_BORDER, FONT_EDITORIAL, PRESTIGE_TEAL, PRESTIGE_TEAL_GLOW } from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER, COPPER_BORDER, SURFACE_2, WHISPER_BORDER, FONT_EDITORIAL, PRESTIGE_TEAL, PRESTIGE_TEAL_GLOW } from '../lib/theme.ts';
 // AnnualRadial moved to AtlasPage's Prism tab — Path Ahead is operational
 // (week-and-narrower); the year-shaped reflection lives on Atlas.
 import TodayCard from '../components/today/TodayCard.tsx';
@@ -710,16 +710,10 @@ export default function PathAheadPage() {
     </button>
   ) : null;
 
-  const heatmapSection = allSessions.length >= 5 ? (
-    <HeatmapPreviewWidget sessions={sessions} />
-  ) : (
-    <div className="rounded-xl px-4 py-5 text-center"
-         style={{ backgroundColor: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}` }}>
-      <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13 }}>
-        Log a few more sessions and your training rhythm will appear here.
-      </p>
-    </div>
-  );
+  // PulseSparklineWidget handles the sparse / empty case internally — it
+  // renders the same invitational copy when fewer than 5 sessions exist in
+  // the last 30 days, so no outer gate is needed here.
+  const heatmapSection = <PulseSparklineWidget sessions={allSessions} />;
 
   const modals = (
     <>
