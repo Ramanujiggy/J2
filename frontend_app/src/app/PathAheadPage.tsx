@@ -9,17 +9,16 @@ import type { SessionSummary, Intention, IntentionsResponse, SessionsResponse } 
 import LogSessionForm from '../components/LogSessionForm.tsx';
 import SessionDetailModal from '../components/SessionDetailModal.tsx';
 import SetIntentionModal from '../components/SetIntentionModal.tsx';
-import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER, COPPER_BORDER, SURFACE_2, SURFACE_2_BORDER, WHISPER_BORDER, FONT_EDITORIAL, INT_COLORS, PRESTIGE_TEAL, PRESTIGE_TEAL_GLOW } from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, CARD_BG, COPPER, COPPER_BORDER, SURFACE_2, SURFACE_2_BORDER, WHISPER_BORDER, FONT_EDITORIAL, PRESTIGE_TEAL, PRESTIGE_TEAL_GLOW } from '../lib/theme.ts';
 // AnnualRadial moved to AtlasPage's Prism tab — Path Ahead is operational
 // (week-and-narrower); the year-shaped reflection lives on Atlas.
 import TodayCard from '../components/today/TodayCard.tsx';
-import { SKILL_COLORS } from '../components/charts/RadarChart.tsx';
 import { CalendarDays, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from '../hooks/use-toast.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import { useActiveIntention } from '../context/ActiveIntentionContext.tsx';
 import PageContent from '../components/PageContent.tsx';
-import HeatmapPreviewWidget from '../components/HeatmapPreviewWidget.tsx';
+import PulseSparklineWidget from '../components/PulseSparklineWidget.tsx';
 import HomeHeader from '../components/HomeHeader.tsx';
 import StatStrip from '../components/StatStrip.tsx';
 import IntentionHeroCard from '../components/IntentionHeroCard.tsx';
@@ -819,12 +818,11 @@ export default function PathAheadPage() {
       const key = typeof s.date === 'string' ? s.date.slice(0, 10) : toDateString(new Date(s.date));
       return weekDateStrings.has(key);
     });
-    const alignedCount = activeIntention
-      ? weekSessions.filter(s => s.tags?.[0] === activeIntention.heading).length
-      : 0;
-    const alignmentPct = weekStats.count > 0 && activeIntention
-      ? Math.round((alignedCount / weekStats.count) * 100)
-      : 0;
+    // alignmentPct / alignedCount were used by the retired Alignment stat
+    // card. Reflective comparison against the active intention now lives on
+    // Atlas. The active intention itself is still surfaced inline by
+    // IntentionHeroCard with its own alignment bar.
+    void weekSessions; // retained above but the derived count moved out
 
     // Most recent session — for the sidebar widget
     const mostRecent = allSessions.length > 0
@@ -835,17 +833,8 @@ export default function PathAheadPage() {
         })[0]
       : null;
 
-    // Last 30 days intensity distribution — 5 buckets
-    const thirtyMs = 30 * 86_400_000;
-    const last30 = allSessions.filter(s => {
-      const key = typeof s.date === 'string' ? s.date.slice(0, 10) : toDateString(new Date(s.date));
-      return today.getTime() - new Date(key + 'T00:00:00').getTime() < thirtyMs;
-    });
-    const intensityDist = [1, 2, 3, 4, 5].map(i => last30.filter(s => (s.intensity ?? 3) === i).length);
-    const intensityMax = Math.max(1, ...intensityDist);
-
-    // Recent intentions — latest 6 (already sorted newest-first from API)
-    const recentIntentions = intentions.slice(0, 6);
+    // 30-day intensity histogram + recent-intentions row both moved to Atlas
+    // when the Path Ahead IA was tightened to "operational, week-and-narrower."
 
     // heroCardStyle was used by the now-retired AnnualRadial hero block.
     // Removed with the IA migration to Atlas → Prism. Re-introduce only if a
@@ -943,8 +932,12 @@ export default function PathAheadPage() {
         ) : (
         <>
 
-        {/* ── 4-stat strip ────────────────────────────────────────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 22, marginBottom: 44 }}>
+        {/* ── 2-stat strip (operational) ──────────────────────────────
+            Reduced from 4 stats. Alignment and Consistent-Weeks were
+            reflective metrics (multi-week comparisons) — moved to Atlas.
+            What stays: practice streak (today's relationship to habit)
+            and this week's hours (the current week's actual volume). */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 22, marginBottom: 44 }}>
           {([
             {
               label: 'Practice streak',
@@ -956,20 +949,7 @@ export default function PathAheadPage() {
               value: weekStats.totalMinutes > 0 ? formatDuration(weekStats.totalMinutes) : '0h',
               unit: `${weekStats.count} session${weekStats.count === 1 ? '' : 's'}`,
             },
-            {
-              label: 'Alignment',
-              value: activeIntention ? `${alignmentPct}%` : '—',
-              unit: activeIntention
-                ? `${alignedCount} of ${weekStats.count} on focus`
-                : 'set a focus to track',
-            },
-            {
-              label: 'Consistent weeks',
-              value: consistentWeeks > 0 ? String(consistentWeeks) : '—',
-              unit: consistentWeeks >= 1 ? 'weeks without a break' : 'log a session to start',
-              prestige: consistentWeeks >= 26,
-            },
-          ]).map((s, i) => (
+          ] as { label: string; value: string; unit: string; prestige?: boolean }[]).map((s, i) => (
             <div
               key={i}
               style={{
@@ -1024,33 +1004,29 @@ export default function PathAheadPage() {
         {/* ── 2-col main ──────────────────────────────────────────── */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 440px', gap: 40, alignItems: 'flex-start', marginBottom: 44 }}>
 
-          {/* LEFT column ─────────────────────────────────── */}
+          {/* LEFT column — operational spine: today → this week → pulse */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 28, minWidth: 0 }}>
-            {/* TodayCard — operational centerpiece. Time-aware: surfaces
-                today's class from class_schedules (Sprint 10) and transforms
-                in place across the day (pre / in-session / drive-home /
-                logged). When no class is scheduled, offers a quiet log CTA. */}
-            <SectionLabel>today</SectionLabel>
+            {/* TodayCard — operational centerpiece. Time-aware dialog that
+                walks the user through the day: pre-class "Planning to attend?"
+                → in-session → post-class "Did you attend?" → drive-home log
+                CTA. "No" answers minimize the class out (localStorage). */}
+            <SectionLabel>next class</SectionLabel>
             <TodayCard
               sessions={allSessions}
               onLogSession={(ctx) => openLog({ date: ctx.date })}
             />
 
-            {/* Path Ahead is operational, week-and-narrower. The year-shaped
-                AnnualRadial reflection lives on /atlas → Prism tab. The
-                last-30-days heatmap stays here as the page's recent-rhythm
-                pulse — short enough that "this is what the past month looks
-                like" reads in a glance, not a year. */}
-            <SectionLabel>pulse</SectionLabel>
-            {heatmapSection}
+            {/* This week — promoted from the right rail. Now the operational
+                anchor for "what does the rest of the week look like." */}
+            <SectionLabel>this week</SectionLabel>
+            <div style={{ ...softCardStyle, padding: 32 }}>
+              {weekSectionHeader}
+              <div style={{ marginTop: 16 }}>{weekViewContent}</div>
+            </div>
 
-            {telemetryContent}
-          </div>
-
-          {/* RIGHT sidebar ─────────────────────────────── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 26 }}>
-
-            {/* Intention hero card */}
+            {/* Active intention for the week — moved from right rail; sits
+                directly under the week view since it's the *meaning* of
+                this week, not a side metric. */}
             {intentionsEnabled && (
               <IntentionHeroCard
                 intention={activeIntention}
@@ -1062,131 +1038,35 @@ export default function PathAheadPage() {
               />
             )}
 
-            {/* Most recent session */}
+            {/* Last 30 days — recent rhythm, short enough to feel operational. */}
+            <SectionLabel>pulse</SectionLabel>
+            {heatmapSection}
+
+            {telemetryContent}
+          </div>
+
+          {/* RIGHT rail — pulse sidebar: who, what, recent. Three cards max. */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 26 }}>
+
+            {/* Most recent session — only shown when TodayCard isn't already
+                covering the same ground (i.e. no class today, or the class
+                hasn't ended yet). When TodayCard's `logged` state is showing
+                we'd be duplicating the "you trained" signal. */}
             {mostRecent && (
               <MostRecentSessionCard mostRecent={mostRecent} softCardStyle={softCardStyle} />
             )}
-
-            {/* Last 30 days intensity */}
-            <div style={{ ...softCardStyle, padding: 32 }}>
-              <div className="j2-label-copper" style={{ marginBottom: 22 }}>◈ Last 30 days · intensity</div>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 140 }}>
-                {intensityDist.map((n, i) => {
-                  const h = intensityMax ? (n / intensityMax) * 116 + 14 : 8;
-                  const c = INT_COLORS[(i + 1) as 1 | 2 | 3 | 4 | 5];
-                  return (
-                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-                      <div
-                        style={{
-                          width: '100%', height: h, background: c, borderRadius: 5,
-                          boxShadow: `0 0 12px ${c}60`,
-                        }}
-                      />
-                      <div
-                        style={{
-                          fontSize: 13, color: 'rgba(255,255,255,0.40)',
-                          letterSpacing: '0.1em',
-                        }}
-                      >
-                        {n}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div
-                style={{
-                  display: 'flex', justifyContent: 'space-between',
-                  fontSize: 12, color: 'rgba(255,255,255,0.40)',
-                  letterSpacing: '0.14em', textTransform: 'uppercase', marginTop: 8,
-                }}
-              >
-                <span>Light</span><span>Moderate</span><span>High</span>
-              </div>
-            </div>
 
             {/* Top partners — last 30 days. Self-hides when no partner data. */}
             <TopPartnersCard sessions={allSessions} softCardStyle={softCardStyle} />
 
             {/* Recent constraints — last 30 days. Self-hides when empty. */}
             <RecentConstraintsCard sessions={allSessions} softCardStyle={softCardStyle} />
-
-            {/* Week section — moved here from the left column.
-                The carousel + list view both fit comfortably at 440px. */}
-            <div style={{ ...softCardStyle, padding: 32 }}>
-              {weekSectionHeader}
-              <div style={{ marginTop: 16 }}>{weekViewContent}</div>
-            </div>
           </div>
         </div>
 
-        {/* ── Recent intentions row ───────────────────────────────── */}
-        {recentIntentions.length > 0 && (
-          <div style={{ ...softCardStyle, padding: 32, marginBottom: 32 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 22 }}>
-              <div className="j2-label-copper">◈ Recent intentions</div>
-              {intentionsEnabled && (
-                <button
-                  onClick={() => navigate('/intentions')}
-                  style={{
-                    fontSize: 14, fontWeight: 600,
-                    color: COPPER, borderBottom: `1px solid ${COPPER}40`,
-                    background: 'transparent', padding: 0, cursor: 'pointer',
-                  }}
-                >
-                  See all →
-                </button>
-              )}
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(6, recentIntentions.length)}, 1fr)`, gap: 16 }}>
-              {recentIntentions.map(i => {
-                const color = i.heading ? (SKILL_COLORS[i.heading]?.stroke ?? COPPER) : COPPER;
-                const weekStart = new Date(i.week_start.slice(0, 10) + 'T00:00:00');
-                const label = i.heading
-                  ? (SKILL_TAGS.find(s => s.value === i.heading)?.label ?? i.heading)
-                  : (i.intent_label ?? 'Focus');
-                return (
-                  <div
-                    key={i.id}
-                    style={{
-                      padding: '20px 22px',
-                      background: 'var(--j2-surface-2)',
-                      border: '1px solid var(--j2-border-1)',
-                      borderRadius: 14,
-                      position: 'relative',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <div
-                      aria-hidden
-                      style={{
-                        position: 'absolute', top: 0, right: 0, width: 84, height: 84,
-                        background: `radial-gradient(circle at 100% 0%, ${color}30, transparent 70%)`,
-                        pointerEvents: 'none',
-                      }}
-                    />
-                    <div
-                      style={{
-                        fontSize: 12, color: 'rgba(255,255,255,0.40)',
-                        letterSpacing: '0.14em', textTransform: 'uppercase',
-                      }}
-                    >
-                      Wk of {MONTH_NAMES[weekStart.getMonth()]} {weekStart.getDate()}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 21, fontFamily: FONT_EDITORIAL, fontWeight: 600,
-                        color: PALE_YELLOW, marginTop: 10,
-                      }}
-                    >
-                      {label}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        {/* Recent intentions row removed — they live on /intentions where
+            they belong. Path Ahead is for the present week, not a shelf of
+            past weeks. */}
 
         </>
         )}

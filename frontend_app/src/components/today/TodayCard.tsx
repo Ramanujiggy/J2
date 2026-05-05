@@ -1,17 +1,24 @@
-// TodayCard — operational centerpiece for the desktop Path Ahead page.
-// Surfaces today's class (from class_schedules, mig 020) in one of five
-// time-aware states. The same physical slot transforms in place — pre-class
-// → in-session → post-class drive-home prompt → logged ✓ — so the user
-// never has to navigate to find what to do *right now*.
+// TodayCard — operational centerpiece for the Path Ahead page. Surfaces
+// the next-relevant class on today's schedule and walks the user through a
+// small dialog as the day progresses:
+//
+//   pre_class_unanswered          "Planning to attend?"   [Yes] [No]
+//   pre_class_planning            quiet "you're on for it"
+//   in_class                      quiet "in session"
+//   post_class_unanswered         "Did you attend?"        [Yes] [No]
+//   post_class_attended_unlogged  hero — "Open log" CTA (drive-home moment)
+//   logged                        quiet "logged ✓"
+//   no_class_today                quiet "no class scheduled today" + log link
+//
+// "No" answers persist to localStorage and remove the class from the rail
+// until tomorrow — the card minimizes out and the next class (or
+// no_class_today) takes its place.
 //
 // Refero anchors:
-//   - Headspace start-of-day (`6b43037f-…`) — today as the lit timeline node
-//   - Daylish event timeline (`6b8f5a39-…`) — "in 2h 14m" relative time pill
+//   - Headspace start-of-day timeline (`6b43037f-…`) — today as a lit node
+//   - Daylish event cards (`6b8f5a39-…`) — "in 2h 14m" relative pill
 //   - Headspace post-session check-in (`87fab23a-…`) — drive-home warmth
 //   - 222 forest-green register (`fb8cfaaf-…`) — italic Cormorant + hairlines
-//
-// Public surface: just `<TodayCard sessions={...} onLogSession={...} />`.
-// All state derivation lives in `useTodayClass`.
 
 import {
   CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, COPPER, COPPER_BORDER,
@@ -23,22 +30,17 @@ import type { SessionSummary } from '../../types/api.ts';
 
 interface Props {
   sessions: SessionSummary[];
-  /** Called when the user taps "Open log" / "Log a session anyway". The
-   *  card passes a context payload describing today's class so the form
-   *  can pre-fill date / gi-nogi where appropriate. */
+  /** Called when the user taps "Open log" in the post-class hero state. */
   onLogSession: (ctx: LogContext) => void;
 }
 
 export interface LogContext {
   date: string;                 // YYYY-MM-DD (today)
   gi_nogi?: 'gi' | 'no_gi' | 'both';
-  /** Class name, e.g. "Tuesday Night BJJ". Optional — provided when a
-   *  scheduled class drove the open. */
   className?: string;
 }
 
 function formatTime(t: string): string {
-  // 'HH:MM:SS' → '7:00 PM'
   const [hh, mm] = t.split(':').map(Number);
   if (Number.isNaN(hh) || Number.isNaN(mm)) return t;
   const period = hh >= 12 ? 'PM' : 'AM';
@@ -54,11 +56,9 @@ function todayDateString(): string {
 export default function TodayCard({ sessions, onLogSession }: Props) {
   const today = useTodayClass(sessions);
 
-  // Don't paint anything until the schedules fetch resolves so we don't
-  // flash "no class today" and then snap to a real class.
   if (today.loading) return <TodaySkeleton />;
 
-  const { state, schedule } = today;
+  const { state, schedule, setPlanning, setAttended } = today;
 
   // ── State: no_class_today ─────────────────────────────────────────────
   if (state === 'no_class_today' || schedule === null) {
@@ -82,8 +82,8 @@ export default function TodayCard({ sessions, onLogSession }: Props) {
     ...(schedule.gi_nogi ? { gi_nogi: schedule.gi_nogi } : {}),
   };
 
-  // ── State: pre_class ──────────────────────────────────────────────────
-  if (state === 'pre_class' && today.minutesUntilStart !== null) {
+  // ── State: pre_class_unanswered ───────────────────────────────────────
+  if (state === 'pre_class_unanswered' && today.minutesUntilStart !== null) {
     return (
       <Frame variant="quiet">
         <ClassTitle name={className} />
@@ -92,6 +92,28 @@ export default function TodayCard({ sessions, onLogSession }: Props) {
           {giNogiLabel && ` · ${giNogiLabel}`}
           <Italic>{` · ${formatRelativeMinutes(today.minutesUntilStart, 'until')}`}</Italic>
         </Meta>
+        <PromptRow
+          question="Planning to attend?"
+          onYes={() => setPlanning('yes')}
+          onNo={() => setPlanning('no')}
+        />
+      </Frame>
+    );
+  }
+
+  // ── State: pre_class_planning ─────────────────────────────────────────
+  if (state === 'pre_class_planning' && today.minutesUntilStart !== null) {
+    return (
+      <Frame variant="quiet">
+        <ClassTitle name={className} />
+        <Meta>
+          {timeLabel}
+          {giNogiLabel && ` · ${giNogiLabel}`}
+          <Italic>{` · ${formatRelativeMinutes(today.minutesUntilStart, 'until')}`}</Italic>
+        </Meta>
+        <Italic large style={{ marginTop: 14 }}>
+          You're on for it.
+        </Italic>
       </Frame>
     );
   }
@@ -110,6 +132,26 @@ export default function TodayCard({ sessions, onLogSession }: Props) {
     );
   }
 
+  // ── State: post_class_unanswered ──────────────────────────────────────
+  if (state === 'post_class_unanswered') {
+    const since = today.minutesSinceEnd ?? 0;
+    return (
+      <Frame variant="quiet">
+        <ClassTitle name={className} />
+        <Meta>
+          {timeLabel}
+          {giNogiLabel && ` · ${giNogiLabel}`}
+          <Italic>{` · ended ${formatRelativeMinutes(since, 'since')}`}</Italic>
+        </Meta>
+        <PromptRow
+          question="Did you attend?"
+          onYes={() => setAttended('yes')}
+          onNo={() => setAttended('no')}
+        />
+      </Frame>
+    );
+  }
+
   // ── State: logged ─────────────────────────────────────────────────────
   if (state === 'logged') {
     return (
@@ -124,15 +166,15 @@ export default function TodayCard({ sessions, onLogSession }: Props) {
     );
   }
 
-  // ── State: post_class_unlogged (the drive-home moment) ────────────────
-  const minutesSince = today.minutesSinceEnd ?? 0;
+  // ── State: post_class_attended_unlogged (hero / drive-home moment) ────
+  const since = today.minutesSinceEnd ?? 0;
   return (
     <Frame variant="hero">
       <ClassTitle name={className} />
       <Meta>
         {timeLabel}
         {giNogiLabel && ` · ${giNogiLabel}`}
-        <Italic>{` · ended ${formatRelativeMinutes(minutesSince, 'since')}`}</Italic>
+        <Italic>{` · ended ${formatRelativeMinutes(since, 'since')}`}</Italic>
       </Meta>
       <Italic large style={{ marginTop: 14, marginBottom: 22 }}>
         Log this while it's fresh.
@@ -207,6 +249,43 @@ function Italic({
     >
       {children}
     </span>
+  );
+}
+
+function PromptRow({
+  question, onYes, onNo,
+}: { question: string; onYes: () => void; onNo: () => void }) {
+  return (
+    <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+      <Italic large style={{ flex: '0 0 auto' }}>{question}</Italic>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button
+          onClick={onYes}
+          style={{
+            backgroundColor: COPPER, color: '#fff',
+            fontSize: 13, fontWeight: 600,
+            padding: '7px 16px', borderRadius: 999,
+            border: `1px solid ${COPPER_BORDER}`,
+            cursor: 'pointer',
+          }}
+        >
+          Yes
+        </button>
+        <button
+          onClick={onNo}
+          style={{
+            background: 'transparent',
+            color: 'rgba(242,228,168,0.65)',
+            fontSize: 13, fontWeight: 600,
+            padding: '7px 16px', borderRadius: 999,
+            border: '1px solid rgba(242,228,168,0.22)',
+            cursor: 'pointer',
+          }}
+        >
+          No
+        </button>
+      </div>
+    </div>
   );
 }
 
