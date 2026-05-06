@@ -14,6 +14,7 @@ import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import PageContent from '../components/PageContent.tsx';
 import SessionDetailModal from '../components/SessionDetailModal.tsx';
 import JournalEmptyHero from '../components/empty/JournalEmptyHero.tsx';
+import SegmentedToggle from '../components/SegmentedToggle.tsx';
 import { SKILL_TAGS } from '../lib/constants.ts';
 import { toDateString, DAY_NAMES, SESSION_TYPE_LABELS, INTENSITY_COLOR, formatDuration, formatGiNogi } from '../lib/sessionUtils.ts';
 import {
@@ -99,6 +100,22 @@ export default function JournalIndexPage() {
     return (
       <PageContent ready={!loading} loadingMessages={['Pulling entries...', 'Dusting the pages...']}>
         <div className="px-4 pt-6 pb-24">
+          {/* Surface toggle — Entries (this page) ↔ Intentions (sibling
+              page at /intentions). Synced with the matching toggle on
+              IntentionsPage so users can swap views without round-tripping
+              through the bottom nav. Mobile-only; desktop already shows
+              both surfaces with full chrome. */}
+          <div style={{ marginBottom: 16 }}>
+            <SegmentedToggle<'entries' | 'intentions'>
+              options={[
+                { value: 'entries',    label: 'Entries' },
+                { value: 'intentions', label: 'Intentions' },
+              ]}
+              value="entries"
+              onChange={(v) => { if (v === 'intentions') navigate('/intentions', { replace: true }); }}
+            />
+          </div>
+
           <h1
             className="font-display font-bold"
             style={{

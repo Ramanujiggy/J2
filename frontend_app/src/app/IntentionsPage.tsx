@@ -176,6 +176,20 @@ export default function IntentionsPage() {
     <PageContent ready={!loading} loadingMessages={['Loading your intentions...']}>
     <div className="mx-auto space-y-5 max-w-5xl px-4 sm:px-6 py-6">
 
+      {/* Surface toggle — Entries (the journal page) ↔ Intentions (this
+          page). Synced with the matching toggle on JournalIndexPage so
+          users can swap views without round-tripping through the bottom
+          nav. Mobile-only; desktop already shows both surfaces with full
+          chrome. */}
+      <SegmentedToggle<'entries' | 'intentions'>
+        options={[
+          { value: 'entries',    label: 'Entries' },
+          { value: 'intentions', label: 'Intentions' },
+        ]}
+        value="intentions"
+        onChange={(v) => { if (v === 'entries') navigate('/journal', { replace: true }); }}
+      />
+
       {/* Header */}
       <div>
         <h2
