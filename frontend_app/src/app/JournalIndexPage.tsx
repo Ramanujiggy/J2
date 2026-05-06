@@ -201,8 +201,13 @@ export default function JournalIndexPage() {
                 >
                   {new Date(month + '-01T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} · {items.length}
                 </div>
-                {items.map(s => (
-                  <MobileJournalRow key={s.id} session={s} onOpen={() => setMobileDetailSession(s)} />
+                {groupByDate(items).map(([dateStr, daySessions]) => (
+                  <MobileDayGroup
+                    key={dateStr}
+                    dateStr={dateStr}
+                    sessions={daySessions}
+                    onOpen={setMobileDetailSession}
+                  />
                 ))}
               </div>
             ))
@@ -425,11 +430,94 @@ function JournalRow({ session, onOpen }: { session: SessionSummary; onOpen: () =
   );
 }
 
-/** Compact mobile journal row — single-line summary per session.
- *  Taps open the SessionDetailModal via the parent's state. */
-function MobileJournalRow({ session, onOpen }: { session: SessionSummary; onOpen: () => void }) {
-  const dateStr = typeof session.date === 'string' ? session.date.slice(0, 10) : toDateString(new Date(session.date));
+// Group sessions (already sorted desc by date) into [date, sessions[]] pairs,
+// preserving order so the day-buckets stay reverse-chronological.
+function groupByDate(items: SessionSummary[]): Array<[string, SessionSummary[]]> {
+  const out = new Map<string, SessionSummary[]>();
+  for (const s of items) {
+    const key = typeof s.date === 'string' ? s.date.slice(0, 10) : toDateString(new Date(s.date));
+    const bucket = out.get(key) ?? [];
+    bucket.push(s);
+    out.set(key, bucket);
+  }
+  return Array.from(out.entries());
+}
+
+/** One day's worth of journal entries on mobile.
+ *  Date column rendered once on the left; each session is a stacked sub-row
+ *  on the right that opens the SessionDetailModal. Single- and multi-session
+ *  days share this layout — multi gets a copper "×N" badge under the date. */
+function MobileDayGroup({
+  dateStr,
+  sessions,
+  onOpen,
+}: {
+  dateStr: string;
+  sessions: SessionSummary[];
+  onOpen: (s: SessionSummary) => void;
+}) {
   const d = new Date(dateStr + 'T00:00:00');
+  const isMulti = sessions.length > 1;
+
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '44px 1fr',
+        gap: 14,
+        padding: '14px 4px',
+        borderBottom: '1px solid var(--j2-border-1)',
+        alignItems: 'start',
+      }}
+    >
+      {/* Date column — once per day */}
+      <div style={{ textAlign: 'center', paddingTop: 2 }}>
+        <div style={{ fontSize: 22, fontFamily: FONT_EDITORIAL, lineHeight: 1, color: PALE_YELLOW }}>
+          {d.getDate()}
+        </div>
+        <div className="j2-label-micro" style={{ fontSize: 9.5, marginTop: 4 }}>
+          {DAY_NAMES[d.getDay()]}
+        </div>
+        {isMulti && (
+          <div
+            style={{
+              marginTop: 8,
+              fontSize: 10, fontWeight: 700,
+              color: COPPER, letterSpacing: '0.06em',
+            }}
+          >
+            ×{sessions.length}
+          </div>
+        )}
+      </div>
+
+      {/* Sessions stack */}
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {sessions.map((s, i) => (
+          <SessionMiniRow
+            key={s.id}
+            session={s}
+            onOpen={() => onOpen(s)}
+            divider={i > 0}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** A single session row inside a MobileDayGroup. No date column — that's
+ *  rendered once by the parent. `divider` adds a hairline above for stacked
+ *  days so the boundary between same-day sessions reads clearly. */
+function SessionMiniRow({
+  session,
+  onOpen,
+  divider,
+}: {
+  session: SessionSummary;
+  onOpen: () => void;
+  divider: boolean;
+}) {
   const intensity = Math.max(1, Math.min(5, session.intensity ?? 3));
   const intColor = INTENSITY_COLOR[intensity] ?? '#A8CB72';
   const primary = session.tags?.[0];
@@ -443,26 +531,16 @@ function MobileJournalRow({ session, onOpen }: { session: SessionSummary; onOpen
       className="w-full touch-manipulation"
       style={{
         display: 'grid',
-        gridTemplateColumns: '44px 1fr auto',
-        gap: 14,
+        gridTemplateColumns: '1fr auto',
+        gap: 12,
         alignItems: 'center',
-        padding: '14px 4px',
-        borderBottom: '1px solid var(--j2-border-1)',
+        padding: divider ? '10px 0 0' : '0 0 0',
+        marginTop: divider ? 10 : 0,
+        borderTop: divider ? '1px solid rgba(255,255,255,0.05)' : 'none',
         background: 'transparent',
         textAlign: 'left',
       }}
     >
-      {/* Date column */}
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 22, fontFamily: FONT_EDITORIAL, lineHeight: 1, color: PALE_YELLOW }}>
-          {d.getDate()}
-        </div>
-        <div className="j2-label-micro" style={{ fontSize: 9.5, marginTop: 4 }}>
-          {DAY_NAMES[d.getDay()]}
-        </div>
-      </div>
-
-      {/* Middle: focus + meta */}
       <div style={{ minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
           <span
@@ -486,7 +564,6 @@ function MobileJournalRow({ session, onOpen }: { session: SessionSummary; onOpen
         </div>
       </div>
 
-      {/* Duration */}
       <div style={{ fontSize: 15, fontFamily: FONT_EDITORIAL, color: 'rgba(255,255,255,0.85)' }}>
         {formatDuration(session.duration ?? 0)}
       </div>
