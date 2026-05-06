@@ -40,9 +40,11 @@ import type { ClassSchedule, ClassSchedulesResponse, SessionSummary } from '../.
 export type TodayState =
   | 'pre_class_unanswered'
   | 'pre_class_planning'
+  | 'pre_class_skipped'              // user pre-committed "no, not planning"
   | 'in_class'
   | 'post_class_unanswered'
   | 'post_class_attended_unlogged'
+  | 'post_class_skipped'             // user said "no, didn't attend"
   | 'logged'
   | 'no_class_today';
 
@@ -55,10 +57,10 @@ export interface TodayInfo {
   minutesSinceEnd: number | null;
   /** True while the schedules fetch is in flight. */
   loading: boolean;
-  /** Pre-class commit. Idempotent. Triggers re-evaluation. */
-  setPlanning: (planning: 'yes' | 'no') => void;
-  /** Post-class outcome. Idempotent. Triggers re-evaluation. */
-  setAttended: (attended: 'yes' | 'no') => void;
+  /** Pre-class commit. Pass `null` to clear (undo). Triggers re-evaluation. */
+  setPlanning: (planning: 'yes' | 'no' | null) => void;
+  /** Post-class outcome. Pass `null` to clear (undo). Triggers re-evaluation. */
+  setAttended: (attended: 'yes' | 'no' | null) => void;
 }
 
 function parseStartTime(s: string): { h: number; m: number } | null {
@@ -84,10 +86,15 @@ function readFlag(scheduleId: string, date: string, flag: Flag): 'yes' | 'no' | 
   }
 }
 
-function writeFlag(scheduleId: string, date: string, flag: Flag, value: 'yes' | 'no'): void {
+function writeFlag(scheduleId: string, date: string, flag: Flag, value: 'yes' | 'no' | null): void {
   if (typeof window === 'undefined') return;
+  const key = `attendance.${scheduleId}.${date}.${flag}`;
   try {
-    window.localStorage.setItem(`attendance.${scheduleId}.${date}.${flag}`, value);
+    if (value === null) {
+      window.localStorage.removeItem(key);
+    } else {
+      window.localStorage.setItem(key, value);
+    }
   } catch {
     // private mode / quota — silently degrade; the page will simply re-prompt
   }
@@ -149,19 +156,23 @@ export function useTodayClass(sessions: SessionSummary[]): TodayInfo {
       }];
     });
 
-    // Filter out classes the user opted out of (either planning='no' or attended='no').
-    // Those go away from the rail entirely until the next day.
-    const live = resolved.filter(r => r.planning !== 'no' && r.attended !== 'no');
-
-    if (live.length === 0) {
+    // We keep skipped classes visible (with strikethrough + undo) so the
+    // user can recover from a misclick. For multi-class days we still bias
+    // the picker toward unresolved/upcoming classes — a skipped morning
+    // class shouldn't dominate when an evening class is up next.
+    if (resolved.length === 0) {
       return { state: 'no_class_today', schedule: null, minutesUntilStart: null, minutesSinceEnd: null, loading };
     }
 
-    // Pick: in-window > next upcoming > most-recently-ended.
-    const inWindow = live.find(r => r.startMs <= nowMs && nowMs < r.endMs);
-    const upcoming = live.filter(r => r.startMs > nowMs).sort((a, b) => a.startMs - b.startMs)[0];
-    const ended    = live.filter(r => r.endMs <= nowMs).sort((a, b) => b.endMs - a.endMs)[0];
-    const pick     = inWindow ?? upcoming ?? ended!;
+    // Pick: in-window > next upcoming (prefer unresolved) > most-recently-ended.
+    const inWindow = resolved.find(r => r.startMs <= nowMs && nowMs < r.endMs);
+    const upcomingAll  = resolved.filter(r => r.startMs > nowMs).sort((a, b) => a.startMs - b.startMs);
+    const upcomingLive = upcomingAll.find(r => r.planning !== 'no');
+    const upcoming     = upcomingLive ?? upcomingAll[0];
+    const endedAll     = resolved.filter(r => r.endMs <= nowMs).sort((a, b) => b.endMs - a.endMs);
+    const endedLive    = endedAll.find(r => r.attended !== 'no' && r.planning !== 'no');
+    const ended        = endedLive ?? endedAll[0];
+    const pick         = inWindow ?? upcoming ?? ended!;
 
     // Did a session get logged today? (Heuristic — match by date only.)
     const todayDate = date;
@@ -174,14 +185,22 @@ export function useTodayClass(sessions: SessionSummary[]): TodayInfo {
     if (pick === inWindow) {
       state = 'in_class';
     } else if (pick === upcoming) {
-      state = pick.planning === 'yes' ? 'pre_class_planning' : 'pre_class_unanswered';
+      state = pick.planning === 'yes' ? 'pre_class_planning'
+            : pick.planning === 'no'  ? 'pre_class_skipped'
+            : 'pre_class_unanswered';
     } else {
       // class ended
-      if (pick.attended === 'yes') {
+      if (pick.attended === 'no') {
+        state = 'post_class_skipped';
+      } else if (pick.attended === 'yes') {
         state = loggedToday ? 'logged' : 'post_class_attended_unlogged';
-      } else if (loggedToday && pick.attended === null) {
-        // Some users will go directly to "log a session" without first
-        // tapping "Did you attend?" — treat that as implicit yes.
+      } else if (pick.planning === 'no') {
+        // User pre-committed to skip; class ended without an attendance
+        // answer. Stay in pre_class_skipped — they already said no.
+        state = 'pre_class_skipped';
+      } else if (loggedToday) {
+        // Logged a session today without first answering "Did you attend?" —
+        // treat that as implicit yes.
         state = 'logged';
       } else {
         state = 'post_class_unanswered';
@@ -199,12 +218,12 @@ export function useTodayClass(sessions: SessionSummary[]): TodayInfo {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schedules, sessions, loading, date, tick]);
 
-  const setPlanning = useCallback((value: 'yes' | 'no') => {
+  const setPlanning = useCallback((value: 'yes' | 'no' | null) => {
     if (info.schedule) writeFlag(info.schedule.id, date, 'planning', value);
     setTick(t => t + 1);
   }, [info.schedule, date]);
 
-  const setAttended = useCallback((value: 'yes' | 'no') => {
+  const setAttended = useCallback((value: 'yes' | 'no' | null) => {
     if (info.schedule) writeFlag(info.schedule.id, date, 'attended', value);
     setTick(t => t + 1);
   }, [info.schedule, date]);

@@ -101,6 +101,24 @@ export default function TodayCard({ sessions, onLogSession }: Props) {
     );
   }
 
+  // ── State: pre_class_skipped ──────────────────────────────────────────
+  // User pre-committed "no, not planning." Class still visible (struck +
+  // muted) so they can change their mind. "Undo" clears the planning flag
+  // and the card reverts to pre_class_unanswered.
+  if (state === 'pre_class_skipped') {
+    return (
+      <Frame variant="muted">
+        <ClassTitle name={className} struck />
+        <Meta muted>
+          {timeLabel}
+          {giNogiLabel && ` · ${giNogiLabel}`}
+          {' · '}<Italic>not planning to attend</Italic>
+        </Meta>
+        <SecondaryAction label="Undo →" onClick={() => setPlanning(null)} />
+      </Frame>
+    );
+  }
+
   // ── State: pre_class_planning ─────────────────────────────────────────
   if (state === 'pre_class_planning' && today.minutesUntilStart !== null) {
     return (
@@ -152,6 +170,26 @@ export default function TodayCard({ sessions, onLogSession }: Props) {
     );
   }
 
+  // ── State: post_class_skipped ─────────────────────────────────────────
+  // User said "no, didn't attend." Same recovery affordance as pre-class
+  // skipped — struck title, muted meta, "Undo" clears the attended flag
+  // and the card reverts to post_class_unanswered.
+  if (state === 'post_class_skipped') {
+    const sinceSkip = today.minutesSinceEnd ?? 0;
+    return (
+      <Frame variant="muted">
+        <ClassTitle name={className} struck />
+        <Meta muted>
+          {timeLabel}
+          {giNogiLabel && ` · ${giNogiLabel}`}
+          <Italic>{` · ended ${formatRelativeMinutes(sinceSkip, 'since')}`}</Italic>
+          {' · '}<Italic>didn't attend</Italic>
+        </Meta>
+        <SecondaryAction label="Undo →" onClick={() => setAttended(null)} />
+      </Frame>
+    );
+  }
+
   // ── State: logged ─────────────────────────────────────────────────────
   if (state === 'logged') {
     return (
@@ -186,8 +224,9 @@ export default function TodayCard({ sessions, onLogSession }: Props) {
 
 // ── Sub-pieces ───────────────────────────────────────────────────────────
 
-function Frame({ variant, children }: { variant: 'quiet' | 'hero'; children: React.ReactNode }) {
+function Frame({ variant, children }: { variant: 'quiet' | 'hero' | 'muted'; children: React.ReactNode }) {
   const isHero = variant === 'hero';
+  const isMuted = variant === 'muted';
   return (
     <div
       style={{
@@ -197,7 +236,8 @@ function Frame({ variant, children }: { variant: 'quiet' | 'hero'; children: Rea
         borderRadius: 16,
         padding: isHero ? '32px 32px 28px' : '24px 28px',
         position: 'relative',
-        transition: 'border-color 240ms ease, box-shadow 240ms ease',
+        opacity: isMuted ? 0.62 : 1,
+        transition: 'border-color 240ms ease, box-shadow 240ms ease, opacity 240ms ease',
       }}
     >
       {children}
@@ -205,7 +245,7 @@ function Frame({ variant, children }: { variant: 'quiet' | 'hero'; children: Rea
   );
 }
 
-function ClassTitle({ name }: { name: string }) {
+function ClassTitle({ name, struck = false }: { name: string; struck?: boolean }) {
   return (
     <h2
       style={{
@@ -213,9 +253,12 @@ function ClassTitle({ name }: { name: string }) {
         fontSize: 28,
         fontWeight: 600,
         color: PALE_YELLOW,
-        textShadow: GLOW_SOFT,
+        textShadow: struck ? 'none' : GLOW_SOFT,
         marginBottom: 6,
         letterSpacing: '-0.005em',
+        textDecoration: struck ? 'line-through' : 'none',
+        textDecorationColor: struck ? 'rgba(242,228,168,0.5)' : undefined,
+        textDecorationThickness: struck ? '1px' : undefined,
       }}
     >
       {name}
@@ -223,9 +266,16 @@ function ClassTitle({ name }: { name: string }) {
   );
 }
 
-function Meta({ children }: { children: React.ReactNode }) {
+function Meta({ children, muted = false }: { children: React.ReactNode; muted?: boolean }) {
   return (
-    <p style={{ fontSize: 13, color: 'rgba(242,228,168,0.55)', letterSpacing: '0.02em', lineHeight: 1.5 }}>
+    <p
+      style={{
+        fontSize: 13,
+        color: muted ? 'rgba(242,228,168,0.42)' : 'rgba(242,228,168,0.55)',
+        letterSpacing: '0.02em',
+        lineHeight: 1.5,
+      }}
+    >
       {children}
     </p>
   );

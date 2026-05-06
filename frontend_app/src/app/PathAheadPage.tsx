@@ -1037,18 +1037,18 @@ export default function PathAheadPage() {
             {heatmapSection}
 
             {telemetryContent}
-          </div>
 
-          {/* RIGHT rail — pulse sidebar: who, what, recent. Three cards max. */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 26 }}>
-
-            {/* Most recent session — only shown when TodayCard isn't already
-                covering the same ground (i.e. no class today, or the class
-                hasn't ended yet). When TodayCard's `logged` state is showing
-                we'd be duplicating the "you trained" signal. */}
+            {/* Most recent session — sits directly under telemetry so the
+                operational left column reads top-to-bottom: today → this
+                week → recent rhythm → telemetry → most recent training. */}
             {mostRecent && (
               <MostRecentSessionCard mostRecent={mostRecent} softCardStyle={softCardStyle} />
             )}
+          </div>
+
+          {/* RIGHT rail — pulse sidebar: who you trained with, what rules
+              you trained under. Two cards. */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 26 }}>
 
             {/* Top partners — last 30 days. Self-hides when no partner data. */}
             <TopPartnersCard sessions={allSessions} softCardStyle={softCardStyle} />
