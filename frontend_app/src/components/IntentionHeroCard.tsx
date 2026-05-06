@@ -62,18 +62,19 @@ export default function IntentionHeroCard({
     daysRemaining = Math.max(0, Math.round((endDate.getTime() - todayDate.getTime()) / 86400000));
   }
 
-  const focusLabel = intention
-    ? (intention.heading
-        ? (SKILL_TAGS.find(s => s.value === intention.heading)?.label ?? intention.heading)
-        : intention.intent_label)
+  const categoryLabel = intention?.heading
+    ? (SKILL_TAGS.find(s => s.value === intention.heading)?.label ?? intention.heading)
     : null;
 
-  // Show the dek (italic intent_label below the title) only when it adds
-  // information beyond the focusLabel — i.e. the user typed a flavor line
-  // distinct from the auto-derived pillar label.
-  const showDek = !!intention?.intent_label
-    && !!focusLabel
-    && intention.intent_label.trim().toLowerCase() !== focusLabel.toLowerCase();
+  // Prefer the freeform goal as the headline; fall back to the pillar label
+  // when the user didn't type a custom intent_label.
+  const primaryLabel = intention
+    ? (intention.intent_label?.trim() || categoryLabel)
+    : null;
+
+  const showCategory = !!categoryLabel
+    && !!primaryLabel
+    && primaryLabel.trim().toLowerCase() !== categoryLabel.toLowerCase();
 
   // ── Empty state ─────────────────────────────────────────────────────────
   if (!intention) {
@@ -143,16 +144,17 @@ export default function IntentionHeroCard({
         {/* Kicker */}
         <div className="j2-label-copper" style={{ marginBottom: 10 }}>◇ This week</div>
 
-        {/* Serif title — pillar label, or intent_label if no heading set */}
+        {/* Serif title — the user's freeform goal (intent_label) when set,
+            else the pillar label as fallback */}
         <div
           className="j2-serif-display"
           style={{ fontSize: 28, lineHeight: 1.1, color: PALE_YELLOW }}
         >
-          {focusLabel}
+          {primaryLabel}
         </div>
 
-        {/* Italic dek — flavor text distinct from the title */}
-        {showDek && (
+        {/* Italic subtext — pillar category, when distinct from the title */}
+        {showCategory && (
           <div
             style={{
               marginTop: 6,
@@ -162,7 +164,7 @@ export default function IntentionHeroCard({
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}
           >
-            {intention.intent_label}
+            Category: {categoryLabel}
           </div>
         )}
 
