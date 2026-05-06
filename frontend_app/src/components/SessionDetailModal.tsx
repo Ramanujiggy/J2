@@ -60,6 +60,12 @@ function fmtDuration(m: number): string {
 interface IntentionSummary {
   intent_label: string;
   intent_category: string | null;
+  // Optional pillar heading. Drives the editorial banner's serif title
+  // (resolved through SKILL_TAGS to a pretty label, with intent_label
+  // falling back when no heading is set). Optional so existing narrowed
+  // call-sites continue to type-check without forcing every caller to
+  // supply it; the banner gracefully degrades to intent_label.
+  heading?: string | null;
 }
 
 interface Props {
@@ -187,6 +193,20 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
   const headingLabel = session.heading
     ? (SKILL_TAGS.find(s => s.value === session.heading)?.label ?? session.heading)
     : null;
+
+  // Intention focus label — same derivation as IntentionHeroCard. Title shows
+  // the pretty pillar label when the intention has a heading set, falling
+  // back to intent_label otherwise. Italic dek below shows intent_label when
+  // it adds info beyond the title (i.e. user typed flavor copy distinct
+  // from the auto-derived pillar name).
+  const intentionFocusLabel = intention
+    ? (intention.heading
+        ? (SKILL_TAGS.find(s => s.value === intention.heading)?.label ?? intention.heading)
+        : intention.intent_label)
+    : null;
+  const showIntentionDek = !!intention?.intent_label
+    && !!intentionFocusLabel
+    && intention.intent_label.trim().toLowerCase() !== intentionFocusLabel.toLowerCase();
 
   // ── Handlers ────────────────────────────────────────────────────────────
 
@@ -411,18 +431,82 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                 </button>
               </div>
 
-              {/* Intention banner */}
+              {/* Intention banner — editorial chrome matching IntentionHeroCard.
+                  Copper-tinted bg + border, radial champagne highlight from
+                  top-right, ◇ kicker + serif title + italic dek. Mobile size. */}
               {intention && (
-                <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-xl"
-                  style={{ backgroundColor: 'rgba(242,228,168,0.07)', border: '1px solid rgba(242,228,168,0.14)' }}>
-                  <span style={{ color: 'rgba(242,228,168,0.5)', fontSize: 12 }}>◈</span>
-                  <span className="text-sm font-semibold" style={{ color: PALE_YELLOW }}>{intention.intent_label}</span>
-                  {intention.intent_category && (
-                    <span className="text-[11px] px-2 py-0.5 rounded-full capitalize"
-                      style={{ backgroundColor: SURFACE_3, color: 'rgba(255,255,255,0.45)' }}>
-                      {intention.intent_category}
-                    </span>
-                  )}
+                <div
+                  className="mb-4"
+                  style={{
+                    position: 'relative',
+                    overflow: 'hidden',
+                    padding: '14px 16px',
+                    borderRadius: 14,
+                    background: 'rgba(196,145,95,0.04)',
+                    border: '1px solid rgba(196,145,95,0.22)',
+                  }}
+                >
+                  {/* Radial champagne highlight from the top-right */}
+                  <div
+                    aria-hidden
+                    style={{
+                      position: 'absolute', inset: 0,
+                      background: 'radial-gradient(circle at 100% 0%, rgba(242,228,168,0.08), transparent 60%)',
+                      pointerEvents: 'none',
+                    }}
+                  />
+                  <div style={{ position: 'relative', zIndex: 1 }}>
+                    <div className="j2-label-copper" style={{ marginBottom: 6 }}>
+                      ◇ This week's focus
+                    </div>
+                    <div
+                      className="j2-serif-display"
+                      style={{
+                        fontSize: 20,
+                        lineHeight: 1.15,
+                        color: PALE_YELLOW,
+                        letterSpacing: '-0.005em',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {intentionFocusLabel}
+                    </div>
+                    {showIntentionDek && (
+                      <div
+                        style={{
+                          marginTop: 4,
+                          fontSize: 13,
+                          color: 'rgba(255,255,255,0.55)',
+                          fontStyle: 'italic',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {intention.intent_label}
+                      </div>
+                    )}
+                    {intention.intent_category && (
+                      <div style={{ marginTop: 8 }}>
+                        <span
+                          className="capitalize"
+                          style={{
+                            fontSize: 11,
+                            padding: '3px 10px',
+                            borderRadius: 999,
+                            background: 'rgba(196,145,95,0.14)',
+                            color: COPPER,
+                            letterSpacing: '0.06em',
+                            fontWeight: 600,
+                          }}
+                        >
+                          {intention.intent_category}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -921,6 +1005,19 @@ function DesktopViewContent({
     weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
   }).toUpperCase();
 
+  // Intention focus label — same derivation as the mobile branch + IntentionHeroCard.
+  // Title shows the pretty pillar label when the intention has a heading set,
+  // falling back to intent_label otherwise. Italic dek shows intent_label when
+  // it adds info beyond the title.
+  const intentionFocusLabel = intention
+    ? (intention.heading
+        ? (SKILL_TAGS.find(s => s.value === intention.heading)?.label ?? intention.heading)
+        : intention.intent_label)
+    : null;
+  const showIntentionDek = !!intention?.intent_label
+    && !!intentionFocusLabel
+    && intention.intent_label.trim().toLowerCase() !== intentionFocusLabel.toLowerCase();
+
   const formatLine = [
     formatGiNogi(session.gi_nogi),
     SESSION_TYPE_LABELS[session.session_type] ?? session.session_type,
@@ -1018,32 +1115,79 @@ function DesktopViewContent({
         </p>
       </div>
 
-      {/* ── Intention banner ─────────────────────────────────────────── */}
+      {/* ── Intention banner — editorial chrome matching IntentionHeroCard.
+          Copper-tinted bg + border, radial champagne highlight from
+          top-right, ◇ kicker + serif title + italic dek. Desktop size. */}
       {intention && (
         <div
           style={{
-            display: 'flex', alignItems: 'center', gap: 12,
-            padding: '14px 18px', marginBottom: 24,
-            background: 'rgba(242,228,168,0.06)',
-            border: '1px solid rgba(242,228,168,0.14)',
-            borderRadius: 12,
+            position: 'relative',
+            overflow: 'hidden',
+            padding: '18px 22px',
+            marginBottom: 24,
+            borderRadius: 14,
+            background: 'rgba(196,145,95,0.04)',
+            border: '1px solid rgba(196,145,95,0.22)',
           }}
         >
-          <span style={{ color: 'rgba(242,228,168,0.55)', fontSize: 13 }}>◈</span>
-          <span style={{ fontSize: 14, fontWeight: 600, color: PALE_YELLOW, letterSpacing: '0.01em' }}>
-            {intention.intent_label}
-          </span>
-          {intention.intent_category && (
-            <span
-              style={{
-                fontSize: 11, padding: '3px 10px', borderRadius: 999,
-                background: SURFACE_3, color: 'rgba(255,255,255,0.50)',
-                textTransform: 'capitalize', letterSpacing: '0.04em',
-              }}
-            >
-              {intention.intent_category}
-            </span>
-          )}
+          {/* Radial champagne highlight from the top-right */}
+          <div
+            aria-hidden
+            style={{
+              position: 'absolute', inset: 0,
+              background: 'radial-gradient(circle at 100% 0%, rgba(242,228,168,0.08), transparent 60%)',
+              pointerEvents: 'none',
+            }}
+          />
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <div className="j2-label-copper" style={{ marginBottom: 8 }}>
+              ◇ This week's focus
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
+              <div
+                className="j2-serif-display"
+                style={{
+                  fontSize: 24,
+                  lineHeight: 1.15,
+                  color: PALE_YELLOW,
+                  letterSpacing: '-0.005em',
+                }}
+              >
+                {intentionFocusLabel}
+              </div>
+              {intention.intent_category && (
+                <span
+                  className="capitalize"
+                  style={{
+                    fontSize: 11,
+                    padding: '3px 10px',
+                    borderRadius: 999,
+                    background: 'rgba(196,145,95,0.14)',
+                    color: COPPER,
+                    letterSpacing: '0.06em',
+                    fontWeight: 600,
+                  }}
+                >
+                  {intention.intent_category}
+                </span>
+              )}
+            </div>
+            {showIntentionDek && (
+              <div
+                style={{
+                  marginTop: 6,
+                  fontSize: 14,
+                  color: 'rgba(255,255,255,0.55)',
+                  fontStyle: 'italic',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {intention.intent_label}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

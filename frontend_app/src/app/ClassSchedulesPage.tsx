@@ -3,7 +3,7 @@
 // Layout:
 //   - Page title + back link
 //   - Notification settings sub-card (3 category toggles + permission CTA)
-//   - 2×n grid of class tiles + a copper-dashed "+ Add class" tile (Atoms pattern)
+//   - 2×n grid of session tiles + a copper-dashed "+ Scheduled Session" tile (Atoms pattern)
 //   - Editor modal opens for new/edit
 
 import { useEffect, useState, useCallback } from 'react';
@@ -303,7 +303,7 @@ export default function ClassSchedulesPage() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
-            + Add class
+            + Scheduled Session
           </button>
         </div>
 

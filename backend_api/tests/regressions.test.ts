@@ -36,12 +36,39 @@ dotenv.config({ path: '.env.test' });
 
 const TEST_DB_URL = process.env.TEST_DATABASE_URL;
 
-// IMPORTANT: refuse to run regressions against the production DB if someone
-// accidentally points TEST_DATABASE_URL at the same place as DATABASE_URL.
-const PROD_DB_URL = process.env.DATABASE_URL;
+// IMPORTANT — production-DB safety guard.
+//
+// Naively comparing `TEST_DATABASE_URL` against `process.env.DATABASE_URL`
+// is unsafe: vitest.config.ts injects a fake `postgresql://test:test@.../test`
+// value into `process.env.DATABASE_URL` BEFORE this file loads, which means
+// the guard would compare the user's TEST URL against the fake injected URL
+// instead of the user's REAL prod URL. If the user's `.env.test` accidentally
+// holds their actual prod connection string, the guard would let destructive
+// INSERTs run against prod.
+//
+// Fix: read the prod URL directly from the `.env` file on disk (bypassing
+// the dotenv-loaded + vitest-overridden `process.env`). That captures the
+// user's actual prod connection string and gives the guard real teeth.
+function readEnvFileVar(filePath: string, name: string): string | undefined {
+  if (!fs.existsSync(filePath)) return undefined;
+  const contents = fs.readFileSync(filePath, 'utf-8');
+  const match = contents.match(new RegExp(`^${name}\\s*=\\s*(.+)$`, 'm'));
+  if (!match) return undefined;
+  // Strip optional surrounding quotes + trailing whitespace
+  return match[1]!.trim().replace(/^["']|["']$/g, '');
+}
+
+const ENV_FILE_PROD_DB_URL = readEnvFileVar('.env', 'DATABASE_URL');
+const ENV_FILE_TEST_DB_URL = readEnvFileVar('.env.test', 'TEST_DATABASE_URL');
+
 const isSafeToRun =
   Boolean(TEST_DB_URL) &&
-  TEST_DB_URL !== PROD_DB_URL;
+  // Guard against the vitest-fake-URL false negative: ALSO compare against
+  // the prod URL straight from .env (not process.env, which vitest overrides).
+  TEST_DB_URL !== ENV_FILE_PROD_DB_URL &&
+  // Belt-and-suspenders: catch the case where TEST_DATABASE_URL was set in
+  // the shell (not .env.test) but somehow matches the .env's prod URL.
+  ENV_FILE_TEST_DB_URL !== ENV_FILE_PROD_DB_URL;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = path.resolve(__dirname, '..', 'migrations');
@@ -168,8 +195,11 @@ if (!isSafeToRun) {
   if (!TEST_DB_URL) {
     // eslint-disable-next-line no-console
     console.log('ℹ️  regressions.test.ts skipped — set TEST_DATABASE_URL in .env.test to enable real-DB regression tests.');
+  } else if (TEST_DB_URL === ENV_FILE_PROD_DB_URL || ENV_FILE_TEST_DB_URL === ENV_FILE_PROD_DB_URL) {
+    // eslint-disable-next-line no-console
+    console.warn('⚠️  regressions.test.ts skipped — TEST_DATABASE_URL matches the DATABASE_URL in .env. Refusing to run destructive tests against the production DB.');
   } else {
     // eslint-disable-next-line no-console
-    console.warn('⚠️  regressions.test.ts skipped — TEST_DATABASE_URL matches DATABASE_URL. Refusing to run destructive tests against the production DB.');
+    console.warn('⚠️  regressions.test.ts skipped — TEST_DATABASE_URL safety guard tripped.');
   }
 }

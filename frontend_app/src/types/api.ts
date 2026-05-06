@@ -166,7 +166,7 @@ export interface Intention {
 }
 
 export type CalendarIntention = Pick<Intention,
-  'id' | 'week_start' | 'intent_label' | 'intent_category' | 'duration_days'>;
+  'id' | 'week_start' | 'intent_label' | 'intent_category' | 'duration_days' | 'heading'>;
 
 // ── API response wrappers ─────────────────────────────────────────────────
 

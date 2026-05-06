@@ -932,7 +932,7 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
           <SessionDetailModal
             session={selectedSession.session}
             date={selectedSession.date}
-            intention={sessionIntention ? { intent_label: sessionIntention.intent_label, intent_category: sessionIntention.intent_category ?? null } : null}
+            intention={sessionIntention ? { intent_label: sessionIntention.intent_label, intent_category: sessionIntention.intent_category ?? null, heading: sessionIntention.heading ?? null } : null}
             onClose={() => setSelectedSession(null)}
             onSaved={() => { onSessionUpdated?.(); setSelectedSession(null); }}
             onDeleted={() => { onSessionUpdated?.(); setSelectedSession(null); }}

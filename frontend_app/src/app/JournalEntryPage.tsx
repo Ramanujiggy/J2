@@ -191,35 +191,108 @@ export default function JournalEntryPage() {
         Intentions
       </button>
 
-      {/* Header */}
-      <div>
-        <h2
-          className="text-2xl font-display font-bold tracking-tight"
-          style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}
-        >
-          {intention.intent_label}
-        </h2>
-        <div className="flex items-center gap-2 mt-1.5">
-          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
-            {formatWeekLong(intention.week_start)}
-          </span>
-          {categoryColor && (
-            <>
-              <span style={{ color: 'rgba(255,255,255,0.15)' }}>·</span>
-              <span
-                className="text-[10px] px-2 py-0.5 rounded-lg font-medium capitalize"
-                style={{ backgroundColor: `${categoryColor}20`, color: categoryColor }}
+      {/* Header — editorial chrome matching IntentionHeroCard. Promotes the
+          intention from inline page text to a real card surface: copper-tinted
+          bg + border, radial champagne highlight, ◇ kicker, serif title, and
+          italic dek when intent_label adds info beyond the pillar heading. */}
+      {(() => {
+        const focusLabel = intention.heading
+          ? (SKILL_TAGS.find(s => s.value === intention.heading)?.label ?? intention.heading)
+          : intention.intent_label;
+        const showDek = !!intention.intent_label
+          && !!focusLabel
+          && intention.intent_label.trim().toLowerCase() !== focusLabel.toLowerCase();
+
+        return (
+          <div
+            style={{
+              position: 'relative',
+              overflow: 'hidden',
+              padding: '18px 20px',
+              borderRadius: 14,
+              background: 'rgba(196,145,95,0.04)',
+              border: '1px solid rgba(196,145,95,0.22)',
+            }}
+          >
+            {/* Radial champagne highlight from the top-right */}
+            <div
+              aria-hidden
+              style={{
+                position: 'absolute', inset: 0,
+                background: 'radial-gradient(circle at 100% 0%, rgba(242,228,168,0.08), transparent 60%)',
+                pointerEvents: 'none',
+              }}
+            />
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <div className="j2-label-copper" style={{ marginBottom: 8 }}>
+                ◇ Intention
+              </div>
+              <h2
+                className="j2-serif-display"
+                style={{
+                  fontSize: 26,
+                  lineHeight: 1.15,
+                  color: PALE_YELLOW,
+                  textShadow: GLOW_SOFT,
+                  letterSpacing: '-0.005em',
+                  margin: 0,
+                }}
               >
-                {intention.intent_category}
-              </span>
-            </>
-          )}
-          <span style={{ color: 'rgba(255,255,255,0.15)' }}>·</span>
-          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
-            {intention.duration_days}d intention
-          </span>
-        </div>
-      </div>
+                {focusLabel}
+              </h2>
+              {showDek && (
+                <div
+                  style={{
+                    marginTop: 6,
+                    fontSize: 14,
+                    color: 'rgba(255,255,255,0.60)',
+                    fontStyle: 'italic',
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {intention.intent_label}
+                </div>
+              )}
+              {/* Status row — small-caps metadata under the title */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  marginTop: 12,
+                  flexWrap: 'wrap',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  letterSpacing: '0.14em',
+                  textTransform: 'uppercase',
+                  color: 'rgba(255,255,255,0.40)',
+                }}
+              >
+                <span>{formatWeekLong(intention.week_start)}</span>
+                {categoryColor && (
+                  <>
+                    <span style={{ color: 'rgba(255,255,255,0.15)' }}>·</span>
+                    <span
+                      className="capitalize"
+                      style={{
+                        padding: '3px 10px',
+                        borderRadius: 999,
+                        background: `${categoryColor}20`,
+                        color: categoryColor,
+                        letterSpacing: '0.08em',
+                      }}
+                    >
+                      {intention.intent_category}
+                    </span>
+                  </>
+                )}
+                <span style={{ color: 'rgba(255,255,255,0.15)' }}>·</span>
+                <span>{intention.duration_days}d intention</span>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Reflection prompt — daily rotating question. Lives here (instead of
           on Path Ahead, where it used to) because journaling is when it's
@@ -420,7 +493,7 @@ export default function JournalEntryPage() {
         <SessionDetailModal
           session={selectedSession}
           date={new Date(selectedSession.date + 'T00:00:00')}
-          intention={{ intent_label: intention.intent_label, intent_category: intention.intent_category }}
+          intention={{ intent_label: intention.intent_label, intent_category: intention.intent_category, heading: intention.heading }}
           onClose={() => setSelectedSession(null)}
           onSaved={() => { setSelectedSession(null); fetchIntention(); }}
           onDeleted={() => { setSelectedSession(null); fetchIntention(); }}
