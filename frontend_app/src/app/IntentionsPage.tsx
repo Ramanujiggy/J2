@@ -723,7 +723,7 @@ function DesktopIntentionsView({
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 28, gap: 24 }}>
         <div style={{ minWidth: 0 }}>
-          <div className="j2-label-micro" style={{ marginBottom: 10 }}>Intentions</div>
+          <div className="j2-label-micro" style={{ marginBottom: 12, fontSize: 13, letterSpacing: '0.18em' }}>Intentions</div>
           <h1
             className="j2-serif-display j2-heading-glow"
             style={{ fontSize: 48, margin: 0, lineHeight: 1.05, letterSpacing: '-0.015em' }}
@@ -735,7 +735,7 @@ function DesktopIntentionsView({
           </h1>
           <div
             className="j2-serif-italic"
-            style={{ marginTop: 10, fontSize: 16, color: 'rgba(255,255,255,0.60)' }}
+            style={{ marginTop: 12, fontSize: 18, color: 'rgba(255,255,255,0.65)' }}
           >
             {subtitle}
           </div>
@@ -855,17 +855,17 @@ function FilterBar({ value, onChange }: { value: FocusFilter; onChange: (v: Focu
       role="tab"
       aria-selected={isActive}
       style={{
-        height: 30,
-        padding: '0 14px',
+        height: 34,
+        padding: '0 16px',
         display: 'inline-flex',
         alignItems: 'center',
         gap: 8,
-        fontSize: 12,
+        fontSize: 13,
         fontWeight: 600,
-        borderRadius: 16,
+        borderRadius: 17,
         backgroundColor: isActive ? 'rgba(196,145,95,0.16)' : SURFACE_2,
         border: `1px solid ${isActive ? COPPER : 'rgba(255,255,255,0.10)'}`,
-        color: isActive ? PALE_YELLOW : 'rgba(255,255,255,0.60)',
+        color: isActive ? PALE_YELLOW : 'rgba(255,255,255,0.65)',
         cursor: 'pointer',
         transition: 'all 160ms ease',
         whiteSpace: 'nowrap',
@@ -874,8 +874,8 @@ function FilterBar({ value, onChange }: { value: FocusFilter; onChange: (v: Focu
       {dotColor && (
         <span
           style={{
-            width: 8,
-            height: 8,
+            width: 9,
+            height: 9,
             borderRadius: '50%',
             background: dotColor,
             boxShadow: `0 0 6px ${dotColor}80`,
@@ -899,7 +899,12 @@ function FilterBar({ value, onChange }: { value: FocusFilter; onChange: (v: Focu
         flexWrap: 'wrap',
       }}
     >
-      <div className="j2-label-micro" style={{ marginRight: 6 }}>Filter</div>
+      <div
+        className="j2-label-micro"
+        style={{ marginRight: 8, fontSize: 12, letterSpacing: '0.16em' }}
+      >
+        Filter
+      </div>
       {chip('All', value === 'All', () => onChange('All'))}
       {ALL_PILLARS.map(p =>
         chip(PILLAR_LABEL[p], value === p, () => onChange(p), FOCUS_COLORS[p]),
@@ -923,11 +928,89 @@ function EmptyFilteredState({ filter }: { filter: Pillar }) {
     >
       <div
         className="j2-serif-italic"
-        style={{ fontSize: 18, color: 'rgba(255,255,255,0.60)', marginBottom: 8 }}
+        style={{ fontSize: 20, color: 'rgba(255,255,255,0.65)', marginBottom: 10 }}
       >
         No weeks of {PILLAR_LABEL[filter]} yet.
       </div>
-      <div style={{ fontSize: 13 }}>Try another category.</div>
+      <div style={{ fontSize: 14 }}>Try another category.</div>
+    </div>
+  );
+}
+
+// ── Desktop Timeline ↔ Eras toggle ───────────────────────────────────────
+//
+// Bespoke replacement for the generic SegmentedToggle in the desktop header.
+// SegmentedToggle's compact pill felt thin against the 42px orange CTA next
+// to it, and two-letter-different labels ("Timeline" / "Eras") made the
+// sliding indicator look uneven. This version:
+//   • matches the CTA's 42px height for visual rhythm
+//   • adds lucide icons so the metaphor lands without reading the label
+//   • uses copper border + champagne accent for the active half so it
+//     reads as a sibling control to the orange CTA, not a faded afterthought
+
+function DesktopLayoutToggle({
+  value,
+  onChange,
+}: {
+  value: IntentionsLayout;
+  onChange: (next: IntentionsLayout) => void;
+}) {
+  const opts: Array<{ key: IntentionsLayout; label: string; Icon: typeof CalendarDays }> = [
+    { key: 'timeline', label: 'Timeline', Icon: CalendarDays },
+    { key: 'eras',     label: 'Eras',     Icon: Layers },
+  ];
+  return (
+    <div
+      role="tablist"
+      style={{
+        display: 'inline-flex',
+        height: 42,
+        padding: 4,
+        background: SURFACE_2,
+        border: '1px solid rgba(255,255,255,0.10)',
+        borderRadius: 12,
+        gap: 2,
+      }}
+    >
+      {opts.map(({ key, label, Icon }) => {
+        const active = value === key;
+        return (
+          <button
+            key={key}
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(key)}
+            style={{
+              height: '100%',
+              padding: '0 18px',
+              minWidth: 116,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              fontSize: 14,
+              fontWeight: 600,
+              letterSpacing: '0.01em',
+              borderRadius: 8,
+              background: active ? 'rgba(196,145,95,0.18)' : 'transparent',
+              border: active ? `1px solid ${COPPER}` : '1px solid transparent',
+              color: active ? PALE_YELLOW : 'rgba(255,255,255,0.55)',
+              boxShadow: active ? '0 0 0 1px rgba(196,145,95,0.10), 0 6px 18px -10px rgba(196,145,95,0.45)' : 'none',
+              cursor: 'pointer',
+              transition: 'background 180ms ease, color 180ms ease, border-color 180ms ease',
+            }}
+            onMouseEnter={e => {
+              if (!active) e.currentTarget.style.color = 'rgba(255,255,255,0.85)';
+            }}
+            onMouseLeave={e => {
+              if (!active) e.currentTarget.style.color = 'rgba(255,255,255,0.55)';
+            }}
+          >
+            <Icon size={15} strokeWidth={active ? 2 : 1.7} />
+            {label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -942,7 +1025,7 @@ interface IntentionsTimelineProps {
 }
 
 function IntentionsTimeline({ rows, statsMap, sessionsByWeek, onOpen }: IntentionsTimelineProps) {
-  // Dominant focus across the rendered (year-scoped) rows — the small "Mostly"
+  // Dominant focus across the rendered (year-scoped) rows — the "Mostly"
   // marker that used to hang off the year header. Lives at the top of the
   // timeline now since the year header itself is gone (year is in the tabs).
   const dominant = (() => {
@@ -960,6 +1043,11 @@ function IntentionsTimeline({ rows, statsMap, sessionsByWeek, onOpen }: Intentio
     return top?.[0] ?? null;
   })();
 
+  // Group rows by month so we can inject a section header before each month
+  // change. `rows` is newest-first (see IntentionsPage), so months arrive in
+  // reverse chronological order — that matches the rest of the timeline.
+  const monthOf = (weekStart: string) => weekStart.slice(0, 7); // "YYYY-MM"
+
   return (
     <div>
       {dominant && (
@@ -968,44 +1056,120 @@ function IntentionsTimeline({ rows, statsMap, sessionsByWeek, onOpen }: Intentio
             display: 'flex',
             justifyContent: 'flex-end',
             alignItems: 'center',
-            gap: 8,
-            paddingBottom: 12,
-            fontSize: 12,
-            color: 'rgba(255,255,255,0.40)',
-            fontStyle: 'italic',
+            gap: 12,
+            paddingBottom: 18,
             fontFamily: FONT_EDITORIAL,
           }}
         >
-          <span>Mostly</span>
           <span
             style={{
-              width: 8,
-              height: 8,
+              fontSize: 13,
+              fontWeight: 600,
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+              color: COPPER,
+            }}
+          >
+            Mostly
+          </span>
+          <span
+            style={{
+              width: 11,
+              height: 11,
               borderRadius: '50%',
               background: FOCUS_COLORS[dominant],
+              boxShadow: `0 0 10px ${FOCUS_COLORS[dominant]}90`,
             }}
           />
-          <span style={{ color: PALE_YELLOW }}>{PILLAR_LABEL[dominant]}</span>
+          <span
+            className="j2-serif-italic"
+            style={{
+              fontSize: 22,
+              fontStyle: 'italic',
+              color: PALE_YELLOW,
+              letterSpacing: '-0.005em',
+              lineHeight: 1,
+            }}
+          >
+            {PILLAR_LABEL[dominant]}
+          </span>
         </div>
       )}
       <div>
-        {rows.map(row =>
-          row.type === 'intention' ? (
-            <IntentionRow
-              key={row.intention.id}
-              intention={row.intention}
-              stats={statsMap.get(row.intention.id) ?? { sessionCount: 0, alignment: 0, matchHours: 0, totalHours: 0 }}
-              onOpen={() => onOpen(row.intention)}
-            />
-          ) : (
-            <EmptyWeekRow
-              key={`empty-${row.weekStart}`}
-              weekStart={row.weekStart}
-              sessionCount={sessionsByWeek.get(row.weekStart) ?? 0}
-            />
-          ),
-        )}
+        {rows.map((row, idx) => {
+          const prevRow = idx > 0 ? rows[idx - 1] : null;
+          const currMonth = monthOf(row.weekStart);
+          const prevMonth = prevRow ? monthOf(prevRow.weekStart) : null;
+          const isMonthStart = currMonth !== prevMonth;
+
+          return (
+            <div key={row.type === 'intention' ? row.intention.id : `empty-${row.weekStart}`}>
+              {isMonthStart && <MonthHeader weekStart={row.weekStart} isFirst={idx === 0} />}
+              {row.type === 'intention' ? (
+                <IntentionRow
+                  intention={row.intention}
+                  stats={statsMap.get(row.intention.id) ?? { sessionCount: 0, alignment: 0, matchHours: 0, totalHours: 0 }}
+                  onOpen={() => onOpen(row.intention)}
+                />
+              ) : (
+                <EmptyWeekRow
+                  weekStart={row.weekStart}
+                  sessionCount={sessionsByWeek.get(row.weekStart) ?? 0}
+                />
+              )}
+            </div>
+          );
+        })}
       </div>
+    </div>
+  );
+}
+
+// Month divider — a serif month name + faint hairline, sized to read as a
+// section header (not a kicker). Sits just above the first row of each month.
+function MonthHeader({ weekStart, isFirst }: { weekStart: string; isFirst: boolean }) {
+  const d = new Date(weekStart + 'T00:00:00');
+  const monthName = MONTH_NAMES[d.getMonth()] ?? '';
+  const year = d.getFullYear();
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'baseline',
+        gap: 16,
+        paddingTop: isFirst ? 4 : 28,
+        paddingBottom: 12,
+        marginTop: isFirst ? 0 : 8,
+        borderTop: isFirst ? 'none' : '1px solid rgba(255,255,255,0.06)',
+      }}
+    >
+      <h3
+        className="j2-serif-display"
+        style={{
+          fontSize: 22,
+          margin: 0,
+          paddingTop: isFirst ? 0 : 16,
+          color: PALE_YELLOW,
+          letterSpacing: '-0.005em',
+          lineHeight: 1,
+          fontWeight: 500,
+        }}
+      >
+        {monthName}
+      </h3>
+      <span
+        style={{
+          paddingTop: isFirst ? 0 : 16,
+          fontSize: 12,
+          fontWeight: 600,
+          letterSpacing: '0.16em',
+          textTransform: 'uppercase',
+          color: 'rgba(255,255,255,0.32)',
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        {year}
+      </span>
     </div>
   );
 }
@@ -1015,37 +1179,39 @@ function IntentionsTimeline({ rows, statsMap, sessionsByWeek, onOpen }: Intentio
 // without competing visually with set weeks.
 function EmptyWeekRow({ weekStart, sessionCount }: { weekStart: string; sessionCount: number }) {
   const d = new Date(weekStart + 'T00:00:00');
-  const monthDay = `WK ${MONTH_NAMES[d.getMonth()]!.toUpperCase()} ${d.getDate()}`;
+  // Month is now in MonthHeader, so the date column just shows the day.
+  const dayLabel = `WK ${d.getDate()}`;
   return (
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: '88px 14px 1fr 90px 240px 80px',
-        gap: 18,
+        gridTemplateColumns: TIMELINE_COLUMNS,
+        gap: TIMELINE_GAP,
         alignItems: 'center',
-        padding: '14px 8px',
+        padding: '16px 8px',
         borderBottom: '1px solid rgba(255,255,255,0.04)',
       }}
     >
       <div
         style={{
-          fontSize: 13,
-          color: 'rgba(255,255,255,0.30)',
+          fontSize: 14,
+          color: 'rgba(255,255,255,0.32)',
           letterSpacing: '0.10em',
           textTransform: 'uppercase',
           fontVariantNumeric: 'tabular-nums',
+          fontWeight: 600,
         }}
       >
-        {monthDay}
+        {dayLabel}
       </div>
       {/* Hollow dash where the focus dot would be */}
       <div style={{ width: 10, height: 1, background: 'rgba(255,255,255,0.15)' }} />
       <div
         className="j2-serif-italic"
         style={{
-          fontSize: 20,
+          fontSize: 22,
           fontStyle: 'italic',
-          color: 'rgba(255,255,255,0.30)',
+          color: 'rgba(255,255,255,0.32)',
           lineHeight: 1.1,
         }}
       >
@@ -1053,8 +1219,8 @@ function EmptyWeekRow({ weekStart, sessionCount }: { weekStart: string; sessionC
       </div>
       <div
         style={{
-          fontSize: 12,
-          color: sessionCount > 0 ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.20)',
+          fontSize: 14,
+          color: sessionCount > 0 ? 'rgba(255,255,255,0.50)' : 'rgba(255,255,255,0.22)',
           fontVariantNumeric: 'tabular-nums',
         }}
       >
@@ -1065,6 +1231,12 @@ function EmptyWeekRow({ weekStart, sessionCount }: { weekStart: string; sessionC
     </div>
   );
 }
+
+// Shared timeline grid — IntentionRow and EmptyWeekRow must use the same
+// column template so they line up under the month header. Bumped from the
+// original 88/14/1fr/90/240/80 to give more room to the focus name + alignment.
+const TIMELINE_COLUMNS = '74px 14px 1fr 110px 260px 90px';
+const TIMELINE_GAP = 20;
 
 // Year picker — chip row mirroring FilterBar styling so the two stack cleanly.
 function YearTabs({
@@ -1089,7 +1261,12 @@ function YearTabs({
         flexWrap: 'wrap',
       }}
     >
-      <div className="j2-label-micro" style={{ marginRight: 6 }}>Year</div>
+      <div
+        className="j2-label-micro"
+        style={{ marginRight: 8, fontSize: 12, letterSpacing: '0.16em' }}
+      >
+        Year
+      </div>
       {years.map(({ year, count }) => {
         const active = year === value;
         return (
@@ -1099,17 +1276,17 @@ function YearTabs({
             aria-selected={active}
             onClick={() => onChange(year)}
             style={{
-              height: 32,
-              padding: '0 14px',
+              height: 36,
+              padding: '0 16px',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 8,
-              fontSize: 13,
+              gap: 9,
+              fontSize: 14,
               fontWeight: 600,
-              borderRadius: 16,
+              borderRadius: 18,
               backgroundColor: active ? 'rgba(196,145,95,0.16)' : SURFACE_2,
               border: `1px solid ${active ? COPPER : 'rgba(255,255,255,0.10)'}`,
-              color: active ? PALE_YELLOW : 'rgba(255,255,255,0.70)',
+              color: active ? PALE_YELLOW : 'rgba(255,255,255,0.75)',
               cursor: 'pointer',
               transition: 'all 160ms ease',
               whiteSpace: 'nowrap',
@@ -1119,9 +1296,9 @@ function YearTabs({
             {year}
             <span
               style={{
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: 500,
-                color: active ? COPPER : 'rgba(255,255,255,0.40)',
+                color: active ? COPPER : 'rgba(255,255,255,0.42)',
               }}
             >
               {count}w
@@ -1149,11 +1326,11 @@ function EmptyYearState({ year }: { year: string }) {
     >
       <div
         className="j2-serif-italic"
-        style={{ fontSize: 18, color: 'rgba(255,255,255,0.60)', marginBottom: 8 }}
+        style={{ fontSize: 20, color: 'rgba(255,255,255,0.65)', marginBottom: 10 }}
       >
         No intentions in {year || 'this year'}.
       </div>
-      <div style={{ fontSize: 13 }}>Pick another year above.</div>
+      <div style={{ fontSize: 14 }}>Pick another year above.</div>
     </div>
   );
 }
@@ -1171,10 +1348,10 @@ function IntentionRow({
   const color = heading ? FOCUS_COLORS[heading] : 'rgba(255,255,255,0.30)';
   const focusName = heading ? PILLAR_LABEL[heading] : (intention.intent_label || 'No focus');
 
-  // Date "WK NOV 17" — format from week_start
+  // Date — month is now in MonthHeader, so the row just shows the day number.
   const start = intention.week_start.slice(0, 10);
   const d = new Date(start + 'T00:00:00');
-  const monthDay = `WK ${MONTH_NAMES[d.getMonth()]!.toUpperCase()} ${d.getDate()}`;
+  const dayLabel = `WK ${d.getDate()}`;
   const fullDate = d.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' });
 
   // Hover state (CSS-only via inline JS hover for the simple bg + arrow color)
@@ -1186,33 +1363,34 @@ function IntentionRow({
       onMouseLeave={() => setHovered(false)}
       style={{
         display: 'grid',
-        gridTemplateColumns: '88px 14px 1fr 90px 240px 80px',
-        gap: 18,
+        gridTemplateColumns: TIMELINE_COLUMNS,
+        gap: TIMELINE_GAP,
         alignItems: 'center',
-        padding: '16px 8px',
+        padding: '18px 8px',
         borderBottom: '1px solid rgba(255,255,255,0.05)',
         backgroundColor: hovered ? 'rgba(255,255,255,0.02)' : 'transparent',
         transition: 'background-color 160ms ease',
       }}
     >
-      {/* Date */}
+      {/* Date — day-of-month only; month sits in the section header above */}
       <div
         style={{
-          fontSize: 13,
-          color: 'rgba(255,255,255,0.55)',
+          fontSize: 14,
+          color: 'rgba(255,255,255,0.62)',
           letterSpacing: '0.10em',
           textTransform: 'uppercase',
           fontVariantNumeric: 'tabular-nums',
+          fontWeight: 600,
         }}
       >
-        {monthDay}
+        {dayLabel}
       </div>
 
       {/* Vertex dot */}
       <div
         style={{
-          width: 10,
-          height: 10,
+          width: 11,
+          height: 11,
           borderRadius: '50%',
           background: color,
           boxShadow: heading ? `0 0 8px ${color}80` : 'none',
@@ -1222,7 +1400,17 @@ function IntentionRow({
       {/* Focus name */}
       <div
         className="j2-serif-display"
-        style={{ fontSize: 26, fontWeight: 500, color: PALE_YELLOW, lineHeight: 1.1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+        style={{
+          fontSize: 28,
+          fontWeight: 500,
+          color: PALE_YELLOW,
+          lineHeight: 1.1,
+          minWidth: 0,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          letterSpacing: '-0.005em',
+        }}
       >
         {focusName}
       </div>
@@ -1230,20 +1418,21 @@ function IntentionRow({
       {/* Session count */}
       <div
         style={{
-          fontSize: 13,
-          color: 'rgba(255,255,255,0.65)',
+          fontSize: 15,
+          color: 'rgba(255,255,255,0.72)',
           fontVariantNumeric: 'tabular-nums',
+          fontWeight: 500,
         }}
       >
         {stats.sessionCount} {stats.sessionCount === 1 ? 'session' : 'sessions'}
       </div>
 
       {/* Alignment bar — real % from statsMap */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div
           style={{
             flex: 1,
-            height: 3,
+            height: 4,
             background: 'rgba(255,255,255,0.06)',
             borderRadius: 2,
             overflow: 'hidden',
@@ -1262,11 +1451,12 @@ function IntentionRow({
         </div>
         <span
           style={{
-            fontSize: 12,
-            color: 'rgba(255,255,255,0.50)',
+            fontSize: 13.5,
+            color: 'rgba(255,255,255,0.58)',
             fontVariantNumeric: 'tabular-nums',
-            minWidth: 36,
+            minWidth: 42,
             textAlign: 'right',
+            fontWeight: 500,
           }}
         >
           {stats.alignment}%
@@ -1278,11 +1468,11 @@ function IntentionRow({
         onClick={onOpen}
         title={fullDate}
         style={{
-          fontSize: 12,
+          fontSize: 13,
           fontWeight: 600,
           letterSpacing: '0.10em',
           textTransform: 'uppercase',
-          color: hovered ? COPPER : 'rgba(255,255,255,0.45)',
+          color: hovered ? COPPER : 'rgba(255,255,255,0.50)',
           textAlign: 'right',
           background: 'none',
           border: 'none',
@@ -1352,10 +1542,11 @@ function IntentionsEras({ eras, statsMap, onOpen }: { eras: Era[]; statsMap: Map
       <div
         className="j2-serif-italic"
         style={{
-          fontSize: 13,
-          color: 'rgba(255,255,255,0.60)',
-          marginBottom: 24,
+          fontSize: 16,
+          color: 'rgba(255,255,255,0.65)',
+          marginBottom: 26,
           fontStyle: 'italic',
+          lineHeight: 1.4,
         }}
       >
         Consecutive weeks on the same focus form an{' '}
@@ -1443,11 +1634,20 @@ function EraCard({
       >
         {/* Title */}
         <div style={{ minWidth: 0 }}>
-          <div className="j2-label-micro" style={{ marginBottom: compact ? 6 : 8 }}>{eyebrow}</div>
+          <div
+            className="j2-label-micro"
+            style={{
+              marginBottom: compact ? 6 : 10,
+              fontSize: compact ? 11 : 13,
+              letterSpacing: '0.16em',
+            }}
+          >
+            {eyebrow}
+          </div>
           <div
             className="j2-serif-display"
             style={{
-              fontSize: compact ? 22 : 32,
+              fontSize: compact ? 22 : 34,
               fontWeight: 600,
               color: PALE_YELLOW,
               lineHeight: 1.1,
@@ -1461,7 +1661,7 @@ function EraCard({
             {weeksCount >= 4 && (
               <span
                 className="j2-serif-italic"
-                style={{ fontSize: compact ? 13 : 16, fontWeight: 500, color: COPPER }}
+                style={{ fontSize: compact ? 13 : 17, fontWeight: 500, color: COPPER }}
               >
                 · a chapter
               </span>
@@ -1476,14 +1676,15 @@ function EraCard({
         <button
           onClick={onOpen}
           style={{
-            height: 36,
-            padding: '0 14px',
+            height: 40,
+            padding: '0 18px',
             background: SURFACE_3,
             border: '1px solid rgba(255,255,255,0.10)',
             borderRadius: 10,
-            color: 'rgba(255,255,255,0.85)',
-            fontWeight: 500,
-            fontSize: 12,
+            color: 'rgba(255,255,255,0.88)',
+            fontWeight: 600,
+            fontSize: 13,
+            letterSpacing: '0.02em',
             cursor: 'pointer',
             transition: 'background 180ms ease',
             whiteSpace: 'nowrap',
@@ -1536,9 +1737,14 @@ function EraStats({
     : `${weeksCount} ${weeksCount === 1 ? 'week' : 'weeks'} of ${PILLAR_LABEL[era.focus]}`;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
-      <div className="j2-label-micro">{topLabel}</div>
-      <div style={{ display: 'flex', gap: 3, alignItems: 'flex-end', height: 24 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
+      <div
+        className="j2-label-micro"
+        style={{ fontSize: 12.5, letterSpacing: '0.14em' }}
+      >
+        {topLabel}
+      </div>
+      <div style={{ display: 'flex', gap: 3, alignItems: 'flex-end', height: 28 }}>
         {chronological.map((wk, idx) => {
           const wkStats = statsMap.get(wk.id);
           const a = wkStats?.alignment ?? 0;
