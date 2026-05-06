@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { verifyToken } from '../middleware/authMiddleware.js';
-import { fetchProfile, saveProfile, saveTimezone, completeOnboarding } from '../controllers/profileController.js';
+import { fetchProfile, saveProfile, saveTimezone, completeOnboarding, updateOnboardingStep } from '../controllers/profileController.js';
 
 const router = Router();
 
@@ -15,5 +15,9 @@ router.patch('/profile/timezone', verifyToken, saveTimezone);
 
 // POST /api/profile/onboarding-complete — flag onboarding as done (protected)
 router.post('/profile/onboarding-complete', verifyToken, completeOnboarding);
+
+// PATCH /api/profile/onboarding-step — record onboarding funnel progress
+// (mig 026, protected). Body: { step: 0..5 }. Server enforces never-go-backward.
+router.patch('/profile/onboarding-step', verifyToken, updateOnboardingStep);
 
 export default router;

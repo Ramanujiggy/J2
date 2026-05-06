@@ -2,10 +2,11 @@
 // Editorial register: large serif heading, single field, copper underline,
 // disabled Continue until typed.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
+import { useOnboardingState } from '../hooks/useOnboardingState.ts';
 import OnboardingShell from '../components/OnboardingShell.tsx';
 import {
   COPPER, COPPER_BORDER, PALE_YELLOW, FONT_EDITORIAL, GLOW_SOFT,
@@ -15,9 +16,15 @@ import type { ProfileResponse } from '../types/api.ts';
 export default function OnboardingNamePage() {
   const navigate = useNavigate();
   const { refreshProfile, beltRank, stripes, intentionsEnabled } = useProfile();
+  const { recordStep } = useOnboardingState();
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Step 1 — "welcome splash tapped". Recorded on mount so users who land
+  // here but bail before saving a name are distinguishable from users who
+  // never opened the onboarding flow at all (step 0). Fire-and-forget.
+  useEffect(() => { void recordStep(1); }, [recordStep]);
 
   const trimmed = name.trim();
   const valid = trimmed.length > 0 && trimmed.length <= 100;
@@ -35,6 +42,7 @@ export default function OnboardingNamePage() {
         intentions_enabled: intentionsEnabled,
       });
       await refreshProfile();
+      void recordStep(2); // name saved
       navigate('/onboarding/belt');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save your name.');

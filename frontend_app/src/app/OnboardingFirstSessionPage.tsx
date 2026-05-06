@@ -10,6 +10,7 @@ import LogSessionForm from '../components/LogSessionForm.tsx';
 import Coachmark from '../components/Coachmark.tsx';
 import OnboardingShell from '../components/OnboardingShell.tsx';
 import { useCoachmark } from '../hooks/useCoachmark.ts';
+import { useOnboardingState } from '../hooks/useOnboardingState.ts';
 import {
   COPPER, PALE_YELLOW, FONT_EDITORIAL, GLOW_SOFT,
 } from '../lib/theme.ts';
@@ -17,8 +18,10 @@ import {
 export default function OnboardingFirstSessionPage() {
   const navigate = useNavigate();
   const { isOpen, dismiss } = useCoachmark('prism-log');
+  const { recordStep } = useOnboardingState();
 
   const onSuccess = () => {
+    void recordStep(4); // first session logged via onboarding
     navigate('/onboarding/done');
   };
 

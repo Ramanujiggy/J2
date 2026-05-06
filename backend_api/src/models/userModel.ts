@@ -52,6 +52,28 @@ export const updateUserTimezone = async (id: string, timezone: string): Promise<
 // POST /api/profile/onboarding-complete after the user finishes the guided
 // flow. NULL → timestamp; the frontend gate keeps users on /onboarding/* until
 // this is set.
+//
+// Also bumps onboarding_step to 5 (the "done page reached" funnel state) in
+// the same statement so completion is observable in the funnel without a
+// separate roundtrip from the client. GREATEST() preserves the never-go-backward
+// invariant in case onboarding_step is somehow already > 5 in the future.
 export const markOnboardingComplete = async (id: string): Promise<void> => {
-    await query('UPDATE users SET onboarding_completed_at = NOW() WHERE id = $1 AND onboarding_completed_at IS NULL', [id]);
+    await query(
+        `UPDATE users
+            SET onboarding_completed_at = NOW(),
+                onboarding_step = GREATEST(onboarding_step, 5)
+          WHERE id = $1 AND onboarding_completed_at IS NULL`,
+        [id]
+    );
+};
+
+// Record the highest step the user has reached in the first-time onboarding
+// flow. Mig 026. The "$1 > onboarding_step" guard makes the call idempotent
+// and direction-safe: replays, retries, or out-of-order arrivals never roll a
+// user backward through the funnel.
+export const setOnboardingStep = async (id: string, step: number): Promise<void> => {
+    await query(
+        'UPDATE users SET onboarding_step = $1 WHERE id = $2 AND $1 > onboarding_step',
+        [step, id]
+    );
 };

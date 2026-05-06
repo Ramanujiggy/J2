@@ -199,6 +199,10 @@ export interface ProfileResponse {
     // via API. Drives the conditional "Admin Dashboard" link on the profile
     // page and the route guard on /admin.
     is_admin?: boolean;
+    // migration 026 — onboarding funnel step (0..5). Highest step the user
+    // has reached in the guided onboarding flow. Captured for drop-off
+    // observability via PATCH /api/profile/onboarding-step.
+    onboarding_step?: number;
   } | null;
 }
 

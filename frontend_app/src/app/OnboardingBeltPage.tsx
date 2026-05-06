@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
+import { useOnboardingState } from '../hooks/useOnboardingState.ts';
 import OnboardingShell from '../components/OnboardingShell.tsx';
 import {
   COPPER, COPPER_BORDER, PALE_YELLOW, SURFACE_2, SURFACE_2_BORDER,
@@ -24,6 +25,7 @@ const BELTS: { value: BeltRank; label: string; tint: string }[] = [
 export default function OnboardingBeltPage() {
   const navigate = useNavigate();
   const { name, refreshProfile, stripes, intentionsEnabled } = useProfile();
+  const { recordStep } = useOnboardingState();
   const [selected, setSelected] = useState<BeltRank | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +41,7 @@ export default function OnboardingBeltPage() {
         intentions_enabled: intentionsEnabled,
       });
       await refreshProfile();
+      void recordStep(3); // belt step completed (or skipped)
       navigate('/onboarding/first-session');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save belt rank.');

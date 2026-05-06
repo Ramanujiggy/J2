@@ -3,10 +3,18 @@ import request from 'supertest';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 
+// Shared mock client for the transactional reset-password path. The
+// controller does `pool.connect()` then `client.query('BEGIN')` etc., so
+// individual tests configure `mockClient.query` per scenario.
+const mockClient = {
+  query: vi.fn(),
+  release: vi.fn(),
+};
+
 // All vi.mock calls are hoisted — these run before any imports below
 vi.mock('../src/config/db.js', () => ({
   query: vi.fn(),
-  default: { connect: vi.fn() },
+  default: { connect: vi.fn(() => Promise.resolve(mockClient)) },
 }));
 
 vi.mock('../src/models/userModel.js', () => ({
@@ -155,30 +163,38 @@ describe('POST /auth/reset-password', () => {
   });
 
   it('returns 400 for an invalid or expired token', async () => {
-    vi.mocked(passwordResetModel.findValidToken).mockResolvedValue(null);
+    // The controller runs the SELECT inside a transaction directly via
+    // client.query — set up the mock client to return BEGIN ok, then the
+    // SELECT yields no rows (token not found / expired), then ROLLBACK ok.
+    mockClient.query.mockReset();
+    mockClient.query
+      .mockResolvedValueOnce({ rows: [] })          // BEGIN
+      .mockResolvedValueOnce({ rows: [] })          // SELECT — token not found
+      .mockResolvedValueOnce({ rows: [] });         // ROLLBACK
+
     const res = await request(app).post('/auth/reset-password').send({ token: 'badtoken', newPassword: 'newpassword123' });
     expect(res.status).toBe(400);
     expect(res.body.message).toMatch(/invalid or has expired/i);
+    expect(mockClient.release).toHaveBeenCalled();
   });
 
   it('returns 200 and marks the token used on success', async () => {
-    vi.mocked(passwordResetModel.findValidToken).mockResolvedValue({
-      id: 'token-uuid-1',
-      user_id: TEST_USER.id!,
-      token: 'validtoken',
-      expires_at: new Date(Date.now() + 3600000),
-      used: false,
-      created_at: new Date(),
-    });
+    mockClient.query.mockReset();
+    mockClient.query
+      .mockResolvedValueOnce({ rows: [] })                                                       // BEGIN
+      .mockResolvedValueOnce({ rows: [{ id: 'token-uuid-1', user_id: TEST_USER.id! }] })          // SELECT — valid token
+      .mockResolvedValue({ rows: [] });                                                          // any subsequent (UPDATE/COMMIT)
     vi.mocked(userModel.updatePasswordHash).mockResolvedValue(undefined);
     vi.mocked(passwordResetModel.markTokenUsed).mockResolvedValue(undefined);
 
     const res = await request(app).post('/auth/reset-password').send({ token: 'validtoken', newPassword: 'newpassword123' });
     expect(res.status).toBe(200);
     expect(res.body.message).toMatch(/updated successfully/i);
-    expect(vi.mocked(passwordResetModel.markTokenUsed)).toHaveBeenCalledWith('token-uuid-1');
-    // Verify the raw token is never passed to the model — only its SHA-256 hash
+    expect(vi.mocked(passwordResetModel.markTokenUsed)).toHaveBeenCalledWith('token-uuid-1', mockClient);
+    // Verify the raw token is never sent to Postgres — only its SHA-256 hash
     const expectedHash = crypto.createHash('sha256').update('validtoken').digest('hex');
-    expect(vi.mocked(passwordResetModel.findValidToken)).toHaveBeenCalledWith(expectedHash);
+    const selectCall = mockClient.query.mock.calls.find(c => String(c[0]).includes('SELECT id, user_id'));
+    expect(selectCall?.[1]).toEqual([expectedHash]);
+    expect(mockClient.release).toHaveBeenCalled();
   });
 });
