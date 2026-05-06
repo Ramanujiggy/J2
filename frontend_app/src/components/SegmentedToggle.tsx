@@ -9,9 +9,13 @@ interface Props<T extends string> {
   value: T | null;
   onChange: (v: T | null) => void;
   deselectable?: boolean;
+  /** 'default' = full-width 40px tall row, 14px font.
+   *  'compact' = inline pill, ~28px tall, 12.5px font. Use for header rows
+   *  where the toggle sits beside a title and shouldn't dominate. */
+  size?: 'default' | 'compact';
 }
 
-export default function SegmentedToggle<T extends string>({ options, value, onChange, deselectable }: Props<T>) {
+export default function SegmentedToggle<T extends string>({ options, value, onChange, deselectable, size = 'default' }: Props<T>) {
   const trackRef = useRef<HTMLDivElement>(null);
   const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [slider, setSlider] = useState<{ left: number; width: number } | null>(null);
@@ -27,21 +31,32 @@ export default function SegmentedToggle<T extends string>({ options, value, onCh
     setSlider({ left: nRect.left - tRect.left - 2, width: nRect.width });
   }, [value, options]);
 
+  const isCompact = size === 'compact';
+  const trackClass = isCompact
+    ? 'inline-flex rounded-lg p-0.5 relative'
+    : 'flex rounded-xl p-0.5 relative';
+  const buttonClass = isCompact
+    ? 'h-7 rounded-md text-[12.5px] font-medium touch-manipulation relative'
+    : 'flex-1 h-10 rounded-[10px] text-sm font-medium touch-manipulation relative';
+  const buttonStylePadX = isCompact ? '0 12px' : undefined;
+  const sliderRadius = isCompact ? 6 : 10;
+
   return (
     <div
       ref={trackRef}
-      className="flex rounded-xl p-0.5 relative"
+      className={trackClass}
       style={{ backgroundColor: SURFACE_2 }}
     >
       {/* Sliding copper pill */}
       {slider && (
         <div
-          className="absolute rounded-[10px] pointer-events-none"
+          className="absolute pointer-events-none"
           style={{
             top: 2,
             left: 2,
             height: 'calc(100% - 4px)',
             width: slider.width,
+            borderRadius: sliderRadius,
             backgroundColor: COPPER,
             transform: `translateX(${slider.left}px)`,
             transition: 'transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1), width 280ms cubic-bezier(0.2, 0.8, 0.2, 1)',
@@ -62,12 +77,13 @@ export default function SegmentedToggle<T extends string>({ options, value, onCh
               vibrate(8);
               onChange(deselectable && active ? null : opt.value);
             }}
-            className="flex-1 h-10 rounded-[10px] text-sm font-medium touch-manipulation relative"
+            className={buttonClass}
             style={{
               backgroundColor: 'transparent',
               color: active ? '#fff' : 'rgba(255,255,255,0.45)',
               transition: 'color 200ms ease',
               zIndex: 1,
+              padding: buttonStylePadX,
             }}
           >
             {opt.label}

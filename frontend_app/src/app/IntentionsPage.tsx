@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Pencil } from 'lucide-react';
+import { Pencil, CalendarDays, Layers } from 'lucide-react';
 import { api } from '../lib/api.ts';
 import {
   PALE_YELLOW, GLOW_SOFT, COPPER, CARD_BG, CARD_GLOW, CARD_GLOW_BORDER,
@@ -168,36 +168,56 @@ export default function IntentionsPage() {
 
   // ── Mobile layout ─────────────────────────────────────────────────────
 
-  // Eras for the mobile branch — newest-first runs of consecutive same-focus
-  // weeks. No filtering on mobile (FilterBar is desktop-only).
-  const mobileEras = computeEras(intentions);
+  // ── Mobile-only search + filter (parallels JournalIndexPage's pattern) ──
+  // Search matches against intent_label + the intention's own journal_entry
+  // text + heading label. Filter chip narrows by pillar (heading). Both
+  // apply to the source list before eras / timeline render so the user's
+  // filter persists across layout-toggle flips.
+  const [mobileQuery, setMobileQuery] = useState('');
+  type MobileFilter = 'All' | string; // 'All' or a SKILL_TAGS heading
+  const [mobileFilter, setMobileFilter] = useState<MobileFilter>('All');
+
+  const mobileFilteredIntentions = useMemo(() => {
+    return intentions
+      .filter(i => mobileFilter === 'All' || i.heading === mobileFilter)
+      .filter(i => {
+        if (!mobileQuery.trim()) return true;
+        const q = mobileQuery.toLowerCase();
+        const headingLabel = i.heading
+          ? (SKILL_TAGS.find(s => s.value === i.heading)?.label ?? i.heading)
+          : '';
+        return [i.intent_label, i.journal_entry, headingLabel]
+          .some(v => v?.toLowerCase().includes(q));
+      });
+  }, [intentions, mobileFilter, mobileQuery]);
+
+  const mobileEras = computeEras(mobileFilteredIntentions);
 
   return (
     <PageContent ready={!loading} loadingMessages={['Loading your intentions...']}>
     <div className="mx-auto space-y-5 max-w-5xl px-4 sm:px-6 py-6">
 
-      {/* Surface toggle — Entries (the journal page) ↔ Intentions (this
-          page). Synced with the matching toggle on JournalIndexPage so
-          users can swap views without round-tripping through the bottom
-          nav. Mobile-only; desktop already shows both surfaces with full
-          chrome. */}
-      <SegmentedToggle<'entries' | 'intentions'>
-        options={[
-          { value: 'entries',    label: 'Entries' },
-          { value: 'intentions', label: 'Intentions' },
-        ]}
-        value="intentions"
-        onChange={(v) => { if (v === 'entries') navigate('/journal', { replace: true }); }}
-      />
-
-      {/* Header */}
+      {/* Title row — title left, surface toggle inline-right. Synced with
+          the matching toggle on JournalIndexPage so users can swap views
+          without round-tripping through the bottom nav. */}
       <div>
-        <h2
-          className="text-2xl font-display font-bold tracking-tight"
-          style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}
-        >
-          Intentions
-        </h2>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <h2
+            className="text-2xl font-display font-bold tracking-tight"
+            style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT, margin: 0 }}
+          >
+            Intentions
+          </h2>
+          <SegmentedToggle<'entries' | 'intentions'>
+            size="compact"
+            options={[
+              { value: 'entries',    label: 'Entries' },
+              { value: 'intentions', label: 'Intentions' },
+            ]}
+            value="intentions"
+            onChange={(v) => { if (v === 'entries') navigate('/journal', { replace: true }); }}
+          />
+        </div>
         <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.30)' }}>
           Your training focus over time
         </p>
@@ -210,6 +230,63 @@ export default function IntentionsPage() {
         >
           Intentions are currently disabled — viewing history only.
         </div>
+      )}
+
+      {/* Search + filter chips — parallels JournalIndexPage's mobile pattern.
+          Hidden on the empty-source state (no intentions exist at all) since
+          there's nothing to search. Applies to both Timeline and Eras layouts
+          (eras computed from `mobileFilteredIntentions`). */}
+      {intentions.length > 0 && (
+        <>
+          <input
+            type="search"
+            inputMode="search"
+            enterKeyHint="search"
+            autoCapitalize="none"
+            autoCorrect="off"
+            placeholder="Search…"
+            value={mobileQuery}
+            onChange={e => setMobileQuery(e.target.value)}
+            className="w-full rounded-xl"
+            style={{
+              background: 'var(--j2-surface-3)',
+              border: '1px solid var(--j2-border-1)',
+              padding: '11px 14px',
+              color: 'rgba(255,255,255,0.90)',
+              fontSize: 14,
+              outline: 'none',
+            }}
+          />
+
+          <div
+            className="flex gap-2 overflow-x-auto pb-2"
+            style={{ scrollbarWidth: 'none' }}
+          >
+            {(['All', ...SKILL_TAGS.map(t => t.value)] as MobileFilter[]).map(v => {
+              const label = v === 'All' ? 'All' : (SKILL_TAGS.find(t => t.value === v)?.label ?? v);
+              const active = mobileFilter === v;
+              return (
+                <button
+                  key={v}
+                  onClick={() => setMobileFilter(v)}
+                  className="touch-manipulation"
+                  style={{
+                    flexShrink: 0,
+                    height: 32, padding: '0 14px',
+                    fontSize: 12, fontWeight: 600,
+                    background: active ? 'rgba(196,145,95,0.16)' : 'var(--j2-surface-2)',
+                    border: `1px solid ${active ? COPPER : 'var(--j2-border-1)'}`,
+                    borderRadius: 16,
+                    color: active ? PALE_YELLOW : 'rgba(255,255,255,0.55)',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </>
       )}
 
       {/* Layout toggle — same Timeline ↔ Eras choice the desktop view offers.
@@ -248,6 +325,19 @@ export default function IntentionsPage() {
             Set Your First Intention
           </button>
         </div>
+      ) : mobileFilteredIntentions.length === 0 ? (
+        /* ── No-matches state (filter or search yields zero) ── */
+        <div
+          className="rounded-xl px-6 py-8 text-center"
+          style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}
+        >
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.50)' }}>
+            No intentions match.
+          </p>
+          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.30)' }}>
+            Adjust the search or filter.
+          </p>
+        </div>
       ) : layout === 'eras' ? (
         /* ── Eras layout (mobile) ───────────────────────────── */
         <div className="space-y-3">
@@ -271,7 +361,7 @@ export default function IntentionsPage() {
       ) : (
         /* ── Timeline cards (mobile) ────────────────────────── */
         <div className="space-y-3">
-          {intentions.map(intention => {
+          {mobileFilteredIntentions.map(intention => {
             const headingLabel = intention.heading
               ? (SKILL_TAGS.find(s => s.value === intention.heading)?.label ?? intention.heading)
               : null;
@@ -651,14 +741,7 @@ function DesktopIntentionsView({
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
-          <SegmentedToggle<IntentionsLayout>
-            options={[
-              { value: 'timeline', label: 'Timeline' },
-              { value: 'eras',     label: 'Eras' },
-            ]}
-            value={layout}
-            onChange={v => v && onLayoutChange(v)}
-          />
+          <DesktopLayoutToggle value={layout} onChange={onLayoutChange} />
           {intentionsEnabled && (
             <button
               onClick={onOpenCreate}

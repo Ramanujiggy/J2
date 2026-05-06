@@ -100,13 +100,25 @@ export default function JournalIndexPage() {
     return (
       <PageContent ready={!loading} loadingMessages={['Pulling entries...', 'Dusting the pages...']}>
         <div className="px-4 pt-6 pb-24">
-          {/* Surface toggle — Entries (this page) ↔ Intentions (sibling
-              page at /intentions). Synced with the matching toggle on
-              IntentionsPage so users can swap views without round-tripping
-              through the bottom nav. Mobile-only; desktop already shows
-              both surfaces with full chrome. */}
-          <div style={{ marginBottom: 16 }}>
+          {/* Title row — title left, surface toggle inline-right. Synced
+              with the matching toggle on IntentionsPage so users can swap
+              views without round-tripping through the bottom nav.
+              Mobile-only; desktop already shows both surfaces with full
+              chrome. */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 4 }}>
+            <h1
+              className="font-display font-bold"
+              style={{
+                color: PALE_YELLOW,
+                fontSize: 28,
+                letterSpacing: '-0.01em',
+                margin: 0,
+              }}
+            >
+              Journal
+            </h1>
             <SegmentedToggle<'entries' | 'intentions'>
+              size="compact"
               options={[
                 { value: 'entries',    label: 'Entries' },
                 { value: 'intentions', label: 'Intentions' },
@@ -115,18 +127,6 @@ export default function JournalIndexPage() {
               onChange={(v) => { if (v === 'intentions') navigate('/intentions', { replace: true }); }}
             />
           </div>
-
-          <h1
-            className="font-display font-bold"
-            style={{
-              color: PALE_YELLOW,
-              fontSize: 28,
-              marginBottom: 4,
-              letterSpacing: '-0.01em',
-            }}
-          >
-            Journal
-          </h1>
           <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13, marginBottom: 20 }}>
             {allSessions.length} {allSessions.length === 1 ? 'entry' : 'entries'} · {totalHours}h logged
           </p>
