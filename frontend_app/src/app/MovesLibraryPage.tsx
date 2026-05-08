@@ -308,8 +308,10 @@ function MoveCard({ tag, uploading, onOpen, onPlay, onPickFile, onRemove }: Move
             id={inputId}
             type="file"
             accept="video/*"
-            // `capture` prompts the device camera on mobile (intent-based on Android, native sheet on iOS)
-            capture="environment"
+            // No `capture` attribute — on iOS Safari this surfaces the native
+            // sheet with Take Video / Photo Library / Choose File so the user
+            // gets both paths. On desktop it opens the standard OS file picker.
+            // Adding `capture="environment"` would force camera-only on mobile.
             className="hidden"
             onClick={stop}
             onChange={e => {
@@ -328,7 +330,7 @@ function MoveCard({ tag, uploading, onOpen, onPlay, onPickFile, onRemove }: Move
               color: hasVideo ? 'rgba(255,255,255,0.55)' : COPPER,
             }}
           >
-            {hasVideo ? 'Replace' : '+ Record / Upload'}
+            {hasVideo ? 'Replace' : '+ Add video'}
           </label>
           {hasVideo && (
             <button

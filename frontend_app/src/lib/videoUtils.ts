@@ -75,8 +75,31 @@ export function probeVideo(blob: Blob): Promise<ProbeResult> {
 }
 
 /**
- * Extract a thumbnail JPEG (data URL) from the video's first non-black frame.
+ * Extract a thumbnail JPEG (data URL) from the video's first painted frame.
  * Resizes the longest edge to THUMB_TARGET_PX. Returns ~5–15KB JPEG strings.
+ *
+ * Why this is more involved than "set currentTime, draw on seeked":
+ *
+ * On iOS Safari (especially as an installed PWA) `currentTime = X` does NOT
+ * reliably materialise a paintable frame. The decoder needs `play()` to start
+ * producing frames; without it, `seeked` may never fire and the whole thing
+ * hangs until the master timeout. The flow below is the production-grade
+ * pattern used by video.js / plyr / similar:
+ *
+ *   1. Wait for `loadeddata` (frame 0 decoded — stronger guarantee than
+ *      `loadedmetadata`, which only means container headers parsed).
+ *   2. Subscribe to `requestVideoFrameCallback` if available — fires only
+ *      when a frame has actually painted. Most reliable signal.
+ *   3. Briefly `play()` the muted video. This primes the decoder on iOS so
+ *      the first frame is paintable.
+ *   4. Fall back to a double-rAF after `play()` resolves on browsers without
+ *      rVFC.
+ *   5. If `play()` rejects (rare autoplay-policy edge case), fall back to a
+ *      seek-then-draw with its own short timeout. Last-resort: draw whatever
+ *      is currently on the video element — frame 0 is a fine thumbnail.
+ *
+ * All paths funnel through `finish()` which short-circuits on a `settled`
+ * flag, so racing events can't double-resolve / double-reject.
  */
 export function extractThumbnail(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -85,28 +108,35 @@ export function extractThumbnail(blob: Blob): Promise<string> {
     video.preload = 'auto';
     video.muted = true;
     video.playsInline = true;
-    video.crossOrigin = 'anonymous';
+    // Older iOS only honours the lowercase HTML attribute, not the JS property
+    video.setAttribute('playsinline', 'true');
+    video.setAttribute('webkit-playsinline', 'true');
+
+    let settled = false;
 
     const cleanup = () => {
-      video.src = '';
+      try { video.pause(); } catch { /* ignore */ }
+      video.removeAttribute('src');
+      try { video.load(); } catch { /* ignore */ }
       URL.revokeObjectURL(url);
     };
-    const timeout = setTimeout(() => {
-      cleanup();
-      reject(new Error('Thumbnail extraction timed out.'));
-    }, 15_000);
 
-    video.onloadedmetadata = () => {
-      // Seek slightly past 0 to skip the leading black frame some encoders insert
-      video.currentTime = Math.min(THUMB_FRAME_TIME, (video.duration || 1) * 0.05);
+    const finish = (kind: 'ok' | 'err', value: string | Error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      if (kind === 'ok') resolve(value as string);
+      else reject(value as Error);
     };
 
-    video.onseeked = () => {
-      clearTimeout(timeout);
+    const drawAndFinish = () => {
       try {
         const w = video.videoWidth;
         const h = video.videoHeight;
-        if (w === 0 || h === 0) throw new Error('Video has no dimensions.');
+        if (w === 0 || h === 0) {
+          finish('err', new Error('Video frames not yet decoded — please try again.'));
+          return;
+        }
 
         const longest = Math.max(w, h);
         const scale = longest > THUMB_TARGET_PX ? THUMB_TARGET_PX / longest : 1;
@@ -117,25 +147,83 @@ export function extractThumbnail(blob: Blob): Promise<string> {
         canvas.width = targetW;
         canvas.height = targetH;
         const ctx = canvas.getContext('2d');
-        if (!ctx) throw new Error('Could not get canvas 2D context.');
+        if (!ctx) {
+          finish('err', new Error('Could not get canvas 2D context.'));
+          return;
+        }
         ctx.drawImage(video, 0, 0, targetW, targetH);
 
-        const dataUrl = canvas.toDataURL('image/jpeg', THUMB_QUALITY);
-        cleanup();
-        resolve(dataUrl);
+        finish('ok', canvas.toDataURL('image/jpeg', THUMB_QUALITY));
       } catch (err) {
-        cleanup();
-        reject(err);
+        finish('err', err instanceof Error ? err : new Error('Could not render thumbnail.'));
       }
     };
 
-    video.onerror = () => {
-      clearTimeout(timeout);
-      cleanup();
-      reject(new Error("Couldn't extract thumbnail — file may be corrupt."));
-    };
+    // Master timeout — covers slow phones with large clips even after the
+    // iOS-priming path is fixed. 30s is long enough that we'd only hit it on
+    // a genuinely broken file or device.
+    const masterTimeout = setTimeout(() => {
+      finish('err', new Error('Thumbnail extraction timed out.'));
+    }, 30_000);
+    void masterTimeout; // referenced only for cleanup-via-finish()
+
+    // ── Primary path: loadeddata → play() → first painted frame ─────────
+    video.addEventListener('loadeddata', async () => {
+      // Subscribe to first painted frame BEFORE play() so we don't miss it.
+      // Cast through unknown — `requestVideoFrameCallback` lands in newer
+      // lib.dom.d.ts versions but isn't yet typed in the one we're on.
+      const rvfc = (video as unknown as {
+        requestVideoFrameCallback?: (cb: () => void) => number;
+      }).requestVideoFrameCallback;
+
+      if (rvfc) {
+        rvfc.call(video, () => {
+          if (!settled) drawAndFinish();
+        });
+      }
+
+      try {
+        // The iOS-specific bit: play() primes the decoder so a frame is
+        // actually paintable. Muted + playsInline keeps autoplay policy happy.
+        await video.play();
+
+        if (!rvfc) {
+          // No rVFC — wait two rAFs to guarantee a paint cycle has completed
+          // (one rAF can fire before the very first paint on some browsers).
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            if (!settled) drawAndFinish();
+          }));
+        }
+      } catch (playErr) {
+        // play() rejected (rare — strict autoplay policy). Fall back to the
+        // seek-then-draw path with its own sub-timeout; if even that doesn't
+        // fire, draw whatever is on the element so the user gets *something*.
+        try {
+          video.currentTime = Math.min(THUMB_FRAME_TIME, (video.duration || 1) * 0.05);
+        } catch { /* setting currentTime can throw on some readyStates */ }
+
+        const seekTimeout = setTimeout(() => {
+          if (!settled) drawAndFinish();
+        }, 8_000);
+
+        video.addEventListener('seeked', () => {
+          clearTimeout(seekTimeout);
+          if (!settled) drawAndFinish();
+        }, { once: true });
+
+        // Surface the original error if both fallbacks somehow fail.
+        void playErr;
+      }
+    }, { once: true });
+
+    video.addEventListener('error', () => {
+      finish('err', new Error("Couldn't decode video — file may be corrupt or in an unsupported format."));
+    }, { once: true });
 
     video.src = url;
+    // Some iOS versions need an explicit load() to actually begin fetching
+    // after src assignment in a programmatically-created element.
+    try { video.load(); } catch { /* ignore */ }
   });
 }
 
