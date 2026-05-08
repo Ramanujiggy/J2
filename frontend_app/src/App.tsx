@@ -17,6 +17,7 @@ import SessionDetailPage from './app/SessionDetailPage.tsx';
 import ProfilePage from './app/ProfilePage.tsx';
 import ClassSchedulesPage from './app/ClassSchedulesPage.tsx';
 import MovesLibraryPage from './app/MovesLibraryPage.tsx';
+import TechniquePage from './app/TechniquePage.tsx';
 import AdminDashboardPage from './app/AdminDashboardPage.tsx';
 import AdminUserDetailPage from './app/AdminUserDetailPage.tsx';
 import WelcomeSplashPage from './app/WelcomeSplashPage.tsx';
@@ -104,7 +105,8 @@ function App() {
       <Route path="/intentions/:id/journal" element={<ProtectedShell><JournalEntryPage /></ProtectedShell>} />
       <Route path="/profile"          element={<ProtectedShell><ProfilePage /></ProtectedShell>} />
       <Route path="/profile/classes"  element={<ProtectedShell><ClassSchedulesPage /></ProtectedShell>} />
-      <Route path="/library"     element={<ProtectedShell><MovesLibraryPage /></ProtectedShell>} />
+      <Route path="/library"        element={<ProtectedShell><MovesLibraryPage /></ProtectedShell>} />
+      <Route path="/techniques/:id" element={<ProtectedShell><TechniquePage /></ProtectedShell>} />
       <Route path="/admin"            element={<ProtectedShell><AdminDashboardPage /></ProtectedShell>} />
       <Route path="/admin/users/:userId" element={<ProtectedShell><AdminUserDetailPage /></ProtectedShell>} />
 

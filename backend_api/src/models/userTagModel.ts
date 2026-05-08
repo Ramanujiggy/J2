@@ -1,4 +1,7 @@
 import { query } from '../config/db.js';
+import { getCanonicalPositionById } from './canonicalPositionModel.js';
+
+export type Affinity = 'go_to' | 'learning' | 'shelved';
 
 export interface UserTag {
   id: string;
@@ -12,6 +15,9 @@ export interface UserTag {
   video_thumbnail?: string | null;       // data URL (~10KB JPEG)
   video_duration_seconds?: number | null;
   video_notes?: string | null;
+  // Technique Library v1 (migration 027) — personal judgement + memory book
+  affinity?: Affinity | null;
+  resonance_journal?: string | null;
 }
 
 /**
@@ -132,6 +138,64 @@ export const updateUserTag = async (
     params,
   );
   return result.rows[0] ?? null;
+};
+
+/**
+ * Set the user's affinity for a technique (migration 027). Pass null to clear.
+ * Returns the updated row, or null when the tag isn't found / not owned.
+ */
+export const setAffinity = async (
+  userId: string,
+  id: string,
+  affinity: Affinity | null,
+): Promise<UserTag | null> => {
+  const result = await query(
+    `UPDATE user_tags SET affinity = $1 WHERE id = $2 AND user_id = $3 RETURNING *`,
+    [affinity, id, userId],
+  );
+  return result.rows[0] ?? null;
+};
+
+/**
+ * Set the cumulative resonance journal for a technique (migration 027).
+ * Pass null or empty string to clear. Returns the updated row, or null
+ * when the tag isn't found / not owned.
+ */
+export const setResonanceJournal = async (
+  userId: string,
+  id: string,
+  journal: string | null,
+): Promise<UserTag | null> => {
+  // Treat empty string as null so the DB stays consistent and the column
+  // either has meaningful prose or is genuinely empty.
+  const value = journal && journal.trim().length > 0 ? journal : null;
+  const result = await query(
+    `UPDATE user_tags SET resonance_journal = $1 WHERE id = $2 AND user_id = $3 RETURNING *`,
+    [value, id, userId],
+  );
+  return result.rows[0] ?? null;
+};
+
+/**
+ * Promote a canonical position into a personal user_tag (migration 027).
+ *
+ * Idempotent: if a user_tag with the canonical's name already exists for the
+ * user, returns the existing row unchanged via `upsertUserTag`'s ON CONFLICT
+ * path. Safe under concurrent calls; the existing (user_id, name) UNIQUE
+ * constraint prevents duplicates at the DB layer.
+ *
+ * Returns:
+ *   - { tag, created: true }  — fresh fork
+ *   - { tag, created: false } — already existed, returned untouched
+ *   - null                    — canonical_position_id doesn't exist
+ */
+export const promoteCanonicalToUserTag = async (
+  userId: string,
+  canonicalId: string,
+): Promise<{ tag: UserTag; created: boolean } | null> => {
+  const canonical = await getCanonicalPositionById(canonicalId);
+  if (!canonical) return null;
+  return upsertUserTag(userId, canonical.name, canonical.parent_pillar);
 };
 
 export const deleteUserTag = async (userId: string, id: string): Promise<boolean> => {

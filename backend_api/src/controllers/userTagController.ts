@@ -1,7 +1,10 @@
 import type { Request, Response } from 'express';
 import * as userTagModel from '../models/userTagModel.js';
+import type { Affinity } from '../models/userTagModel.js';
 
 const VALID_PILLARS = new Set(['standup', 'passing', 'pins', 'submissions', 'guard']);
+const VALID_AFFINITIES = new Set<Affinity>(['go_to', 'learning', 'shelved']);
+const MAX_RESONANCE_JOURNAL_LENGTH = 5000;
 
 function validateName(raw: unknown): string | null {
   if (typeof raw !== 'string') return null;
@@ -47,14 +50,24 @@ export const createUserTag = async (req: Request, res: Response) => {
   }
 };
 
-// PATCH /api/user-tags/:id — update name and/or parent_pillar
-// Body: { name?: string, parent_pillar?: string }
+// PATCH /api/user-tags/:id — update name, parent_pillar, affinity, and/or
+// resonance_journal in a single request. Each field is independently optional;
+// only those present in the body are touched.
+//
+// Body: {
+//   name?: string,
+//   parent_pillar?: 'standup' | 'passing' | 'pins' | 'submissions' | 'guard',
+//   affinity?: 'go_to' | 'learning' | 'shelved' | null,    // null clears
+//   resonance_journal?: string | null,                     // null/empty clears
+// }
+//
+// Affinity + resonance_journal additions land in migration 027 (Technique Library v1).
 export const updateUserTag = async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
     const { id } = req.params;
     if (!id) return res.status(400).json({ message: 'id is required.' });
-    const { name, parent_pillar } = req.body;
+    const { name, parent_pillar, affinity, resonance_journal } = req.body;
 
     let cleanName: string | null = null;
     if (name !== undefined) {
@@ -72,11 +85,84 @@ export const updateUserTag = async (req: Request, res: Response) => {
       cleanPillar = parent_pillar;
     }
 
-    const tag = await userTagModel.updateUserTag(userId, id, cleanName, cleanPillar);
-    if (!tag) return res.status(404).json({ message: 'Tag not found.' });
+    let cleanAffinity: Affinity | null | undefined; // undefined = don't touch; null = clear
+    if (affinity !== undefined) {
+      if (affinity !== null && !VALID_AFFINITIES.has(affinity)) {
+        return res.status(400).json({ message: "affinity must be 'go_to', 'learning', 'shelved', or null." });
+      }
+      cleanAffinity = affinity;
+    }
+
+    let cleanJournal: string | null | undefined;
+    if (resonance_journal !== undefined) {
+      if (resonance_journal !== null) {
+        if (typeof resonance_journal !== 'string') {
+          return res.status(400).json({ message: 'resonance_journal must be a string or null.' });
+        }
+        if (resonance_journal.length > MAX_RESONANCE_JOURNAL_LENGTH) {
+          return res.status(400).json({ message: `resonance_journal must be ≤ ${MAX_RESONANCE_JOURNAL_LENGTH} characters.` });
+        }
+      }
+      cleanJournal = resonance_journal;
+    }
+
+    // Require at least one field to update — otherwise the request is a no-op
+    // and the previous behaviour (return 404 from the model) is misleading.
+    if (cleanName === null && cleanPillar === null && cleanAffinity === undefined && cleanJournal === undefined) {
+      return res.status(400).json({ message: 'No updatable fields provided.' });
+    }
+
+    // Apply each touch in sequence. Each model fn returns the updated row,
+    // and the last one wins as the response — they all touch the same row
+    // so the final value reflects every applied patch.
+    let tag: userTagModel.UserTag | null = null;
+
+    if (cleanName !== null || cleanPillar !== null) {
+      tag = await userTagModel.updateUserTag(userId, id, cleanName, cleanPillar);
+      if (!tag) return res.status(404).json({ message: 'Tag not found.' });
+    }
+    if (cleanAffinity !== undefined) {
+      tag = await userTagModel.setAffinity(userId, id, cleanAffinity);
+      if (!tag) return res.status(404).json({ message: 'Tag not found.' });
+    }
+    if (cleanJournal !== undefined) {
+      tag = await userTagModel.setResonanceJournal(userId, id, cleanJournal);
+      if (!tag) return res.status(404).json({ message: 'Tag not found.' });
+    }
+
     res.status(200).json({ tag });
   } catch (error) {
     console.error('❌ Error updating user tag:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// POST /api/user-tags/promote-canonical — silently fork a canonical position
+// into a personal user_tag so personal data (affinity / resonance / video)
+// has somewhere to live (migration 027). Idempotent: re-calling with the
+// same canonical id returns the existing row.
+//
+// Body: { canonical_position_id: string (uuid) }
+// Response: { tag: UserTag, created: boolean }
+//   - 201 + created:true on first promote
+//   - 200 + created:false on subsequent calls (already forked)
+//   - 404 when the canonical id doesn't exist
+export const promoteCanonicalToUserTag = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { canonical_position_id } = req.body ?? {};
+    if (typeof canonical_position_id !== 'string' || canonical_position_id.length < 1) {
+      return res.status(400).json({ message: 'canonical_position_id (string uuid) is required.' });
+    }
+
+    const result = await userTagModel.promoteCanonicalToUserTag(userId, canonical_position_id);
+    if (!result) {
+      return res.status(404).json({ message: 'Canonical position not found.' });
+    }
+
+    res.status(result.created ? 201 : 200).json({ tag: result.tag, created: result.created });
+  } catch (error) {
+    console.error('❌ Error promoting canonical to user tag:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

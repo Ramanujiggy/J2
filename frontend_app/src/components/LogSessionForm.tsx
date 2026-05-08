@@ -531,13 +531,13 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
             </p>
           </div>
 
-          {/* Tech Tags — moved up from the old Details section. These are the
-              technical layer of the session and the bridge to the future
-              Technique Library (each tag opens a journal page for that move).
-              Always visible, regardless of session type. */}
+          {/* Techniques — the technical layer of the session and the bridge
+              into the Technique Library. Each chip opens a per-technique
+              page (the Pokedex) where affinity and resonance accumulate
+              over time. Always visible, regardless of session type. */}
           <div>
             <p className="text-[10px] mt-0.5 mb-2 uppercase tracking-widest font-semibold" style={{ color: PALE_YELLOW, letterSpacing: '0.16em' }}>
-              Tech Tags
+              Techniques
             </p>
             <TagPicker
               selectedUserTagIds={userTagIds}
@@ -547,7 +547,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
               maxSelected={5}
             />
             <p className="mt-2" style={{ color: 'rgba(255,255,255,0.45)', fontStyle: 'italic', fontFamily: FONT_EDITORIAL, fontSize: 13 }}>
-              Each tag opens a page in your technique library.
+              Each technique opens a page in your library — affinity, resonance, history.
             </p>
           </div>
 

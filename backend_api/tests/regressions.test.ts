@@ -122,7 +122,7 @@ async function cleanupUser(p: Pool, userId: string) {
   await p.query('DELETE FROM users WHERE id = $1', [userId]);
 }
 
-describeRegressions('Regression tests (real-DB, mig 024 + 025 + 027)', () => {
+describeRegressions('Regression tests (real-DB, mig 024 + 025 + 027 + 028)', () => {
   beforeAll(async () => {
     pool = new Pool({
       connectionString: TEST_DB_URL,
@@ -217,6 +217,88 @@ describeRegressions('Regression tests (real-DB, mig 024 + 025 + 027)', () => {
       ).rejects.toThrow(/check constraint/i);
     } finally {
       await cleanupUser(pool, userId);
+    }
+  }, 30_000);
+
+  // ── mig 028 — widen_enum_check() helper end-to-end ────────────────────────
+  // Walks the full real-world flow: a table with a narrow CHECK, a value that
+  // is rejected, then a widen_enum_check() call, then the same value succeeds.
+  // Uses a temp table so we don't pollute the real schema.
+  it('widen_enum_check() drops a narrow CHECK and replaces it with a wider one (mig 028)', async () => {
+    const tableName = `_test_widen_${Date.now()}`;
+    try {
+      // Create a temp table with a narrow CHECK named like a Postgres default
+      // (so we can also verify the helper finds and drops it).
+      await pool.query(`
+        CREATE TABLE ${tableName} (
+          id SERIAL PRIMARY KEY,
+          color TEXT NOT NULL,
+          CONSTRAINT ${tableName}_color_check CHECK (color IN ('red', 'blue'))
+        )
+      `);
+
+      // Sanity: a disallowed value is rejected by the original CHECK.
+      await expect(
+        pool.query(`INSERT INTO ${tableName} (color) VALUES ('green')`),
+      ).rejects.toThrow(/check constraint/i);
+
+      // Widen the CHECK to include 'green'.
+      await pool.query(
+        `SELECT widen_enum_check($1, 'color', ARRAY['red','blue','green']::TEXT[], false)`,
+        [tableName],
+      );
+
+      // Now 'green' inserts cleanly.
+      const ok = await pool.query(
+        `INSERT INTO ${tableName} (color) VALUES ('green') RETURNING color`,
+      );
+      expect(ok.rows[0].color).toBe('green');
+
+      // And a still-disallowed value ('yellow') is still rejected — proving the
+      // new CHECK is in force, not just that the old one got dropped.
+      await expect(
+        pool.query(`INSERT INTO ${tableName} (color) VALUES ('yellow')`),
+      ).rejects.toThrow(/check constraint/i);
+    } finally {
+      await pool.query(`DROP TABLE IF EXISTS ${tableName}`);
+    }
+  }, 30_000);
+
+  // Confirms the allow_null=true branch produces an `IS NULL OR IN (...)`
+  // expression (matches the class_schedules.gi_nogi shape).
+  it('widen_enum_check() respects allow_null=true (mig 028)', async () => {
+    const tableName = `_test_widen_null_${Date.now()}`;
+    try {
+      await pool.query(`
+        CREATE TABLE ${tableName} (
+          id SERIAL PRIMARY KEY,
+          shape TEXT
+        )
+      `);
+
+      await pool.query(
+        `SELECT widen_enum_check($1, 'shape', ARRAY['circle','square']::TEXT[], true)`,
+        [tableName],
+      );
+
+      // NULL is allowed
+      const nullRow = await pool.query(
+        `INSERT INTO ${tableName} (shape) VALUES (NULL) RETURNING shape`,
+      );
+      expect(nullRow.rows[0].shape).toBeNull();
+
+      // Listed value is allowed
+      const okRow = await pool.query(
+        `INSERT INTO ${tableName} (shape) VALUES ('circle') RETURNING shape`,
+      );
+      expect(okRow.rows[0].shape).toBe('circle');
+
+      // Unlisted value is rejected
+      await expect(
+        pool.query(`INSERT INTO ${tableName} (shape) VALUES ('triangle')`),
+      ).rejects.toThrow(/check constraint/i);
+    } finally {
+      await pool.query(`DROP TABLE IF EXISTS ${tableName}`);
     }
   }, 30_000);
 });

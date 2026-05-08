@@ -42,6 +42,8 @@ export interface SessionSummary {
   partners?: string[] | null;
 }
 
+export type Affinity = 'go_to' | 'learning' | 'shelved';
+
 export interface UserTag {
   id: string;
   user_id: string;
@@ -54,6 +56,9 @@ export interface UserTag {
   video_thumbnail?: string | null;
   video_duration_seconds?: number | null;
   video_notes?: string | null;
+  // Technique Library v1 (migration 027) — personal judgement + memory book
+  affinity?: Affinity | null;
+  resonance_journal?: string | null;
 }
 
 export interface CanonicalPosition {

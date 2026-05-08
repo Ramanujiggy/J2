@@ -20,6 +20,22 @@ export const getAllCanonicalPositions = async (): Promise<CanonicalPosition[]> =
   return result.rows;
 };
 
+/**
+ * Single canonical row by id. Returns null when not found. Used by the
+ * `promoteCanonicalToUserTag` flow (migration 027) to fork a canonical
+ * position into a personal user_tag the moment the user expresses any
+ * opinion on it.
+ */
+export const getCanonicalPositionById = async (id: string): Promise<CanonicalPosition | null> => {
+  const result = await query(
+    `SELECT id, name, parent_pillar, aliases, created_at
+       FROM canonical_positions
+      WHERE id = $1`,
+    [id],
+  );
+  return result.rows[0] ?? null;
+};
+
 /** Filtered by pillar. Used when a session's heading is known — reduces payload. */
 export const getCanonicalPositionsByPillar = async (pillar: Pillar): Promise<CanonicalPosition[]> => {
   const result = await query(

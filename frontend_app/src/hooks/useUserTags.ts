@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '../lib/api.ts';
-import type { UserTag, UserTagsResponse, UserTagVideoUpdate, Pillar } from '../types/api.ts';
+import type { UserTag, UserTagsResponse, UserTagVideoUpdate, Pillar, Affinity } from '../types/api.ts';
 import { saveVideo, deleteVideo, hasQuotaFor } from '../lib/videoStore.ts';
 import { validateVideoFile, probeVideo, extractThumbnail } from '../lib/videoUtils.ts';
 
@@ -133,6 +133,66 @@ export function useUserTags() {
     }
   }, [patchVideoMeta]);
 
+  /**
+   * Update affinity / resonance_journal on a tag (migration 027). Optimistically
+   * patches local state; on failure, refetches to reconcile. Pass `affinity: null`
+   * or `resonance_journal: null` to clear.
+   */
+  const patchTag = useCallback(async (
+    id: string,
+    patch: { affinity?: Affinity | null; resonance_journal?: string | null },
+  ): Promise<UserTag | null> => {
+    // Optimistic local update so the UI never feels laggy.
+    setTags(prev => prev.map(t => (t.id === id ? { ...t, ...patch } : t)));
+    try {
+      const res = await api.patch<{ tag: UserTag }>(`/api/user-tags/${id}`, patch);
+      setTags(prev => prev.map(t => (t.id === res.tag.id ? res.tag : t)));
+      setError(null);
+      return res.tag;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update tag');
+      void fetchTags(); // reconcile from server
+      return null;
+    }
+  }, [fetchTags]);
+
+  /** Set the user's affinity for a technique. Pass null to clear. */
+  const setAffinity = useCallback((id: string, affinity: Affinity | null) =>
+    patchTag(id, { affinity }), [patchTag]);
+
+  /** Set the cumulative resonance journal for a technique. Empty/null clears. */
+  const setResonance = useCallback((id: string, resonance_journal: string | null) =>
+    patchTag(id, { resonance_journal }), [patchTag]);
+
+  /**
+   * Pick a canonical position as if it were one of the user's own tags. Silently
+   * forks the canonical row into a personal user_tag (idempotent — re-calling
+   * with the same canonical id returns the existing fork). Returns the user_tag
+   * id so the caller can drop it into `selectedUserTagIds` cleanly.
+   *
+   * Migration 027 — see `promoteCanonicalToUserTag` in userTagModel + the
+   * `POST /api/user-tags/promote-canonical` endpoint.
+   */
+  const selectCanonicalAsUserTag = useCallback(async (canonicalId: string): Promise<string | null> => {
+    try {
+      const res = await api.post<{ tag: UserTag; created: boolean }>(
+        '/api/user-tags/promote-canonical',
+        { canonical_position_id: canonicalId },
+      );
+      // Splice the new (or existing) tag into the local list so the picker
+      // immediately shows it on subsequent renders.
+      setTags(prev => {
+        const without = prev.filter(t => t.id !== res.tag.id);
+        return [...without, res.tag].sort((a, b) => a.name.localeCompare(b.name));
+      });
+      setError(null);
+      return res.tag.id;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add technique to your library');
+      return null;
+    }
+  }, []);
+
   const tagsByPillar = useMemo(() => {
     const grouped: Record<string, UserTag[]> = {};
     for (const t of tags) {
@@ -158,5 +218,9 @@ export function useUserTags() {
     attachVideo,
     detachVideo,
     patchVideoMeta,
+    // Technique Library v1 (migration 027)
+    setAffinity,
+    setResonance,
+    selectCanonicalAsUserTag,
   };
 }
