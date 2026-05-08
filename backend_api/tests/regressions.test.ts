@@ -122,7 +122,7 @@ async function cleanupUser(p: Pool, userId: string) {
   await p.query('DELETE FROM users WHERE id = $1', [userId]);
 }
 
-describeRegressions('Regression tests (real-DB, mig 024 + 025)', () => {
+describeRegressions('Regression tests (real-DB, mig 024 + 025 + 027)', () => {
   beforeAll(async () => {
     pool = new Pool({
       connectionString: TEST_DB_URL,
@@ -182,6 +182,39 @@ describeRegressions('Regression tests (real-DB, mig 024 + 025)', () => {
         [userId, 'Open Mat', 6, '11:00:00', 90, 'both'],
       );
       expect(result.rows[0].gi_nogi).toBe('both');
+    } finally {
+      await cleanupUser(pool, userId);
+    }
+  }, 30_000);
+
+  // ── mig 027 — notification_sends ledger CHECK constraints ─────────────────
+  it('accepts valid status + category values into notification_sends (mig 027)', async () => {
+    const userId = await createTestUser(pool);
+    try {
+      const inserted = await pool.query(
+        `INSERT INTO notification_sends
+           (user_id, category, status, status_code, error_message, endpoint_host)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id, status, category`,
+        [userId, 'pre_class', 'sent', 201, null, 'fcm.googleapis.com'],
+      );
+      expect(inserted.rows[0].status).toBe('sent');
+      expect(inserted.rows[0].category).toBe('pre_class');
+    } finally {
+      await cleanupUser(pool, userId);
+    }
+  }, 30_000);
+
+  it('rejects bad status into notification_sends (mig 027 CHECK)', async () => {
+    const userId = await createTestUser(pool);
+    try {
+      await expect(
+        pool.query(
+          `INSERT INTO notification_sends (user_id, category, status)
+           VALUES ($1, 'pre_class', 'maybe_sent')`,
+          [userId],
+        ),
+      ).rejects.toThrow(/check constraint/i);
     } finally {
       await cleanupUser(pool, userId);
     }

@@ -132,6 +132,44 @@ export const INT_LABELS = ['', 'Drill', 'Light', 'Steady', 'Intense', 'Hard roll
 /** Subtle glow used on mid-size section headings and champagne body text. */
 export const GLOW_SUBTLE = '0 0 8px rgba(242,228,168,0.22)' as const;
 
+// ─── Status colors ────────────────────────────────────────────────────────────
+//
+// Brand-aligned error / success / info accents. These replace the scattered
+// `#F87171`, `text-red-400`, and `rgba(248,113,113,*)` literals that earlier
+// pages adopted ad-hoc. Reach for these — and the Toast primitive — instead
+// of writing raw colour strings for status states.
+//
+// The palette stays inside the warm forest register: error is a desaturated
+// terracotta (not Tailwind cold-red), success is the moss-3 from INT_COLORS,
+// info reuses copper because copper IS our voice for "noteworthy."
+
+/** Status: error / destructive / failure. Warm terracotta, not cold red. */
+export const STATUS_ERROR = '#E07560' as const;
+
+/** Status: error tinted backgrounds (toasts, inline error pills). */
+export const STATUS_ERROR_BG = 'rgba(224,117,96,0.10)' as const;
+
+/** Status: error border. */
+export const STATUS_ERROR_BORDER = 'rgba(224,117,96,0.30)' as const;
+
+/** Status: success / saved / sent. Reuses moss-3 from the intensity ladder. */
+export const STATUS_SUCCESS = '#A8B97A' as const;
+
+/** Status: success tinted backgrounds. */
+export const STATUS_SUCCESS_BG = 'rgba(168,185,122,0.10)' as const;
+
+/** Status: success border. */
+export const STATUS_SUCCESS_BORDER = 'rgba(168,185,122,0.30)' as const;
+
+/** Status: info / neutral notice — reuses copper as the voice accent. */
+export const STATUS_INFO = COPPER;
+
+/** Status: info tinted backgrounds. */
+export const STATUS_INFO_BG = 'rgba(196,145,95,0.10)' as const;
+
+/** Status: info border. */
+export const STATUS_INFO_BORDER = 'rgba(196,145,95,0.30)' as const;
+
 // ─── Form inputs ──────────────────────────────────────────────────────────────
 
 /**

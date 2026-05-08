@@ -445,3 +445,26 @@
   [style*="j2-skeleton-breathe"] { animation: none !important; }
 }
 
+/* ── Toast variant accent strips ──────────────────────────────────────────────
+   Each Radix Toast root carries a j2-toast-{variant} class (see
+   src/components/ui/toast.tsx). The ::before pseudo paints a thin coloured
+   left edge that signals status without shouting. Keep widths narrow — the
+   border + edge together should read like a single graphic detail, not a
+   busy stripe. */
+.j2-toast-default::before,
+.j2-toast-success::before,
+.j2-toast-destructive::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 2px;
+  pointer-events: none;
+}
+.j2-toast-default::before     { background: #C4915F; }
+.j2-toast-success::before     { background: #A8B97A; }
+.j2-toast-destructive::before { background: #E07560; }
+
+

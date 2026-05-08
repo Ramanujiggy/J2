@@ -176,9 +176,11 @@ export default function ProfilePage() {
         intentions_enabled: intentionsEnabled,
       });
       refreshProfile();
-      toast({ title: 'Profile saved!' });
+      toast({ variant: 'success', title: 'Profile saved.' });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save profile.');
+      const msg = err instanceof Error ? err.message : 'Failed to save profile.';
+      setError(msg);
+      toast({ variant: 'destructive', title: 'Could not save profile.', description: msg });
     } finally {
       setSaving(false);
     }
@@ -569,9 +571,9 @@ export default function ProfilePage() {
                 try {
                   const data = await api.get<{ sessions: SessionSummary[] }>('/api/sessions');
                   exportSessionsCsv(data.sessions ?? []);
-                  toast({ title: 'Sessions exported!' });
+                  toast({ variant: 'success', title: 'Sessions exported.' });
                 } catch {
-                  toast({ title: 'Export failed. Please try again.' });
+                  toast({ variant: 'destructive', title: 'Export failed.', description: 'Please try again.' });
                 } finally {
                   setExporting(false);
                 }
@@ -599,9 +601,9 @@ export default function ProfilePage() {
                   try {
                     const data = await api.get<{ intentions: Intention[] }>('/api/intentions');
                     exportIntentionsCsv(data.intentions ?? []);
-                    toast({ title: 'Intentions exported!' });
+                    toast({ variant: 'success', title: 'Intentions exported.' });
                   } catch {
-                    toast({ title: 'Export failed. Please try again.' });
+                    toast({ variant: 'destructive', title: 'Export failed.', description: 'Please try again.' });
                   } finally {
                     setExporting(false);
                   }

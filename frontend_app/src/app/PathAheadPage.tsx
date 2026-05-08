@@ -171,7 +171,7 @@ export default function PathAheadPage() {
         const key = `j2-gate-${gate.weeks}`;
         if (!localStorage.getItem(key)) {
           localStorage.setItem(key, '1');
-          toast({ title: gate.toast });
+          toast({ variant: 'success', title: gate.toast });
         }
         break;
       }
@@ -744,7 +744,7 @@ export default function PathAheadPage() {
                 setLogPreset(null);
                 if (count === 500 && !localStorage.getItem('j2-milestone-500')) {
                   localStorage.setItem('j2-milestone-500', '1');
-                  toast({ title: '500 sessions. The mat remembers every one.' });
+                  toast({ variant: 'success', title: '500 sessions. The mat remembers every one.' });
                 }
               }}
               onCancel={() => { setLogOpen(false); setLogDate(null); setLogPreset(null); }}
