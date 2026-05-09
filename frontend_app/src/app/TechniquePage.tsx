@@ -96,7 +96,11 @@ export default function TechniquePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isDesktop = useIsDesktop();
-  const { byId, tagsByPillar, loading: tagsLoading, setAffinity, setResonance, patchVideoMeta } = useUserTags();
+  const {
+    byId, tagsByPillar, loading: tagsLoading, error: hookError,
+    setAffinity, setResonance, patchVideoMeta,
+    attachVideo, detachVideo,
+  } = useUserTags();
 
   const tag = id ? byId.get(id) ?? null : null;
 
@@ -104,6 +108,7 @@ export default function TechniquePage() {
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [playing, setPlaying] = useState(false);
   const [openSession, setOpenSession] = useState<SessionSummary | null>(null);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
 
   // Local draft state for the autosave-on-blur textareas. Mirrors the saved
   // value but lets the textarea be edited without round-tripping every keystroke.
@@ -208,6 +213,30 @@ export default function TechniquePage() {
     if (tag.affinity === next) return; // no-op
     await setAffinity(tag.id, next);
   }, [tag, setAffinity]);
+
+  // Video attach / replace / remove. Both attach and detach run through the
+  // useUserTags pipeline which handles thumbnail extraction + local storage +
+  // server PATCH; we just toggle the local uploading state for UI feedback.
+  const onAttachFile = useCallback(async (file: File) => {
+    if (!tag) return;
+    setUploadingVideo(true);
+    try {
+      await attachVideo(tag.id, file);
+    } finally {
+      setUploadingVideo(false);
+    }
+  }, [tag, attachVideo]);
+
+  const onRemoveVideo = useCallback(async () => {
+    if (!tag) return;
+    if (!confirm(`Remove the video from "${tag.name}"?`)) return;
+    setUploadingVideo(true);
+    try {
+      await detachVideo(tag.id);
+    } finally {
+      setUploadingVideo(false);
+    }
+  }, [tag, detachVideo]);
 
   // ── Render ────────────────────────────────────────────────────────────────
   if (tagsLoading) {

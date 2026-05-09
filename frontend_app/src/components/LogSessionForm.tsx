@@ -1,20 +1,32 @@
-import { useState, useEffect, useRef } from 'react';
+// LogSessionForm — the compose form for new training sessions.
+//
+// Orchestrator only. The render is split into five extracted sub-components
+// (see the 2026-05-08 refactor for context):
+//   • LogSessionMobileHeader — mobile editorial header (desktop uses the
+//     pre-existing BeltDateBanner)
+//   • LogSessionFundamentals — gi/no-gi, session-type, duration, intensity
+//   • LogSessionPositionalFocus — focus chips, constraint, techniques,
+//     polarity (conditional), source (conditional)
+//   • LogSessionResonance — voice notes + partner chips
+//   • LogSessionActions — error + Cancel/Save buttons
+//
+// What stays here: every piece of state, the handleSubmit payload assembly,
+// the two useEffects (polarity-reset + current-intention fetch), the
+// derivedHeading IIFE, the resetForm helper, and the desktop/mobile grid
+// layout that places each sub-section into its slot.
+
+import { useState, useEffect } from 'react';
 import { api, ApiError } from '../lib/api.ts';
 import { toast } from '../hooks/use-toast.ts';
-import { CARD_BG, COPPER, SURFACE_2, SURFACE_3, PALE_YELLOW, FONT_EDITORIAL } from '../lib/theme.ts';
-import { vibrate } from '../lib/haptics.ts';
-import { INTENSITY_COLOR } from '../lib/sessionUtils.ts';
+import { CARD_BG, PALE_YELLOW } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
-import { useProfile } from '../context/ProfileContext.tsx';
-import { BELT_COLORS, type BeltRank } from '../lib/belt.ts';
 import BeltDateBanner from './BeltDateBanner.tsx';
-import FocusAreaChips from './FocusAreaChips.tsx';
 import PrismReceipt from './PrismReceipt.tsx';
-import SegmentedToggle from './SegmentedToggle.tsx';
-import TagPicker from './TagPicker.tsx';
-import ConstraintPicker from './ConstraintPicker.tsx';
-import PartnerInput from './PartnerInput.tsx';
-import VoiceReflectionInput from './VoiceReflectionInput.tsx';
+import LogSessionMobileHeader from './LogSessionMobileHeader.tsx';
+import LogSessionFundamentals, { type GiNoGi, type SessionType } from './LogSessionFundamentals.tsx';
+import LogSessionPositionalFocus, { type Polarity, type ScriptSource } from './LogSessionPositionalFocus.tsx';
+import LogSessionResonance from './LogSessionResonance.tsx';
+import LogSessionActions from './LogSessionActions.tsx';
 import { selectionsToDistribution, type ChipSelection } from '../lib/selectionsToDistribution.ts';
 import type { Intention, Pillar } from '../types/api.ts';
 
@@ -22,14 +34,6 @@ interface LogSessionResponse {
   message: string;
   session_count?: number;
 }
-
-type GiNoGi = 'gi' | 'no_gi' | 'both';
-// `competition_training` is preserved as a valid value for legacy data; new
-// sessions use `class | drilling | cla`. The form picker only surfaces the new
-// three-way taxonomy. CLA = Constraints-Led Approach.
-type SessionType = 'drilling' | 'class' | 'competition_training' | 'cla';
-type Polarity = 'offense' | 'defense' | 'neutral';
-type ScriptSource = 'directed' | 'organic';
 
 interface SessionFormData {
   date: string;
@@ -43,23 +47,28 @@ interface SessionFormData {
 const _d = new Date();
 const today = `${_d.getFullYear()}-${String(_d.getMonth() + 1).padStart(2, '0')}-${String(_d.getDate()).padStart(2, '0')}`;
 
-// Three-way session taxonomy: structured class, self-directed drilling,
-// constraints-led approach (live training under a rule modification). Each
-// type slightly modifies what the form asks for (Source toggle hides on
-// drilling + CLA; Constraint picker appears on CLA only).
-const SESSION_TYPES: { value: SessionType; label: string }[] = [
-  { value: 'class',    label: 'Class' },
-  { value: 'drilling', label: 'Free Drilling' },
-  { value: 'cla',      label: 'CLA' },
-];
+// Duration constants — also enforced inside LogSessionFundamentals' stepper.
+// Kept here as defense-in-depth for the submit-time sanity check.
+const DUR_MIN = 30;
+const DUR_MAX = 240;
 
-// ── Intensity labels ──────────────────────────────────────────────────────
-// BJJ-themed scale (matches `INT_LABELS` in theme.ts). Less fitness-app, more
-// dojo. Drill = no resistance / partner work; Light = relaxed flow; Steady =
-// honest pace; Intense = tournament-prep round; Hard roll = full send.
-const INTENSITY_LABELS = ['Drill', 'Light', 'Steady', 'Intense', 'Hard roll'];
-
-export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defaultHeading, defaultSessionType, defaultSubSkillTag, defaultConstraintName }: { onSuccess?: (sessionCount?: number) => void; onCancel?: () => void; defaultDate?: string; defaultHeading?: string; defaultSessionType?: SessionType; defaultSubSkillTag?: string; defaultConstraintName?: string }) {
+export default function LogSessionForm({
+  onSuccess,
+  onCancel,
+  defaultDate,
+  defaultHeading,
+  defaultSessionType,
+  defaultSubSkillTag,
+  defaultConstraintName,
+}: {
+  onSuccess?: (sessionCount?: number) => void;
+  onCancel?: () => void;
+  defaultDate?: string;
+  defaultHeading?: string;
+  defaultSessionType?: SessionType;
+  defaultSubSkillTag?: string;
+  defaultConstraintName?: string;
+}) {
   const isDesktop = useIsDesktop();
   const [form, setForm] = useState<SessionFormData>({
     date:         defaultDate ?? today,
@@ -73,17 +82,6 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
   // length). The user adjusts via +/- buttons; no null state because the
   // form opens "70% complete" per the editorial-form research.
   const [durationMinutes, setDurationMinutes] = useState<number>(60);
-  const DUR_STEP = 30;
-  const DUR_MIN  = 30;
-  const DUR_MAX  = 240;
-
-  function fmtDuration(m: number) {
-    const h   = Math.floor(m / 60);
-    const min = m % 60;
-    return h > 0 && min > 0 ? `${h} h  ${min} m`
-         : h > 0             ? `${h} h`
-         :                     `${min} m`;
-  }
 
   // Chip-input state — selections drive heading/tags/distribution at submit time.
   const initialSelections: ChipSelection[] = defaultHeading
@@ -318,7 +316,7 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
             onChange={date => setForm(prev => ({ ...prev, date }))}
           />
         ) : (
-          <MobileLogHeader
+          <LogSessionMobileHeader
             date={form.date}
             onChange={date => setForm(prev => ({ ...prev, date }))}
           />
@@ -335,8 +333,8 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
             alignItems: 'start',
           } : undefined}
         >
-        {/* H2 stays on desktop only — on mobile the MobileLogHeader's serif
-            title above is the page's primary heading. */}
+        {/* H2 stays on desktop only — on mobile the LogSessionMobileHeader's
+            serif title above is the page's primary heading. */}
         {isDesktop && (
           <h2
             className="text-2xl font-display font-semibold"
@@ -346,125 +344,26 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
           </h2>
         )}
 
-        {/* ══════════════════════════════════════════════════════════════
-            SECTION 1: Fundamentals
+        {/* ── Section 1: Fundamentals ─────────────────────────────────────
             Desktop keeps its boxed SURFACE_2 card; mobile lives directly on
             the canvas — implicit containment via eyebrow + whitespace, per
             the editorial-register research (Day One / Bear / Apple Notes
             pattern). The visual weight drops without losing the structure.
-            ══════════════════════════════════════════════════════════════ */}
+            ────────────────────────────────────────────────────────────── */}
         <div
           className="space-y-4"
           style={isDesktop ? { gridColumn: '1', gridRow: '2' } : undefined}
         >
-          <div className="j2-label-copper">Fundamentals</div>
-
-          {/* Gi / No-Gi / Both — 'both' (mig 025) for sessions that mixed
-              gi and no-gi work in one block (e.g. gi for warmup + drilling,
-              no-gi for live rolls). Analytics weight 'both' as 0.5/0.5. */}
-          <SegmentedToggle
-            options={[
-              { value: 'gi'    as GiNoGi, label: 'Gi'    },
-              { value: 'no_gi' as GiNoGi, label: 'No-Gi' },
-              { value: 'both'  as GiNoGi, label: 'Both'  },
-            ]}
-            value={form.gi_nogi}
-            onChange={v => v && setForm(prev => ({ ...prev, gi_nogi: v }))}
+          <LogSessionFundamentals
+            giNogi={form.gi_nogi}
+            onGiNogiChange={v => setForm(prev => ({ ...prev, gi_nogi: v }))}
+            sessionType={form.session_type}
+            onSessionTypeChange={v => setForm(prev => ({ ...prev, session_type: v }))}
+            durationMinutes={durationMinutes}
+            onDurationChange={setDurationMinutes}
+            intensity={form.intensity}
+            onIntensityChange={i => setForm(prev => ({ ...prev, intensity: i }))}
           />
-
-          {/* Session Type */}
-          <SegmentedToggle
-            options={SESSION_TYPES}
-            value={form.session_type}
-            onChange={v => v && setForm(prev => ({ ...prev, session_type: v }))}
-          />
-
-          {/* Duration + Intensity — side-by-side steppers. Both share the
-              same SURFACE_3 stepper shell so they read as a paired control.
-              Saves ~80pt of vertical real estate vs the old stacked
-              5-bar gradient. Intensity value tints in the level's color. */}
-          <div className="grid grid-cols-2 gap-3">
-            {/* Duration */}
-            <div>
-              <p className="text-[10px] mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.40)', letterSpacing: '0.14em' }}>
-                Duration
-              </p>
-              <div
-                className="flex items-center justify-center gap-1 rounded-xl py-2"
-                style={{ backgroundColor: SURFACE_3 }}
-              >
-                <button
-                  type="button"
-                  onClick={() => { vibrate(8); setDurationMinutes(m => Math.max(DUR_MIN, m - DUR_STEP)); }}
-                  className="w-9 h-9 rounded-lg text-base font-semibold transition-colors touch-manipulation"
-                  style={{ backgroundColor: SURFACE_2, color: 'rgba(255,255,255,0.55)' }}
-                  disabled={durationMinutes <= DUR_MIN}
-                  aria-label="Decrease duration"
-                >
-                  −
-                </button>
-                <span
-                  className="font-bold flex-1 text-center"
-                  style={{ color: PALE_YELLOW, fontSize: 17 }}
-                >
-                  {fmtDuration(durationMinutes)}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => { vibrate(8); setDurationMinutes(m => Math.min(DUR_MAX, m + DUR_STEP)); }}
-                  className="w-9 h-9 rounded-lg text-base font-semibold transition-colors touch-manipulation"
-                  style={{ backgroundColor: SURFACE_2, color: 'rgba(255,255,255,0.55)' }}
-                  disabled={durationMinutes >= DUR_MAX}
-                  aria-label="Increase duration"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-
-            {/* Intensity */}
-            <div>
-              <p className="text-[10px] mb-1.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.40)', letterSpacing: '0.14em' }}>
-                Intensity
-              </p>
-              <div
-                className="flex items-center justify-center gap-1 rounded-xl py-2"
-                style={{ backgroundColor: SURFACE_3 }}
-              >
-                <button
-                  type="button"
-                  onClick={() => { vibrate(8); setForm(prev => ({ ...prev, intensity: Math.max(1, prev.intensity - 1) })); }}
-                  className="w-9 h-9 rounded-lg text-base font-semibold transition-colors touch-manipulation"
-                  style={{ backgroundColor: SURFACE_2, color: 'rgba(255,255,255,0.55)' }}
-                  disabled={form.intensity <= 1}
-                  aria-label="Decrease intensity"
-                >
-                  −
-                </button>
-                <span
-                  className="font-bold flex-1 text-center"
-                  style={{
-                    color: INTENSITY_COLOR[form.intensity] ?? PALE_YELLOW,
-                    fontSize: 14,
-                    letterSpacing: '0.02em',
-                    textShadow: `0 0 12px ${INTENSITY_COLOR[form.intensity] ?? '#A8CB72'}40`,
-                  }}
-                >
-                  {INTENSITY_LABELS[form.intensity - 1]}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => { vibrate(8); setForm(prev => ({ ...prev, intensity: Math.min(5, prev.intensity + 1) })); }}
-                  className="w-9 h-9 rounded-lg text-base font-semibold transition-colors touch-manipulation"
-                  style={{ backgroundColor: SURFACE_2, color: 'rgba(255,255,255,0.55)' }}
-                  disabled={form.intensity >= 5}
-                  aria-label="Increase intensity"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Hairline divider between sections — mobile only. The hairline +
@@ -474,121 +373,35 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
           <div style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginTop: 28, marginBottom: 28 }} />
         )}
 
-        {/* ══════════════════════════════════════════════════════════════
-            SECTION 2: Your Focus — on desktop this sits in the right column,
-            spanning rows 2-3 so it stays alongside both Basics and Details.
-            On mobile the section eyebrow flattens the H3 into the same
-            "FOCUS" rhythm as the other sections — consistency over emphasis.
-            ══════════════════════════════════════════════════════════════ */}
+        {/* ── Section 2: Your Focus ───────────────────────────────────────
+            On desktop this sits in the right column, spanning rows 2-3 so
+            it stays alongside both Basics and Details. On mobile the
+            section eyebrow flattens the H3 into the same "FOCUS" rhythm
+            as the other sections — consistency over emphasis.
+            ────────────────────────────────────────────────────────────── */}
         <div
           className="space-y-4"
           style={isDesktop ? { gridColumn: '2', gridRow: '2 / span 2' } : undefined}
         >
-          <div>
-            <div className="j2-label-copper">Positional Focus</div>
-            {currentIntention && (
-              <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.30)' }}>
-                This week's focus: <span style={{ color: COPPER }}>{currentIntention.intent_label}</span>
-              </p>
-            )}
-          </div>
-
-          {/* Focus-area chips — tap to add, double-tap for primary, hold for deep work */}
-          <FocusAreaChips
+          <LogSessionPositionalFocus
             selections={selections}
-            onChange={setSelections}
+            onSelectionsChange={setSelections}
             defaultPrimaryPillar={defaultHeading as Pillar | undefined}
+            derivedHeading={derivedHeading}
+            currentIntention={currentIntention}
+            sessionType={form.session_type}
+            userTagIds={userTagIds}
+            canonicalPositionIds={canonicalPositionIds}
+            onTagsChange={(u, c) => { setUserTagIds(u); setCanonicalPositionIds(c); }}
+            userConstraintIds={userConstraintIds}
+            canonicalConstraintIds={canonicalConstraintIds}
+            onConstraintsChange={(u, c) => { setUserConstraintIds(u); setCanonicalConstraintIds(c); }}
+            defaultConstraintName={defaultConstraintName}
+            polarity={polarity}
+            onPolarityChange={setPolarity}
+            scriptSource={scriptSource}
+            onScriptSourceChange={setScriptSource}
           />
-
-          {/* Constraint picker — available on any session type. CLA sessions
-              are constraint-driven by definition; class / drilling / comp
-              sessions can also carry constraint metadata when a portion of
-              the session ran under one (e.g. "class with positional sparring
-              from closed guard"). session_type still defines the dominant
-              mode — this is auxiliary, not a parallel axis. Form state lives
-              at this level so values persist if the user flips session-type. */}
-          <div>
-            <p className="text-[10px] mt-0.5 mb-2 uppercase tracking-widest font-semibold" style={{ color: PALE_YELLOW, letterSpacing: '0.16em' }}>
-              Constraint
-              {form.session_type !== 'cla' && (
-                <span style={{ color: 'rgba(255,255,255,0.35)', marginLeft: 8, fontWeight: 500 }}>
-                  · optional
-                </span>
-              )}
-            </p>
-            <ConstraintPicker
-              selectedUserConstraintIds={userConstraintIds}
-              selectedCanonicalConstraintIds={canonicalConstraintIds}
-              onChange={(u, c) => { setUserConstraintIds(u); setCanonicalConstraintIds(c); }}
-              currentPillar={derivedHeading}
-              maxSelected={1}
-              defaultQuery={defaultConstraintName}
-            />
-            <p className="text-xs mt-2" style={{ color: 'rgba(255,255,255,0.40)', fontStyle: 'italic', fontFamily: FONT_EDITORIAL, fontSize: 13 }}>
-              {form.session_type === 'cla'
-                ? 'What rule did you train under tonight?'
-                : 'Did any portion of the session run under a constraint?'}
-            </p>
-          </div>
-
-          {/* Techniques — the technical layer of the session and the bridge
-              into the Technique Library. Each chip opens a per-technique
-              page (the Pokedex) where affinity and resonance accumulate
-              over time. Always visible, regardless of session type. */}
-          <div>
-            <p className="text-[10px] mt-0.5 mb-2 uppercase tracking-widest font-semibold" style={{ color: PALE_YELLOW, letterSpacing: '0.16em' }}>
-              Techniques
-            </p>
-            <TagPicker
-              selectedUserTagIds={userTagIds}
-              selectedCanonicalIds={canonicalPositionIds}
-              onChange={(u, c) => { setUserTagIds(u); setCanonicalPositionIds(c); }}
-              currentPillar={derivedHeading}
-              maxSelected={5}
-            />
-            <p className="mt-2" style={{ color: 'rgba(255,255,255,0.45)', fontStyle: 'italic', fontFamily: FONT_EDITORIAL, fontSize: 13 }}>
-              Each technique opens a page in your library — affinity, resonance, history.
-            </p>
-          </div>
-
-          {/* Polarity — only for guard and pins */}
-          {(derivedHeading === 'guard' || derivedHeading === 'pins') && (
-            <div>
-              <SegmentedToggle
-                options={[
-                  { value: 'defense' as Polarity, label: 'Defense' },
-                  { value: 'neutral' as Polarity, label: 'Neutral' },
-                  { value: 'offense' as Polarity, label: 'Offense' },
-                ]}
-                value={polarity}
-                onChange={setPolarity}
-                deselectable
-              />
-              <p className="mt-2 text-center" style={{ color: 'rgba(255,255,255,0.40)', fontStyle: 'italic', fontFamily: FONT_EDITORIAL, fontSize: 13 }}>
-                What side of the exchange were you primarily on?
-              </p>
-            </div>
-          )}
-
-          {/* Source — only for traditional Class. Free Drilling is self-directed
-              by definition; CLA is coach-set by the constraint itself. Hiding
-              the toggle removes a meaningless decision from those flows. */}
-          {form.session_type === 'class' && (
-            <div>
-              <SegmentedToggle
-                options={[
-                  { value: 'directed' as ScriptSource, label: 'Coach-led' },
-                  { value: 'organic' as ScriptSource, label: 'Open Mat' },
-                ]}
-                value={scriptSource}
-                onChange={setScriptSource}
-                deselectable
-              />
-              <p className="mt-2 text-center" style={{ color: 'rgba(255,255,255,0.40)', fontStyle: 'italic', fontFamily: FONT_EDITORIAL, fontSize: 13 }}>
-                Was this instructor-led or self-directed?
-              </p>
-            </div>
-          )}
         </div>
 
         {/* Hairline divider — mobile only, between Positional Focus and Resonance. */}
@@ -596,50 +409,18 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
           <div style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginTop: 28, marginBottom: 28 }} />
         )}
 
-        {/* ══════════════════════════════════════════════════════════════
-            SECTION 3: Resonance — the emotional layer of the session.
-            Two distinct dimensions:
-              - embodied / reflective prose (the existing notes textarea,
-                with per-type placeholder copy)
-              - social-as-data (partner chip-input below the textarea)
-            No mood scale anywhere — capture is freeform on both axes.
-            ══════════════════════════════════════════════════════════════ */}
+        {/* ── Section 3: Resonance ──────────────────────────────────────── */}
         <div
           className="space-y-3"
           style={isDesktop ? { gridColumn: '1', gridRow: '3' } : undefined}
         >
-          <div className="j2-label-copper">Resonance</div>
-
-          {/* Embodied / reflective prose — voice-to-text mic + textarea. Per-type
-              placeholder copy orients the user without dictating what they should
-              feel. The section eyebrow + placeholder do the labelling work; no
-              redundant "Notes" inline label. */}
-          <VoiceReflectionInput
-            value={form.notes}
-            onChange={next => setForm(prev => ({ ...prev, notes: next }))}
-            placeholder={
-              form.session_type === 'drilling' ? 'What did you choose to drill?'
-                : form.session_type === 'cla'  ? 'What did the constraint reveal?'
-                :                                'What stayed with you?'
-            }
-            rows={2}
-            textareaName="notes"
-            textareaStyle={{ backgroundColor: SURFACE_3 }}
+          <LogSessionResonance
+            notes={form.notes}
+            onNotesChange={next => setForm(prev => ({ ...prev, notes: next }))}
+            sessionType={form.session_type}
+            partners={partners}
+            onPartnersChange={setPartners}
           />
-
-          {/* Social layer — freetext partner chips, max 5. Captures who you
-              trained with as structured data without forcing a second textarea
-              or a mood scale. Will graduate to user_partners refs in 2.0. */}
-          <div>
-            <p className="text-[10px] mt-0.5 mb-2 uppercase tracking-widest font-semibold" style={{ color: PALE_YELLOW, letterSpacing: '0.16em' }}>
-              Partners
-            </p>
-            <PartnerInput
-              partners={partners}
-              onChange={setPartners}
-              maxSelected={5}
-            />
-          </div>
         </div>
 
         {/* Hairline divider — mobile only, before the CTA. Desktop uses
@@ -648,197 +429,16 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
           <div style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginTop: 28, marginBottom: 16 }} />
         )}
 
-        {/* ── Error + CTA — full-width on desktop ─────────────────── */}
-        {error && (
-          <p
-            className="text-red-400 text-sm"
-            style={isDesktop ? { gridColumn: '1 / -1', margin: 0 } : undefined}
-          >
-            {error}
-          </p>
-        )}
-
-        <div
-          className={isDesktop ? 'flex items-center gap-3 pt-2' : 'flex items-center gap-3'}
-          style={isDesktop
-            ? { borderTop: '1px solid rgba(196,145,95,0.12)', gridColumn: '1 / -1', marginTop: 4 }
-            : undefined}
-        >
-          {onCancel && (
-            <button
-              type="button"
-              onClick={onCancel}
-              className="px-4 py-3 text-sm font-medium transition-colors touch-manipulation"
-              style={{ color: 'rgba(255,255,255,0.40)' }}
-            >
-              Cancel
-            </button>
-          )}
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex-1 text-white font-semibold rounded-xl transition-all touch-manipulation disabled:opacity-50"
-            style={{
-              height: 52,
-              backgroundColor: '#DA7422',
-              boxShadow: '0 2px 12px rgba(218,116,34,0.25)',
-              fontSize: 16,
-            }}
-          >
-            {loading ? 'Saving...' : 'Save Session'}
-          </button>
-        </div>
+        <LogSessionActions
+          loading={loading}
+          error={error}
+          onCancel={onCancel}
+          isDesktop={isDesktop}
+        />
 
         </div>{/* end content wrapper */}
       </form>
     </div>
     </>
-  );
-}
-
-// ── MobileLogHeader ──────────────────────────────────────────────────────
-//
-// The mobile-only editorial header that replaces the full-bleed BeltDateBanner.
-// Top-to-bottom:
-//   1. 4pt belt-color hairline (full-bleed, ambient brand thread)
-//   2. Copper eyebrow date (TUE · APR 27) — tappable, opens date picker
-//   3. Cormorant Garamond italic title — "Today's session" / "Yesterday's
-//      session" / long-form date
-//
-// Total vertical cost ~80pt, vs ~150pt for the full belt-banner. The banner
-// stays on the home and session-detail surfaces where it has narrative
-// weight; here on the compose form it was costing real estate without
-// earning the editorial register the desktop has achieved.
-
-function beltHairlineColor(rank: BeltRank): string {
-  // White and blue belts use their own color — light enough to read against forest.
-  // Purple/brown/black fall back to COPPER so the strip stays warm against the
-  // dark canvas (a black hairline on near-black would be invisible).
-  if (rank === 'white' || rank === 'blue') return BELT_COLORS[rank];
-  return COPPER;
-}
-
-function todayLocalString(): string {
-  const t = new Date();
-  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
-}
-
-function yesterdayLocalString(): string {
-  const t = new Date(Date.now() - 86_400_000);
-  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
-}
-
-function formatEyebrowDate(dateStr: string): string {
-  const d = new Date(dateStr + 'T00:00:00');
-  const wkday = d.toLocaleDateString('en-US', { weekday: 'short' });
-  const month = d.toLocaleDateString('en-US', { month: 'short' });
-  return `${wkday} · ${month} ${d.getDate()}`.toUpperCase();
-}
-
-function formatTitleForDate(dateStr: string): string {
-  if (dateStr === todayLocalString()) return "Today's session";
-  if (dateStr === yesterdayLocalString()) return "Yesterday's session";
-  const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-}
-
-function MobileLogHeader({ date, onChange }: { date: string; onChange: (d: string) => void }) {
-  const { beltRank } = useProfile();
-  const rank: BeltRank = (beltRank as BeltRank) ?? 'white';
-  const hairlineColor = beltHairlineColor(rank);
-  const dateInputRef = useRef<HTMLInputElement>(null);
-
-  const openDatePicker = () => {
-    const el = dateInputRef.current;
-    if (!el) return;
-    // showPicker() is the modern API; fall back to click() for older browsers.
-    if (typeof el.showPicker === 'function') {
-      try { el.showPicker(); return; } catch { /* fall through */ }
-    }
-    el.click();
-  };
-
-  return (
-    <div style={{ position: 'relative' }}>
-      {/* 4pt belt-color hairline — full-bleed at the top of the form */}
-      <div
-        aria-hidden
-        style={{
-          height: 4,
-          background: hairlineColor,
-          boxShadow: `0 0 12px ${hairlineColor}40`,
-        }}
-      />
-
-      <div style={{ padding: '20px 20px 0 20px' }}>
-        {/* Date control — eyebrow + serif title are wrapped in a single
-            full-width button so the whole block is one tap target. Visually
-            still an editorial header (no border, no fill); hit area meets
-            the 44pt iOS HIG minimum because the inner content stacks to
-            ~52pt total height. The chevron sits next to the title so the
-            larger, more visible element carries the "tappable" cue. */}
-        <button
-          type="button"
-          onClick={openDatePicker}
-          aria-label={`Session date: ${formatTitleForDate(date)}. Tap to change.`}
-          className="touch-manipulation"
-          style={{
-            background: 'none',
-            border: 'none',
-            padding: '4px 0',
-            margin: 0,
-            cursor: 'pointer',
-            textAlign: 'left',
-            display: 'block',
-            width: '100%',
-            color: 'inherit',
-          }}
-        >
-          <div className="j2-label-copper">{formatEyebrowDate(date)}</div>
-          <div
-            style={{
-              fontFamily: FONT_EDITORIAL,
-              fontStyle: 'italic',
-              fontSize: 24,
-              lineHeight: 1.15,
-              color: PALE_YELLOW,
-              opacity: 0.9,
-              marginTop: 8,
-              letterSpacing: '-0.005em',
-              display: 'flex',
-              alignItems: 'baseline',
-              gap: 8,
-            }}
-          >
-            <span>{formatTitleForDate(date)}</span>
-            <span
-              aria-hidden
-              style={{ fontSize: 14, opacity: 0.45, fontStyle: 'normal', fontFamily: 'inherit' }}
-            >
-              ▾
-            </span>
-          </div>
-        </button>
-
-        {/* Hidden native date input — anchors the picker. Sits visually
-            inside the button area so iOS Safari opens the picker near the
-            tap target, not at the page corner. */}
-        <input
-          ref={dateInputRef}
-          type="date"
-          value={date}
-          onChange={e => onChange(e.target.value)}
-          aria-hidden
-          tabIndex={-1}
-          style={{
-            position: 'absolute',
-            opacity: 0,
-            pointerEvents: 'none',
-            width: 1, height: 1,
-            left: 20, top: 32,
-          }}
-        />
-      </div>
-    </div>
   );
 }
