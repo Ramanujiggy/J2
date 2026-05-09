@@ -279,7 +279,14 @@ export default function TechniquePage() {
   );
 
   const videoBlock = (
-    <VideoBlock tag={tag} onPlay={() => setPlaying(true)} />
+    <VideoBlock
+      tag={tag}
+      uploading={uploadingVideo}
+      uploadError={hookError}
+      onPlay={() => setPlaying(true)}
+      onAttachFile={onAttachFile}
+      onRemoveVideo={onRemoveVideo}
+    />
   );
 
   const affinityBlockLarge = (
@@ -632,7 +639,28 @@ function Hero({
   );
 }
 
-function VideoBlock({ tag, onPlay }: { tag: UserTag; onPlay: () => void }) {
+function VideoBlock({
+  tag,
+  uploading,
+  uploadError,
+  onPlay,
+  onAttachFile,
+  onRemoveVideo,
+}: {
+  tag: UserTag;
+  uploading: boolean;
+  uploadError: string | null;
+  onPlay: () => void;
+  onAttachFile: (file: File) => void;
+  onRemoveVideo: () => void;
+}) {
+  // Hidden input + label pattern. The label inherits as a button-styled clickable
+  // surface; the input is .hidden but receives the file via standard form flow.
+  // No `capture` attribute → iOS surfaces its native sheet (Take Video / Photo
+  // Library / Choose File). Same as the post-mig-027 fix on MovesLibraryPage.
+  const inputId = `video-pokedex-${tag.id}`;
+  const hasVideo = !!tag.has_video && !!tag.video_thumbnail;
+
   return (
     <div
       style={{
@@ -642,9 +670,10 @@ function VideoBlock({ tag, onPlay }: { tag: UserTag; onPlay: () => void }) {
         padding: 14,
       }}
     >
-      {tag.has_video && tag.video_thumbnail ? (
+      {hasVideo ? (
         <button
           onClick={onPlay}
+          disabled={uploading}
           className="w-full j2-press touch-manipulation"
           style={{
             display: 'block',
@@ -654,7 +683,7 @@ function VideoBlock({ tag, onPlay }: { tag: UserTag; onPlay: () => void }) {
             borderRadius: 10,
             border: '1px solid rgba(255,255,255,0.06)',
             position: 'relative',
-            cursor: 'pointer',
+            cursor: uploading ? 'wait' : 'pointer',
           }}
         >
           <span
@@ -682,24 +711,133 @@ function VideoBlock({ tag, onPlay }: { tag: UserTag; onPlay: () => void }) {
               {formatDurationMMSS(tag.video_duration_seconds)}
             </span>
           )}
+          {uploading && (
+            <span
+              style={{
+                position: 'absolute', inset: 0,
+                background: 'rgba(0,0,0,0.65)',
+                borderRadius: 10,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: COPPER, fontSize: 13, fontWeight: 600,
+              }}
+            >
+              Saving…
+            </span>
+          )}
         </button>
       ) : (
-        <div
+        <label
+          htmlFor={inputId}
+          className="j2-press touch-manipulation"
           style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
             aspectRatio: '16 / 9',
             background: SURFACE_2,
-            border: '1px dashed rgba(255,255,255,0.10)',
+            border: '1px dashed rgba(196,145,95,0.30)',
             borderRadius: 10,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'rgba(255,255,255,0.35)',
-            fontSize: 13,
-            fontStyle: 'italic',
+            color: COPPER,
+            fontSize: 14,
+            fontWeight: 600,
             padding: 12,
             textAlign: 'center',
+            cursor: uploading ? 'wait' : 'pointer',
+            transition: 'border-color 160ms ease, background 160ms ease',
           }}
         >
-          No video yet — add one from the Library page.
+          {uploading ? (
+            <span style={{ color: COPPER }}>Saving…</span>
+          ) : (
+            <>
+              <span style={{ fontSize: 22 }}>+</span>
+              <span>Add video</span>
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)', fontWeight: 500, fontStyle: 'italic' }}>
+                Up to 60s, ≤50MB
+              </span>
+            </>
+          )}
+        </label>
+      )}
+
+      {/* Hidden input — drives both the empty-state Add Video CTA and the
+          Replace button below. iOS Safari's three-way sheet handles
+          camera-vs-library disambiguation natively (no `capture` attribute). */}
+      <input
+        id={inputId}
+        type="file"
+        accept="video/*"
+        className="hidden"
+        disabled={uploading}
+        onChange={e => {
+          const f = e.target.files?.[0];
+          if (f) onAttachFile(f);
+          e.target.value = ''; // allow re-picking the same file
+        }}
+      />
+
+      {/* Replace / Remove row — only when a video already exists. Mirrors the
+          old MoveCard action row but lives on the Pokedex per the new flow. */}
+      {hasVideo && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            marginTop: 12,
+          }}
+        >
+          <label
+            htmlFor={inputId}
+            className="j2-press touch-manipulation"
+            style={{
+              fontSize: 12, fontWeight: 600,
+              padding: '6px 12px',
+              borderRadius: 8,
+              background: SURFACE_2,
+              border: '1px solid rgba(255,255,255,0.10)',
+              color: 'rgba(255,255,255,0.75)',
+              cursor: uploading ? 'wait' : 'pointer',
+              opacity: uploading ? 0.5 : 1,
+            }}
+          >
+            Replace
+          </label>
+          <button
+            type="button"
+            onClick={onRemoveVideo}
+            disabled={uploading}
+            className="j2-press touch-manipulation"
+            style={{
+              fontSize: 12, fontWeight: 500,
+              padding: '6px 12px',
+              borderRadius: 8,
+              background: 'transparent',
+              border: '1px solid transparent',
+              color: 'rgba(218,90,70,0.65)',
+              cursor: uploading ? 'wait' : 'pointer',
+            }}
+          >
+            Remove
+          </button>
         </div>
+      )}
+
+      {/* Error surface — useUserTags exposes a global error string; render it
+          here when the upload pipeline fails (validation, quota, codec, etc.). */}
+      {uploadError && (
+        <p
+          style={{
+            marginTop: 10,
+            fontSize: 12,
+            color: 'rgba(218,90,70,0.85)',
+            lineHeight: 1.4,
+          }}
+        >
+          {uploadError}
+        </p>
       )}
     </div>
   );

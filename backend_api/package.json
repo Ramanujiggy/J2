@@ -34,7 +34,6 @@
     "zod": "^4.2.1"
   },
   "devDependencies": {
-    "@rolldown/binding-win32-x64-msvc": "^1.0.0-rc.10",
     "@types/bcrypt": "^6.0.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
@@ -50,5 +49,9 @@
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.0"
+  },
+  "//optionalDependencies": "Vitest 4.x's rolldown bundler needs a platform-specific native binding. Listed as optional so npm install / ci on Linux + macOS (Railway, CI, etc.) skips it cleanly while local Windows installs still pull it down. Standard pattern for OS-specific natives — same as how rolldown/vitest themselves ship their @rolldown/binding-* packages.",
+  "optionalDependencies": {
+    "@rolldown/binding-win32-x64-msvc": "^1.0.0-rc.10"
   }
 }

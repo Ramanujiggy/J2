@@ -1,71 +1,105 @@
 // MovesLibraryPage — personal Technique Library (route stays `/library` for
 // URL stability; the page header reads "Technique Library" per migration 027).
 //
-// Shows the user's tag library as a grid of cards. Each tag can carry:
-//   • An optional video clip (Move Library — Tier 1, mig 010)
-//   • An affinity badge (★ go-to / ◐ learning / ◌ shelved — mig 027)
-//   • A cumulative resonance journal (mig 027 — visible on the Pokedex)
+// Layout: five collapsible pillar sections (Stand-up, Passing, Guard, Pins,
+// Submissions). All five always render — even empty ones — because the
+// pillars *are* the organizing structure of the app, and hiding one would
+// feel like a missing feature. Empty pillars expand to a graceful empty
+// state instead of a flat list.
 //
-// Tap anywhere on a card → navigate to `/techniques/:id` (the Pokedex).
-// A small inset ▶ button on the thumbnail plays the video in place.
+// Each row inside a pillar is a navigation-only line item:
+//   [thumb]  Technique name  affinity-glyph  duration  →
+// Tap a row → /techniques/:id (the Pokedex). Video playback, attach, replace,
+// and remove all live on the Pokedex. The library is browse-only.
 //
-// Filter chips: All / ★ Go-to / ◐ Learning / ◌ Shelved / Has video.
+// Filter chips at the top (All / ★ / ◐ / ◌ / Has video) apply globally:
+// every section's count + visible rows reflect the active filter.
 //
-// Tier 1 (free, default): video files live in browser storage. Server stores
-// only metadata + thumbnail. Cross-device the user sees thumbnails but the
-// playable file may be missing (handled gracefully by VideoPlayerModal).
+// Tier 1 (free, default, mig 010): video files live in browser storage; only
+// the thumbnail + metadata sync via the server.
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContent from '../components/PageContent.tsx';
-import VideoPlayerModal from '../components/VideoPlayerModal.tsx';
 import LibraryEmptyHero from '../components/empty/LibraryEmptyHero.tsx';
 import { useUserTags } from '../hooks/useUserTags.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
-import { PALE_YELLOW, GLOW_SOFT, COPPER, SURFACE_2, SURFACE_3 } from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, COPPER, SURFACE_2, SURFACE_3, CARD_BG } from '../lib/theme.ts';
 import { formatDurationMMSS } from '../lib/videoUtils.ts';
 import { vibrate } from '../lib/haptics.ts';
-import { ChevronLeft, Video } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, Video } from 'lucide-react';
 import type { UserTag, Pillar, Affinity } from '../types/api.ts';
 
 const PILLAR_LABELS: Record<Pillar, string> = {
   standup: 'Stand-up',
   passing: 'Passing',
   pins: 'Pins',
-  submissions: 'Subs',
+  submissions: 'Submissions',
   guard: 'Guard',
 };
 const PILLAR_ORDER: Pillar[] = ['standup', 'passing', 'guard', 'pins', 'submissions'];
 
 type LibraryFilter = 'all' | 'go_to' | 'learning' | 'shelved' | 'with-video';
 
+// Sort comparator — ★ go-to first, then ◐ learning, then untouched, then ◌
+// shelved. Alpha within each tier. Used inside every pillar section so the
+// "most relevant to me" techniques bubble to the top of each.
+function affinityRank(a: Affinity | null | undefined): number {
+  return a === 'go_to' ? 0 : a === 'learning' ? 1 : a === 'shelved' ? 3 : 2;
+}
+
+function sortByAffinityThenName(list: UserTag[]): UserTag[] {
+  return [...list].sort((a, b) => {
+    const ar = affinityRank(a.affinity);
+    const br = affinityRank(b.affinity);
+    if (ar !== br) return ar - br;
+    return a.name.localeCompare(b.name);
+  });
+}
+
+function matchesFilter(tag: UserTag, filter: LibraryFilter): boolean {
+  if (filter === 'all') return true;
+  if (filter === 'with-video') return !!tag.has_video;
+  return tag.affinity === filter;
+}
+
 export default function MovesLibraryPage() {
   const navigate = useNavigate();
   const isDesktop = useIsDesktop();
-  const { tags, loading, error, attachVideo, detachVideo } = useUserTags();
+  const { tags, loading, error } = useUserTags();
 
-  const [playing, setPlaying] = useState<UserTag | null>(null);
-  const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [filter, setFilter] = useState<LibraryFilter>('all');
+  // Section state is local to the page (not persisted across navigation).
+  // All sections collapsed by default — the user opens what they want.
+  const [expanded, setExpanded] = useState<Set<Pillar>>(() => new Set());
 
-  const filtered = useMemo(() => {
-    let list = tags;
-    if (filter === 'with-video')   list = list.filter(t => t.has_video);
-    else if (filter === 'go_to')    list = list.filter(t => t.affinity === 'go_to');
-    else if (filter === 'learning') list = list.filter(t => t.affinity === 'learning');
-    else if (filter === 'shelved')  list = list.filter(t => t.affinity === 'shelved');
-    // Sort: ★ go-to first, then ◐ learning, then alphabetical (and ◌ shelved
-    // sinks to the bottom of any view it appears in).
-    const affinityRank = (a: Affinity | null | undefined): number =>
-      a === 'go_to' ? 0 : a === 'learning' ? 1 : a === 'shelved' ? 3 : 2;
-    return [...list].sort((a, b) => {
-      const ar = affinityRank(a.affinity);
-      const br = affinityRank(b.affinity);
-      if (ar !== br) return ar - br;
-      return a.name.localeCompare(b.name);
+  const togglePillar = useCallback((p: Pillar) => {
+    vibrate(6);
+    setExpanded(prev => {
+      const next = new Set(prev);
+      if (next.has(p)) next.delete(p);
+      else next.add(p);
+      return next;
     });
+  }, []);
+
+  // Pre-bucket tags by pillar (filtered + sorted) so each section just renders.
+  // We compute filtered counts here so the section header chevron can show
+  // the count under the active filter.
+  const sections = useMemo(() => {
+    const buckets: Record<Pillar, UserTag[]> = {
+      standup: [], passing: [], pins: [], submissions: [], guard: [],
+    };
+    for (const t of tags) {
+      if (matchesFilter(t, filter)) buckets[t.parent_pillar].push(t);
+    }
+    for (const p of PILLAR_ORDER) buckets[p] = sortByAffinityThenName(buckets[p]);
+    return buckets;
   }, [tags, filter]);
 
+  // Top-of-page summary numbers — always reflect the *unfiltered* totals so
+  // the user sees the whole picture at a glance. Filter chips below show
+  // their own per-state counts.
   const counts = useMemo(() => ({
     total: tags.length,
     goTo: tags.filter(t => t.affinity === 'go_to').length,
@@ -74,20 +108,12 @@ export default function MovesLibraryPage() {
     withVideo: tags.filter(t => t.has_video).length,
   }), [tags]);
 
-  const handleFilePick = async (tag: UserTag, file: File) => {
-    setUploadingId(tag.id);
-    await attachVideo(tag.id, file);
-    setUploadingId(null);
-  };
-
-  const handleRemove = async (tag: UserTag) => {
-    if (!confirm(`Remove video from "${tag.name}"?`)) return;
-    await detachVideo(tag.id);
-  };
-
   return (
     <PageContent ready={!loading} loadingMessages={['Loading the library...']}>
-      <div className={`space-y-5 ${isDesktop ? 'j2-page-container' : 'mx-auto max-w-5xl px-4 sm:px-6'}`} style={isDesktop ? { paddingTop: 20, paddingBottom: 20 } : { paddingTop: 24, paddingBottom: 24 }}>
+      <div
+        className={`space-y-5 ${isDesktop ? 'j2-page-container' : 'mx-auto max-w-5xl px-4 sm:px-6'}`}
+        style={isDesktop ? { paddingTop: 20, paddingBottom: 20 } : { paddingTop: 24, paddingBottom: 24 }}
+      >
 
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
@@ -111,8 +137,9 @@ export default function MovesLibraryPage() {
           </div>
         </div>
 
-        {/* Filter pills — affinity-first (mig 027), with a Has video utility chip
-            kept around since the original Library was videos-centric. */}
+        {/* Filter pills — affinity-first (mig 027). Counts in each chip
+            reflect the global library; tapping a chip filters every pillar
+            section's row list simultaneously. */}
         <div className="flex gap-2 flex-wrap">
           {([
             ['all',         'All',          counts.total],
@@ -137,213 +164,281 @@ export default function MovesLibraryPage() {
 
         {error && <p className="text-sm text-red-400">{error}</p>}
 
-        {/* Empty state — editorial chapter title pattern */}
+        {/* Empty-library hero — only fires when the user has zero techniques
+            anywhere. Once they have any, we show the accordion (some pillars
+            may still be empty individually — those render an inline empty
+            state inside their expanded body). */}
         {!loading && tags.length === 0 && <LibraryEmptyHero />}
 
-        {/* Grid */}
-        {filtered.length > 0 && (
+        {/* Pillar accordion */}
+        {tags.length > 0 && (
           <div
-            className="grid gap-3"
             style={{
-              gridTemplateColumns: isDesktop
-                ? 'repeat(auto-fill, minmax(220px, 1fr))'
-                : 'repeat(auto-fill, minmax(150px, 1fr))',
+              background: CARD_BG,
+              border: '1px solid rgba(255,255,255,0.06)',
+              borderRadius: 14,
+              overflow: 'hidden',
             }}
           >
-            {filtered.map(tag => (
-              <MoveCard
-                key={tag.id}
-                tag={tag}
-                uploading={uploadingId === tag.id}
-                onOpen={() => { vibrate(6); navigate(`/techniques/${tag.id}`); }}
-                onPlay={() => { vibrate(8); setPlaying(tag); }}
-                onPickFile={file => void handleFilePick(tag, file)}
-                onRemove={() => void handleRemove(tag)}
+            {PILLAR_ORDER.map((p, idx) => (
+              <PillarSection
+                key={p}
+                pillar={p}
+                tags={sections[p]}
+                expanded={expanded.has(p)}
+                onToggle={() => togglePillar(p)}
+                onOpenTechnique={id => navigate(`/techniques/${id}`)}
+                isFirst={idx === 0}
+                filterActive={filter !== 'all'}
               />
             ))}
           </div>
         )}
-
-        {/* By-pillar legend (decorative, helps users scan) */}
-        {tags.length > 0 && (
-          <div className="flex flex-wrap gap-3 pt-2 text-[10px]" style={{ color: 'rgba(255,255,255,0.30)' }}>
-            {PILLAR_ORDER.map(p => (
-              <span key={p}>{PILLAR_LABELS[p]}: {tags.filter(t => t.parent_pillar === p).length}</span>
-            ))}
-          </div>
-        )}
       </div>
-
-      {playing && (
-        <VideoPlayerModal tag={playing} onClose={() => setPlaying(null)} />
-      )}
     </PageContent>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Card
+// PillarSection — one accordion section per pillar.
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface MoveCardProps {
-  tag: UserTag;
-  uploading: boolean;
-  /** Primary card tap → navigate to the per-technique Pokedex page. */
-  onOpen: () => void;
-  /** Inset play-button tap → open VideoPlayerModal in place. */
-  onPlay: () => void;
-  onPickFile: (file: File) => void;
-  onRemove: () => void;
+interface PillarSectionProps {
+  pillar: Pillar;
+  /** The pillar's filtered, sorted tag list. May be empty. */
+  tags: UserTag[];
+  expanded: boolean;
+  onToggle: () => void;
+  onOpenTechnique: (id: string) => void;
+  isFirst: boolean;
+  /** True when the user has selected a non-"All" filter. Affects empty-state copy. */
+  filterActive: boolean;
 }
 
-function MoveCard({ tag, uploading, onOpen, onPlay, onPickFile, onRemove }: MoveCardProps) {
-  const hasVideo = !!tag.has_video;
-  const inputId = `video-${tag.id}`;
-
-  // Inner controls (play, file picker, remove) all stopPropagation so they
-  // don't trigger the outer card's navigate.
-  const stop = (e: React.MouseEvent | React.ChangeEvent) => e.stopPropagation();
+function PillarSection({
+  pillar, tags, expanded, onToggle, onOpenTechnique, isFirst, filterActive,
+}: PillarSectionProps) {
+  const goToCount = tags.filter(t => t.affinity === 'go_to').length;
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={onOpen}
-      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
-      className="rounded-xl overflow-hidden flex flex-col j2-press touch-manipulation cursor-pointer"
+    <section
       style={{
-        backgroundColor: SURFACE_2,
-        border: '1px solid rgba(255,255,255,0.05)',
+        borderTop: isFirst ? 'none' : '1px solid rgba(255,255,255,0.06)',
       }}
     >
-      {/* Thumbnail / placeholder */}
-      <div
-        className="block w-full aspect-video relative"
-        style={{ backgroundColor: '#000' }}
+      {/* Header — full-width button, hover/active feedback. */}
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={expanded}
+        className="touch-manipulation"
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          padding: '16px 18px',
+          background: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          textAlign: 'left',
+        }}
       >
-        {tag.video_thumbnail ? (
-          <img
-            src={tag.video_thumbnail}
-            alt={`${tag.name} thumbnail`}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: SURFACE_3 }}>
-            <Video size={28} strokeWidth={1.5} style={{ color: 'rgba(255,255,255,0.20)' }} />
-          </div>
-        )}
-        {hasVideo && (
-          <>
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0) 50%, rgba(0,0,0,0.55) 100%)' }}
-            />
-            {/* Inset play button — only this region triggers playback; the rest
-                of the thumbnail still routes the card click to onOpen. */}
-            <button
-              type="button"
-              onClick={e => { stop(e); onPlay(); }}
-              aria-label="Play video"
-              className="absolute touch-manipulation j2-press"
-              style={{
-                top: '50%', left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: 44, height: 44, borderRadius: '50%',
-                backgroundColor: 'rgba(0,0,0,0.55)',
-                border: '1.5px solid rgba(255,255,255,0.85)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer',
-              }}
-            >
-              <span style={{ color: 'white', fontSize: 16, marginLeft: 3 }}>▶</span>
-            </button>
-            {tag.video_duration_seconds != null && (
-              <span
-                className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded text-[10px] font-medium"
-                style={{ backgroundColor: 'rgba(0,0,0,0.65)', color: 'white' }}
-              >
-                {formatDurationMMSS(tag.video_duration_seconds)}
-              </span>
-            )}
-          </>
-        )}
-        {/* Affinity badge — top-left of the thumbnail when set. Mig 027. */}
-        {tag.affinity && (
+        <span
+          aria-hidden
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 22,
+            color: 'rgba(255,255,255,0.45)',
+            transition: 'transform 160ms ease',
+          }}
+        >
+          {expanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+        </span>
+        <span
+          style={{
+            fontFamily: 'var(--font-display, Georgia, serif)',
+            fontSize: 20,
+            fontWeight: 500,
+            color: PALE_YELLOW,
+            letterSpacing: '-0.005em',
+            flex: 1,
+            minWidth: 0,
+          }}
+        >
+          {PILLAR_LABELS[pillar]}
+        </span>
+        {/* Counts: total in section + go-to subtotal when present. */}
+        <span
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+            color: 'rgba(255,255,255,0.45)',
+            letterSpacing: '0.04em',
+            fontVariantNumeric: 'tabular-nums',
+          }}
+        >
+          {tags.length}
+        </span>
+        {goToCount > 0 && (
           <span
-            aria-label={`affinity: ${tag.affinity.replace('_', ' ')}`}
-            className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold"
+            aria-label={`${goToCount} go-to`}
             style={{
-              backgroundColor: 'rgba(196,145,95,0.92)',
-              color: '#fff',
+              fontSize: 11,
+              fontWeight: 600,
+              padding: '2px 8px',
+              borderRadius: 999,
+              background: 'rgba(196,145,95,0.14)',
+              color: COPPER,
               letterSpacing: '0.04em',
             }}
           >
-            {tag.affinity === 'go_to' && '★ Go-to'}
-            {tag.affinity === 'learning' && '◐ Learning'}
-            {tag.affinity === 'shelved' && '◌ Shelved'}
+            ★ {goToCount}
           </span>
         )}
-        {uploading && (
-          <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
-            <p className="text-xs" style={{ color: COPPER }}>Saving…</p>
-          </div>
-        )}
-      </div>
+      </button>
 
-      {/* Body */}
-      <div className="px-3 py-2.5 flex-1 flex flex-col gap-1.5">
-        <div className="flex items-baseline justify-between gap-2">
-          <span className="text-sm font-semibold truncate" style={{ color: 'rgba(255,255,255,0.85)' }}>
-            {tag.name}
-          </span>
-          <span className="text-[10px] uppercase tracking-wider flex-shrink-0" style={{ color: COPPER }}>
-            {PILLAR_LABELS[tag.parent_pillar]}
-          </span>
-        </div>
-
-        {/* Action row — Replace / Remove. Both stopPropagation so card-tap
-            navigation isn't triggered by these inner controls. */}
-        <div className="flex items-center gap-2 mt-1">
-          <input
-            id={inputId}
-            type="file"
-            accept="video/*"
-            // No `capture` attribute — on iOS Safari this surfaces the native
-            // sheet with Take Video / Photo Library / Choose File so the user
-            // gets both paths. On desktop it opens the standard OS file picker.
-            // Adding `capture="environment"` would force camera-only on mobile.
-            className="hidden"
-            onClick={stop}
-            onChange={e => {
-              stop(e);
-              const f = e.target.files?.[0];
-              if (f) onPickFile(f);
-              e.target.value = ''; // allow picking the same file again later
-            }}
-          />
-          <label
-            htmlFor={inputId}
-            onClick={stop}
-            className="text-[11px] font-medium px-2.5 py-1 rounded-md cursor-pointer touch-manipulation transition-colors"
-            style={{
-              backgroundColor: hasVideo ? SURFACE_3 : 'rgba(196,145,95,0.20)',
-              color: hasVideo ? 'rgba(255,255,255,0.55)' : COPPER,
-            }}
-          >
-            {hasVideo ? 'Replace' : '+ Add video'}
-          </label>
-          {hasVideo && (
-            <button
-              type="button"
-              onClick={e => { stop(e); onRemove(); }}
-              className="text-[11px] transition-colors touch-manipulation"
-              style={{ color: 'rgba(218,90,70,0.65)' }}
+      {/* Body — only mounted when expanded. */}
+      {expanded && (
+        <div
+          style={{
+            paddingBottom: 6,
+            borderTop: '1px solid rgba(255,255,255,0.04)',
+            background: 'rgba(0,0,0,0.10)',
+          }}
+        >
+          {tags.length === 0 ? (
+            <p
+              style={{
+                padding: '20px 22px',
+                fontSize: 13,
+                fontStyle: 'italic',
+                color: 'rgba(255,255,255,0.40)',
+                lineHeight: 1.5,
+              }}
             >
-              Remove
-            </button>
+              {filterActive
+                ? `No ${PILLAR_LABELS[pillar].toLowerCase()} techniques match this filter.`
+                : `No ${PILLAR_LABELS[pillar].toLowerCase()} techniques yet — add one from the Log Session form.`}
+            </p>
+          ) : (
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              {tags.map(tag => (
+                <li key={tag.id}>
+                  <TechniqueRow
+                    tag={tag}
+                    onOpen={() => onOpenTechnique(tag.id)}
+                  />
+                </li>
+              ))}
+            </ul>
           )}
         </div>
+      )}
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TechniqueRow — one line item inside a pillar section.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function TechniqueRow({ tag, onOpen }: { tag: UserTag; onOpen: () => void }) {
+  const hasVideo = !!tag.has_video && !!tag.video_thumbnail;
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="j2-press touch-manipulation"
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        width: '100%',
+        padding: '10px 18px',
+        background: 'transparent',
+        border: 'none',
+        borderTop: '1px solid rgba(255,255,255,0.04)',
+        textAlign: 'left',
+        cursor: 'pointer',
+      }}
+    >
+      {/* Thumbnail / placeholder — fixed-width slot keeps rows aligned. */}
+      <div
+        style={{
+          width: 56,
+          height: 40,
+          flexShrink: 0,
+          borderRadius: 6,
+          background: hasVideo
+            ? `url(${tag.video_thumbnail}) center / cover no-repeat`
+            : SURFACE_3,
+          border: '1px solid rgba(255,255,255,0.06)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}
+      >
+        {!hasVideo && (
+          <Video size={16} strokeWidth={1.5} style={{ color: 'rgba(255,255,255,0.18)' }} />
+        )}
       </div>
-    </div>
+
+      {/* Name + affinity inline */}
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+        <span
+          style={{
+            fontSize: 15,
+            fontWeight: 500,
+            color: 'rgba(255,255,255,0.88)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {tag.name}
+        </span>
+        {tag.affinity && <AffinityInline value={tag.affinity} />}
+      </div>
+
+      {/* Duration — only when video exists */}
+      {tag.video_duration_seconds != null && (
+        <span
+          style={{
+            fontSize: 12,
+            color: 'rgba(255,255,255,0.45)',
+            fontVariantNumeric: 'tabular-nums',
+            flexShrink: 0,
+          }}
+        >
+          {formatDurationMMSS(tag.video_duration_seconds)}
+        </span>
+      )}
+
+      <ChevronRight size={16} style={{ color: 'rgba(255,255,255,0.30)', flexShrink: 0 }} />
+    </button>
+  );
+}
+
+function AffinityInline({ value }: { value: Affinity }) {
+  const styles =
+    value === 'go_to' ? { glyph: '★', label: 'Go-to', color: COPPER } :
+    value === 'learning' ? { glyph: '◐', label: 'Learning', color: 'rgba(196,145,95,0.65)' } :
+    { glyph: '◌', label: 'Shelved', color: 'rgba(255,255,255,0.30)' };
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 4,
+        fontSize: 11,
+        fontWeight: 600,
+        color: styles.color,
+        letterSpacing: '0.04em',
+      }}
+    >
+      <span aria-hidden>{styles.glyph}</span>
+      {styles.label}
+    </span>
   );
 }
