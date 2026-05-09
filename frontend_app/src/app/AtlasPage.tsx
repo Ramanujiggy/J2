@@ -4,7 +4,9 @@
 //   • Prism    — merged Prism Lab + Analytics: time-windowed pentagon (BigPrism)
 //                with 5-view sub-rail, hero stats strip, alignment overlay, and
 //                vertex-selected sessions/intentions panel below
-//   • Library  — "Coming Soon" empty state (technique catalog lands later)
+//   • Library  — navigation jump to /library (the Technique Library lives at its
+//                own route; selecting this tab in Atlas routes the user there
+//                instead of rendering an Atlas-internal panel)
 //   • Calendar — reuses existing TrainingHeatmap (the traditional detailed view)
 //
 // Mobile visitors are redirected to /calendar — Atlas is strictly a desktop surface.
@@ -56,6 +58,11 @@ export default function AtlasPage() {
   // bottom nav, Timeline/Library don't have mobile analogues yet.
   const [tab, setTab] = useState<AtlasTab>(() => {
     const stored = localStorage.getItem(LS_TAB_KEY);
+    // 'library' used to render an inline "Coming Soon" placeholder; it now
+    // routes to /library instead. If a user has 'library' persisted from
+    // the old behaviour, normalize back to the default so we don't briefly
+    // flash a now-removed panel before redirecting.
+    if (stored === 'library') return 'timeline';
     return TABS.some(t => t.id === stored) ? (stored as AtlasTab) : 'timeline';
   });
   useEffect(() => { localStorage.setItem(LS_TAB_KEY, tab); }, [tab]);
@@ -183,7 +190,20 @@ export default function AtlasPage() {
             </>
           )}
         </div>
-        <SegmentedToggle tabs={TABS} value={tab} onChange={setTab} />
+        <SegmentedToggle
+          tabs={TABS}
+          value={tab}
+          onChange={(next) => {
+            // Library is a navigation jump, not a local tab. Selecting it
+            // routes to /library instead of switching the Atlas panel; the
+            // other three tabs (timeline / prism / calendar) stay local.
+            if (next === 'library') {
+              navigate('/library');
+              return;
+            }
+            setTab(next);
+          }}
+        />
       </div>
 
       {fetchError && <p style={{ fontSize: 13, color: '#F87171', marginBottom: 16 }}>{fetchError}</p>}
@@ -277,7 +297,6 @@ export default function AtlasPage() {
         </>
       )}
 
-      {tab === 'library' && <LibraryComingSoon />}
 
       {tab === 'calendar' && (
         <CalendarPanel
@@ -1199,66 +1218,6 @@ function PrismPanel({
 
 // (BigPrism extracted to components/atlas/BigPrism.tsx — animation transitions
 // + normalized-prop API live there now.)
-
-// ── Library panel (Coming Soon) ───────────────────────────────────────────
-
-function LibraryComingSoon() {
-  return (
-    <div
-      style={{
-        position: 'relative',
-        background: CARD_BG,
-        border: `1px solid ${CARD_GLOW_BORDER}`,
-        boxShadow: CARD_GLOW,
-        borderRadius: 20,
-        padding: '120px 56px',
-        overflow: 'hidden',
-        minHeight: 580,
-      }}
-    >
-      {/* Local seigaiha backdrop inside the card only */}
-      <div
-        className="j2-seigaiha-bg"
-        aria-hidden
-        style={{ position: 'absolute' }}
-      />
-      <div
-        style={{
-          position: 'relative', zIndex: 1,
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', textAlign: 'center',
-          gap: 22, maxWidth: 720, margin: '0 auto',
-        }}
-      >
-        <div className="j2-label-copper">◇ Library</div>
-        <h2 className="j2-serif-display j2-heading-glow" style={{ fontSize: 68, margin: 0, lineHeight: 1.1 }}>
-          A technique catalog,<br />
-          <span className="j2-serif-italic" style={{ color: COPPER, fontStyle: 'italic' }}>coming soon.</span>
-        </h2>
-        <p
-          style={{
-            fontSize: 19, lineHeight: 1.65,
-            color: 'rgba(255,255,255,0.60)',
-            marginTop: 8,
-          }}
-        >
-          Journada&rsquo;s Library will give each technique its own page — videos, drill notes,
-          the belts you added it at, and every session where it showed up. Until then, your
-          training keeps getting captured by the tools you&rsquo;re already using.
-        </p>
-        <div
-          style={{
-            marginTop: 12,
-            fontSize: 13, letterSpacing: '0.18em', textTransform: 'uppercase',
-            color: 'rgba(255,255,255,0.30)',
-          }}
-        >
-          On the roadmap
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ── Calendar panel (traditional TrainingHeatmap) ──────────────────────────
 
