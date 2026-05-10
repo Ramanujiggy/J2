@@ -22,6 +22,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContent from '../components/PageContent.tsx';
 import LibraryEmptyHero from '../components/empty/LibraryEmptyHero.tsx';
+import LocalVideoMigrationPrompt from '../components/LocalVideoMigrationPrompt.tsx';
 import { useUserTags } from '../hooks/useUserTags.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import { PALE_YELLOW, GLOW_SOFT, COPPER, SURFACE_2, SURFACE_3, CARD_BG } from '../lib/theme.ts';
@@ -66,7 +67,7 @@ function matchesFilter(tag: UserTag, filter: LibraryFilter): boolean {
 export default function MovesLibraryPage() {
   const navigate = useNavigate();
   const isDesktop = useIsDesktop();
-  const { tags, loading, error } = useUserTags();
+  const { tags, loading, error, attachVideo } = useUserTags();
 
   const [filter, setFilter] = useState<LibraryFilter>('all');
   // Section state is local to the page (not persisted across navigation).
@@ -124,6 +125,12 @@ export default function MovesLibraryPage() {
 
   return (
     <PageContent ready={!loading} loadingMessages={['Loading the library...']}>
+      {/* Mig-028 one-time migration prompt for users with pre-cloud local
+          clips. Self-contained: scans OPFS, matches against tags lacking a
+          cloud key, surfaces a modal, runs the upload pump. Renders nothing
+          when there are no candidates or the user has already been prompted. */}
+      <LocalVideoMigrationPrompt tags={tags} attachVideo={attachVideo} />
+
       <div
         className={`space-y-5 ${isDesktop ? 'j2-page-container' : 'mx-auto max-w-5xl px-4 sm:px-6'}`}
         style={isDesktop ? { paddingTop: 20, paddingBottom: 20 } : { paddingTop: 24, paddingBottom: 24 }}

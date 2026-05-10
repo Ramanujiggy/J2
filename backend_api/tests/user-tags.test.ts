@@ -1,9 +1,11 @@
-// Smoke tests for user_tags routes — focused on the Technique Library v1
-// surfaces added in migration 027:
-//   • Extended PATCH /api/user-tags/:id accepting `affinity` + `resonance_journal`
-//   • New POST /api/user-tags/promote-canonical (idempotent canonical → user_tag fork)
-// Mocked DB; verifies route wiring, validation, and that the controller calls
-// the correct model fns with the right arguments.
+// Smoke tests for user_tags routes — covers:
+//   • Mig 027 surfaces: extended PATCH (affinity + resonance), promote-canonical
+//   • Mig 028 surfaces: video upload-url / upload-complete / playback url /
+//     retry / remove (cloud video storage)
+//
+// Mocked DB + mocked r2Client; verifies route wiring, validation, and that
+// the controller calls the correct model fns with the right arguments. We
+// never hit R2 in tests — the mocked r2Client returns canned signed URLs.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
@@ -23,6 +25,32 @@ vi.mock('../src/models/userTagModel.js', () => ({
   setAffinity: vi.fn(),
   setResonanceJournal: vi.fn(),
   promoteCanonicalToUserTag: vi.fn(),
+  // Mig 028 model fns
+  findUserTagById: vi.fn(),
+  recordRawUpload: vi.fn(),
+  requeueFailedTranscode: vi.fn(),
+  clearVideo: vi.fn(),
+}));
+
+// Mock r2Client so the test process doesn't need real R2 credentials. We
+// stub the helpers the controller calls; the SDK itself never runs.
+vi.mock('../src/lib/r2Client.js', () => ({
+  rawStorageKey: (userId: string, tagId: string, ext: string) =>
+    `raw/${userId}/${tagId}-stub.${ext}`,
+  encodedStorageKey: (userId: string, tagId: string) =>
+    `encoded/${userId}/${tagId}.mp4`,
+  verifyKeyOwnedBy: (key: string, userId: string) =>
+    key.startsWith(`raw/${userId}/`) || key.startsWith(`encoded/${userId}/`),
+  mintPutUrl: vi.fn().mockResolvedValue({
+    uploadUrl: 'https://r2.example/signed-put',
+    expiresAt: '2099-01-01T00:00:00Z',
+  }),
+  mintGetUrl: vi.fn().mockResolvedValue({
+    url: 'https://r2.example/signed-get',
+    expiresAt: '2099-01-01T00:00:00Z',
+  }),
+  deleteObject: vi.fn().mockResolvedValue(undefined),
+  R2_BUCKET_NAME: 'test-bucket',
 }));
 
 import app from '../src/app.js';
@@ -202,5 +230,249 @@ describe('POST /api/user-tags/promote-canonical (mig 027)', () => {
 
     expect(res.status).toBe(400);
     expect(vi.mocked(userTagModel.promoteCanonicalToUserTag)).not.toHaveBeenCalled();
+  });
+});
+
+// ── Move Library v2: cloud video endpoints (mig 028) ────────────────────────
+
+describe('POST /api/user-tags/:id/video/upload-url (mig 028)', () => {
+  it('returns 401 without auth', async () => {
+    const res = await request(app)
+      .post('/api/user-tags/tag-uuid-1/video/upload-url')
+      .send({ content_type: 'video/mp4', ext: 'mp4' });
+    expect(res.status).toBe(401);
+  });
+
+  it('mints a signed upload URL for a valid request', async () => {
+    vi.mocked(userTagModel.findUserTagById).mockResolvedValue(BASE_TAG as never);
+
+    const res = await request(app)
+      .post('/api/user-tags/tag-uuid-1/video/upload-url')
+      .set('Authorization', AUTH_HEADER)
+      .send({ content_type: 'video/quicktime', ext: 'mov' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.uploadUrl).toBe('https://r2.example/signed-put');
+    expect(res.body.storageKey).toBe('raw/user-uuid-1/tag-uuid-1-stub.mov');
+    expect(res.body.expiresAt).toBeTruthy();
+  });
+
+  it('returns 404 when the tag does not exist or is not owned', async () => {
+    vi.mocked(userTagModel.findUserTagById).mockResolvedValue(null);
+
+    const res = await request(app)
+      .post('/api/user-tags/tag-uuid-missing/video/upload-url')
+      .set('Authorization', AUTH_HEADER)
+      .send({ content_type: 'video/mp4', ext: 'mp4' });
+
+    expect(res.status).toBe(404);
+  });
+
+  it('rejects a non-video content_type', async () => {
+    vi.mocked(userTagModel.findUserTagById).mockResolvedValue(BASE_TAG as never);
+
+    const res = await request(app)
+      .post('/api/user-tags/tag-uuid-1/video/upload-url')
+      .set('Authorization', AUTH_HEADER)
+      .send({ content_type: 'image/png', ext: 'png' });
+
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects a missing ext', async () => {
+    vi.mocked(userTagModel.findUserTagById).mockResolvedValue(BASE_TAG as never);
+
+    const res = await request(app)
+      .post('/api/user-tags/tag-uuid-1/video/upload-url')
+      .set('Authorization', AUTH_HEADER)
+      .send({ content_type: 'video/mp4' });
+
+    expect(res.status).toBe(400);
+  });
+});
+
+describe('POST /api/user-tags/:id/video/upload-complete (mig 028)', () => {
+  it('returns 401 without auth', async () => {
+    const res = await request(app)
+      .post('/api/user-tags/tag-uuid-1/video/upload-complete')
+      .send({ raw_storage_key: 'x', byte_size: 1 });
+    expect(res.status).toBe(401);
+  });
+
+  it('records upload + flips status to processing on a valid request', async () => {
+    vi.mocked(userTagModel.recordRawUpload).mockResolvedValue({
+      ...BASE_TAG, has_video: true, video_status: 'processing',
+      video_raw_storage_key: 'raw/user-uuid-1/tag-uuid-1-stub.mov', video_byte_size: 1234567,
+    } as never);
+
+    const res = await request(app)
+      .post('/api/user-tags/tag-uuid-1/video/upload-complete')
+      .set('Authorization', AUTH_HEADER)
+      .send({
+        raw_storage_key: 'raw/user-uuid-1/tag-uuid-1-stub.mov',
+        byte_size: 1234567,
+        video_thumbnail: 'data:image/jpeg;base64,abc',
+        video_duration_seconds: 12,
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.tag.video_status).toBe('processing');
+    expect(vi.mocked(userTagModel.recordRawUpload)).toHaveBeenCalledWith(
+      TEST_USER_ID,
+      'tag-uuid-1',
+      expect.objectContaining({
+        raw_storage_key: 'raw/user-uuid-1/tag-uuid-1-stub.mov',
+        byte_size: 1234567,
+      }),
+    );
+  });
+
+  it('rejects a raw_storage_key that does not match the user prefix', async () => {
+    const res = await request(app)
+      .post('/api/user-tags/tag-uuid-1/video/upload-complete')
+      .set('Authorization', AUTH_HEADER)
+      .send({
+        raw_storage_key: 'raw/someone-else/tag-uuid-1.mov',
+        byte_size: 100,
+        video_thumbnail: null,
+        video_duration_seconds: null,
+      });
+
+    expect(res.status).toBe(400);
+    expect(vi.mocked(userTagModel.recordRawUpload)).not.toHaveBeenCalled();
+  });
+
+  it('rejects a byte_size over the 50MB cap', async () => {
+    const res = await request(app)
+      .post('/api/user-tags/tag-uuid-1/video/upload-complete')
+      .set('Authorization', AUTH_HEADER)
+      .send({
+        raw_storage_key: 'raw/user-uuid-1/tag-uuid-1.mov',
+        byte_size: 51 * 1024 * 1024,
+        video_thumbnail: null,
+        video_duration_seconds: null,
+      });
+
+    expect(res.status).toBe(413);
+  });
+});
+
+describe('GET /api/user-tags/:id/video/url (mig 028)', () => {
+  it('returns 401 without auth', async () => {
+    const res = await request(app).get('/api/user-tags/tag-uuid-1/video/url');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns null status when the tag has no video', async () => {
+    vi.mocked(userTagModel.findUserTagById).mockResolvedValue({
+      ...BASE_TAG, has_video: false, video_status: null,
+    } as never);
+
+    const res = await request(app)
+      .get('/api/user-tags/tag-uuid-1/video/url')
+      .set('Authorization', AUTH_HEADER);
+
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBeNull();
+    expect(res.body.url).toBeUndefined();
+  });
+
+  it("returns processing without a URL while the worker is encoding", async () => {
+    vi.mocked(userTagModel.findUserTagById).mockResolvedValue({
+      ...BASE_TAG, has_video: true, video_status: 'processing',
+    } as never);
+
+    const res = await request(app)
+      .get('/api/user-tags/tag-uuid-1/video/url')
+      .set('Authorization', AUTH_HEADER);
+
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('processing');
+    expect(res.body.url).toBeUndefined();
+  });
+
+  it('returns failed + message when the encode failed', async () => {
+    vi.mocked(userTagModel.findUserTagById).mockResolvedValue({
+      ...BASE_TAG, has_video: true, video_status: 'failed',
+      video_status_message: 'ffmpeg exited with code 1',
+    } as never);
+
+    const res = await request(app)
+      .get('/api/user-tags/tag-uuid-1/video/url')
+      .set('Authorization', AUTH_HEADER);
+
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('failed');
+    expect(res.body.message).toBe('ffmpeg exited with code 1');
+  });
+
+  it('returns ready + signed URL when the encode is done', async () => {
+    vi.mocked(userTagModel.findUserTagById).mockResolvedValue({
+      ...BASE_TAG, has_video: true, video_status: 'ready',
+      video_storage_key: 'encoded/user-uuid-1/tag-uuid-1.mp4',
+    } as never);
+
+    const res = await request(app)
+      .get('/api/user-tags/tag-uuid-1/video/url')
+      .set('Authorization', AUTH_HEADER);
+
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('ready');
+    expect(res.body.url).toBe('https://r2.example/signed-get');
+  });
+});
+
+describe('POST /api/user-tags/:id/video/retry (mig 028)', () => {
+  it('returns 200 + the requeued tag when a failed transcode is retryable', async () => {
+    vi.mocked(userTagModel.requeueFailedTranscode).mockResolvedValue({
+      ...BASE_TAG, has_video: true, video_status: 'processing',
+    } as never);
+
+    const res = await request(app)
+      .post('/api/user-tags/tag-uuid-1/video/retry')
+      .set('Authorization', AUTH_HEADER)
+      .send({});
+
+    expect(res.status).toBe(200);
+    expect(res.body.tag.video_status).toBe('processing');
+  });
+
+  it('returns 409 when the tag is not in a failed state', async () => {
+    vi.mocked(userTagModel.requeueFailedTranscode).mockResolvedValue(null);
+
+    const res = await request(app)
+      .post('/api/user-tags/tag-uuid-1/video/retry')
+      .set('Authorization', AUTH_HEADER)
+      .send({});
+
+    expect(res.status).toBe(409);
+  });
+});
+
+describe('DELETE /api/user-tags/:id/video (mig 028)', () => {
+  it('returns 200 + the cleared tag and best-effort deletes R2 objects', async () => {
+    vi.mocked(userTagModel.clearVideo).mockResolvedValue({
+      tag: { ...BASE_TAG, has_video: false, video_status: null } as never,
+      rawKey: 'raw/user-uuid-1/old.mov',
+      encodedKey: 'encoded/user-uuid-1/tag-uuid-1.mp4',
+    });
+
+    const res = await request(app)
+      .delete('/api/user-tags/tag-uuid-1/video')
+      .set('Authorization', AUTH_HEADER);
+
+    expect(res.status).toBe(200);
+    expect(res.body.tag.has_video).toBe(false);
+    expect(res.body.tag.video_status).toBeNull();
+  });
+
+  it('returns 404 when the tag does not exist', async () => {
+    vi.mocked(userTagModel.clearVideo).mockResolvedValue(null);
+
+    const res = await request(app)
+      .delete('/api/user-tags/tag-uuid-missing/video')
+      .set('Authorization', AUTH_HEADER);
+
+    expect(res.status).toBe(404);
   });
 });

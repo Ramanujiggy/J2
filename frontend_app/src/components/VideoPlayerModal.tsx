@@ -1,17 +1,25 @@
-// VideoPlayerModal — plays a Move Library clip from local storage.
+// VideoPlayerModal — plays a Move Library clip with a two-stage source resolution.
 //
-// Loads the blob from videoStore on mount, creates an object URL, hands it to
-// <video>, and releases the URL on unmount to prevent leaks.
+// Lookup order (Move Library v2, mig 028):
+//   1. Try local OPFS cache via videoStore.loadVideo(tag.id). Fast path —
+//      no network roundtrip when the clip has already been streamed once
+//      on this device (the cloud upload flow writes to OPFS as a side
+//      effect; the playback fallback below also caches on first stream).
+//   2. Miss → fetch a 5-min signed GET URL from the server and stream
+//      directly from R2 by setting <video src={signedUrl}>. Browser
+//      handles range requests + adaptive buffering natively.
 //
-// Falls back to a "video missing" message when the local clip is gone (e.g.
-// browser storage was cleared) — the server-side thumbnail still appears in
-// the library so the user knows what they used to have.
+// "video unavailable" only fires now on a genuine error path — the encode
+// failed, the network is down, or the user is signed out. The pre-mig-028
+// case ("recorded on another device") no longer applies because cloud is
+// the canonical source.
 
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { CARD_BG, COPPER, PALE_YELLOW, GLOW_SOFT, SURFACE_2 } from '../lib/theme.ts';
 import { loadVideo } from '../lib/videoStore.ts';
 import { formatDurationMMSS } from '../lib/videoUtils.ts';
+import { api } from '../lib/api.ts';
 import type { UserTag } from '../types/api.ts';
 
 const PILLAR_LABELS: Record<string, string> = {
@@ -37,23 +45,57 @@ export default function VideoPlayerModal({ tag, onClose }: Props) {
     let urlToRevoke: string | null = null;
 
     (async () => {
-      const blob = await loadVideo(tag.id);
-      if (cancelled) return;
-      if (!blob) {
-        setMissing(true);
-        setLoading(false);
-        return;
+      // Step 1: try local OPFS cache. Fastest path — works offline and
+      // skips the signing roundtrip when the user has already streamed
+      // (or just uploaded) this clip on this device.
+      try {
+        const blob = await loadVideo(tag.id);
+        if (cancelled) return;
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          urlToRevoke = url;
+          setVideoUrl(url);
+          setLoading(false);
+          return;
+        }
+      } catch {
+        // Continue to cloud fallback
       }
-      const url = URL.createObjectURL(blob);
-      urlToRevoke = url;
-      setVideoUrl(url);
-      setLoading(false);
-    })().catch(() => {
-      if (!cancelled) {
-        setMissing(true);
-        setLoading(false);
+
+      // Step 2: cloud fallback. Server returns a 5-min signed GET URL
+      // (or a status-only response when the encode is still running).
+      try {
+        const res = await api.get<{
+          status: 'ready' | 'processing' | 'failed' | null;
+          url?: string;
+          message?: string | null;
+        }>(`/api/user-tags/${tag.id}/video/url`);
+
+        if (cancelled) return;
+
+        if (res.status === 'ready' && res.url) {
+          // Use the signed URL directly as the <video src>. Browser
+          // streams via range requests; no need to download to a Blob first.
+          // Don't track this URL in urlToRevoke — only object-URLs need
+          // revoking; signed URLs are just regular HTTP and the browser
+          // garbage-collects them.
+          setVideoUrl(res.url);
+          setLoading(false);
+        } else {
+          // status='processing' / 'failed' / null — show the unavailable
+          // surface with the appropriate message. The Pokedex polling
+          // already handles 'processing' transitions; this modal
+          // shouldn't usually open in those states, but defensive.
+          setMissing(true);
+          setLoading(false);
+        }
+      } catch {
+        if (!cancelled) {
+          setMissing(true);
+          setLoading(false);
+        }
       }
-    });
+    })();
 
     return () => {
       cancelled = true;
@@ -136,10 +178,14 @@ export default function VideoPlayerModal({ tag, onClose }: Props) {
                 />
               )}
               <p className="text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>
-                Video unavailable on this device.
+                {tag.video_status === 'processing' ? 'Still encoding…' : 'Video unavailable.'}
               </p>
               <p className="text-xs" style={{ color: 'rgba(255,255,255,0.30)' }}>
-                The clip was recorded on another device or browser storage was cleared.
+                {tag.video_status === 'processing'
+                  ? 'Hang tight — the encode usually finishes in under a minute.'
+                  : tag.video_status === 'failed'
+                    ? "The encode failed. Open the technique page to retry."
+                    : 'Check your connection and try again.'}
               </p>
             </div>
           )}

@@ -1,10 +1,17 @@
 import type { Request, Response } from 'express';
 import * as userTagModel from '../models/userTagModel.js';
 import type { Affinity } from '../models/userTagModel.js';
+import * as r2 from '../lib/r2Client.js';
 
 const VALID_PILLARS = new Set(['standup', 'passing', 'pins', 'submissions', 'guard']);
 const VALID_AFFINITIES = new Set<Affinity>(['go_to', 'learning', 'shelved']);
 const MAX_RESONANCE_JOURNAL_LENGTH = 5000;
+// 50MB cap on a single video upload — enforced at the signed-URL handshake
+// stage AND validated again at upload-complete via the byte-size payload.
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+// Whitelist of MIME types we'll accept — clients should be sending video/*
+// (iOS Safari → video/quicktime for HEVC, video/mp4 from most other paths).
+const ACCEPTED_VIDEO_PREFIXES = ['video/'];
 
 function validateName(raw: unknown): string | null {
   if (typeof raw !== 'string') return null;
@@ -256,6 +263,214 @@ export const deleteUserTag = async (req: Request, res: Response) => {
     res.status(200).json({ message: 'Tag deleted.' });
   } catch (error) {
     console.error('❌ Error deleting user tag:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Move Library v2 — cloud video endpoints (migration 028)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * POST /api/user-tags/:id/video/upload-url
+ *
+ * Mint a 5-minute signed PUT URL so the client can upload raw video bytes
+ * directly to R2 (no backend proxy). The DB is NOT updated here — only after
+ * the client confirms the upload via /upload-complete. This means a leaked
+ * signed URL can't claim a row.
+ *
+ * Body: { content_type: string, ext: string }
+ *   content_type — typically "video/quicktime" (iOS HEVC) or "video/mp4"
+ *   ext          — file extension (used in the storage key for legibility)
+ *
+ * Response: { uploadUrl, storageKey, expiresAt }
+ */
+export const mintVideoUploadUrl = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ message: 'id is required.' });
+
+    const { content_type, ext } = req.body ?? {};
+    if (typeof content_type !== 'string' || !ACCEPTED_VIDEO_PREFIXES.some(p => content_type.startsWith(p))) {
+      return res.status(400).json({ message: 'content_type must be a video/* MIME type.' });
+    }
+    if (typeof ext !== 'string' || ext.length < 1 || ext.length > 8) {
+      return res.status(400).json({ message: 'ext must be a short file extension string.' });
+    }
+
+    // Verify the tag exists + belongs to the user before signing.
+    const tag = await userTagModel.findUserTagById(userId, id);
+    if (!tag) return res.status(404).json({ message: 'Tag not found.' });
+
+    const storageKey = r2.rawStorageKey(userId, id, ext);
+    const { uploadUrl, expiresAt } = await r2.mintPutUrl(storageKey, content_type);
+
+    res.status(200).json({ uploadUrl, storageKey, expiresAt });
+  } catch (error) {
+    console.error('❌ Error minting upload URL:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+/**
+ * POST /api/user-tags/:id/video/upload-complete
+ *
+ * Client calls this AFTER the direct PUT to R2 succeeds. We record the raw
+ * key + size + thumbnail + duration + flip status to 'processing'. The
+ * transcode worker picks up from there.
+ *
+ * Body: {
+ *   raw_storage_key: string,           // exact key returned by /upload-url
+ *   byte_size: number,                 // raw file size, ≤ MAX_VIDEO_BYTES
+ *   video_thumbnail: string | null,    // client-extracted JPEG data URL
+ *   video_duration_seconds: number | null,
+ * }
+ */
+export const completeVideoUpload = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ message: 'id is required.' });
+
+    const { raw_storage_key, byte_size, video_thumbnail, video_duration_seconds } = req.body ?? {};
+
+    // Defensive ownership check. The signed-URL flow already constrained the
+    // upload to a key we generated, but verifying the prefix here defends
+    // against a malicious client claiming someone else's row.
+    if (typeof raw_storage_key !== 'string' || !r2.verifyKeyOwnedBy(raw_storage_key, userId)) {
+      return res.status(400).json({ message: 'Invalid raw_storage_key.' });
+    }
+    if (typeof byte_size !== 'number' || !Number.isFinite(byte_size) || byte_size <= 0) {
+      return res.status(400).json({ message: 'byte_size must be a positive number.' });
+    }
+    if (byte_size > MAX_VIDEO_BYTES) {
+      return res.status(413).json({ message: `Video exceeds ${MAX_VIDEO_BYTES / 1024 / 1024}MB cap.` });
+    }
+    if (video_thumbnail !== null && typeof video_thumbnail !== 'string') {
+      return res.status(400).json({ message: 'video_thumbnail must be a string or null.' });
+    }
+    if (video_duration_seconds !== null
+        && (typeof video_duration_seconds !== 'number' || !Number.isFinite(video_duration_seconds))) {
+      return res.status(400).json({ message: 'video_duration_seconds must be a number or null.' });
+    }
+
+    const tag = await userTagModel.recordRawUpload(userId, id, {
+      raw_storage_key,
+      byte_size,
+      video_thumbnail: video_thumbnail ?? null,
+      video_duration_seconds: video_duration_seconds ?? null,
+    });
+    if (!tag) return res.status(404).json({ message: 'Tag not found.' });
+
+    res.status(200).json({ tag });
+  } catch (error) {
+    console.error('❌ Error completing video upload:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+/**
+ * GET /api/user-tags/:id/video/url
+ *
+ * Returns the current playback state. When status='ready', includes a 5-min
+ * signed GET URL the browser can stream directly from R2. Otherwise returns
+ * just the status (the client polls until ready).
+ *
+ * Response shapes:
+ *   { status: 'ready', url, expiresAt }
+ *   { status: 'processing' }
+ *   { status: 'failed', message }
+ *   { status: null }                      // tag has no video
+ */
+export const getVideoPlaybackUrl = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ message: 'id is required.' });
+
+    const tag = await userTagModel.findUserTagById(userId, id);
+    if (!tag) return res.status(404).json({ message: 'Tag not found.' });
+
+    const status = tag.video_status ?? null;
+    if (status === null || !tag.has_video) {
+      return res.status(200).json({ status: null });
+    }
+    if (status === 'failed') {
+      return res.status(200).json({ status: 'failed', message: tag.video_status_message ?? null });
+    }
+    if (status === 'processing' || !tag.video_storage_key) {
+      return res.status(200).json({ status: 'processing' });
+    }
+
+    // status === 'ready'
+    const { url, expiresAt } = await r2.mintGetUrl(tag.video_storage_key);
+    res.status(200).json({ status: 'ready', url, expiresAt });
+  } catch (error) {
+    console.error('❌ Error minting playback URL:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+/**
+ * POST /api/user-tags/:id/video/retry
+ *
+ * Re-queues a failed transcode. Only works on rows whose video_status is
+ * currently 'failed' AND that still have a video_raw_storage_key (so the
+ * worker has something to re-encode).
+ */
+export const retryVideoTranscode = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ message: 'id is required.' });
+
+    const tag = await userTagModel.requeueFailedTranscode(userId, id);
+    if (!tag) {
+      return res.status(409).json({
+        message: "Can't retry — tag isn't in a failed state, or the raw upload isn't available.",
+      });
+    }
+    res.status(200).json({ tag });
+  } catch (error) {
+    console.error('❌ Error retrying transcode:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+/**
+ * DELETE /api/user-tags/:id/video
+ *
+ * Remove the video from a tag entirely. Clears all DB state + best-effort
+ * R2 cleanup of both the raw and encoded objects. R2 cleanup failures are
+ * logged but not surfaced — the DB is the source of truth, and orphan
+ * R2 objects are cheaper than dangling DB references.
+ */
+export const removeVideo = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ message: 'id is required.' });
+
+    const result = await userTagModel.clearVideo(userId, id);
+    if (!result) return res.status(404).json({ message: 'Tag not found.' });
+
+    // Best-effort R2 cleanup. Don't await in parallel — errors here shouldn't
+    // delay the response or surface to the user.
+    void (async () => {
+      if (result.rawKey) {
+        try { await r2.deleteObject(result.rawKey); }
+        catch (err) { console.error(`R2 cleanup failed for raw key ${result.rawKey}:`, err); }
+      }
+      if (result.encodedKey) {
+        try { await r2.deleteObject(result.encodedKey); }
+        catch (err) { console.error(`R2 cleanup failed for encoded key ${result.encodedKey}:`, err); }
+      }
+    })();
+
+    res.status(200).json({ tag: result.tag });
+  } catch (error) {
+    console.error('❌ Error removing video:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

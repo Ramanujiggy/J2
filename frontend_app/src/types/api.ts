@@ -43,6 +43,7 @@ export interface SessionSummary {
 }
 
 export type Affinity = 'go_to' | 'learning' | 'shelved';
+export type VideoStatus = 'processing' | 'ready' | 'failed';
 
 export interface UserTag {
   id: string;
@@ -51,7 +52,8 @@ export interface UserTag {
   parent_pillar: Pillar;
   aliases?: string[];                    // migration 012 — user-owned aliases for typeahead
   created_at: string;
-  // Move Library (migration 010) — video lives client-side; only metadata syncs
+  // Move Library (migration 010) — thumbnail + metadata sync; bytes lived in
+  // OPFS pre-mig-028, now live in R2 (OPFS becomes a cache).
   has_video?: boolean;
   video_thumbnail?: string | null;
   video_duration_seconds?: number | null;
@@ -59,6 +61,11 @@ export interface UserTag {
   // Technique Library v1 (migration 027) — personal judgement + memory book
   affinity?: Affinity | null;
   resonance_journal?: string | null;
+  // Move Library v2 (migration 028) — cloud storage + transcoding
+  video_status?: VideoStatus | null;
+  video_storage_key?: string | null;
+  video_byte_size?: number | null;
+  video_status_message?: string | null;
 }
 
 export interface CanonicalPosition {

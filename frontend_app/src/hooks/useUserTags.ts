@@ -10,6 +10,7 @@ import { api } from '../lib/api.ts';
 import type { UserTag, UserTagsResponse, UserTagVideoUpdate, Pillar, Affinity } from '../types/api.ts';
 import { saveVideo, deleteVideo, hasQuotaFor } from '../lib/videoStore.ts';
 import { validateVideoFile, probeVideo, extractThumbnail } from '../lib/videoUtils.ts';
+import { uploadToR2, type UploadProgressCallback } from '../lib/videoUploader.ts';
 
 interface CreateTagInput {
   name: string;
@@ -76,62 +77,136 @@ export function useUserTags() {
   }, []);
 
   /**
-   * Full "attach a video to a tag" flow:
-   *   1. Validate file (size, type)
-   *   2. Probe duration + dimensions
-   *   3. Check local storage quota
-   *   4. Extract thumbnail
-   *   5. Save blob locally (OPFS / IndexedDB)
-   *   6. PATCH metadata to server
+   * Full "attach a video to a tag" flow (Move Library v2, mig 028).
    *
-   * Returns the updated tag on success, null on any failure (with `error` set).
+   *   1. Validate file (size, type) — client-side guard
+   *   2. Probe duration + dimensions — for the metadata payload
+   *   3. Check local-storage quota — for the OPFS cache (best-effort)
+   *   4. Extract thumbnail — sent to server so the Pokedex has something
+   *      to render during the encode (which can take 15-30 seconds)
+   *   5. Server: mint a 5-min signed PUT URL → response includes the
+   *      storage key the server expects to see in upload-complete
+   *   6. PUT the raw bytes directly to R2 (no backend proxy). XHR with
+   *      progress callback drives the "Saving N%…" UI.
+   *   7. Server: upload-complete records metadata + flips status to
+   *      'processing'. Worker picks up from there asynchronously.
+   *   8. Best-effort write to OPFS so the next playback has a fast path.
+   *      Never fatal — cloud is the source of truth.
+   *
+   * Returns the updated tag (with video_status='processing') on success,
+   * null on any failure with `error` set.
+   *
+   * The optional onProgress callback receives byte/percent updates during
+   * step 6. The TechniquePage VideoBlock uses this to render "Saving 47%…".
    */
-  const attachVideo = useCallback(async (id: string, file: File, notes?: string): Promise<UserTag | null> => {
+  const attachVideo = useCallback(async (
+    id: string,
+    file: File,
+    onProgress?: UploadProgressCallback,
+  ): Promise<UserTag | null> => {
     try {
+      // 1. Pre-flight validation
       const validation = validateVideoFile(file);
       if (!validation.valid) {
         setError(validation.reason ?? 'Invalid video file.');
         return null;
       }
 
+      // 2. Probe duration + dimensions
       const probe = await probeVideo(file);
 
-      const ok = await hasQuotaFor(file.size);
-      if (!ok) {
-        setError(`Not enough local storage for this clip. Free some space (or delete an existing clip).`);
-        return null;
+      // 3. Local-storage quota check (best-effort cache later; not fatal here)
+      // We still check so we don't surprise the user with a "cache write
+      // failed" warning later. If quota is tight we just skip the cache.
+      const localOk = await hasQuotaFor(file.size);
+
+      // 4. Extract thumbnail — small JPEG sent to server in upload-complete
+      const thumbnail = await extractThumbnail(file);
+
+      // 5. Mint a signed upload URL for this specific tag.
+      // Derive an extension from the file name (or MIME) so the storage key
+      // is legible in R2's web UI when debugging.
+      const extFromName = file.name.includes('.') ? file.name.split('.').pop() : null;
+      const ext = (extFromName || (file.type.split('/')[1] ?? 'bin')).toLowerCase().slice(0, 8);
+
+      const sig = await api.post<{ uploadUrl: string; storageKey: string; expiresAt: string }>(
+        `/api/user-tags/${id}/video/upload-url`,
+        { content_type: file.type || 'video/mp4', ext },
+      );
+
+      // 6. PUT bytes to R2 directly with progress reporting
+      await uploadToR2(sig.uploadUrl, file, file.type || 'video/mp4', onProgress);
+
+      // 7. Server: record + flip to processing. Returns the updated tag.
+      const completed = await api.post<{ tag: UserTag }>(
+        `/api/user-tags/${id}/video/upload-complete`,
+        {
+          raw_storage_key: sig.storageKey,
+          byte_size: file.size,
+          video_thumbnail: thumbnail,
+          video_duration_seconds: Math.round(probe.durationSeconds),
+        },
+      );
+
+      // Optimistic local-state update so the Pokedex flips immediately
+      // without waiting for the next refetch.
+      setTags(prev => prev.map(t => (t.id === completed.tag.id ? completed.tag : t)));
+      setError(null);
+
+      // 8. Best-effort OPFS cache write so the next playback is local.
+      if (localOk) {
+        try { await saveVideo(id, file); }
+        catch (err) {
+          // Non-fatal — cloud is canonical.
+          console.warn(`Failed to cache video ${id} locally:`, err);
+        }
       }
 
-      const thumbnail = await extractThumbnail(file);
-      await saveVideo(id, file);
-
-      return await patchVideoMeta(id, {
-        has_video: true,
-        video_thumbnail: thumbnail,
-        video_duration_seconds: Math.round(probe.durationSeconds),
-        video_notes: notes ?? null,
-      });
+      return completed.tag;
     } catch (err) {
+      // Recognise abort silently — the user backed out, not an error.
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        return null;
+      }
       setError(err instanceof Error ? err.message : 'Failed to attach video.');
       return null;
     }
-  }, [patchVideoMeta]);
+  }, []);
 
-  /** Detach: removes local blob AND clears server metadata. */
+  /**
+   * Re-queue a transcode that previously failed. Server keeps the raw
+   * upload around so the worker just re-runs ffmpeg — no re-upload needed.
+   */
+  const retryEncode = useCallback(async (id: string): Promise<UserTag | null> => {
+    try {
+      const res = await api.post<{ tag: UserTag }>(`/api/user-tags/${id}/video/retry`, {});
+      setTags(prev => prev.map(t => (t.id === res.tag.id ? res.tag : t)));
+      setError(null);
+      return res.tag;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to retry encode.');
+      return null;
+    }
+  }, []);
+
+  /**
+   * Detach a video from a tag entirely. Hits the new mig-028 endpoint
+   * which clears DB state + best-effort R2 cleanup. Local OPFS cache is
+   * cleared on the client side.
+   */
   const detachVideo = useCallback(async (id: string): Promise<UserTag | null> => {
     try {
-      await deleteVideo(id);
-      return await patchVideoMeta(id, {
-        has_video: false,
-        video_thumbnail: null,
-        video_duration_seconds: null,
-        video_notes: null,
-      });
+      // Best-effort local cache clear
+      try { await deleteVideo(id); } catch { /* ignore */ }
+      const res = await api.delete<{ tag: UserTag }>(`/api/user-tags/${id}/video`);
+      setTags(prev => prev.map(t => (t.id === res.tag.id ? res.tag : t)));
+      setError(null);
+      return res.tag;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to remove video.');
       return null;
     }
-  }, [patchVideoMeta]);
+  }, []);
 
   /**
    * Update affinity / resonance_journal on a tag (migration 027). Optimistically
@@ -222,5 +297,7 @@ export function useUserTags() {
     setAffinity,
     setResonance,
     selectCanonicalAsUserTag,
+    // Move Library v2 (migration 028)
+    retryEncode,
   };
 }

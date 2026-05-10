@@ -99,7 +99,7 @@ export default function TechniquePage() {
   const {
     byId, tagsByPillar, loading: tagsLoading, error: hookError,
     setAffinity, setResonance, patchVideoMeta,
-    attachVideo, detachVideo,
+    attachVideo, detachVideo, retryEncode, refetch,
   } = useUserTags();
 
   const tag = id ? byId.get(id) ?? null : null;
@@ -217,13 +217,18 @@ export default function TechniquePage() {
   // Video attach / replace / remove. Both attach and detach run through the
   // useUserTags pipeline which handles thumbnail extraction + local storage +
   // server PATCH; we just toggle the local uploading state for UI feedback.
+  // Upload progress 0-100; null when no upload in flight.
+  const [uploadPercent, setUploadPercent] = useState<number | null>(null);
+
   const onAttachFile = useCallback(async (file: File) => {
     if (!tag) return;
     setUploadingVideo(true);
+    setUploadPercent(0);
     try {
-      await attachVideo(tag.id, file);
+      await attachVideo(tag.id, file, (p) => setUploadPercent(p.percent));
     } finally {
       setUploadingVideo(false);
+      setUploadPercent(null);
     }
   }, [tag, attachVideo]);
 
@@ -237,6 +242,36 @@ export default function TechniquePage() {
       setUploadingVideo(false);
     }
   }, [tag, detachVideo]);
+
+  const onRetryEncode = useCallback(async () => {
+    if (!tag) return;
+    await retryEncode(tag.id);
+  }, [tag, retryEncode]);
+
+  // ── Status polling — while video_status='processing', re-fetch the tag's
+  // playback URL every 5s. The endpoint is fast and includes the latest
+  // status; when it flips to 'ready' or 'failed', we refetch the whole
+  // user_tags list so the local row reflects the new state.
+  useEffect(() => {
+    if (!tag) return;
+    if (tag.video_status !== 'processing') return;
+
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const res = await api.get<{ status: string | null }>(`/api/user-tags/${tag.id}/video/url`);
+        if (cancelled) return;
+        if (res.status !== 'processing') {
+          // Status changed — refetch the full tag list so the row updates.
+          await refetch();
+        }
+      } catch {
+        // Quiet — next tick will retry.
+      }
+    };
+    const interval = setInterval(() => { void poll(); }, 5000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [tag, refetch]);
 
   // ── Render ────────────────────────────────────────────────────────────────
   if (tagsLoading) {
@@ -282,10 +317,12 @@ export default function TechniquePage() {
     <VideoBlock
       tag={tag}
       uploading={uploadingVideo}
+      uploadPercent={uploadPercent}
       uploadError={hookError}
       onPlay={() => setPlaying(true)}
       onAttachFile={onAttachFile}
       onRemoveVideo={onRemoveVideo}
+      onRetryEncode={onRetryEncode}
     />
   );
 
@@ -642,24 +679,38 @@ function Hero({
 function VideoBlock({
   tag,
   uploading,
+  uploadPercent,
   uploadError,
   onPlay,
   onAttachFile,
   onRemoveVideo,
+  onRetryEncode,
 }: {
   tag: UserTag;
   uploading: boolean;
+  uploadPercent: number | null;
   uploadError: string | null;
   onPlay: () => void;
   onAttachFile: (file: File) => void;
   onRemoveVideo: () => void;
+  onRetryEncode: () => void;
 }) {
-  // Hidden input + label pattern. The label inherits as a button-styled clickable
-  // surface; the input is .hidden but receives the file via standard form flow.
-  // No `capture` attribute → iOS surfaces its native sheet (Take Video / Photo
-  // Library / Choose File). Same as the post-mig-027 fix on MovesLibraryPage.
   const inputId = `video-pokedex-${tag.id}`;
-  const hasVideo = !!tag.has_video && !!tag.video_thumbnail;
+  const hasReadyVideo = !!tag.has_video && tag.video_status === 'ready' && !!tag.video_thumbnail;
+  const isProcessing = !!tag.has_video && tag.video_status === 'processing';
+  const isFailed     = !!tag.has_video && tag.video_status === 'failed';
+  // Show the thumbnail during processing too — extracted client-side at
+  // upload time, so users see something the moment they finish uploading
+  // rather than waiting through 15-30s of encode time staring at a blank box.
+  const showThumb = (hasReadyVideo || isProcessing || isFailed) && !!tag.video_thumbnail;
+
+  // Saving overlay copy: progress percent during upload, "Encoding…" once
+  // the upload completes and the worker takes over.
+  const overlayCopy = uploading
+    ? (uploadPercent != null && uploadPercent < 100 ? `Saving ${uploadPercent}%…` : 'Saving…')
+    : isProcessing
+      ? 'Encoding…'
+      : null;
 
   return (
     <div
@@ -670,10 +721,10 @@ function VideoBlock({
         padding: 14,
       }}
     >
-      {hasVideo ? (
+      {showThumb ? (
         <button
           onClick={onPlay}
-          disabled={uploading}
+          disabled={uploading || isProcessing || isFailed}
           className="w-full j2-press touch-manipulation"
           style={{
             display: 'block',
@@ -683,22 +734,25 @@ function VideoBlock({
             borderRadius: 10,
             border: '1px solid rgba(255,255,255,0.06)',
             position: 'relative',
-            cursor: uploading ? 'wait' : 'pointer',
+            cursor: hasReadyVideo ? 'pointer' : 'wait',
           }}
         >
-          <span
-            aria-hidden
-            style={{
-              position: 'absolute', top: '50%', left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: 52, height: 52, borderRadius: '50%',
-              background: 'rgba(0,0,0,0.50)',
-              border: '1.5px solid rgba(255,255,255,0.85)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
-          >
-            <span style={{ color: '#fff', fontSize: 17, marginLeft: 4 }}>▶</span>
-          </span>
+          {/* Play badge — only visible when the video is actually playable. */}
+          {hasReadyVideo && !uploading && (
+            <span
+              aria-hidden
+              style={{
+                position: 'absolute', top: '50%', left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: 52, height: 52, borderRadius: '50%',
+                background: 'rgba(0,0,0,0.50)',
+                border: '1.5px solid rgba(255,255,255,0.85)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <span style={{ color: '#fff', fontSize: 17, marginLeft: 4 }}>▶</span>
+            </span>
+          )}
           {tag.video_duration_seconds != null && (
             <span
               style={{
@@ -711,17 +765,34 @@ function VideoBlock({
               {formatDurationMMSS(tag.video_duration_seconds)}
             </span>
           )}
-          {uploading && (
+          {/* State overlay — saving / encoding / failed. */}
+          {(overlayCopy || isFailed) && (
             <span
               style={{
                 position: 'absolute', inset: 0,
                 background: 'rgba(0,0,0,0.65)',
                 borderRadius: 10,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                gap: 6,
                 color: COPPER, fontSize: 13, fontWeight: 600,
+                textAlign: 'center', padding: 12,
               }}
             >
-              Saving…
+              {isFailed ? (
+                <>
+                  <span style={{ color: 'rgba(218,90,70,0.85)' }}>Encoding failed</span>
+                  {tag.video_status_message && (
+                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: 400, maxWidth: 280, lineHeight: 1.4 }}>
+                      {tag.video_status_message.length > 140
+                        ? tag.video_status_message.slice(0, 140) + '…'
+                        : tag.video_status_message}
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span>{overlayCopy}</span>
+              )}
             </span>
           )}
         </button>
@@ -749,7 +820,7 @@ function VideoBlock({
           }}
         >
           {uploading ? (
-            <span style={{ color: COPPER }}>Saving…</span>
+            <span style={{ color: COPPER }}>{overlayCopy ?? 'Saving…'}</span>
           ) : (
             <>
               <span style={{ fontSize: 22 }}>+</span>
@@ -778,17 +849,39 @@ function VideoBlock({
         }}
       />
 
-      {/* Replace / Remove row — only when a video already exists. Mirrors the
-          old MoveCard action row but lives on the Pokedex per the new flow. */}
-      {hasVideo && (
+      {/* Replace / Retry / Remove row — surfaces when a video exists in any
+          state (ready / processing / failed). Retry only when failed.
+          Replace is always available; Remove always available when a video
+          exists at all (even mid-encode the user can bail out). */}
+      {(hasReadyVideo || isProcessing || isFailed) && (
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: 8,
             marginTop: 12,
+            flexWrap: 'wrap',
           }}
         >
+          {isFailed && (
+            <button
+              type="button"
+              onClick={onRetryEncode}
+              disabled={uploading}
+              className="j2-press touch-manipulation"
+              style={{
+                fontSize: 12, fontWeight: 600,
+                padding: '6px 12px',
+                borderRadius: 8,
+                background: 'rgba(196,145,95,0.18)',
+                border: `1px solid ${COPPER}`,
+                color: COPPER,
+                cursor: uploading ? 'wait' : 'pointer',
+              }}
+            >
+              Retry encode
+            </button>
+          )}
           <label
             htmlFor={inputId}
             className="j2-press touch-manipulation"

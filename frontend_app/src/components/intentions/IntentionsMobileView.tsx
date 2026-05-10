@@ -1,0 +1,394 @@
+// IntentionsMobileView — the mobile (single-column) layout for the
+// Intentions page. Search + filter chips + Timeline-or-Eras toggle, plus
+// the timeline cards (no week-level grid) or stacked compact EraCards.
+//
+// Owns its own search/filter state (`mobileQuery`, `mobileFilter`); the
+// parent owns the layout-toggle preference and the create/edit modal
+// state. Renders the same `<Coachmark>` the parent's desktop branch
+// renders, so the hook output is passed in.
+//
+// Extracted from IntentionsPage.tsx during the 2026-05-09 refactor pass.
+
+import { useMemo, useState } from 'react';
+import { Pencil } from 'lucide-react';
+import { COPPER, GLOW_SOFT, PALE_YELLOW, SURFACE_2, SURFACE_3 } from '../../lib/theme.ts';
+import { SKILL_TAGS, CATEGORY_COLORS } from '../../lib/constants.ts';
+import { computeAlignment, formatWeekShort, tagHoursInRange, topTagInRange } from '../../lib/analyticsUtils.ts';
+import type { Intention, SessionSummary } from '../../types/api.ts';
+import PageContent from '../PageContent.tsx';
+import SetIntentionModal from '../SetIntentionModal.tsx';
+import SegmentedToggle from '../SegmentedToggle.tsx';
+import Coachmark from '../Coachmark.tsx';
+import {
+  type IntentionsLayout, type IntentionStats,
+} from './intentionsTypes.ts';
+import { computeEras } from './computeEras.ts';
+import { EraCard } from './IntentionsEras.tsx';
+
+interface CoachmarkHandle {
+  isOpen: boolean;
+  dismiss: () => void;
+}
+
+interface MobileViewProps {
+  intentions: Intention[];
+  sessions: SessionSummary[];
+  loading: boolean;
+  intentionsEnabled: boolean;
+  editTarget: Intention | null;
+  createOpen: boolean;
+  layout: IntentionsLayout;
+  onLayoutChange: (next: IntentionsLayout) => void;
+  statsMap: Map<string, IntentionStats>;
+  onOpenCreate: () => void;
+  onOpenEdit: (intention: Intention) => void;
+  onCloseModal: () => void;
+  onSaved: () => void;
+  onNavigate: (path: string, opts?: { replace?: boolean }) => void;
+  intentionsCoachmark: CoachmarkHandle;
+}
+
+type MobileFilter = 'All' | string; // 'All' or a SKILL_TAGS heading
+
+export default function IntentionsMobileView({
+  intentions, sessions, loading, intentionsEnabled,
+  editTarget, createOpen,
+  layout, onLayoutChange, statsMap,
+  onOpenCreate, onOpenEdit, onCloseModal, onSaved, onNavigate,
+  intentionsCoachmark,
+}: MobileViewProps) {
+  // ── Mobile-only search + filter (parallels JournalIndexPage's pattern) ──
+  // Search matches against intent_label + the intention's own journal_entry
+  // text + heading label. Filter chip narrows by pillar (heading). Both
+  // apply to the source list before eras / timeline render so the user's
+  // filter persists across layout-toggle flips.
+  const [mobileQuery, setMobileQuery] = useState('');
+  const [mobileFilter, setMobileFilter] = useState<MobileFilter>('All');
+
+  const mobileFilteredIntentions = useMemo(() => {
+    return intentions
+      .filter(i => mobileFilter === 'All' || i.heading === mobileFilter)
+      .filter(i => {
+        if (!mobileQuery.trim()) return true;
+        const q = mobileQuery.toLowerCase();
+        const headingLabel = i.heading
+          ? (SKILL_TAGS.find(s => s.value === i.heading)?.label ?? i.heading)
+          : '';
+        return [i.intent_label, i.journal_entry, headingLabel]
+          .some(v => v?.toLowerCase().includes(q));
+      });
+  }, [intentions, mobileFilter, mobileQuery]);
+
+  const mobileEras = computeEras(mobileFilteredIntentions);
+
+  return (
+    <PageContent ready={!loading} loadingMessages={['Loading your intentions...']}>
+    <div className="mx-auto space-y-5 max-w-5xl px-4 sm:px-6 py-6">
+
+      {/* Title row — title left, surface toggle inline-right. Synced with
+          the matching toggle on JournalIndexPage so users can swap views
+          without round-tripping through the bottom nav. */}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <h2
+            className="text-2xl font-display font-bold tracking-tight"
+            style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT, margin: 0 }}
+          >
+            Intentions
+          </h2>
+          <SegmentedToggle<'entries' | 'intentions'>
+            size="compact"
+            options={[
+              { value: 'entries',    label: 'Entries' },
+              { value: 'intentions', label: 'Intentions' },
+            ]}
+            value="intentions"
+            onChange={(v) => { if (v === 'entries') onNavigate('/journal', { replace: true }); }}
+          />
+        </div>
+        <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.30)' }}>
+          Your training focus over time
+        </p>
+      </div>
+
+      {!intentionsEnabled && (
+        <div
+          className="rounded-xl px-4 py-2.5 text-sm"
+          style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.35)' }}
+        >
+          Intentions are currently disabled — viewing history only.
+        </div>
+      )}
+
+      {/* Search + filter chips — parallels JournalIndexPage's mobile pattern.
+          Hidden on the empty-source state (no intentions exist at all) since
+          there's nothing to search. Applies to both Timeline and Eras layouts
+          (eras computed from `mobileFilteredIntentions`). */}
+      {intentions.length > 0 && (
+        <>
+          <input
+            type="search"
+            inputMode="search"
+            enterKeyHint="search"
+            autoCapitalize="none"
+            autoCorrect="off"
+            placeholder="Search…"
+            value={mobileQuery}
+            onChange={e => setMobileQuery(e.target.value)}
+            className="w-full rounded-xl"
+            style={{
+              background: 'var(--j2-surface-3)',
+              border: '1px solid var(--j2-border-1)',
+              padding: '11px 14px',
+              color: 'rgba(255,255,255,0.90)',
+              fontSize: 14,
+              outline: 'none',
+            }}
+          />
+
+          <div
+            className="flex gap-2 overflow-x-auto pb-2"
+            style={{ scrollbarWidth: 'none' }}
+          >
+            {(['All', ...SKILL_TAGS.map(t => t.value)] as MobileFilter[]).map(v => {
+              const label = v === 'All' ? 'All' : (SKILL_TAGS.find(t => t.value === v)?.label ?? v);
+              const active = mobileFilter === v;
+              return (
+                <button
+                  key={v}
+                  onClick={() => setMobileFilter(v)}
+                  className="touch-manipulation"
+                  style={{
+                    flexShrink: 0,
+                    height: 32, padding: '0 14px',
+                    fontSize: 12, fontWeight: 600,
+                    background: active ? 'rgba(196,145,95,0.16)' : 'var(--j2-surface-2)',
+                    border: `1px solid ${active ? COPPER : 'var(--j2-border-1)'}`,
+                    borderRadius: 16,
+                    color: active ? PALE_YELLOW : 'rgba(255,255,255,0.55)',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* Layout toggle — same Timeline ↔ Eras choice the desktop view offers.
+          Hidden on the empty state since there's nothing to switch between. */}
+      {intentions.length > 0 && (
+        <SegmentedToggle<IntentionsLayout>
+          options={[
+            { value: 'timeline', label: 'Timeline' },
+            { value: 'eras',     label: 'Eras' },
+          ]}
+          value={layout}
+          onChange={v => v && onLayoutChange(v)}
+        />
+      )}
+
+      {intentions.length === 0 ? (
+        /* ── Empty state ────────────────────────────────────── */
+        <div
+          className="rounded-xl px-6 py-10 text-center"
+          style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.06)' }}
+        >
+          <p className="text-sm mb-1" style={{ color: 'rgba(255,255,255,0.40)' }}>No intentions set yet.</p>
+          <p className="text-xs mb-5" style={{ color: 'rgba(255,255,255,0.22)' }}>
+            Declare what you're working on to track alignment.
+          </p>
+          <button
+            onClick={onOpenCreate}
+            className="w-full max-w-xs mx-auto text-white font-semibold rounded-xl transition-all touch-manipulation"
+            style={{
+              height: 52,
+              backgroundColor: '#DA7422',
+              boxShadow: '0 2px 12px rgba(218,116,34,0.25)',
+              fontSize: 16,
+            }}
+          >
+            Set Your First Intention
+          </button>
+        </div>
+      ) : mobileFilteredIntentions.length === 0 ? (
+        /* ── No-matches state (filter or search yields zero) ── */
+        <div
+          className="rounded-xl px-6 py-8 text-center"
+          style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}
+        >
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.50)' }}>
+            No intentions match.
+          </p>
+          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.30)' }}>
+            Adjust the search or filter.
+          </p>
+        </div>
+      ) : layout === 'eras' ? (
+        /* ── Eras layout (mobile) ───────────────────────────── */
+        <div className="space-y-3">
+          <p
+            className="j2-serif-italic"
+            style={{ fontSize: 12, color: 'rgba(255,255,255,0.50)', fontStyle: 'italic', marginBottom: 4 }}
+          >
+            Consecutive weeks on the same focus form an{' '}
+            <span style={{ color: COPPER }}>era</span>.
+          </p>
+          {mobileEras.map((era, idx) => (
+            <EraCard
+              key={`${era.firstWk}-${era.focus}-${idx}`}
+              era={era}
+              statsMap={statsMap}
+              compact
+              onOpen={() => onNavigate(`/intentions/${era.weeks[0]!.id}/journal`)}
+            />
+          ))}
+        </div>
+      ) : (
+        /* ── Timeline cards (mobile) ────────────────────────── */
+        <div className="space-y-3">
+          {mobileFilteredIntentions.map(intention => {
+            const headingLabel = intention.heading
+              ? (SKILL_TAGS.find(s => s.value === intention.heading)?.label ?? intention.heading)
+              : null;
+            const topTag        = topTagInRange(sessions, intention.week_start, intention.duration_days);
+            const ambient       = topTag?.label ?? null;
+            const hours         = tagHoursInRange(sessions, intention.week_start, intention.duration_days);
+            const alignment     = computeAlignment(intention, topTag, hours);
+            const categoryColor = intention.intent_category
+              ? (CATEGORY_COLORS[intention.intent_category] ?? 'rgba(255,255,255,0.4)')
+              : null;
+            const hasJournal    = !!intention.journal_entry;
+            const journalSnippet = hasJournal
+              ? intention.journal_entry!.slice(0, 40) + (intention.journal_entry!.length > 40 ? '...' : '')
+              : null;
+
+            return (
+              <div
+                key={intention.id}
+                className="rounded-xl px-4 py-4 space-y-3"
+                style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}
+              >
+                {/* Top row — week date + duration + edit */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.40)' }}>
+                      {formatWeekShort(intention.week_start)}
+                    </span>
+                    <span
+                      className="text-[10px] px-2 py-0.5 rounded-lg font-medium"
+                      style={{ backgroundColor: SURFACE_3, color: COPPER }}
+                    >
+                      {intention.duration_days}d
+                    </span>
+                    {categoryColor && (
+                      <span
+                        className="text-[10px] px-2 py-0.5 rounded-lg font-medium capitalize"
+                        style={{ backgroundColor: `${categoryColor}20`, color: categoryColor }}
+                      >
+                        {intention.intent_category}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => onOpenEdit(intention)}
+                    className="p-1.5 rounded-lg transition-colors touch-manipulation"
+                    style={{ color: 'rgba(255,255,255,0.25)' }}
+                    title="Edit intention"
+                  >
+                    <Pencil size={13} />
+                  </button>
+                </div>
+
+                {/* Heading + label */}
+                <div>
+                  <p className="text-base font-semibold" style={{ color: 'rgba(255,255,255,0.90)' }}>
+                    {headingLabel ?? intention.intent_label}
+                  </p>
+                  {headingLabel && intention.intent_label && intention.intent_label.toLowerCase() !== (headingLabel ?? '').toLowerCase() && (
+                    <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.40)' }}>
+                      {intention.intent_label}
+                    </p>
+                  )}
+                </div>
+
+                {/* Alignment row */}
+                <div className="flex items-center gap-2">
+                  {/* Alignment indicator bar */}
+                  <div
+                    className="rounded-full"
+                    style={{
+                      width: 32,
+                      height: 4,
+                      backgroundColor: alignment.status === 'aligned'  ? 'rgba(82,181,108,0.70)'
+                                     : alignment.status === 'diverged' ? 'rgba(218,116,34,0.50)'
+                                     : 'rgba(255,255,255,0.06)',
+                    }}
+                  />
+                  {ambient ? (
+                    <span className="text-xs font-medium" style={{ color: COPPER }}>
+                      Trained: {ambient}
+                    </span>
+                  ) : (
+                    <span className="text-xs italic" style={{ color: 'rgba(255,255,255,0.20)' }}>
+                      No sessions logged
+                    </span>
+                  )}
+                  {alignment.status !== 'no-data' && (
+                    <span
+                      className="text-[10px]"
+                      style={{
+                        color: alignment.status === 'aligned'
+                          ? 'rgba(82,181,108,0.65)'
+                          : 'rgba(218,116,34,0.50)',
+                      }}
+                    >
+                      {alignment.score !== null ? `${alignment.score}%` : (alignment.status === 'aligned' ? 'Aligned' : 'Diverged')}
+                    </span>
+                  )}
+                </div>
+
+                {/* Journal row */}
+                <button
+                  onClick={() => onNavigate(`/intentions/${intention.id}/journal`)}
+                  className="w-full flex items-center gap-2 pt-2 transition-colors touch-manipulation"
+                  style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}
+                >
+                  {hasJournal ? (
+                    <span className="text-xs truncate" style={{ color: 'rgba(242,228,168,0.45)' }}>
+                      {journalSnippet}
+                    </span>
+                  ) : (
+                    <span className="text-xs font-medium" style={{ color: COPPER }}>
+                      + Write
+                    </span>
+                  )}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Edit / create modal */}
+      {(editTarget || createOpen) && (
+        <SetIntentionModal
+          editIntention={editTarget ?? undefined}
+          onSaved={() => { onSaved(); onCloseModal(); }}
+          onClose={onCloseModal}
+        />
+      )}
+
+      <Coachmark
+        open={intentionsCoachmark.isOpen}
+        onDismiss={intentionsCoachmark.dismiss}
+        eyebrow="◇ Intentions"
+        title="Set what you're working on this week."
+        body="We'll surface it on every session you log — and look back on whether you trained it."
+      />
+    </div>
+    </PageContent>
+  );
+}
