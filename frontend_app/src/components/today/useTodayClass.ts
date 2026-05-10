@@ -1,8 +1,7 @@
 // useTodayClass — the data brain behind <TodayCard>. Watches the user's
 // class schedule, today's logged sessions, and two per-class user answers
-// (planning + attendance) persisted in localStorage. Picks the most
-// relevant class to surface and exposes a state-machine value the UI
-// renders against.
+// (planning + attendance). Picks the most relevant class to surface and
+// exposes a state-machine value the UI renders against.
 //
 // State machine (see TodayState):
 //
@@ -21,20 +20,21 @@
 //                                 (or every today's class was skipped via
 //                                 a "no" answer)
 //
-// Persistence: localStorage, keyed by `(scheduleId, YYYY-MM-DD)`. Two
-// independent flags per class:
+// Persistence: server-side `class_attendance` table (mig 029) via
+// useClassAttendance — two flags per (scheduleId, YYYY-MM-DD):
 //
-//   attendance.{id}.{date}.planning   'yes' | 'no'   pre-class commitment
-//   attendance.{id}.{date}.attended   'yes' | 'no'   post-class outcome
+//   planning   'yes' | 'no'   pre-class commitment
+//   attended   'yes' | 'no'   post-class outcome
+//
+// localStorage stays as a warm cache + offline fallback; useClassAttendance
+// owns that complexity. This hook just calls readFlag / setFlag.
 //
 // "no" on either flag filters the class out of consideration — the hook
 // then picks the next-most-relevant class today, or returns no_class_today.
-//
-// Exposed mutators (`setPlanning` / `setAttended`) write to localStorage
-// AND bump an internal tick so the hook re-evaluates immediately.
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../../lib/api.ts';
+import { useClassAttendance } from '../../hooks/useClassAttendance.ts';
 import type { ClassSchedule, ClassSchedulesResponse, SessionSummary } from '../../types/api.ts';
 
 export type TodayState =
@@ -74,39 +74,14 @@ function todayKey(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-type Flag = 'planning' | 'attended';
-
-function readFlag(scheduleId: string, date: string, flag: Flag): 'yes' | 'no' | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = window.localStorage.getItem(`attendance.${scheduleId}.${date}.${flag}`);
-    return raw === 'yes' || raw === 'no' ? raw : null;
-  } catch {
-    return null;
-  }
-}
-
-function writeFlag(scheduleId: string, date: string, flag: Flag, value: 'yes' | 'no' | null): void {
-  if (typeof window === 'undefined') return;
-  const key = `attendance.${scheduleId}.${date}.${flag}`;
-  try {
-    if (value === null) {
-      window.localStorage.removeItem(key);
-    } else {
-      window.localStorage.setItem(key, value);
-    }
-  } catch {
-    // private mode / quota — silently degrade; the page will simply re-prompt
-  }
-}
-
 export function useTodayClass(sessions: SessionSummary[]): TodayInfo {
   const [schedules, setSchedules] = useState<ClassSchedule[]>([]);
   const [loading, setLoading] = useState(true);
-  // Bumped whenever the user answers a prompt — forces the useMemo below to
-  // re-read localStorage and recompute the state. (localStorage writes don't
-  // trigger React re-renders on their own.)
-  const [tick, setTick] = useState(0);
+  // Server-backed attendance flags. The hook owns the localStorage
+  // warm-cache + the one-time backfill; this surface is just the
+  // readFlag/setFlag pair plus a version counter that ticks on every
+  // cache mutation (used as the useMemo trigger below).
+  const { readFlag, setFlag, version: attendanceVersion } = useClassAttendance();
 
   useEffect(() => {
     let alive = true;
@@ -214,19 +189,19 @@ export function useTodayClass(sessions: SessionSummary[]): TodayInfo {
       minutesSinceEnd: pick.minutesSinceEnd,
       loading,
     };
-  // tick is included so flag mutations re-run this calc.
+  // attendanceVersion ticks on every cache mutation in useClassAttendance,
+  // which is what triggers re-evaluation after a setFlag write.
+  // readFlag itself is a stable module-level function so it's not in deps.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [schedules, sessions, loading, date, tick]);
+  }, [schedules, sessions, loading, date, attendanceVersion]);
 
   const setPlanning = useCallback((value: 'yes' | 'no' | null) => {
-    if (info.schedule) writeFlag(info.schedule.id, date, 'planning', value);
-    setTick(t => t + 1);
-  }, [info.schedule, date]);
+    if (info.schedule) setFlag(info.schedule.id, date, 'planning', value);
+  }, [info.schedule, date, setFlag]);
 
   const setAttended = useCallback((value: 'yes' | 'no' | null) => {
-    if (info.schedule) writeFlag(info.schedule.id, date, 'attended', value);
-    setTick(t => t + 1);
-  }, [info.schedule, date]);
+    if (info.schedule) setFlag(info.schedule.id, date, 'attended', value);
+  }, [info.schedule, date, setFlag]);
 
   return { ...info, setPlanning, setAttended };
 }
