@@ -122,7 +122,7 @@ async function cleanupUser(p: Pool, userId: string) {
   await p.query('DELETE FROM users WHERE id = $1', [userId]);
 }
 
-describeRegressions('Regression tests (real-DB, mig 024 + 025 + 027 + 028)', () => {
+describeRegressions('Regression tests (real-DB, mig 024 + 025 + 027 + 028 + 029)', () => {
   beforeAll(async () => {
     pool = new Pool({
       connectionString: TEST_DB_URL,
@@ -299,6 +299,83 @@ describeRegressions('Regression tests (real-DB, mig 024 + 025 + 027 + 028)', () 
       ).rejects.toThrow(/check constraint/i);
     } finally {
       await pool.query(`DROP TABLE IF EXISTS ${tableName}`);
+    }
+  }, 30_000);
+
+  // ── mig 029 — class_attendance CHECK + UNIQUE constraints ─────────────────
+  it('rejects bad planning/attended values into class_attendance (mig 029)', async () => {
+    const userId = await createTestUser(pool);
+    try {
+      // Need a real schedule_id to satisfy the FK
+      const sched = await pool.query(
+        `INSERT INTO class_schedules (user_id, name, day_of_week, start_time, duration_min)
+         VALUES ($1, 'Test BJJ', 2, '19:00:00', 90) RETURNING id`,
+        [userId],
+      );
+      const scheduleId = sched.rows[0].id;
+
+      // 'maybe' is not in the planning enum
+      await expect(
+        pool.query(
+          `INSERT INTO class_attendance (user_id, schedule_id, date, planning)
+           VALUES ($1, $2, '2026-05-09', 'maybe')`,
+          [userId, scheduleId],
+        ),
+      ).rejects.toThrow(/check constraint/i);
+
+      // 'sometimes' is not in the attended enum
+      await expect(
+        pool.query(
+          `INSERT INTO class_attendance (user_id, schedule_id, date, attended)
+           VALUES ($1, $2, '2026-05-09', 'sometimes')`,
+          [userId, scheduleId],
+        ),
+      ).rejects.toThrow(/check constraint/i);
+    } finally {
+      await cleanupUser(pool, userId);
+    }
+  }, 30_000);
+
+  it('enforces UNIQUE (user_id, schedule_id, date) on class_attendance (mig 029)', async () => {
+    const userId = await createTestUser(pool);
+    try {
+      const sched = await pool.query(
+        `INSERT INTO class_schedules (user_id, name, day_of_week, start_time, duration_min)
+         VALUES ($1, 'Test BJJ', 2, '19:00:00', 90) RETURNING id`,
+        [userId],
+      );
+      const scheduleId = sched.rows[0].id;
+
+      // First insert succeeds
+      await pool.query(
+        `INSERT INTO class_attendance (user_id, schedule_id, date, planning)
+         VALUES ($1, $2, '2026-05-09', 'yes')`,
+        [userId, scheduleId],
+      );
+
+      // Second plain INSERT for the same triple violates the UNIQUE
+      await expect(
+        pool.query(
+          `INSERT INTO class_attendance (user_id, schedule_id, date, attended)
+           VALUES ($1, $2, '2026-05-09', 'yes')`,
+          [userId, scheduleId],
+        ),
+      ).rejects.toThrow(/duplicate key|unique constraint/i);
+
+      // The UPSERT path the controller uses works fine
+      const upserted = await pool.query(
+        `INSERT INTO class_attendance (user_id, schedule_id, date, attended)
+         VALUES ($1, $2, '2026-05-09', 'yes')
+         ON CONFLICT (user_id, schedule_id, date)
+         DO UPDATE SET attended = EXCLUDED.attended, updated_at = NOW()
+         RETURNING planning, attended`,
+        [userId, scheduleId],
+      );
+      // planning is preserved from the original INSERT; attended is set by the UPSERT
+      expect(upserted.rows[0].planning).toBe('yes');
+      expect(upserted.rows[0].attended).toBe('yes');
+    } finally {
+      await cleanupUser(pool, userId);
     }
   }, 30_000);
 });

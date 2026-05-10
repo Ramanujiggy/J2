@@ -1,15 +1,16 @@
 # Nixpacks build config for Railway. Adds ffmpeg to the runtime container so
 # the transcoding worker (src/workers/transcodeWorker.ts) can shell out to it
-# via child_process.spawn. Without this, the worker would fail at boot
-# trying to invoke /usr/bin/ffmpeg.
+# via child_process.spawn. Without this, the worker would log "ffmpeg not
+# available on PATH" at boot and every encode would fail.
 #
-# ffmpeg from Ubuntu 22.04's apt repos (Nixpacks default base) decodes HEVC
-# out of the box, which is what we need for iPhone-recorded camera clips.
+# Why nixPkgs instead of aptPkgs: Nixpacks' aptPkgs runs during the build
+# setup phase but the resulting binary isn't always carried into the runtime
+# stage — Nixpacks splits build-time and runtime images for cache reasons.
+# Nix-installed packages live in /nix/store and are reliably propagated to
+# runtime, so `nixPkgs = ["ffmpeg"]` is the right primitive here.
 #
-# This file is picked up automatically by Nixpacks during the Railway build.
-# No changes to railway.toml needed — that file already configures
-# buildCommand + startCommand; Nixpacks runs the apt install in a setup
-# phase BEFORE the existing buildCommand.
+# ffmpeg from nixpkgs decodes HEVC out of the box, which is what we need
+# for iPhone-recorded camera clips.
 
 [phases.setup]
-aptPkgs = ["ffmpeg"]
+nixPkgs = ["ffmpeg"]
