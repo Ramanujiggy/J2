@@ -4,7 +4,7 @@ import { SKILL_TAGS } from '../../lib/constants.ts';
 import { COPPER, PALE_YELLOW, CARD_BG } from '../../lib/theme.ts';
 
 // Grid and spokes use COPPER (structural element color), not PALE_YELLOW (text color).
-// This matches PillarPrism's spoke color: rgba(196,145,95,...) — same object, different context.
+// Same convention as PrismShape / PrismMotif spokes: rgba(196,145,95,...).
 
 // ─── Pentagon math ────────────────────────────────────────────────────────────
 
@@ -105,7 +105,7 @@ function RadarChart({ normalized, polygonColors }: RadarChartProps) {
       );
     }
 
-    // Vertex dots pop in with stagger — back.out matches PillarPrism dot feel
+    // Vertex dots pop in with stagger — back.out is the brand's dot-arrival feel
     dotRefs.current.forEach((dot, i) => {
       if (!dot) return;
       tl.fromTo(dot,

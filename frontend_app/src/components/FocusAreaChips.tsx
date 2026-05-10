@@ -25,10 +25,11 @@ import { vibrate } from '../lib/haptics.ts';
 import type { ChipSelection } from '../lib/selectionsToDistribution.ts';
 import type { Pillar } from '../types/api.ts';
 
-// Short labels match PillarPrism's `shortLabel` set — chosen so all 5 chips
-// fit in a single row on mobile (~360px viewport) without wrapping. The full
-// pillar names ("Guard Passing", "Dynamic Pins") still drive the aria-label
-// for screen-reader users.
+// Short labels — chosen so all 5 chips fit in a single row on mobile (~360px
+// viewport) without wrapping. The full pillar names ("Guard Passing", "Dynamic
+// Pins") still drive the aria-label for screen-reader users. (Originally
+// mirrored the legacy PillarPrism `shortLabel` set; that component was retired
+// 2026-05-10 but these labels stuck as the canonical short forms.)
 const PILLARS: ReadonlyArray<{ value: Pillar; label: string; fullLabel: string }> = [
   { value: 'standup',     label: 'Stand-up', fullLabel: 'Stand-up'      },
   { value: 'passing',     label: 'Passing',  fullLabel: 'Guard Passing' },

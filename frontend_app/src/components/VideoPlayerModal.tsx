@@ -5,19 +5,24 @@
 //      no network roundtrip when the clip has already been streamed once
 //      on this device (the cloud upload flow writes to OPFS as a side
 //      effect; the playback fallback below also caches on first stream).
-//   2. Miss → fetch a 5-min signed GET URL from the server and stream
-//      directly from R2 by setting <video src={signedUrl}>. Browser
-//      handles range requests + adaptive buffering natively.
+//   2. Miss → mint a 5-min signed GET URL from the server, fetch the bytes
+//      into a Blob, and play from a same-origin blob URL. We deliberately
+//      do NOT hand the signed R2 URL straight to <video src>: iOS Safari
+//      in PWA standalone mode has well-documented quirks with cross-origin
+//      <video> playback (HEAD-probe-before-GET against method-signed URLs,
+//      range edge cases, long-query-string mangling). Routing through
+//      fetch() + blob URL sidesteps all of them because the media element
+//      only ever sees a same-origin blob: URL. R2 egress is free, so the
+//      cost is ~1-3s before first play for typical clips, in exchange for
+//      a player that works everywhere.
 //
-// "video unavailable" only fires now on a genuine error path — the encode
-// failed, the network is down, or the user is signed out. The pre-mig-028
-// case ("recorded on another device") no longer applies because cloud is
-// the canonical source.
+// Side benefit: the fetched Blob is written to OPFS for next time, so
+// cross-device replays warm up the cache automatically.
 
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { CARD_BG, COPPER, PALE_YELLOW, GLOW_SOFT, SURFACE_2 } from '../lib/theme.ts';
-import { loadVideo } from '../lib/videoStore.ts';
+import { loadVideo, saveVideo } from '../lib/videoStore.ts';
 import { formatDurationMMSS } from '../lib/videoUtils.ts';
 import { api } from '../lib/api.ts';
 import type { UserTag } from '../types/api.ts';
@@ -39,10 +44,12 @@ export default function VideoPlayerModal({ tag, onClose }: Props) {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [missing, setMissing] = useState(false);
+  const [downloadPercent, setDownloadPercent] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     let urlToRevoke: string | null = null;
+    const abortController = new AbortController();
 
     (async () => {
       // Step 1: try local OPFS cache. Fastest path — works offline and
@@ -74,13 +81,43 @@ export default function VideoPlayerModal({ tag, onClose }: Props) {
         if (cancelled) return;
 
         if (res.status === 'ready' && res.url) {
-          // Use the signed URL directly as the <video src>. Browser
-          // streams via range requests; no need to download to a Blob first.
-          // Don't track this URL in urlToRevoke — only object-URLs need
-          // revoking; signed URLs are just regular HTTP and the browser
-          // garbage-collects them.
-          setVideoUrl(res.url);
+          // Fetch the bytes into a Blob. We stream the response so the UI
+          // can show a percent — R2 sets Content-Length on signed GETs so
+          // the denominator is reliable.
+          const fetched = await fetch(res.url, { signal: abortController.signal });
+          if (!fetched.ok) {
+            throw new Error(`R2 fetch failed: HTTP ${fetched.status}`);
+          }
+
+          const total = Number(fetched.headers.get('Content-Length') || 0);
+          const reader = fetched.body?.getReader();
+          if (!reader) throw new Error('R2 fetch returned no readable body.');
+
+          const chunks: Uint8Array[] = [];
+          let received = 0;
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            chunks.push(value);
+            received += value.byteLength;
+            if (!cancelled && total > 0) {
+              setDownloadPercent(Math.round((received / total) * 100));
+            }
+          }
+          if (cancelled) return;
+
+          const blob = new Blob(chunks as BlobPart[], { type: 'video/mp4' });
+          const url = URL.createObjectURL(blob);
+          urlToRevoke = url;
+          setVideoUrl(url);
           setLoading(false);
+
+          // Backfill the local cache so the next playback (this device or
+          // any other device that opens the same tag) is instant. Best
+          // effort — failures aren't fatal, cloud is still canonical.
+          saveVideo(tag.id, blob).catch(err => {
+            console.warn(`OPFS cache backfill failed for tag ${tag.id}:`, err);
+          });
         } else {
           // status='processing' / 'failed' / null — show the unavailable
           // surface with the appropriate message. The Pokedex polling
@@ -89,7 +126,9 @@ export default function VideoPlayerModal({ tag, onClose }: Props) {
           setMissing(true);
           setLoading(false);
         }
-      } catch {
+      } catch (err) {
+        // AbortError is the user closing the modal mid-download. Silent.
+        if (err instanceof DOMException && err.name === 'AbortError') return;
         if (!cancelled) {
           setMissing(true);
           setLoading(false);
@@ -99,6 +138,7 @@ export default function VideoPlayerModal({ tag, onClose }: Props) {
 
     return () => {
       cancelled = true;
+      abortController.abort();
       if (urlToRevoke) URL.revokeObjectURL(urlToRevoke);
     };
   }, [tag.id]);
@@ -166,7 +206,9 @@ export default function VideoPlayerModal({ tag, onClose }: Props) {
           }}
         >
           {loading && (
-            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.40)' }}>Loading…</p>
+            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.40)' }}>
+              {downloadPercent != null ? `Downloading ${downloadPercent}%…` : 'Loading…'}
+            </p>
           )}
           {!loading && missing && (
             <div className="flex flex-col items-center gap-2 px-4 text-center">

@@ -1,6 +1,8 @@
 // Read-only mini Prism — 5-vertex pentagon that highlights a single pillar.
 // Used by the desktop Journal detail view and (planned) the Intentions hero.
-// If you need the interactive input version, use PillarPrism instead.
+// For an interactive multi-vertex selection surface see `FocusAreaChips` +
+// `PrismShape` (the post-Sprint-6 pattern). The legacy interactive `PillarPrism`
+// was retired in the 2026-05-10 cleanup pass.
 
 import { SKILL_TAGS } from '../../lib/constants.ts';
 import { PALE_YELLOW, COPPER } from '../../lib/theme.ts';

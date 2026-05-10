@@ -181,7 +181,7 @@ export default function PathAheadPage() {
     });
   }, [today]);
 
-  // Mon–Sun of the current ISO week — used for weekStats (StatStrip always shows current week)
+  // Mon–Sun of the current ISO week — used for weekStats (HomeHero always shows current week)
   const weekDays = useMemo(() => {
     const monday = new Date(today);
     const dow = monday.getDay(); // 0 = Sun

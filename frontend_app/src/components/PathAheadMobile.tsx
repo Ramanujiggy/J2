@@ -1,7 +1,8 @@
 // PathAheadMobile — the mobile (single-column) layout for PathAheadPage.
 //
-// Structure top-to-bottom: HomeHeader → StatStrip → telemetry panel
-// (collapsible, gated by telemetryOpen) → IntentionHeroCard → main content
+// Structure top-to-bottom: HomeHero (greeting + stats, formerly two separate
+// components) → telemetry panel (collapsible, gated by telemetryOpen) →
+// IntentionHeroCard → main content
 // (FirstVisitCard if empty / WeekSection + CTA + heatmap otherwise) →
 // modals + RepRouletteFab.
 //
