@@ -1,4 +1,7 @@
-import Papa from 'papaparse';
+// papaparse is dynamic-imported at the export call site so it doesn't ship
+// in the ProfilePage chunk for users who never click Export. ~15KB gzipped
+// saved on first paint of /profile. See the 2026-05-09 perf audit Tier 2.
+
 import type { SessionSummary, Intention } from '../types/api.ts';
 import { SKILL_TAGS } from './constants.ts';
 import { formatGiNogi } from './sessionUtils.ts';
@@ -36,7 +39,8 @@ function downloadCsv(csv: string, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
-export function exportSessionsCsv(sessions: SessionSummary[]): void {
+export async function exportSessionsCsv(sessions: SessionSummary[]): Promise<void> {
+  const Papa = (await import('papaparse')).default;
   const sorted = [...sessions].sort((a, b) => a.date.localeCompare(b.date));
 
   const rows = sorted.map(s => ({
@@ -58,7 +62,8 @@ export function exportSessionsCsv(sessions: SessionSummary[]): void {
   downloadCsv(csv, `journada-sessions-${new Date().toISOString().slice(0, 10)}.csv`);
 }
 
-export function exportIntentionsCsv(intentions: Intention[]): void {
+export async function exportIntentionsCsv(intentions: Intention[]): Promise<void> {
+  const Papa = (await import('papaparse')).default;
   const sorted = [...intentions].sort((a, b) => a.week_start.localeCompare(b.week_start));
 
   const rows = sorted.map(i => ({

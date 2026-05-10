@@ -14,7 +14,7 @@ import { useActiveIntention } from '../context/ActiveIntentionContext.tsx';
 import { useCoachmark } from '../hooks/useCoachmark.ts';
 import { toDateString, addDays } from '../lib/sessionUtils.ts';
 import { topTagInRange, computeAlignment, tagHoursInRange } from '../lib/analyticsUtils.ts';
-import type { Intention, SessionSummary, IntentionsResponse, SessionsResponse } from '../types/api.ts';
+import type { Intention, SessionSummary, SessionsResponse } from '../types/api.ts';
 import {
   type IntentionsLayout, type IntentionStats,
 } from '../components/intentions/intentionsTypes.ts';
@@ -28,12 +28,14 @@ export default function IntentionsPage() {
   const isDesktop = useIsDesktop();
   const { intentionsEnabled } = useProfile();
   const intentionsCoachmark = useCoachmark('intentions');
-  const { refresh: refreshRailIntention } = useActiveIntention();
-  const [intentions,  setIntentions]  = useState<Intention[]>([]);
+  // Intentions live in ActiveIntentionContext — single fetch shared with the
+  // rail + every other page. Per the 2026-05-09 perf audit Tier 2.
+  const { intentions, loading: intentionsLoading, refresh: refreshRailIntention } = useActiveIntention();
   const [sessions,    setSessions]    = useState<SessionSummary[]>([]);
-  const [loading,     setLoading]     = useState(true);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
   const [editTarget,  setEditTarget]  = useState<Intention | null>(null);
   const [createOpen,  setCreateOpen]  = useState(false);
+  const loading = intentionsLoading || sessionsLoading;
 
   // Layout choice — shared between desktop and mobile so the user's preference
   // sticks if they resize across the breakpoint mid-session.
@@ -48,22 +50,19 @@ export default function IntentionsPage() {
     }
   }, [layout]);
 
-  const fetchAll = useCallback(async () => {
+  // Sessions only — intentions come from the context above.
+  const fetchSessions = useCallback(async () => {
     try {
-      const [intRes, sesRes] = await Promise.all([
-        api.get<IntentionsResponse>('/api/intentions'),
-        api.get<SessionsResponse>('/api/sessions'),
-      ]);
-      setIntentions(intRes.intentions ?? []);
+      const sesRes = await api.get<SessionsResponse>('/api/sessions');
       setSessions(sesRes.sessions ?? []);
     } catch {
       // silent
     } finally {
-      setLoading(false);
+      setSessionsLoading(false);
     }
   }, []);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => { fetchSessions(); }, [fetchSessions]);
 
   // Per-intention stats — sessionCount, alignment %, and the hours fields that
   // back the era-level hours-weighted alignment. Computed once at the page
@@ -91,7 +90,9 @@ export default function IntentionsPage() {
   const onOpenCreate    = useCallback(() => setCreateOpen(true), []);
   const onOpenEdit      = useCallback((i: Intention) => setEditTarget(i), []);
   const onCloseModal    = useCallback(() => { setCreateOpen(false); setEditTarget(null); }, []);
-  const onSaved         = useCallback(() => { fetchAll(); refreshRailIntention(); }, [fetchAll, refreshRailIntention]);
+  // After a save: refresh intentions via context (which propagates to the
+  // rail + this page), and refetch sessions to pick up any new ones.
+  const onSaved         = useCallback(() => { void refreshRailIntention(); fetchSessions(); }, [fetchSessions, refreshRailIntention]);
   const onNavigate      = useCallback((path: string, opts?: { replace?: boolean }) => {
     navigate(path, opts);
   }, [navigate]);

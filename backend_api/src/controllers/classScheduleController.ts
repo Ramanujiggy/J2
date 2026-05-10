@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { createHash } from 'node:crypto';
 import {
     listSchedulesForUser,
     createSchedule,
@@ -46,6 +47,23 @@ export const listClassSchedules = async (req: Request, res: Response): Promise<v
         const userId = req.user?.id;
         if (!userId) { res.status(401).json({ message: 'Unauthorized.' }); return; }
         const schedules = await listSchedulesForUser(userId);
+
+        // Weak ETag over (id, name, day_of_week, start_time, duration_min, gi_nogi).
+        // Schedules are nearly write-once after onboarding — most users tweak
+        // them rarely. Hashing the displayed fields invalidates on every
+        // user-visible change. Cheap to compute (typically < 10 schedules).
+        const etag = 'W/"' + createHash('sha1')
+            .update(schedules.map(s => `${s.id}:${s.name}:${s.day_of_week}:${s.start_time}:${s.duration_min}:${s.gi_nogi ?? ''}`).join('|'))
+            .digest('base64')
+            .slice(0, 20) + '"';
+
+        if (req.headers['if-none-match'] === etag) {
+            res.status(304).end();
+            return;
+        }
+
+        res.setHeader('ETag', etag);
+        res.setHeader('Cache-Control', 'private, max-age=300');
         res.json({ schedules });
     } catch (err) {
         console.error('Error listing class schedules:', err);

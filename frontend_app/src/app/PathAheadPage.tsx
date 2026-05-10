@@ -12,7 +12,7 @@ import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock.ts';
 import { SKILL_TAGS, MONTH_NAMES, EIGHT_GATES } from '../lib/constants.ts';
-import type { SessionSummary, Intention, IntentionsResponse, SessionsResponse } from '../types/api.ts';
+import type { SessionSummary, Intention, SessionsResponse } from '../types/api.ts';
 import { toast } from '../hooks/use-toast.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import { useActiveIntention } from '../context/ActiveIntentionContext.tsx';
@@ -35,10 +35,13 @@ interface DeleteResponse      { message: string }
 
 export default function PathAheadPage() {
   const { name, intentionsEnabled } = useProfile();
-  const { refresh: refreshRailIntention } = useActiveIntention();
+  // Intentions live in ActiveIntentionContext — single fetch shared with the
+  // rail + every other page that consumes it. Per the 2026-05-09 perf audit
+  // Tier 2: kills the duplicate /api/intentions GET that fired on every
+  // navigation. Mutations call `refreshRailIntention()` to invalidate.
+  const { intentions, refresh: refreshRailIntention } = useActiveIntention();
   const isDesktop = useIsDesktop();
   const [sessions,   setSessions]   = useState<SessionSummary[]>([]);
-  const [intentions, setIntentions] = useState<Intention[]>([]);
   const [loading,    setLoading]    = useState(true);
 
   // Week scroll ref
@@ -97,12 +100,9 @@ export default function PathAheadPage() {
       const fromDate = new Date(new Date().getFullYear() - 1, 0, 1);
       const from = fromDate.toISOString().slice(0, 10);
       const to   = new Date(Date.now() + 5 * 86_400_000).toISOString().slice(0, 10);
-      const [sessRes, intRes] = await Promise.all([
-        api.get<SessionsResponse>(`/api/sessions?from=${from}&to=${to}`),
-        api.get<IntentionsResponse>('/api/intentions'),
-      ]);
+      const sessRes = await api.get<SessionsResponse>(`/api/sessions?from=${from}&to=${to}`);
       setSessions(sessRes.sessions ?? []);
-      setIntentions(intRes.intentions ?? []);
+      // Intentions come from ActiveIntentionContext (no local fetch needed).
     } catch (err) {
       if (!(err instanceof ApiError && err.status === 401)) {
         console.error('Failed to load data', err);
@@ -324,8 +324,9 @@ export default function PathAheadPage() {
     if (!activeIntention) return;
     try {
       await api.delete<DeleteResponse>(`/api/intentions/${activeIntention.id}`);
-      setIntentions(prev => prev.filter(i => i.id !== activeIntention.id));
-      refreshRailIntention();
+      // Context refresh re-fetches /api/intentions, which propagates to every
+      // page that reads from useActiveIntention() (rail, IntentionsPage, etc).
+      await refreshRailIntention();
     } catch {
       // silent — user can retry
     }

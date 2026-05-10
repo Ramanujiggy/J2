@@ -358,9 +358,11 @@ export default function ProfilePage() {
                     style={inputStyle}
                     {...inputFocusProps}
                   />
-                  <p className="mt-1 text-xs text-white/30">
-                    Add <code className="text-white/40">VITE_GOOGLE_MAPS_API_KEY</code> to .env for address autocomplete.
-                  </p>
+                  {import.meta.env.DEV && (
+                    <p className="mt-1 text-xs text-white/30">
+                      Add <code className="text-white/40">VITE_GOOGLE_MAPS_API_KEY</code> to .env for address autocomplete.
+                    </p>
+                  )}
                 </>
               )}
             </div>
@@ -570,7 +572,7 @@ export default function ProfilePage() {
                 setExporting(true);
                 try {
                   const data = await api.get<{ sessions: SessionSummary[] }>('/api/sessions');
-                  exportSessionsCsv(data.sessions ?? []);
+                  await exportSessionsCsv(data.sessions ?? []);
                   toast({ variant: 'success', title: 'Sessions exported.' });
                 } catch {
                   toast({ variant: 'destructive', title: 'Export failed.', description: 'Please try again.' });
@@ -600,7 +602,7 @@ export default function ProfilePage() {
                   setExporting(true);
                   try {
                     const data = await api.get<{ intentions: Intention[] }>('/api/intentions');
-                    exportIntentionsCsv(data.intentions ?? []);
+                    await exportIntentionsCsv(data.intentions ?? []);
                     toast({ variant: 'success', title: 'Intentions exported.' });
                   } catch {
                     toast({ variant: 'destructive', title: 'Export failed.', description: 'Please try again.' });

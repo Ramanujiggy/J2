@@ -1,4 +1,7 @@
-import Papa from 'papaparse';
+// papaparse is dynamic-imported inside parseCSV at the call site so it
+// doesn't ship in the ProfilePage chunk for users who never click Import.
+// See the 2026-05-09 perf audit Tier 2.
+
 import { SKILL_TAGS } from './constants.ts';
 
 export type GiNogi = 'gi' | 'no_gi';
@@ -136,13 +139,14 @@ export function classifyHeader(h: string): ColKey {
 
 // ── Main parser ───────────────────────────────────────────────────────────────
 
-export function parseCSV(
+export async function parseCSV(
   file: File,
   existingDates: Set<string>,
   onDone: (rows: ParsedRow[]) => void,
   onError: (msg: string) => void,
   dateFormat: DateFormat = 'auto',
-) {
+): Promise<void> {
+  const Papa = (await import('papaparse')).default;
   Papa.parse<Record<string, string>>(file, {
     header: true,
     skipEmptyLines: true,

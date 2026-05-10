@@ -17,10 +17,11 @@ import { api, ApiError } from '../lib/api.ts';
 import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
+import { useActiveIntention } from '../context/ActiveIntentionContext.tsx';
 import PageContent from '../components/PageContent.tsx';
 import { PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
 import { type TimeWindow } from '../lib/analyticsUtils.ts';
-import type { SessionSummary, Intention, SessionsResponse, IntentionsResponse } from '../types/api.ts';
+import type { SessionSummary, SessionsResponse } from '../types/api.ts';
 import AtlasEmptyHero from '../components/empty/AtlasEmptyHero.tsx';
 import AtlasSegmentedToggle from '../components/atlas/AtlasSegmentedToggle.tsx';
 import Last30IntensityCard from '../components/atlas/Last30IntensityCard.tsx';
@@ -61,8 +62,11 @@ export default function AtlasPage() {
   useEffect(() => { localStorage.setItem(LS_TAB_KEY, tab); }, [tab]);
 
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
-  const [intentions, setIntentions] = useState<Intention[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Intentions live in ActiveIntentionContext — single fetch shared with the
+  // rail + every other page. Per the 2026-05-09 perf audit Tier 2.
+  const { intentions, loading: intentionsLoading } = useActiveIntention();
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+  const loading = sessionsLoading || intentionsLoading;
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   // Calendar year navigation (tab-local state)
@@ -87,23 +91,21 @@ export default function AtlasPage() {
   const [selectedTag, setSelectedTag] = useState<string>(SKILL_TAGS[0]!.value);
 
   // ── Fetch: Atlas is THE surface for looking back across years, so we pull
-  //          the full session history (no `from` filter). Backend has no
-  //          row cap — user sees every year they've logged, correctly. ──
+  //          the full session history (no `from` filter). Backend default
+  //          LIMIT is 1000 rows after the 2026-05-09 perf audit; clients
+  //          with deeper history can request more via ?limit=N. Intentions
+  //          come from ActiveIntentionContext (no local fetch needed). ──
   const fetchAll = useCallback(async () => {
     try {
       setFetchError(null);
-      const [sesRes, intRes] = await Promise.all([
-        api.get<SessionsResponse>('/api/sessions'),
-        api.get<IntentionsResponse>('/api/intentions'),
-      ]);
+      const sesRes = await api.get<SessionsResponse>('/api/sessions');
       setSessions(sesRes.sessions ?? []);
-      setIntentions(intRes.intentions ?? []);
     } catch (err) {
       if (!(err instanceof ApiError && err.status === 401)) {
         setFetchError('Could not load data. Please refresh.');
       }
     } finally {
-      setLoading(false);
+      setSessionsLoading(false);
     }
   }, []);
 

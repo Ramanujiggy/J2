@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { createHash } from 'node:crypto';
 import pool from '../config/db.js';
 import * as intentionModel from '../models/intentionModel.js';
 
@@ -100,6 +101,24 @@ export const getIntentions = async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
     const intentions = await intentionModel.getAllIntentions(userId);
+
+    // Weak ETag over (id, week_start, journal_entry-presence). The journal_entry
+    // is the most-mutated field; intent_label / heading / duration are write-once
+    // for the lifetime of an intention. Hashing the journal-entry presence flag
+    // (rather than full text) keeps the hash cheap while still invalidating when
+    // a user edits their journal — which is the only realistic mutation path.
+    const etag = 'W/"' + createHash('sha1')
+      .update(intentions.map(i => `${i.id}:${i.week_start}:${i.journal_entry ? '1' : '0'}`).join('|'))
+      .digest('base64')
+      .slice(0, 20) + '"';
+
+    if (req.headers['if-none-match'] === etag) {
+      res.status(304).end();
+      return;
+    }
+
+    res.setHeader('ETag', etag);
+    res.setHeader('Cache-Control', 'private, max-age=60');
     res.status(200).json({ intentions });
   } catch (error) {
     console.error('❌ Error fetching intentions:', error);

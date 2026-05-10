@@ -12,8 +12,7 @@
 // Extracted from PathAheadPage.tsx during the 2026-05-09 refactor pass.
 
 import { useNavigate } from 'react-router-dom';
-import HomeHeader from './HomeHeader.tsx';
-import StatStrip from './StatStrip.tsx';
+import HomeHero from './HomeHero.tsx';
 import IntentionHeroCard from './IntentionHeroCard.tsx';
 import FirstVisitCard from './FirstVisitCard.tsx';
 import RepRouletteFab from './RepRouletteFab.tsx';
@@ -121,11 +120,13 @@ export default function PathAheadMobile({
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 space-y-4">
       {styleBlock}
 
-      {/* ── A. Contextual Header ──────────────────────────────────── */}
-      <HomeHeader name={name} />
-
-      {/* ── B. Stat Strip ────────────────────────────────────────── */}
-      <StatStrip
+      {/* ── A. Hero — greeting + streak + this-week numerals ───────
+            No card chrome. Streak number is the visual anchor in
+            Cormorant; tap cycles through views (daily / weekly /
+            sessions / readiness / rustiest / spike). Outer tap
+            expands the telemetry panel below. */}
+      <HomeHero
+        name={name}
         streak={streak}
         longestStreak={longestStreak}
         weekSessionCount={weekSessionCount}

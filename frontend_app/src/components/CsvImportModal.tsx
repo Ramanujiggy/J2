@@ -63,7 +63,11 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
         setParseError('Could not load .numbers file parser.');
       }
     } else {
-      parseCSV(file, existingDates, onDone, onErr, fmt);
+      try {
+        await parseCSV(file, existingDates, onDone, onErr, fmt);
+      } catch {
+        setParseError('Could not load CSV parser.');
+      }
     }
   }, [existingDates, dateFormat]);
 
