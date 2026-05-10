@@ -1,7 +1,7 @@
 // Compact heatmap — vertical-scroll layout (weeks as rows, days as columns).
 // Purely visual: no modals, no tooltips, no click handlers.
 
-import { useMemo, useRef, useEffect } from 'react';
+import { memo, useMemo, useRef, useEffect } from 'react';
 import { useCountUp } from '../hooks/useCountUp.ts';
 import { localDateKey, buildDayMap, cellColor, computeStats, EMPTY_DAY } from './TrainingHeatmap.tsx';
 import type { DayData } from './TrainingHeatmap.tsx';
@@ -87,7 +87,7 @@ interface CompactHeatmapProps {
   loading?: boolean;
 }
 
-export default function CompactHeatmap({ sessions, year, loading = false }: CompactHeatmapProps) {
+function CompactHeatmap({ sessions, year, loading = false }: CompactHeatmapProps) {
   if (loading) return <CompactSkeleton />;
 
   const dayMap = useMemo(() => buildDayMap(sessions), [sessions]);
@@ -274,3 +274,6 @@ export default function CompactHeatmap({ sessions, year, loading = false }: Comp
     </div>
   );
 }
+
+// memo'd default export. Per the 2026-05-09 perf audit Tier 3.
+export default memo(CompactHeatmap);

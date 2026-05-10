@@ -7,14 +7,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../lib/api.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import { useActiveIntention } from '../context/ActiveIntentionContext.tsx';
+import { useSessions } from '../context/SessionsContext.tsx';
 import { useCoachmark } from '../hooks/useCoachmark.ts';
 import { toDateString, addDays } from '../lib/sessionUtils.ts';
 import { topTagInRange, computeAlignment, tagHoursInRange } from '../lib/analyticsUtils.ts';
-import type { Intention, SessionSummary, SessionsResponse } from '../types/api.ts';
+import type { Intention } from '../types/api.ts';
 import {
   type IntentionsLayout, type IntentionStats,
 } from '../components/intentions/intentionsTypes.ts';
@@ -31,8 +31,9 @@ export default function IntentionsPage() {
   // Intentions live in ActiveIntentionContext — single fetch shared with the
   // rail + every other page. Per the 2026-05-09 perf audit Tier 2.
   const { intentions, loading: intentionsLoading, refresh: refreshRailIntention } = useActiveIntention();
-  const [sessions,    setSessions]    = useState<SessionSummary[]>([]);
-  const [sessionsLoading, setSessionsLoading] = useState(true);
+  // Sessions come from SessionsContext now (perf Tier 3 #8) — was an
+  // independent /api/sessions fetch on this page.
+  const { sessions, loading: sessionsLoading, refresh: fetchSessions } = useSessions();
   const [editTarget,  setEditTarget]  = useState<Intention | null>(null);
   const [createOpen,  setCreateOpen]  = useState(false);
   const loading = intentionsLoading || sessionsLoading;
@@ -49,20 +50,6 @@ export default function IntentionsPage() {
       window.localStorage.setItem(LAYOUT_STORAGE_KEY, layout);
     }
   }, [layout]);
-
-  // Sessions only — intentions come from the context above.
-  const fetchSessions = useCallback(async () => {
-    try {
-      const sesRes = await api.get<SessionsResponse>('/api/sessions');
-      setSessions(sesRes.sessions ?? []);
-    } catch {
-      // silent
-    } finally {
-      setSessionsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchSessions(); }, [fetchSessions]);
 
   // Per-intention stats — sessionCount, alignment %, and the hours fields that
   // back the era-level hours-weighted alignment. Computed once at the page

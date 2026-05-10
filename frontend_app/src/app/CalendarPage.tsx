@@ -42,6 +42,12 @@ export default function CalendarPage() {
     setDisplayYear(y => y + dir);
   };
 
+  const currentYear = new Date().getFullYear();
+  // Stable callbacks for TrainingHeatmap/CalendarHeatmap (per Tier 3 perf audit:
+  // inline arrow props defeat React.memo on the heatmap children).
+  const handleGoToToday  = useCallback(() => setDisplayYear(currentYear), [currentYear]);
+  const handleLogSession = useCallback((dateKey: string) => setLogDate(dateKey), []);
+
   const fetchAll = useCallback(async () => {
     try {
       setLoading(true);
@@ -66,8 +72,6 @@ export default function CalendarPage() {
 
   const pendingSessions = usePendingSessions();
   const allSessions = useMemo(() => [...sessions, ...pendingSessions], [sessions, pendingSessions]);
-
-  const currentYear = new Date().getFullYear();
 
   return (
     <>
@@ -208,7 +212,7 @@ export default function CalendarPage() {
                 <CalendarHeatmap
                   sessions={allSessions}
                   year={displayYear}
-                  onLogSession={(dateKey) => setLogDate(dateKey)}
+                  onLogSession={handleLogSession}
                 />
               ) : (
                 <CompactHeatmap
@@ -223,8 +227,8 @@ export default function CalendarPage() {
                 intentions={intentions}
                 loading={loading}
                 onSessionUpdated={fetchAll}
-                onGoToToday={() => setDisplayYear(currentYear)}
-                onLogSession={(dateKey) => setLogDate(dateKey)}
+                onGoToToday={handleGoToToday}
+                onLogSession={handleLogSession}
                 year={displayYear}
               />
             )}

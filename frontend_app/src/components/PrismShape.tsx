@@ -5,6 +5,7 @@
 // No animations, no overlay, no auto-dismiss. For the animated post-save
 // receipt see PrismReceipt.
 
+import { memo } from 'react';
 import { COPPER, PALE_YELLOW } from '../lib/theme.ts';
 import type { ChipSelection } from '../lib/selectionsToDistribution.ts';
 import type { Pillar } from '../types/api.ts';
@@ -42,7 +43,7 @@ interface Props {
   showLabels?: boolean;
 }
 
-export default function PrismShape({ selections, size = 200, showLabels = true }: Props) {
+function PrismShape({ selections, size = 200, showLabels = true }: Props) {
   const activeVertices = VERTICES.filter(v => selections.some(s => s.pillar === v.value));
   const stateOf = (pillar: Pillar): ChipSelection | undefined =>
     selections.find(s => s.pillar === pillar);
@@ -148,3 +149,6 @@ export default function PrismShape({ selections, size = 200, showLabels = true }
     </svg>
   );
 }
+
+// memo'd default export. Per the 2026-05-09 perf audit Tier 3.
+export default memo(PrismShape);

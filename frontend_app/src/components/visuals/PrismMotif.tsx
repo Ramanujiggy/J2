@@ -18,7 +18,7 @@
 // three opacity layers breathe in lockstep on a 12s clock so the symbol
 // reads as one object, not three layered effects.
 
-import { useId, useSyncExternalStore } from 'react';
+import { memo, useId, useSyncExternalStore } from 'react';
 import { COPPER, PALE_YELLOW } from '../../lib/theme.ts';
 
 const RM_MQ = '(prefers-reduced-motion: reduce)';
@@ -92,7 +92,7 @@ function resolveColors(color: PrismColor): { stroke: string; vertex: string; hal
   return { stroke: PALE_YELLOW, vertex: PALE_YELLOW, halo: COPPER };
 }
 
-export default function PrismMotif({
+function PrismMotif({
   size = 320,
   intensity = 'medium',
   breathRate = 'slow',
@@ -243,3 +243,6 @@ export default function PrismMotif({
     </svg>
   );
 }
+
+// memo'd default export. Per the 2026-05-09 perf audit Tier 3.
+export default memo(PrismMotif);

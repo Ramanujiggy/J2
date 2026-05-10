@@ -4,6 +4,7 @@
 //
 // Extracted from AtlasPage.tsx during the 2026-05-09 refactor pass.
 
+import { useCallback } from 'react';
 import TrainingHeatmap from '../TrainingHeatmap.tsx';
 import ErrorBoundary from '../ErrorBoundary.tsx';
 import { FONT_EDITORIAL, PALE_YELLOW } from '../../lib/theme.ts';
@@ -25,6 +26,9 @@ export default function AtlasCalendarPanel({
   // TrainingHeatmap wants a CalendarIntention subset; our Intention type
   // already contains the required fields (structurally assignable).
   const calIntentions: CalendarIntention[] = intentions;
+
+  // Stable callback for the memoized TrainingHeatmap.
+  const handleGoToToday = useCallback(() => onYearChange(currentYear), [onYearChange, currentYear]);
 
   return (
     <div>
@@ -89,7 +93,7 @@ export default function AtlasCalendarPanel({
           intentions={calIntentions}
           loading={loading}
           onSessionUpdated={onRefetch}
-          onGoToToday={() => onYearChange(currentYear)}
+          onGoToToday={handleGoToToday}
           year={year}
         />
       </ErrorBoundary>

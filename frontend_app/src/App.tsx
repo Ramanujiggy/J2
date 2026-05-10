@@ -4,6 +4,7 @@ import { useAuth } from './hooks/useAuth.ts';
 import { useIsDesktop } from './hooks/useIsDesktop.ts';
 import { ProfileProvider, useProfile } from './context/ProfileContext.tsx';
 import { ActiveIntentionProvider } from './context/ActiveIntentionContext.tsx';
+import { SessionsProvider } from './context/SessionsContext.tsx';
 import AppShell from './components/AppShell.tsx';
 import BeltLoader from './components/BeltLoader.tsx';
 
@@ -82,9 +83,11 @@ function ProtectedShell({ children }: { children: React.ReactNode }) {
   return (
     <ProfileProvider>
       <ActiveIntentionProvider>
-        <OnboardingGate>
-          <AppShell>{children}</AppShell>
-        </OnboardingGate>
+        <SessionsProvider>
+          <OnboardingGate>
+            <AppShell>{children}</AppShell>
+          </OnboardingGate>
+        </SessionsProvider>
       </ActiveIntentionProvider>
     </ProfileProvider>
   );

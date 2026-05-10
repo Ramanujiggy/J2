@@ -20,7 +20,7 @@
 //   • 3-stage mount animation: hairlines first, wedges sweep with index
 //     stagger, dots scale in last. No spinner needed.
 
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import type { SessionSummary, Intention } from '../../types/api.ts';
 import { SKILL_COLORS } from './RadarChart.tsx';
 import { toDateString } from '../../lib/sessionUtils.ts';
@@ -46,7 +46,7 @@ function weekOfYear(dateStr: string, yearStart: Date): number {
   return Math.floor(t / (7 * 86_400_000));
 }
 
-export default function AnnualRadial({
+function AnnualRadial({
   sessions,
   intentions,
   year,
@@ -389,3 +389,9 @@ export default function AnnualRadial({
     </svg>
   );
 }
+
+// memo'd default export — guards against re-renders from parent state changes
+// when sessions/intentions/year/size haven't changed. (Per the 2026-05-09 perf
+// audit Tier 3.) Once SessionsContext lands, the sessions array reference will
+// be stable across navigations, so this memo will start to actually fire.
+export default memo(AnnualRadial);

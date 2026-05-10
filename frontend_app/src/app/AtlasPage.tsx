@@ -11,17 +11,15 @@
 //
 // Mobile visitors are redirected to /calendar — Atlas is strictly a desktop surface.
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, ApiError } from '../lib/api.ts';
-import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import { useActiveIntention } from '../context/ActiveIntentionContext.tsx';
+import { useSessions } from '../context/SessionsContext.tsx';
 import PageContent from '../components/PageContent.tsx';
 import { PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
 import { type TimeWindow } from '../lib/analyticsUtils.ts';
-import type { SessionSummary, SessionsResponse } from '../types/api.ts';
 import AtlasEmptyHero from '../components/empty/AtlasEmptyHero.tsx';
 import AtlasSegmentedToggle from '../components/atlas/AtlasSegmentedToggle.tsx';
 import Last30IntensityCard from '../components/atlas/Last30IntensityCard.tsx';
@@ -61,13 +59,13 @@ export default function AtlasPage() {
   });
   useEffect(() => { localStorage.setItem(LS_TAB_KEY, tab); }, [tab]);
 
-  const [sessions, setSessions] = useState<SessionSummary[]>([]);
-  // Intentions live in ActiveIntentionContext — single fetch shared with the
-  // rail + every other page. Per the 2026-05-09 perf audit Tier 2.
+  // Sessions + intentions both come from shared contexts now (perf Tier 3 #8
+  // for sessions; Tier 2 for intentions). Atlas wants the broadest "all-time"
+  // session history, which is exactly what SessionsContext provides (≤1000 by
+  // default, mig-029).
+  const { sessions, loading: sessionsLoading, error: fetchError, refresh: fetchAll } = useSessions();
   const { intentions, loading: intentionsLoading } = useActiveIntention();
-  const [sessionsLoading, setSessionsLoading] = useState(true);
   const loading = sessionsLoading || intentionsLoading;
-  const [fetchError, setFetchError] = useState<string | null>(null);
 
   // Calendar year navigation (tab-local state)
   const currentYear = new Date().getFullYear();
@@ -89,28 +87,6 @@ export default function AtlasPage() {
   }, [timeWindow]);
   const [customRange, setCustomRange] = useState<{ start: string; end: string } | null>(null);
   const [selectedTag, setSelectedTag] = useState<string>(SKILL_TAGS[0]!.value);
-
-  // ── Fetch: Atlas is THE surface for looking back across years, so we pull
-  //          the full session history (no `from` filter). Backend default
-  //          LIMIT is 1000 rows after the 2026-05-09 perf audit; clients
-  //          with deeper history can request more via ?limit=N. Intentions
-  //          come from ActiveIntentionContext (no local fetch needed). ──
-  const fetchAll = useCallback(async () => {
-    try {
-      setFetchError(null);
-      const sesRes = await api.get<SessionsResponse>('/api/sessions');
-      setSessions(sesRes.sessions ?? []);
-    } catch (err) {
-      if (!(err instanceof ApiError && err.status === 401)) {
-        setFetchError('Could not load data. Please refresh.');
-      }
-    } finally {
-      setSessionsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchAll(); }, [fetchAll]);
-  useOnlineRefetch(fetchAll);
 
   const pendingSessions = usePendingSessions();
   const allSessions = useMemo(() => [...sessions, ...pendingSessions], [sessions, pendingSessions]);

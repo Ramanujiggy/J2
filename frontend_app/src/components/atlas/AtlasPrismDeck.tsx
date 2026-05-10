@@ -149,19 +149,29 @@ export default function AtlasPrismDeck({
   }, [sessions, intentions, timeWindow, customRange]);
 
   // ── Prism data ──
-  const hoursMap: Record<string, number> = Object.fromEntries(SKILL_TAGS.map(({ value }) => [value, 0]));
-  for (const s of filtered) {
-    const ph = sessionPillarHours(s);
-    for (const [k, v] of Object.entries(ph)) {
-      if (k in hoursMap) hoursMap[k] += v;
+  // Memoized so the `normalized` array reference passed to BigPrism is stable
+  // across renders that don't change `filtered`. Without this, BigPrism's
+  // React.memo bails on every parent re-render. (Tier 3 perf audit.)
+  const { hoursMap, hours, normalized, totalTaggedHours, hasData, dominantIndex } = useMemo(() => {
+    const hoursMap: Record<string, number> = Object.fromEntries(SKILL_TAGS.map(({ value }) => [value, 0]));
+    for (const s of filtered) {
+      const ph = sessionPillarHours(s);
+      for (const [k, v] of Object.entries(ph)) {
+        if (k in hoursMap) hoursMap[k] += v;
+      }
     }
-  }
-  const hours            = SKILL_TAGS.map(({ value }) => hoursMap[value]);
-  const maxHours         = Math.max(...hours, 0.001);
-  const normalized       = hours.map(h => h / maxHours);
-  const totalTaggedHours = hours.reduce((a, b) => a + b, 0);
-  const hasData          = hours.some(h => h > 0);
-  const dominantIndex    = hours.indexOf(Math.max(...hours));
+    const hours         = SKILL_TAGS.map(({ value }) => hoursMap[value]);
+    const maxHours      = Math.max(...hours, 0.001);
+    const normalized    = hours.map(h => h / maxHours);
+    return {
+      hoursMap,
+      hours,
+      normalized,
+      totalTaggedHours: hours.reduce((a, b) => a + b, 0),
+      hasData: hours.some(h => h > 0),
+      dominantIndex: hours.indexOf(Math.max(...hours)),
+    };
+  }, [filtered]);
 
   // ── Split / Format / Volume / Weekly stats ──
   // 'both' (mig 025) counts 0.5 toward each side via giShare/nogiShare.

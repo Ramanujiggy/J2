@@ -5,10 +5,10 @@
 // Mobile: narrower list layout, same data, taps open the SessionDetailModal
 // in-place (keeps mobile feeling native, no full-page route push).
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, ApiError } from '../lib/api.ts';
-import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
+import { VariableSizeList, type ListChildComponentProps } from 'react-window';
+import { useSessions } from '../context/SessionsContext.tsx';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import PageContent from '../components/PageContent.tsx';
@@ -20,9 +20,34 @@ import { toDateString, DAY_NAMES, SESSION_TYPE_LABELS, INTENSITY_COLOR, formatDu
 import {
   PALE_YELLOW, COPPER, CARD_BG, FONT_EDITORIAL,
 } from '../lib/theme.ts';
-import type { SessionSummary, SessionsResponse } from '../types/api.ts';
+import type { SessionSummary } from '../types/api.ts';
 
 type Filter = 'All' | typeof SKILL_TAGS[number]['value'];
+
+// ── Virtualized item shapes ──────────────────────────────────────────────
+// Mobile interleaves month headers with per-day groups; desktop interleaves
+// month headers with individual session rows. Heights are estimated below in
+// `mobileItemHeight` / `desktopItemHeight` and fed into VariableSizeList.
+
+type MobileItem =
+  | { kind: 'month';   key: string; month: string; count: number }
+  | { kind: 'day';     key: string; dateStr: string; sessions: SessionSummary[] };
+
+type DesktopItem =
+  | { kind: 'month';   key: string; month: string; count: number }
+  | { kind: 'session'; key: string; session: SessionSummary };
+
+function mobileItemHeight(item: MobileItem): number {
+  if (item.kind === 'month') return 56;
+  // 14+14 padding + ~50px per session + 10px divider between stacked sessions.
+  const n = item.sessions.length;
+  return 28 + 50 * n + 10 * Math.max(0, n - 1);
+}
+
+function desktopItemHeight(item: DesktopItem): number {
+  if (item.kind === 'month') return 122;
+  return 118;
+}
 
 export default function JournalIndexPage() {
   const navigate = useNavigate();
@@ -31,29 +56,10 @@ export default function JournalIndexPage() {
   // Mobile detail modal state — set when a JournalRow is tapped on mobile.
   const [mobileDetailSession, setMobileDetailSession] = useState<SessionSummary | null>(null);
 
-  const [sessions, setSessions] = useState<SessionSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  // Shared sessions feed (Tier 3 perf — was independent /api/sessions fetch).
+  const { sessions, loading, error: fetchError, refresh: fetchAll } = useSessions();
   const [filter, setFilter] = useState<Filter>('All');
   const [query, setQuery] = useState('');
-
-  const fetchAll = useCallback(async () => {
-    try {
-      setFetchError(null);
-      // Journal is the "every entry you've ever logged" surface — fetch all.
-      const res = await api.get<SessionsResponse>('/api/sessions');
-      setSessions(res.sessions ?? []);
-    } catch (err) {
-      if (!(err instanceof ApiError && err.status === 401)) {
-        setFetchError('Could not load sessions. Please refresh.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchAll(); }, [fetchAll]);
-  useOnlineRefetch(fetchAll);
 
   const pendingSessions = usePendingSessions();
   const allSessions = useMemo(() => [...sessions, ...pendingSessions], [sessions, pendingSessions]);
@@ -95,6 +101,38 @@ export default function JournalIndexPage() {
     });
     return Array.from(out.entries());
   }, [filtered]);
+
+  // ── Virtualization (Tier 3 perf — react-window) ───────────────────────
+  // Power users may have hundreds of sessions/day-groups. Flatten the
+  // month-grouped tree into a single items array so VariableSizeList can
+  // recycle row DOM as the user scrolls.
+  const mobileItems = useMemo<MobileItem[]>(() => {
+    const out: MobileItem[] = [];
+    for (const [month, monthSessions] of groups) {
+      out.push({ kind: 'month', key: month, month, count: monthSessions.length });
+      for (const [dateStr, daySessions] of groupByDate(monthSessions)) {
+        out.push({ kind: 'day', key: dateStr, dateStr, sessions: daySessions });
+      }
+    }
+    return out;
+  }, [groups]);
+
+  const desktopItems = useMemo<DesktopItem[]>(() => {
+    const out: DesktopItem[] = [];
+    for (const [month, monthSessions] of groups) {
+      out.push({ kind: 'month', key: month, month, count: monthSessions.length });
+      for (const s of monthSessions) {
+        out.push({ kind: 'session', key: String(s.id), session: s });
+      }
+    }
+    return out;
+  }, [groups]);
+
+  // Reset the virtualized list's internal cache when items change.
+  const mobileListRef  = useRef<VariableSizeList | null>(null);
+  const desktopListRef = useRef<VariableSizeList | null>(null);
+  useEffect(() => { mobileListRef.current?.resetAfterIndex(0);  }, [mobileItems]);
+  useEffect(() => { desktopListRef.current?.resetAfterIndex(0); }, [desktopItems]);
 
   if (!isDesktop) {
     return (
@@ -186,31 +224,25 @@ export default function JournalIndexPage() {
             })}
           </div>
 
-          {/* Entries */}
+          {/* Entries — virtualized via react-window. Inner scroll container
+              is sized to the remaining viewport below the title/search/chips. */}
           {filtered.length === 0 && !loading ? (
             <EmptyState hasAny={allSessions.length > 0} />
           ) : (
-            groups.map(([month, items]) => (
-              <div key={month} style={{ marginBottom: 28 }}>
-                <div
-                  className="j2-label-micro"
-                  style={{
-                    paddingBottom: 8, marginBottom: 8,
-                    borderBottom: '1px solid var(--j2-border-1)',
-                  }}
-                >
-                  {new Date(month + '-01T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} · {items.length}
-                </div>
-                {groupByDate(items).map(([dateStr, daySessions]) => (
-                  <MobileDayGroup
-                    key={dateStr}
-                    dateStr={dateStr}
-                    sessions={daySessions}
-                    onOpen={setMobileDetailSession}
-                  />
-                ))}
-              </div>
-            ))
+            <VariableSizeList
+              ref={mobileListRef}
+              height={Math.max(360, (typeof window !== 'undefined' ? window.innerHeight : 800) - 280)}
+              width="100%"
+              itemCount={mobileItems.length}
+              itemSize={(i) => mobileItemHeight(mobileItems[i]!)}
+              overscanCount={4}
+              estimatedItemSize={120}
+              itemKey={(i) => mobileItems[i]!.key}
+            >
+              {({ index, style }: ListChildComponentProps) => (
+                <MobileVirtRow item={mobileItems[index]!} style={style} onOpen={setMobileDetailSession} />
+              )}
+            </VariableSizeList>
           )}
         </div>
 
@@ -311,29 +343,24 @@ export default function JournalIndexPage() {
         </div>
       </div>
 
-      {/* ── Month-grouped entries ──────────────────────────── */}
+      {/* ── Month-grouped entries — virtualized ──────────────── */}
       {filtered.length === 0 && !loading ? (
         <EmptyState hasAny={allSessions.length > 0} />
       ) : (
-        groups.map(([month, items]) => (
-          <div key={month} style={{ marginBottom: 52 }}>
-            <div
-              style={{
-                display: 'flex', alignItems: 'baseline', gap: 20,
-                marginBottom: 18, paddingBottom: 12,
-                borderBottom: '1px solid var(--j2-border-2)',
-              }}
-            >
-              <div className="j2-serif-display" style={{ fontSize: 38 }}>
-                {new Date(month + '-01T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-              </div>
-              <div className="j2-label-micro">{items.length} {items.length === 1 ? 'entry' : 'entries'}</div>
-            </div>
-            {items.map(s => (
-              <JournalRow key={s.id} session={s} onOpen={() => navigate(`/journal/${s.id}`)} />
-            ))}
-          </div>
-        ))
+        <VariableSizeList
+          ref={desktopListRef}
+          height={Math.max(540, (typeof window !== 'undefined' ? window.innerHeight : 900) - 360)}
+          width="100%"
+          itemCount={desktopItems.length}
+          itemSize={(i) => desktopItemHeight(desktopItems[i]!)}
+          overscanCount={4}
+          estimatedItemSize={118}
+          itemKey={(i) => desktopItems[i]!.key}
+        >
+          {({ index, style }: ListChildComponentProps) => (
+            <DesktopVirtRow item={desktopItems[index]!} style={style} navigate={navigate} />
+          )}
+        </VariableSizeList>
       )}
 
     </div>
@@ -568,6 +595,69 @@ function SessionMiniRow({
         {formatDuration(session.duration ?? 0)}
       </div>
     </button>
+  );
+}
+
+// ── Virtualized row renderers ────────────────────────────────────────────
+
+function MobileVirtRow({
+  item, style, onOpen,
+}: {
+  item: MobileItem;
+  style: React.CSSProperties;
+  onOpen: (s: SessionSummary) => void;
+}) {
+  if (item.kind === 'month') {
+    return (
+      <div style={style}>
+        <div
+          className="j2-label-micro"
+          style={{
+            paddingBottom: 8, marginBottom: 8,
+            borderBottom: '1px solid var(--j2-border-1)',
+          }}
+        >
+          {new Date(item.month + '-01T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} · {item.count}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div style={style}>
+      <MobileDayGroup dateStr={item.dateStr} sessions={item.sessions} onOpen={onOpen} />
+    </div>
+  );
+}
+
+function DesktopVirtRow({
+  item, style, navigate,
+}: {
+  item: DesktopItem;
+  style: React.CSSProperties;
+  navigate: ReturnType<typeof useNavigate>;
+}) {
+  if (item.kind === 'month') {
+    return (
+      <div style={style}>
+        <div
+          style={{
+            display: 'flex', alignItems: 'baseline', gap: 20,
+            marginBottom: 18, paddingBottom: 12,
+            borderBottom: '1px solid var(--j2-border-2)',
+          }}
+        >
+          <div className="j2-serif-display" style={{ fontSize: 38 }}>
+            {new Date(item.month + '-01T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+          </div>
+          <div className="j2-label-micro">{item.count} {item.count === 1 ? 'entry' : 'entries'}</div>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div style={style}>
+      <JournalRow session={item.session} onOpen={() => navigate(`/journal/${item.session.id}`)} />
+    </div>
   );
 }
 

@@ -2,7 +2,7 @@
 // Columns: Month label | Mon–Sun (7 day cells) | Intention | Journal
 // Sticky header keeps day labels visible. Month label appears at month boundaries.
 
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { memo, useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useCountUp } from '../hooks/useCountUp.ts';
 import {
   Tooltip,
@@ -251,7 +251,7 @@ function HeatmapSkeleton() {
   );
 }
 
-export default function TrainingHeatmap({ sessions = [], intentions = [], loading = false, onSessionUpdated, onGoToToday, onLogSession, year: yearProp }: TrainingHeatmapProps) {
+function TrainingHeatmap({ sessions = [], intentions = [], loading = false, onSessionUpdated, onGoToToday, onLogSession, year: yearProp }: TrainingHeatmapProps) {
   const [selectedSession, setSelectedSession] = useState<{ session: SessionSummary; date: Date } | null>(null);
   const [showGiSplit, setShowGiSplit] = useState(false);
   const [gridMaxH, setGridMaxH] = useState<number | undefined>(undefined);
@@ -944,3 +944,8 @@ export default function TrainingHeatmap({ sessions = [], intentions = [], loadin
     </>
   );
 }
+
+// memo'd default export. Per the 2026-05-09 perf audit Tier 3. Callers should
+// memoize their callback props (`onSessionUpdated`, `onGoToToday`, `onLogSession`)
+// with `useCallback`, otherwise inline arrow props will defeat memo.
+export default memo(TrainingHeatmap);

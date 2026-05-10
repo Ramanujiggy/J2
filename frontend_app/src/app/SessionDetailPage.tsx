@@ -2,10 +2,9 @@
 // Atelier-width magazine layout: hero header, 4-stat row, Prism + tags, notes
 // blockquote, related sessions, prev/next by chronological order.
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { api, ApiError } from '../lib/api.ts';
-import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
+import { useSessions } from '../context/SessionsContext.tsx';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import PageContent from '../components/PageContent.tsx';
@@ -15,7 +14,7 @@ import { toDateString, DAY_NAMES, INTENSITY_COLOR, SESSION_TYPE_LABELS, formatDu
 import {
   PALE_YELLOW, COPPER, CARD_BG, FONT_EDITORIAL, INT_LABELS,
 } from '../lib/theme.ts';
-import type { SessionSummary, SessionsResponse } from '../types/api.ts';
+import type { SessionSummary } from '../types/api.ts';
 
 export default function SessionDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -26,28 +25,11 @@ export default function SessionDetailPage() {
     if (!isDesktop) navigate('/home', { replace: true });
   }, [isDesktop, navigate]);
 
-  const [sessions, setSessions] = useState<SessionSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-
-  const fetchAll = useCallback(async () => {
-    try {
-      setFetchError(null);
-      // Pull all sessions so prev/next navigation reaches the oldest entries
-      // and "similar sessions" can surface old ones with matching focus.
-      const res = await api.get<SessionsResponse>('/api/sessions');
-      setSessions(res.sessions ?? []);
-    } catch (err) {
-      if (!(err instanceof ApiError && err.status === 401)) {
-        setFetchError('Could not load session. Please refresh.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchAll(); }, [fetchAll]);
-  useOnlineRefetch(fetchAll);
+  // Sessions come from the shared context (perf Tier 3 #8). The full session
+  // history is needed so prev/next reaches the oldest entries and "similar
+  // sessions" can surface old ones with matching focus — that matches the
+  // context's default unfiltered fetch.
+  const { sessions, loading, error: fetchError } = useSessions();
 
   const pendingSessions = usePendingSessions();
   const allSessions = useMemo(() => [...sessions, ...pendingSessions], [sessions, pendingSessions]);

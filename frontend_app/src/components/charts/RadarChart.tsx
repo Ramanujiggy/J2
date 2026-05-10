@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { memo, useRef, useEffect } from 'react';
 import gsap from 'gsap';
 import { SKILL_TAGS } from '../../lib/constants.ts';
 import { COPPER, PALE_YELLOW, CARD_BG } from '../../lib/theme.ts';
@@ -59,7 +59,7 @@ interface RadarChartProps {
   polygonColors: { fill: string; stroke: string; dot: string };
 }
 
-export default function RadarChart({ normalized, polygonColors }: RadarChartProps) {
+function RadarChart({ normalized, polygonColors }: RadarChartProps) {
   const gridRings    = [0.25, 0.5, 0.75, 1].map(t => SKILL_TAGS.map((_, i) => vertex(i, t)) as [number, number][]);
   const dataPolygon  = SKILL_TAGS.map((_, i) => vertex(i, Math.max(normalized[i], 0.02))) as [number, number][];
   const centerPoints = SKILL_TAGS.map(() => `${CX},${CY}`).join(' ');
@@ -213,3 +213,8 @@ export default function RadarChart({ normalized, polygonColors }: RadarChartProp
     </svg>
   );
 }
+
+// memo'd default export. Per the 2026-05-09 perf audit Tier 3: callers
+// sometimes pass `polygonColors` as an inline `{ fill, stroke, dot }` literal
+// — that defeats memo. Sweep callers and hoist inline literals.
+export default memo(RadarChart);

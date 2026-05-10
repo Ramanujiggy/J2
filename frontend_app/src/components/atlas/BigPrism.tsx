@@ -12,7 +12,7 @@
 //     the redraw-from-empty flash that scrubbing the range would otherwise
 //     trigger.
 
-import { useEffect, useRef } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { SKILL_COLORS } from '../charts/RadarChart.tsx';
 import { SKILL_TAGS } from '../../lib/constants.ts';
@@ -35,7 +35,7 @@ interface Props {
 
 const FLOOR = 0.08; // empty pillars still render as a small dot rather than collapsing onto center
 
-export default function BigPrism({ normalized, alignmentNormalized, activeTag, onSelect, size = 560 }: Props) {
+function BigPrism({ normalized, alignmentNormalized, activeTag, onSelect, size = 560 }: Props) {
   const cx = size / 2;
   const cy = size / 2;
   const R = size * 0.36;
@@ -309,3 +309,8 @@ export default function BigPrism({ normalized, alignmentNormalized, activeTag, o
     </svg>
   );
 }
+
+// memo'd default export — guards against AtlasPrismDeck's time-window scrub
+// re-rendering BigPrism when its inputs haven't changed. Per the 2026-05-09
+// perf audit Tier 3.
+export default memo(BigPrism);
