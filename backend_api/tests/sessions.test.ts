@@ -150,6 +150,44 @@ describe('GET /api/sessions', () => {
     expect(res.body).toHaveProperty('sessions');
     expect(Array.isArray(res.body.sessions)).toBe(true);
   });
+
+  // The default LIMIT lives in the model; the controller's job is just to
+  // pass through (or omit) the optional ?limit param. These tests verify
+  // the controller correctly translates the query string into the model arg.
+  it('passes ?limit through to the model when set', async () => {
+    vi.mocked(sessionModel.getSessionsByUser).mockResolvedValue([]);
+    const res = await request(app)
+      .get('/api/sessions?limit=50')
+      .set('Authorization', AUTH_HEADER);
+    expect(res.status).toBe(200);
+    // model called with (userId, from?, to?, limit) — limit is the 4th positional
+    const call = vi.mocked(sessionModel.getSessionsByUser).mock.calls[0]!;
+    expect(call[3]).toBe(50);
+  });
+
+  it('omits limit when query param is absent (model applies default)', async () => {
+    vi.mocked(sessionModel.getSessionsByUser).mockResolvedValue([]);
+    const res = await request(app)
+      .get('/api/sessions')
+      .set('Authorization', AUTH_HEADER);
+    expect(res.status).toBe(200);
+    const call = vi.mocked(sessionModel.getSessionsByUser).mock.calls[0]!;
+    expect(call[3]).toBeUndefined();
+  });
+
+  it('rejects non-numeric ?limit', async () => {
+    const res = await request(app)
+      .get('/api/sessions?limit=many')
+      .set('Authorization', AUTH_HEADER);
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects ?limit=0 and negative limits', async () => {
+    const r1 = await request(app).get('/api/sessions?limit=0').set('Authorization', AUTH_HEADER);
+    expect(r1.status).toBe(400);
+    const r2 = await request(app).get('/api/sessions?limit=-10').set('Authorization', AUTH_HEADER);
+    expect(r2.status).toBe(400);
+  });
 });
 
 // ---- Bulk Import (POST /api/sessions/import) --------------------------------

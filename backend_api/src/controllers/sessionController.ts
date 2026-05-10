@@ -280,7 +280,7 @@ export const getSessions = async (req: Request, res: Response): Promise<void> =>
             return;
         }
 
-        const { from, to } = req.query as { from?: string; to?: string };
+        const { from, to, limit: limitQ } = req.query as { from?: string; to?: string; limit?: string };
         if (from && !DATE_RE.test(from)) {
             res.status(400).json({ message: 'from must be a valid YYYY-MM-DD date.' });
             return;
@@ -290,7 +290,19 @@ export const getSessions = async (req: Request, res: Response): Promise<void> =>
             return;
         }
 
-        const sessions = await getSessionsByUser(userId, from, to);
+        // Optional ?limit=N override. Model clamps into [1, 5000]; non-numeric
+        // / missing values fall through to the default (1000).
+        let limit: number | undefined;
+        if (limitQ !== undefined) {
+            const n = Number(limitQ);
+            if (!Number.isFinite(n) || n <= 0) {
+                res.status(400).json({ message: 'limit must be a positive integer.' });
+                return;
+            }
+            limit = Math.floor(n);
+        }
+
+        const sessions = await getSessionsByUser(userId, from, to, limit);
         res.json({ sessions });
     } catch (err) {
         console.error('❌ Error fetching sessions:', err);

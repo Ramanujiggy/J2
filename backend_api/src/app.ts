@@ -2,6 +2,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import helmet from 'helmet';
 import cors from 'cors';
+import compression from 'compression';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -133,6 +134,13 @@ app.set('trust proxy', 1);
 
 
 //security middleware
+// Response compression — gzip/brotli on JSON responses. Single-line win:
+// per the 2026-05-09 perf audit, the hot endpoints (/api/sessions,
+// /api/intentions, /api/user-tags) ship 100s of KB uncompressed for
+// power users. Default `compression()` settings handle threshold
+// (1KB minimum) + content-type negotiation; no per-route opt-in needed.
+app.use(compression());
+
 app.use(helmet());
 const corsOptions: cors.CorsOptions = {
   origin: process.env.ALLOWED_ORIGIN ?? '*',

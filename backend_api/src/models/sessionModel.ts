@@ -83,13 +83,35 @@ export const createSession = async (
     return result.rows[0];
 };
 
-export const getSessionsByUser = async (userId: string, from?: string, to?: string): Promise<Session[]> => {
+// Default cap on unfiltered fetches. Per the 2026-05-09 perf audit, an
+// unbounded SELECT * was shipping ~200 KB JSON to clients with 500+ sessions
+// every time AtlasPage / SessionDetailPage / IntentionsPage / JournalIndexPage
+// mounted. ORDER BY date DESC + LIMIT means callers get the most recent N;
+// power users with deeper history can request more via ?limit=N.
+const DEFAULT_SESSIONS_LIMIT = 1000;
+const MAX_SESSIONS_LIMIT = 5000;
+
+export const getSessionsByUser = async (
+    userId: string,
+    from?: string,
+    to?: string,
+    limit?: number,
+): Promise<Session[]> => {
     const params: unknown[] = [userId];
     let whereExtra = '';
     if (from) { params.push(from); whereExtra += ` AND date >= $${params.length}`; }
     if (to)   { params.push(to);   whereExtra += ` AND date <= $${params.length}`; }
+
+    // Clamp into [1, MAX]. Invalid / missing → default. Negatives + zero →
+    // default (treating "I don't know" the same as "I didn't specify").
+    const safeLimit = Number.isFinite(limit) && limit !== undefined && limit > 0
+        ? Math.min(limit, MAX_SESSIONS_LIMIT)
+        : DEFAULT_SESSIONS_LIMIT;
+    params.push(safeLimit);
+    const limitClause = ` LIMIT $${params.length}`;
+
     const result = await query(
-        `SELECT * FROM training_sessions WHERE user_id = $1${whereExtra} ORDER BY date DESC`,
+        `SELECT * FROM training_sessions WHERE user_id = $1${whereExtra} ORDER BY date DESC${limitClause}`,
         params,
     );
     return result.rows;
