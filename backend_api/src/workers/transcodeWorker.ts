@@ -34,6 +34,7 @@ import { transcodeToH264Mp4, probeFfmpeg } from '../lib/transcode.js';
 // Tunables —
 const POLL_INTERVAL_MS = 5_000;     // claim cadence when the queue is empty
 const ACTIVE_INTERVAL_MS = 100;     // chain quickly when we just finished a job
+const ERROR_BACKOFF_MS = 30_000;    // back off 30s after a tick error (give the DB pool room to recover before retrying)
 
 let running = false;
 let stopped = false;
@@ -73,34 +74,57 @@ export async function startTranscodeWorker(): Promise<() => Promise<void>> {
 
 function scheduleNextTick(delayMs: number): void {
     if (stopped) return;
+    // Defensive: clear any pending timer before scheduling a new one. Without
+    // this, an early-return path that schedules + then a finally that also
+    // schedules (or any other dual-schedule pattern) leaks timers — they
+    // compound silently because the `activeTimer` variable only tracks the
+    // most recent reference, and previous setTimeout handles stay live.
+    if (activeTimer) {
+        clearTimeout(activeTimer);
+        activeTimer = null;
+    }
     activeTimer = setTimeout(() => { void tickOnce(); }, delayMs);
 }
 
 /**
  * One iteration: try to claim a job, run the encode, schedule the next tick.
  *
- * If we just finished a job, schedule the next tick eagerly (100ms) — the
- * queue may have more work waiting. If we found nothing, back off to the
- * normal 5s poll cadence so we're not hammering Postgres.
+ * Cadence:
+ *   • Claimed + processed a job → 100ms (chain quickly to drain the queue)
+ *   • No job available           → 5s   (idle poll)
+ *   • Error caught at this layer → 30s  (back off so transient DB-pool
+ *                                        problems don't escalate into a
+ *                                        sustained tick storm)
+ *
+ * IMPORTANT: schedule exactly once per tick. Earlier versions had the
+ * "no job" path schedule + a finally clause also schedule, causing
+ * duplicate timers to compound and hammer the DB. Single source of truth
+ * (`nextDelayMs`) avoids that.
  */
 async function tickOnce(): Promise<void> {
     if (stopped) return;
     let claimedTagId: string | null = null;
+    let nextDelayMs = POLL_INTERVAL_MS;
+
     try {
         const job = await userTagModel.claimNextTranscodeJob();
         if (!job) {
-            scheduleNextTick(POLL_INTERVAL_MS);
+            // Queue empty — nothing changes; idle cadence is the default.
             return;
         }
         claimedTagId = job.id;
+        nextDelayMs = ACTIVE_INTERVAL_MS;  // we processed work; chain quickly
         await processJob(job);
     } catch (err) {
         // Any error inside processJob is already converted to a 'failed'
         // status update inside that function. An error THIS layer catches
-        // is something unexpected — log and keep the worker alive.
+        // is something unexpected (typically a DB connection issue from
+        // claimNextTranscodeJob itself) — log, back off, keep the worker alive.
         console.error(`❌ Transcode worker tick error${claimedTagId ? ` (tag ${claimedTagId})` : ''}:`, err);
-        // Defensive: if claim succeeded but we didn't end up calling
-        // processJob's failure path, mark the job failed so it doesn't
+        nextDelayMs = ERROR_BACKOFF_MS;
+
+        // Defensive: if claim succeeded but processJob threw without going
+        // through its own failure path, mark the job failed so it doesn't
         // sit in 'processing' forever. The 15-min stale guard would
         // eventually rescue it, but explicit is better.
         if (claimedTagId) {
@@ -110,13 +134,11 @@ async function tickOnce(): Promise<void> {
                     err instanceof Error ? err.message : String(err),
                 );
             } catch {
-                // best-effort
+                // best-effort — DB might still be down
             }
         }
     } finally {
-        // We made progress (or hit an error after claiming) — chain quickly
-        // to drain any remaining queue.
-        scheduleNextTick(ACTIVE_INTERVAL_MS);
+        scheduleNextTick(nextDelayMs);
     }
 }
 
