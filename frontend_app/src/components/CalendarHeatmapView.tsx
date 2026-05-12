@@ -61,12 +61,19 @@ export default function CalendarHeatmapView({
     );
   }, [year]);
 
-  // Scroll to today on mount, or first data row for past years
+  // Scroll so today sits at ~80% of the viewport — past fills the screen,
+  // future just peeks at the bottom. For past years, scroll to first data.
   useEffect(() => {
     const container = gridRef.current;
     if (!container) return;
-    const todayEl = container.querySelector('[data-today]');
-    if (todayEl) { todayEl.scrollIntoView({ block: 'center', behavior: 'auto' }); return; }
+    const todayEl = container.querySelector('[data-today]') as HTMLElement | null;
+    if (todayEl) {
+      const containerRect = container.getBoundingClientRect();
+      const todayRect = todayEl.getBoundingClientRect();
+      const targetScrollTop = todayRect.top - containerRect.top + container.scrollTop - containerRect.height * 0.8;
+      container.scrollTop = Math.max(0, targetScrollTop);
+      return;
+    }
     const firstData = container.querySelector('[data-has-session]');
     if (firstData) firstData.scrollIntoView({ block: 'center', behavior: 'auto' });
   }, [rows]);
@@ -250,6 +257,7 @@ export default function CalendarHeatmapView({
                 {/* Day cells */}
                 {row.days.map(({ date, day }) => {
                   const key = localDateKey(date);
+                  const isFuture = key > todayStr;
                   const isThisToday = key === todayStr;
                   const hasSession = day.count > 0;
                   const bg = hasSession ? cellColor(day) : 'rgba(255,255,255,0.025)';
@@ -275,6 +283,7 @@ export default function CalendarHeatmapView({
                         height: CELL,
                         borderRadius: 2,
                         backgroundColor: bg,
+                        opacity: isFuture ? 0.35 : 1,
                         cursor: hasSession ? 'pointer' : 'default',
                         outline: isThisToday ? '1.5px solid rgba(242,228,168,0.7)' : 'none',
                         outlineOffset: isThisToday ? -1 : undefined,
