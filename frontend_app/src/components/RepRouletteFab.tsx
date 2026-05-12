@@ -274,7 +274,38 @@ function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
 
   // ── Render ─────────────────────────────────────────────────────────
 
-  return createPortal(
+  const fabButton = (
+    <button
+      className={`${fabPosition === 'fixed' ? 'fixed' : ''} z-50 sm:hidden flex items-center justify-center rounded-full touch-manipulation j2-press`}
+      onClick={handleOpen}
+      style={{
+        ...(fabPosition === 'fixed' ? { right: 16, bottom: fabBottom } : {}),
+        width: 48,
+        height: 48,
+        backgroundColor: 'rgba(196,145,95,0.20)',
+        border: `1px solid ${COPPER_BORDER}`,
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.3), 0 0 0 1px rgba(196,145,95,0.15)',
+        transform: fabVisible ? 'scale(1)' : 'scale(0.5)',
+        opacity: fabVisible ? 1 : 0,
+        transition: `transform ${OPEN_MS}ms ${OPEN_CURVE}, opacity ${OPEN_MS * 0.4}ms ease`,
+        pointerEvents: fabVisible ? 'auto' : 'none',
+      }}
+      aria-label="Rep Roulette"
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ color: PALE_YELLOW }}>
+        <rect x="2" y="2" width="20" height="20" rx="3" />
+        <circle cx="8" cy="8" r="1.5" fill="currentColor" stroke="none" />
+        <circle cx="16" cy="8" r="1.5" fill="currentColor" stroke="none" />
+        <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
+        <circle cx="8" cy="16" r="1.5" fill="currentColor" stroke="none" />
+        <circle cx="16" cy="16" r="1.5" fill="currentColor" stroke="none" />
+      </svg>
+    </button>
+  );
+
+  const overlay = createPortal(
     <>
       {/* ── Scrim ── */}
       {showCard && (
@@ -288,36 +319,6 @@ function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
           }}
         />
       )}
-
-      {/* ── FAB button ── */}
-      <button
-        className={`${fabPosition === 'fixed' ? 'fixed' : ''} z-50 sm:hidden flex items-center justify-center rounded-full touch-manipulation j2-press`}
-        onClick={handleOpen}
-        style={{
-          ...(fabPosition === 'fixed' ? { right: 16, bottom: fabBottom } : {}),
-          width: 48,
-          height: 48,
-          backgroundColor: 'rgba(196,145,95,0.20)',
-          border: `1px solid ${COPPER_BORDER}`,
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.3), 0 0 0 1px rgba(196,145,95,0.15)',
-          transform: fabVisible ? 'scale(1)' : 'scale(0.5)',
-          opacity: fabVisible ? 1 : 0,
-          transition: `transform ${OPEN_MS}ms ${OPEN_CURVE}, opacity ${OPEN_MS * 0.4}ms ease`,
-          pointerEvents: fabVisible ? 'auto' : 'none',
-        }}
-        aria-label="Rep Roulette"
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ color: PALE_YELLOW }}>
-          <rect x="2" y="2" width="20" height="20" rx="3" />
-          <circle cx="8" cy="8" r="1.5" fill="currentColor" stroke="none" />
-          <circle cx="16" cy="8" r="1.5" fill="currentColor" stroke="none" />
-          <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
-          <circle cx="8" cy="16" r="1.5" fill="currentColor" stroke="none" />
-          <circle cx="16" cy="16" r="1.5" fill="currentColor" stroke="none" />
-        </svg>
-      </button>
 
       {/* ── Card ── */}
       {showCard && (
@@ -501,5 +502,12 @@ function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
       )}
     </>,
     document.body,
+  );
+
+  return (
+    <>
+      {fabButton}
+      {overlay}
+    </>
   );
 }
