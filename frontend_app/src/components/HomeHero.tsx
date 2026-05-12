@@ -133,12 +133,12 @@ export default function HomeHero({
       style={{
         background: 'transparent',
         border: 'none',
-        padding: '4px 4px 18px',
+        padding: '0px 4px 8px',
         cursor: onTap ? 'pointer' : 'default',
       }}
     >
       {/* Kicker — greeting + date, quiet so the hero numeral leads */}
-      <div className="flex flex-col gap-0.5" style={{ marginBottom: 14 }}>
+      <div className="flex flex-col gap-0.5" style={{ marginBottom: 8 }}>
         <span
           style={{
             fontSize: 11.5,
@@ -201,7 +201,7 @@ export default function HomeHero({
             style={{
               fontFamily: FONT_EDITORIAL,
               fontWeight: 500,
-              fontSize: 104,
+              fontSize: 128,
               lineHeight: 0.9,
               letterSpacing: '-0.025em',
               color: valueColor,
@@ -212,7 +212,7 @@ export default function HomeHero({
           </div>
           <div
             style={{
-              marginTop: 5,
+              marginTop: 4,
               fontSize: 11.5,
               fontWeight: 700,
               letterSpacing: '0.18em',
@@ -225,7 +225,7 @@ export default function HomeHero({
           {cellSub && (
             <div
               style={{
-                marginTop: 4,
+                marginTop: 2,
                 fontFamily: FONT_EDITORIAL,
                 fontStyle: 'italic',
                 fontSize: 15,
@@ -264,7 +264,7 @@ export default function HomeHero({
       </div>
 
       {/* This-week numerals — flat row, no chrome */}
-      <div style={{ marginTop: 16, display: 'flex', gap: 20, alignItems: 'baseline' }}>
+      <div style={{ marginTop: 8, display: 'flex', gap: 20, alignItems: 'baseline' }}>
         <div>
           <div
             style={{
