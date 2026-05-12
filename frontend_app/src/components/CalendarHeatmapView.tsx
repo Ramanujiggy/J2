@@ -8,6 +8,7 @@ import {
 import type { DayData, WeekRow } from './TrainingHeatmap.tsx';
 import type { SessionSummary } from '../types/api.ts';
 import SessionDetailModal from './SessionDetailModal.tsx';
+import { useBeltHistory } from '../hooks/useBeltHistory.ts';
 import {
   PALE_YELLOW, GLOW_SOFT, COPPER, FONT_EDITORIAL,
   HEATMAP_HEADER_BG, INT_LABELS,
@@ -17,6 +18,15 @@ import { formatDuration } from '../lib/sessionUtils.ts';
 const CELL = 32;
 const GAP = 2;
 const MONTH_COL = 38;
+const MARKER_COL = 36;
+
+const BELT_RING_COLORS: Record<string, string> = {
+  white:  'rgba(255,255,255,0.85)',
+  blue:   '#4A90D9',
+  purple: '#9B59B6',
+  brown:  '#8B6914',
+  black:  COPPER,
+};
 const DOW = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -41,6 +51,20 @@ export default function CalendarHeatmapView({
   const { rows } = useMemo(() => buildWeekRows(dayMap, year), [dayMap, year]);
   const stats = useMemo(() => computeStats(sessions, year), [sessions, year]);
   const todayStr = localDateKey(new Date());
+
+  const { entries: beltHistory } = useBeltHistory();
+  const promotionWeeks = useMemo(() => {
+    const map = new Map<number, { belt_rank: string; stripes: number; promoted_at: string; notes: string | null }>();
+    for (const entry of beltHistory) {
+      const promoDate = entry.promoted_at.slice(0, 10);
+      rows.forEach((row, i) => {
+        if (row.days.some(d => localDateKey(d.date) === promoDate)) {
+          map.set(i, { belt_rank: entry.belt_rank, stripes: entry.stripes, promoted_at: entry.promoted_at, notes: entry.notes });
+        }
+      });
+    }
+    return map;
+  }, [beltHistory, rows]);
 
   const gridRef = useRef<HTMLDivElement>(null);
   const cellsRef = useRef<HTMLDivElement[]>([]);
@@ -185,7 +209,7 @@ export default function CalendarHeatmapView({
           role="row"
           style={{
             display: 'grid',
-            gridTemplateColumns: `${MONTH_COL}px repeat(7, ${CELL}px)`,
+            gridTemplateColumns: `${MONTH_COL}px repeat(7, ${CELL}px) ${MARKER_COL}px`,
             gap: GAP,
             position: 'sticky',
             top: 0,
@@ -212,6 +236,7 @@ export default function CalendarHeatmapView({
               {d}
             </div>
           ))}
+          <div />
         </div>
 
         {/* Week rows */}
@@ -226,9 +251,10 @@ export default function CalendarHeatmapView({
               <div
                 role="row"
                 {...(isToday ? { 'data-today': '' } : {})}
+                data-row={ri}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: `${MONTH_COL}px repeat(7, ${CELL}px)`,
+                  gridTemplateColumns: `${MONTH_COL}px repeat(7, ${CELL}px) ${MARKER_COL}px`,
                   gridAutoRows: CELL,
                   gap: GAP,
                   alignItems: 'center',
@@ -292,6 +318,36 @@ export default function CalendarHeatmapView({
                     />
                   );
                 })}
+
+                {/* Marker column — promotion rings */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {promotionWeeks.has(ri) && (() => {
+                    const promo = promotionWeeks.get(ri)!;
+                    const ringColor = BELT_RING_COLORS[promo.belt_rank] ?? COPPER;
+                    return (
+                      <button
+                        className="touch-manipulation"
+                        onClick={() => {
+                          setTooltip({
+                            x: (MONTH_COL + 7 * (CELL + GAP) + MARKER_COL / 2),
+                            y: (gridRef.current?.querySelector(`[data-row="${ri}"]`) as HTMLElement)?.offsetTop ?? 0,
+                            date: new Date(promo.promoted_at + 'T00:00:00'),
+                            day: { count: 0, totalMinutes: 0, maxIntensity: 0, notes: promo.notes ? [promo.notes] : [] },
+                          });
+                        }}
+                        style={{
+                          width: 10, height: 10,
+                          borderRadius: '50%',
+                          border: `1.5px solid ${ringColor}`,
+                          backgroundColor: 'transparent',
+                          padding: 0,
+                          cursor: 'pointer',
+                        }}
+                        aria-label={`Promoted to ${promo.belt_rank} belt${promo.stripes > 0 ? `, ${promo.stripes} stripe${promo.stripes !== 1 ? 's' : ''}` : ''}`}
+                      />
+                    );
+                  })()}
+                </div>
               </div>
             </div>
           );
