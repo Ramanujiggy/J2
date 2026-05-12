@@ -262,62 +262,6 @@ export default function HomeHero({
         </div>
       )}
       </div>
-
-      {/* This-week numerals — flat row, no chrome */}
-      <div style={{ marginTop: 8, display: 'flex', gap: 20, alignItems: 'baseline' }}>
-        <div>
-          <div
-            style={{
-              fontFamily: FONT_EDITORIAL,
-              fontWeight: 500,
-              fontSize: 22,
-              lineHeight: 1,
-              letterSpacing: '-0.015em',
-              color: 'rgba(255,255,255,0.65)',
-            }}
-          >
-            {weekTotalMinutes > 0 ? formatDuration(weekTotalMinutes) : '0h'}
-          </div>
-          <div
-            style={{
-              marginTop: 4,
-              fontSize: 9.5,
-              fontWeight: 700,
-              letterSpacing: '0.18em',
-              textTransform: 'uppercase',
-              color: 'rgba(255,255,255,0.28)',
-            }}
-          >
-            this week
-          </div>
-        </div>
-        <div>
-          <div
-            style={{
-              fontFamily: FONT_EDITORIAL,
-              fontWeight: 500,
-              fontSize: 22,
-              lineHeight: 1,
-              letterSpacing: '-0.015em',
-              color: 'rgba(255,255,255,0.65)',
-            }}
-          >
-            {weekSessionCount}
-          </div>
-          <div
-            style={{
-              marginTop: 4,
-              fontSize: 9.5,
-              fontWeight: 700,
-              letterSpacing: '0.18em',
-              textTransform: 'uppercase',
-              color: 'rgba(255,255,255,0.28)',
-            }}
-          >
-            {weekSessionCount === 1 ? 'session' : 'sessions'}
-          </div>
-        </div>
-      </div>
     </button>
   );
 }

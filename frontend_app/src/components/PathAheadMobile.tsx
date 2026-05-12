@@ -154,15 +154,8 @@ export default function PathAheadMobile({
         }
       />
 
-      {/* ── Telemetry expanded panel (above tiles) ──────────────── */}
-      <div style={{
-        maxHeight: telemetryOpen ? 200 : 0,
-        opacity: telemetryOpen ? 1 : 0,
-        overflow: 'hidden',
-        transition: 'max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease',
-      }}>
-        <div style={{ marginBottom: 8 }}>{telemetryContent}</div>
-      </div>
+      {/* ── Training Telemetry — always visible, no card ──────── */}
+      {telemetryContent}
 
       {/* ── B + C. TodayCard + IntentionHeroCard ────────────────────
             When no class today: quiet inline text + full-width intent card.
