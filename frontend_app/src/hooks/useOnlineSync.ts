@@ -23,7 +23,7 @@ export function useOnlineSync() {
           const { synced, failed } = await flush();
 
           if (synced > 0) {
-            toast({ title: `${synced} action${synced > 1 ? 's' : ''} synced.` });
+            toast({ variant: 'success', title: `${synced} action${synced > 1 ? 's' : ''} synced.` });
           }
           if (failed > 0) {
             toast({

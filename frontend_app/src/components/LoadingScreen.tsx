@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import BeltLoader from './BeltLoader.tsx';
+import PrismLoader from './PrismLoader.tsx';
 
 interface LoadingScreenProps {
   messages?: string[];
@@ -28,7 +28,7 @@ export default function LoadingScreen({ messages, onCycleSettle }: LoadingScreen
           100% { opacity: 1; transform: translateY(0); }
         }
       `}</style>
-      <BeltLoader onCycleSettle={onCycleSettle} />
+      <PrismLoader onCycleSettle={onCycleSettle} />
       <p
         className="text-sm tracking-widest uppercase"
         style={{

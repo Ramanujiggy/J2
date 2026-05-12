@@ -3,7 +3,7 @@
 
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
-import { register, login, requestPasswordReset, resetPassword } from '../controllers/authcontroller.js';
+import { register, login, requestPasswordReset, resetPassword } from '../controllers/authController.js';
 
 const router = Router();
 

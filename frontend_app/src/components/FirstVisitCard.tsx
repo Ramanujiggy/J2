@@ -16,7 +16,7 @@ export default function FirstVisitCard({ onLogFirst }: Props) {
       }}
     >
       <h3
-        className="text-lg font-semibold mb-2"
+        className="text-lg font-display font-semibold mb-2"
         style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}
       >
         Welcome to Journada

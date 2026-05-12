@@ -2,10 +2,23 @@ import express from 'express';
 import dotenv from 'dotenv';
 import helmet from 'helmet';
 import cors from 'cors';
+import compression from 'compression';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import authRoutes from './routes/authRoutes.js';
 import sessionRoutes from './routes/sessionRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 import intentionRoutes from './routes/intentionRoutes.js';
+import userTagRoutes from './routes/userTagRoutes.js';
+import canonicalPositionRoutes from './routes/canonicalPositionRoutes.js';
+import canonicalConstraintRoutes from './routes/canonicalConstraintRoutes.js';
+import userConstraintRoutes from './routes/userConstraintRoutes.js';
+import classScheduleRoutes from './routes/classScheduleRoutes.js';
+import classAttendanceRoutes from './routes/classAttendanceRoutes.js';
+import pushSubscriptionRoutes from './routes/pushSubscriptionRoutes.js';
+import caseRoutes from './routes/caseRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
 // db import triggers pool connection test on startup
 import { query } from './config/db.js';
 
@@ -24,9 +37,17 @@ if (!process.env.FRONTEND_URL) {
     console.warn('⚠️  FRONTEND_URL is not set — password reset email links will point to http://localhost:3000. Set FRONTEND_URL=https://<your-frontend>.up.railway.app in the backend service env vars.');
 }
 
-// ---- Auto-migration: ensure password_reset_tokens table exists --------------
+// ---- Auto-migration system ──────────────────────────────────────────────────
+// Runs numbered SQL files from /migrations/ in order, tracking applied state
+// in a schema_migrations table. Also ensures password_reset_tokens exists
+// (legacy inline migration kept for backward compatibility).
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const MIGRATIONS_DIR = path.resolve(__dirname, '..', 'migrations');
+
 async function runMigrations() {
     try {
+        // Legacy: ensure password_reset_tokens exists (was inline before migration system)
         await query(`
             CREATE TABLE IF NOT EXISTS password_reset_tokens (
                 id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -41,7 +62,61 @@ async function runMigrations() {
             CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_token
             ON password_reset_tokens(token)
         `);
-        console.log('✅ Migrations complete');
+
+        // Version tracking table
+        await query(`
+            CREATE TABLE IF NOT EXISTS schema_migrations (
+                name       TEXT PRIMARY KEY,
+                applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
+            )
+        `);
+
+        // Seed: if the DB already has columns from earlier manual migrations (001-005),
+        // mark them as applied to avoid re-running. Uses ON CONFLICT DO NOTHING so
+        // this is safe to run repeatedly (handles partial seeds from interrupted starts).
+        const check = await query(`
+            SELECT column_name FROM information_schema.columns
+            WHERE table_name = 'training_sessions' AND column_name = 'heading'
+        `);
+        if (check.rows.length > 0) {
+            const legacy = [
+                '001_add_weekly_intentions.sql',
+                '002_add_intention_duration.sql',
+                '003_add_journal_entry.sql',
+                '004_add_intentions_enabled.sql',
+                '005_dynamic_pillar_engine.sql',
+            ];
+            for (const name of legacy) {
+                await query('INSERT INTO schema_migrations (name) VALUES ($1) ON CONFLICT DO NOTHING', [name]);
+            }
+        }
+
+        // Find and run numbered migrations
+        if (!fs.existsSync(MIGRATIONS_DIR)) {
+            console.log('✅ Migrations complete (no migrations directory)');
+            return;
+        }
+
+        const files = fs.readdirSync(MIGRATIONS_DIR)
+            .filter(f => f.endsWith('.sql'))
+            .sort(); // lexicographic sort ensures 001 < 002 < ... < 006
+
+        const applied = await query('SELECT name FROM schema_migrations');
+        const appliedSet = new Set(applied.rows.map((r: { name: string }) => r.name));
+
+        let newCount = 0;
+        for (const file of files) {
+            if (appliedSet.has(file)) continue;
+            const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, file), 'utf-8');
+            await query(sql);
+            await query('INSERT INTO schema_migrations (name) VALUES ($1)', [file]);
+            console.log(`  ✅ Applied migration: ${file}`);
+            newCount++;
+        }
+
+        console.log(newCount > 0
+            ? `✅ Migrations complete (${newCount} new)`
+            : '✅ Migrations complete (all up to date)');
     } catch (err) {
         console.error('❌ Migration failed:', err);
     }
@@ -49,8 +124,23 @@ async function runMigrations() {
 
 const app = express();
 
+// Railway (and any hosted Node platform) sits behind a reverse proxy that
+// adds an X-Forwarded-For header. Without `trust proxy`, Express uses the
+// proxy's loopback IP as the client IP, and `express-rate-limit` rejects
+// the request with ERR_ERL_UNEXPECTED_X_FORWARDED_FOR. `1` trusts exactly
+// one hop (the Railway edge) — safer than `true` which trusts an arbitrary
+// chain.
+app.set('trust proxy', 1);
+
 
 //security middleware
+// Response compression — gzip/brotli on JSON responses. Single-line win:
+// per the 2026-05-09 perf audit, the hot endpoints (/api/sessions,
+// /api/intentions, /api/user-tags) ship 100s of KB uncompressed for
+// power users. Default `compression()` settings handle threshold
+// (1KB minimum) + content-type negotiation; no per-route opt-in needed.
+app.use(compression());
+
 app.use(helmet());
 const corsOptions: cors.CorsOptions = {
   origin: process.env.ALLOWED_ORIGIN ?? '*',
@@ -60,7 +150,7 @@ const corsOptions: cors.CorsOptions = {
 };
 app.use(cors(corsOptions));
 app.options('/{*path}', cors(corsOptions)); // respond to preflight for every route
-app.use(express.json()); //allows the server to read json body content
+app.use(express.json({ limit: '5mb' })); // raised from default 100KB to support bulk session imports
 
 
 // Health check — visit https://<backend>.railway.app/ to confirm the backend is alive
@@ -84,6 +174,15 @@ app.use('/api', profileRoutes);
 
 // intention routes: POST/GET /api/intentions, GET /api/intentions/current, DELETE /api/intentions/:id
 app.use('/api/intentions', intentionRoutes);
+app.use('/api/user-tags', userTagRoutes);
+app.use('/api/canonical-positions', canonicalPositionRoutes);
+app.use('/api/canonical-constraints', canonicalConstraintRoutes);
+app.use('/api/user-constraints', userConstraintRoutes);
+app.use('/api/class-schedules', classScheduleRoutes);
+app.use('/api/class-attendance', classAttendanceRoutes);
+app.use('/api/push-subscriptions', pushSubscriptionRoutes);
+app.use('/api/cases', caseRoutes);
+app.use('/api/admin', adminRoutes);
 
 
 // Catch-all JSON error handler — must be registered after all routes.

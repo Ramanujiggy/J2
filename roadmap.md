@@ -36,7 +36,8 @@ Development areas identified from codebase assessment. Updated as work progresse
 | `[x]` | **Streaks & consistency stats** | Current streak + longest streak computed in `computeStats` (`TrainingHeatmap.tsx`). Both surface in `StatStrip`: streak cell shows "best: Xd" sub-label, or "personal best" when current streak equals all-time best in the loaded window. |
 | `[ ]` | **Goal tracking** | Set a weekly or monthly mat-hours target. Show progress toward it on the Path Ahead summary card (e.g. "4.5 of 6h goal"). |
 | `[x]` | **Analytics custom date range** | `TimeRangeBar` component provides 7D/14D/30D/90D/180D/1Y presets plus a custom date-range picker (start + end date inputs). |
-| `[ ]` | **Session notes search** | Full-text search across session notes (PostgreSQL `tsvector` or simple `ILIKE`). Useful for finding technique notes from months ago. |
+| `[x]` | **Session search + filter** | `GET /api/sessions/search` endpoint with ILIKE text search + filter chips (gi/nogi, type, pillar, intensity). `SessionSearchPanel` integrated into CalendarPage behind a search toggle. Offline fallback via `filterSessionsLocal`. |
+| `[x]` | **CSV data export** | `exportSessionsCsv()` and `exportIntentionsCsv()` on ProfilePage using PapaParse. Human-readable column headers, chronological sort. Mirrors the existing CSV import for data symmetry / trust. |
 
 ---
 
@@ -47,6 +48,19 @@ Development areas identified from codebase assessment. Updated as work progresse
 | `[ ]` | **Tournament record** | Log competition results: event name, weight class, wins/losses. The `competition_training` session type exists but there's no competition results model. |
 | `[ ]` | **Belt rank milestones** | Timeline of when each belt/stripe was achieved, either inferred from profile change history or manually entered. Show on Profile ("Blue belt for 14 months"). |
 | `[ ]` | **Positional sparring tracker** | Quick-log specific positions trained (e.g. "20 min closed guard top"). Complements existing session tags with finer granularity. |
+
+---
+
+## Homepage Redesign
+
+Competitive audit against Strong, Strava, Nike TC, Peloton identified gaps in information architecture. The homepage tells a strong narrative (streak → intention → week → history) but has placement issues that hurt flagship-level polish.
+
+| Status | Area | Description |
+|---|---|---|
+| `[~]` | **Rep Roulette → FAB + bottom sheet** | Roulette breaks the homepage narrative flow (tracking → random drill → history). It's a "sometimes" tool, not an "always" feature. Move to a Floating Action Button (dice icon, lower-right above tab bar) that opens a bottom sheet with the drill card, swipe navigation, and "Log this drill" CTA. Frees ~320px of homepage real estate when expanded, ~48px when collapsed. |
+| `[ ]` | **Primary CTA above the fold** | "Log Mat Time" button is buried 400+ pixels below the top on mobile. Every flagship training app (Strong, Peloton, Nike TC) puts the main CTA visible without scrolling. Move to immediately below StatStrip or integrate into the week carousel "today" circle. |
+| `[ ]` | **Training Telemetry hidden-panel UX** | Tapping StatStrip to expand Telemetry has no visual affordance — users don't know it's tappable. Either always show Telemetry inline (it's only ~100px) or move it to Analytics where it's contextually expected. |
+| `[ ]` | **Mobile scroll depth** | 805px of stacked content on a 390px viewport (2x screen height). Flagship apps target 1.0–1.5x. After moving Roulette to FAB and CTA above fold, reassess whether further section consolidation is needed. |
 
 ---
 
@@ -109,7 +123,7 @@ A subtle thematic tribute to a character whose ethos aligns with BJJ culture: pu
 | Status | Area | Description |
 |---|---|---|
 | `[x]` | **Session 500 milestone toast** | When a user logs their 500th total session, a one-time toast fires: "500 sessions. The mat remembers every one." Backend returns `session_count` with the create-session response. Fires once via `localStorage` flag `j2-milestone-500`. |
-| `[ ]` | **Eight Gates — streak milestone system** | At consecutive-week thresholds 2, 4, 6, 8, 12, 16, 20, 26 weeks (2+ sessions/week), the streak display's color and glow scale progressively (copper → green → gold). A one-time toast fires per tier, stored in localStorage. At 26 weeks: particle burst. Daily attendance streak display remains as-is. |
+| `[x]` | **Eight Gates — streak milestone system** | At consecutive-week thresholds 2, 4, 6, 8, 12, 16, 20, 26 weeks (2+ sessions/week), the streak cell upgrades in color/glow (copper → amber → green → gold). A one-time toast fires per tier via localStorage flags (`j2-gate-N`). At 26 weeks: particle burst. The streak cell in `StatStrip` is a tappable flip: tap to toggle between daily streak and weekly consistency count (`Xwk`). `computeStats` computes `consistentWeeks` via ISO week bucketing. |
 | `[ ]` | **Eight Gates × Intention alignment** | Revisit after Eight Gates ships: weeks that are both consistent AND intention-aligned could amplify the gate reward (brighter glow, extra particle) rather than gate the milestone itself. Blocked on alignment heuristic fix first (see Intentions section). |
 | `[ ]` | **Foundation Reps — Rep Roulette filter** | Add a `tier: 'foundation' \| 'chain'` field to `ROULETTE_DRILLS` in `constants.ts`. A "Foundation ✿" filter tab in Rep Roulette surfaces only the 6 pure-movement drills (hip escape, tech stand-up, etc.). |
 | `[x]` | **"Presence" intention category** | Added as sixth category in `SetIntentionModal`. Color: `#52B56C` (mat green, distinct from all other categories). For weeks where the goal is simply to show up and be present on the mat. |

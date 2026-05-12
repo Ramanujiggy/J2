@@ -9,7 +9,14 @@ interface ProfileContextValue {
   beltRank: BeltRank | null;
   stripes: number;
   intentionsEnabled: boolean;
-  refreshProfile: () => void;
+  /** mig 022 — null = onboarding not yet completed; routing gates on this. */
+  onboardingCompletedAt: string | null;
+  /** mig 023 — admin flag. Drives the conditional /admin link on the
+   *  profile page and the route guard on the admin dashboard. */
+  isAdmin: boolean;
+  /** True until the first profile fetch resolves; prevents flash-redirects on cold load. */
+  loaded: boolean;
+  refreshProfile: () => Promise<void>;
 }
 
 const ProfileContext = createContext<ProfileContextValue>({
@@ -17,7 +24,10 @@ const ProfileContext = createContext<ProfileContextValue>({
   beltRank: null,
   stripes: 0,
   intentionsEnabled: true,
-  refreshProfile: () => {},
+  onboardingCompletedAt: null,
+  isAdmin: false,
+  loaded: false,
+  refreshProfile: async () => {},
 });
 
 export function ProfileProvider({ children }: { children: React.ReactNode }) {
@@ -25,6 +35,9 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const [beltRank, setBeltRank] = useState<BeltRank | null>(null);
   const [stripes, setStripes] = useState(0);
   const [intentionsEnabled, setIntentionsEnabled] = useState(true);
+  const [onboardingCompletedAt, setOnboardingCompletedAt] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   const refreshProfile = useCallback(async () => {
     try {
@@ -34,9 +47,13 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         setBeltRank((data.profile.belt_rank as BeltRank) ?? null);
         setStripes(data.profile.stripes ?? 0);
         setIntentionsEnabled(data.profile.intentions_enabled ?? true);
+        setOnboardingCompletedAt(data.profile.onboarding_completed_at ?? null);
+        setIsAdmin(data.profile.is_admin ?? false);
       }
     } catch {
       // non-critical — belt bar just won't render
+    } finally {
+      setLoaded(true);
     }
   }, []);
 
@@ -46,7 +63,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   useOnlineRefetch(refreshProfile);
 
   return (
-    <ProfileContext.Provider value={{ name, beltRank, stripes, intentionsEnabled, refreshProfile }}>
+    <ProfileContext.Provider value={{ name, beltRank, stripes, intentionsEnabled, onboardingCompletedAt, isAdmin, loaded, refreshProfile }}>
       {children}
     </ProfileContext.Provider>
   );

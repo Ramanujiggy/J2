@@ -1,3 +1,23 @@
+import { PRESTIGE_GREEN, PRESTIGE_GREEN_GLOW } from './theme';
+
+// Daily reflection prompts — rotates one per day on the JournalEntryPage.
+// Index = floor(unix_ms / 86_400_000) % length, so the same day gives the
+// same prompt regardless of how many times the page is opened.
+export const REFLECTION_PROMPTS = [
+  "What moment from yesterday's roll still teaches you?",
+  "Which opponent's pressure changed how you move?",
+  "What's the smallest detail you're drilling this week?",
+  "Where did your breath leave you last session?",
+  "What technique are you quietly getting better at?",
+  "When did the mat last surprise you?",
+] as const;
+
+// Note: the Rep Roulette's constraint pool is no longer hardcoded here.
+// As of mig 017/018 it derives directly from `canonical_constraints` filtered
+// by `details.roulette_eligible === true` via `useCanonicalConstraints()`.
+// Single source of truth: the same DB rows feed both the ConstraintPicker
+// on the log form and the Roulette spin pool.
+
 export const ROULETTE_DRILLS = [
   { name: 'Hip Escape Drill',        focus: 'Guard',           suggestion: '3 × 10 each side',
     description: 'From bottom mount or side control, bridge to create space then shrimp your hips out to re-guard. Focus on explosive hip movement and keeping your frames tight.' },
@@ -25,6 +45,8 @@ export const ROULETTE_DRILLS = [
     description: 'From half guard or knee shield, slide your knee across your partner\'s thigh, pin their far hip, and cut through to side control. Keep heavy chest pressure as you pass.' },
   { name: 'Armbar from Guard',       focus: 'Submissions',     suggestion: '3 × 10 each side',
     description: 'From closed guard, control one arm with a two-on-one grip, pivot your hips out, throw your leg over their head, and extend the arm. Pinch your knees and keep their thumb pointing up.' },
+  { name: 'Armbar from Mount',       focus: 'Submissions',     suggestion: '4 × 10 each arm',
+    description: 'From high mount, trap one of your partner\'s arms across their body, post your far hand by their head, and swing your same-side leg over their face as you pivot 180°. Sit back, pinch your knees, and extend the hips slowly to finish — keep their thumb up and squeeze the elbow tight to your chest.' },
   { name: 'Granby Roll',             focus: 'Guard Retention', suggestion: '3 × 10 each direction',
     description: 'From turtle or a scramble, invert over your shoulder and roll through to re-guard or create a leg entanglement. Builds inverting confidence and scramble recovery.' },
   { name: 'Elbow-Knee Escape',       focus: 'Dynamic Pins',    suggestion: '3 × 10 each side',
@@ -47,7 +69,18 @@ export const CATEGORY_COLORS: Record<string, string> = {
   mental:      '#a78bfa',
   positional:  '#34d399',
   competitive: '#fbbf24',
-  presence:    '#52B56C',
+  presence:    '#4BA862',
 };
 
 export const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
+
+export const EIGHT_GATES = [
+  { weeks: 2,  color: '#C4915F', glow: 'rgba(196,145,95,0.35)',  toast: 'Two weeks. The mat is starting to know you.',            burst: false },
+  { weeks: 4,  color: '#C4915F', glow: 'rgba(196,145,95,0.40)',  toast: 'Four weeks straight. A habit lives here now.',            burst: false },
+  { weeks: 6,  color: '#DA7422', glow: 'rgba(218,116,34,0.40)',  toast: 'Six weeks. The mat knows your schedule.',                 burst: false },
+  { weeks: 8,  color: PRESTIGE_GREEN, glow: PRESTIGE_GREEN_GLOW,  toast: 'Eight weeks. You show up. That is the whole secret.',     burst: false },
+  { weeks: 12, color: '#6FD08C', glow: 'rgba(111,208,140,0.45)', toast: 'Three months. Most stop here. You did not.',              burst: false },
+  { weeks: 16, color: '#6FD08C', glow: 'rgba(111,208,140,0.50)', toast: 'Sixteen weeks. Your body knows the way now.',             burst: false },
+  { weeks: 20, color: '#F2E4A8', glow: 'rgba(242,228,168,0.50)', toast: 'Five months on the mat. The technique is in your hands.', burst: false },
+  { weeks: 26, color: '#F2E4A8', glow: 'rgba(242,228,168,0.55)', toast: 'Half a year. Every week. The mat remembers.',             burst: true  },
+] as const;

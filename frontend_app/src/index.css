@@ -52,15 +52,86 @@
     --sal: env(safe-area-inset-left, 0px);
   }
 
+  /* ─── Desktop design tokens (Phase 1) ────────────────────────────────────
+     Editorial fonts, intensity scale, rail/context widths, and glow shadows
+     used by the desktop layout. These extend (do not replace) the shadcn
+     HSL tokens above — mobile styling is unaffected. */
+  :root {
+    --font-ui:        "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+    --font-wordmark:  "Cormorant Garamond", "Cormorant", Georgia, serif;
+    --font-editorial: "Cormorant Garamond", Georgia, serif;
+
+    /* Layout — desktop rail + context column widths */
+    --rail-w:    280px;
+    --context-w: 360px;
+
+    /* Surface + border ladder used by desktop cards. Named with -2/-3 suffixes
+       to avoid clashing with shadcn's --border token above. */
+    --j2-surface-2:  rgba(255,255,255,0.035);
+    --j2-surface-3:  rgba(255,255,255,0.08);
+    --j2-border-1:   rgba(255,255,255,0.05);
+    --j2-border-2:   rgba(255,255,255,0.10);
+    --j2-border-3:   rgba(255,255,255,0.16);
+
+    /* Copper variants */
+    --copper:        #C4915F;
+    --copper-deep:   #8E6741;
+    --champagne:     #F2E4A8;
+
+    /* Intensity scale — 5 levels, used by session density + calendar cells */
+    --int-1: #A8CB72;   /* Drill */
+    --int-2: #7AC374;   /* Light */
+    --int-3: #52B56C;   /* Steady */
+    --int-4: #D4A040;   /* Intense */
+    --int-5: #DA7422;   /* Hard roll */
+
+    /* Glow shadows — applied via text-shadow on champagne headings */
+    --glow-title:  0 0 14px rgba(242,228,168,0.45), 0 0 32px rgba(242,228,168,0.20);
+    --glow-soft:   0 0 14px rgba(242,228,168,0.30), 0 0 30px rgba(242,228,168,0.14);
+    --glow-subtle: 0 0 8px  rgba(242,228,168,0.22);
+  }
+
   html, body {
     @apply bg-brand-dark;
     overflow-x: hidden;
+    /* Prevent rubber-band on the page itself; allow it inside scroll containers
+       that opt in (e.g. .j2-app-scroll, modal bodies) via overscroll-behavior: contain. */
+    overscroll-behavior: none;
   }
 
   body {
     @apply text-white font-sans antialiased;
     font-feature-settings: "cv01", "ss03";
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* iOS: prevent text size adjusting on orientation change */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* iOS native-feel baseline — applied globally.
+     - Kills the gray tap-highlight flash on every touchable element.
+     - Disables long-press callout menus on buttons/links (keeps text inputs intact).
+     - touch-action: manipulation removes the 300ms tap delay on iOS without
+       disabling pinch-zoom on the page itself. */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button,
+  a,
+  [role="button"],
+  [role="tab"],
+  [role="menuitem"] {
+    -webkit-touch-callout: none;
+    touch-action: manipulation;
+  }
+
+  /* Allow text selection where it makes sense (inputs, prose), block it on
+     interactive chrome to prevent accidental selection during taps. */
+  button,
+  [role="button"] {
+    user-select: none;
+    -webkit-user-select: none;
   }
 }
 
@@ -97,6 +168,60 @@
   20%  { transform: skewX(-18deg) translateX(350%);  opacity: 0;   }
   100% { transform: skewX(-18deg) translateX(350%);  opacity: 0;   }
 }
+
+/* ────────────────────────────────────────────────────────────────────
+ * Page transition — used by PageTransition.tsx.
+ * "Leather-bound book" feel: the previous page settles down (fade + slight
+ * lift up + scale pull-in), then the new page rises into place (fade +
+ * slight lift down + scale settle). No horizontal slides — those read as
+ * iOS push/pop and felt too "app-y" for the brand. Eased with a gentle
+ * decel curve so motion arrives slowly rather than snapping.
+ * ──────────────────────────────────────────────────────────────────── */
+@keyframes j2-page-out {
+  0%   { opacity: 1; transform: translateY(0)    scale(1);     }
+  100% { opacity: 0; transform: translateY(-6px) scale(0.99);  }
+}
+
+@keyframes j2-page-in {
+  0%   { opacity: 0; transform: translateY(8px)  scale(0.985); }
+  100% { opacity: 1; transform: translateY(0)    scale(1);     }
+}
+
+/* ────────────────────────────────────────────────────────────────────
+ * Shared desktop page container.
+ * Replaces the per-page mix of max-w-6xl / max-w-7xl / inline max-widths
+ * (1152, 1280, 1360, 1520, 1680) with a single fluid cap at 1760px.
+ * On 1920 monitors content fills ~1640 (rail-relative) and breathing
+ * room is balanced at ~140-180px each side — close enough to the rail
+ * to feel anchored, far enough to feel editorial. On 2560+ monitors the
+ * cap kicks in and the gutters split a sensible ~260px instead of the
+ * old 1000+px abandoned canvas.
+ *
+ * Only horizontal padding lives in the utility — pages set their own
+ * vertical padding inline (paddingTop/paddingBottom) since each page
+ * has its own top-of-page rhythm.
+ * ──────────────────────────────────────────────────────────────────── */
+.j2-page-container {
+  width: 100%;
+  max-width: 1760px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 64px;
+  padding-right: 64px;
+}
+
+/* ────────────────────────────────────────────────────────────────────
+ * FAB press feedback — used by the bottom-nav central + Log button.
+ * Subtle scale on hover/press so the dome reads as a real surface that
+ * acknowledges touch. Inline styles can't define :hover / :active, hence
+ * the class.
+ * ──────────────────────────────────────────────────────────────────── */
+.j2-fab-log {
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+              filter    180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.j2-fab-log:hover  { transform: scale(1.04); filter: brightness(1.06); }
+.j2-fab-log:active { transform: scale(0.96); filter: brightness(0.95); }
 
 .j2-streak-cell {
   position: relative;
@@ -151,4 +276,195 @@
   backdrop-filter: blur(12px) saturate(1.2);
   background: rgba(21, 46, 34, 0.85);
 }
+
+/* ─── Desktop editorial utilities (Phase 1) ───────────────────────────────
+   Opt-in classes used only by desktop (≥1024px) layouts. Nothing in this
+   block is applied globally — mobile rendering is unchanged until a
+   component explicitly adopts one of these classes. */
+
+.j2-wordmark {
+  font-family: var(--font-wordmark);
+  font-weight: 600;
+  color: var(--champagne);
+  text-shadow: var(--glow-title);
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.j2-serif-display {
+  font-family: var(--font-editorial);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--champagne);
+}
+
+.j2-serif-italic {
+  font-family: var(--font-editorial);
+  font-style: italic;
+  font-weight: 500;
+  color: rgba(255,255,255,0.60);
+}
+
+.j2-heading-glow {
+  color: var(--champagne);
+  text-shadow: var(--glow-soft);
+}
+
+.j2-label-micro {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.40);
+}
+
+.j2-label-copper {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--copper);
+}
+
+/* Desktop: bump defaults so inherited text doesn't feel tiny.
+   Most explicit px sizes are also scaled up in components. */
+@media (min-width: 1024px) {
+  body { font-size: 16px; }
+  .j2-label-micro, .j2-label-copper { font-size: 13px; letter-spacing: 0.16em; }
+}
+
+/* Seigaiha (wave) ambient backdrop. Fixed, pointer-events:none, below
+   content. Drifts slowly. Intended as a <div class="j2-seigaiha-bg" />
+   sibling of page content on desktop. */
+.j2-seigaiha-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='40' viewBox='0 0 80 40'><g fill='none' stroke='%23C4915F' stroke-width='1' opacity='0.22'><circle cx='0' cy='40' r='36'/><circle cx='0' cy='40' r='26'/><circle cx='0' cy='40' r='16'/><circle cx='0' cy='40' r='6'/><circle cx='40' cy='40' r='36'/><circle cx='40' cy='40' r='26'/><circle cx='40' cy='40' r='16'/><circle cx='40' cy='40' r='6'/><circle cx='80' cy='40' r='36'/><circle cx='80' cy='40' r='26'/><circle cx='80' cy='40' r='16'/><circle cx='80' cy='40' r='6'/><circle cx='20' cy='20' r='36'/><circle cx='20' cy='20' r='26'/><circle cx='20' cy='20' r='16'/><circle cx='20' cy='20' r='6'/><circle cx='60' cy='20' r='36'/><circle cx='60' cy='20' r='26'/><circle cx='60' cy='20' r='16'/><circle cx='60' cy='20' r='6'/></g></svg>");
+  background-size: 80px 40px;
+  opacity: 0.28;
+  mask-image: radial-gradient(ellipse at top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.15) 60%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse at top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.15) 60%, transparent 100%);
+  animation: j2-seigaiha-drift 18s linear infinite;
+}
+
+@keyframes j2-seigaiha-drift {
+  0%   { background-position: 0 0; }
+  100% { background-position: 80px 40px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .j2-seigaiha-bg { animation: none !important; }
+}
+
+/* Prestige breathe — slow ethereal aura behind the consistency stat
+   when a practitioner reaches the 26-week 8th Gate. Breathes at ~14 BPM
+   to feel alive without being distracting. */
+@keyframes j2PrestigeBreathe {
+  0%, 100% { opacity: 0.35; transform: scale(0.96); }
+  50%      { opacity: 0.72; transform: scale(1.04); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [style*="j2PrestigeBreathe"] { animation: none !important; opacity: 0.5 !important; }
+}
+
+/* Vertex toggle pump — fires once when a Prism pillar is muted/unmuted.
+   Mirrors iOS toggle-switch overshoot via spring curve. */
+@keyframes j2VertexToggle {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.35); }
+  70%  { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+
+/* Vertex snap-in — inner ring lock-on with a settle when the center dot
+   crosses the snap threshold onto a vertex. Lands ~5% past target then settles. */
+@keyframes j2VertexSnapIn {
+  0%   { transform: scale(1.4); opacity: 0; }
+  60%  { transform: scale(0.92); opacity: 1; }
+  100% { transform: scale(1);    opacity: 0.85; }
+}
+
+/* Vertex dot pump — fires once when a vertex becomes the snapped primary,
+   acknowledging the magnetic lock-on at the dot itself. */
+@keyframes j2VertexDotPump {
+  0%   { transform: scale(1); }
+  45%  { transform: scale(1.4); }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [style*="j2VertexToggle"],
+  [style*="j2VertexSnapIn"],
+  [style*="j2VertexDotPump"] { animation: none !important; }
+}
+
+/* Journal inscribe — line-by-line fade-up reveal of a saved journal entry.
+   Each line gets a staggered animation-delay so prose appears as if being
+   written onto the mat. Lines respect actual word-wrap break points
+   (computed via Pretext) so the cadence reads as sentences, not characters. */
+@keyframes j2InscribeLine {
+  0%   { opacity: 0; transform: translateY(4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [style*="j2InscribeLine"] { animation: none !important; opacity: 1 !important; transform: none !important; }
+}
+
+/* Most Recent Session dot — gentle continuous glow (brightness breathe, no scale).
+   The bloom comes from the inline boxShadow on the dot itself; we just modulate
+   brightness so the dot reads as alive while it waits for the eyebrow reveal. */
+@keyframes j2DotGlow {
+  0%, 100% { filter: brightness(1.0); }
+  50%      { filter: brightness(1.55); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [style*="j2DotGlow"] { animation: none !important; }
+}
+
+/* Skeleton sweep — copper-gradient stripe traveling across a placeholder
+   box while data is loading. Mirrors `j2-streak-sheen` (above) but tuned
+   for a calm, ambient pulse rather than a celebratory sheen — slower,
+   continuous, lower contrast. Used by DesktopPathAheadSkeleton. The element
+   this animates is an absolutely-positioned inner <span> with a
+   `linear-gradient(90deg, transparent, rgba(196,145,95,0.18), transparent)`
+   background; the keyframe just translates it across. */
+@keyframes j2-skeleton-sweep {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(180%); }
+}
+@keyframes j2-skeleton-breathe {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 0.85; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [style*="j2-skeleton-sweep"]   { animation: none !important; }
+  [style*="j2-skeleton-breathe"] { animation: none !important; }
+}
+
+/* ── Toast variant accent strips ──────────────────────────────────────────────
+   Each Radix Toast root carries a j2-toast-{variant} class (see
+   src/components/ui/toast.tsx). The ::before pseudo paints a thin coloured
+   left edge that signals status without shouting. Keep widths narrow — the
+   border + edge together should read like a single graphic detail, not a
+   busy stripe. */
+.j2-toast-default::before,
+.j2-toast-success::before,
+.j2-toast-destructive::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 2px;
+  pointer-events: none;
+}
+.j2-toast-default::before     { background: #C4915F; }
+.j2-toast-success::before     { background: #A8B97A; }
+.j2-toast-destructive::before { background: #E07560; }
+
 

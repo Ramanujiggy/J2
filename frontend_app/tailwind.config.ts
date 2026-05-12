@@ -54,8 +54,9 @@ export default {
         sm: 'calc(var(--radius) - 4px)',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        display: ['DM Serif Display', 'serif'],
+        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+        display: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+        wordmark: ['"Cormorant Garamond"', 'Georgia', 'serif'],
       },
       transitionTimingFunction: {
         heavy:  'cubic-bezier(0.16, 1, 0.3, 1)',
@@ -118,8 +119,8 @@ export default {
           to:   { opacity: '1' },
         },
         'j2-today-pulse': {
-          '0%, 100%': { boxShadow: '0 0 16px rgba(196,145,95,0.2)' },
-          '50%':      { boxShadow: '0 0 22px rgba(196,145,95,0.3)' },
+          '0%, 100%': { filter: 'drop-shadow(0 0 10px rgba(196,145,95,0.18))' },
+          '50%':      { filter: 'drop-shadow(0 0 16px rgba(196,145,95,0.30))' },
         },
         // Shimmer: apply to a full-width child element that slides across a clipped parent.
         // Parent needs: position:relative; overflow:hidden.
@@ -150,6 +151,10 @@ export default {
         'j2IntentFadeIn': {
           from: { opacity: '0' },
           to:   { opacity: '1' },
+        },
+        'j2SheetSlideUp': {
+          from: { transform: 'translateY(100%)' },
+          to:   { transform: 'translateY(0)' },
         },
         'j2RouletteEdgeBounce': {
           '0%':       { transform: 'translateX(0)' },

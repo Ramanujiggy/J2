@@ -3,6 +3,7 @@
 
 import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { query } from '../config/db.js';
 
 
 // The shape of the payload we sign into the token
@@ -63,6 +64,31 @@ export const verifyToken = (req: Request, res: Response, next: NextFunction): vo
         }
 
         console.error('❌ Error during token verification:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// requireAdmin — chained AFTER verifyToken on admin-only routes. Looks up
+// users.is_admin (mig 023) and rejects with 403 if the flag is false.
+export const requireAdmin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            res.status(401).json({ message: 'Unauthorized.' });
+            return;
+        }
+        const result = await query(
+            'SELECT is_admin FROM users WHERE id = $1',
+            [userId]
+        );
+        const row = result.rows[0] as { is_admin: boolean } | undefined;
+        if (!row?.is_admin) {
+            res.status(403).json({ message: 'Admin access required.' });
+            return;
+        }
+        next();
+    } catch (error) {
+        console.error('❌ Error during admin check:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };

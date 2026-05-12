@@ -1,8 +1,10 @@
 import { useState, useRef, useCallback } from 'react';
-import { parseCSV, type ParsedRow, type GiNogi, type SessionType, type SkillTagValue } from '../lib/csvParser.ts';
+import { parseCSV, type ParsedRow, type GiNogi, type SessionType, type SkillTagValue, type DateFormat } from '../lib/csvParser.ts';
+import { parseJSON } from '../lib/jsonParser.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
-import { api } from '../lib/api.ts';
-import { CARD_BG, COPPER_BORDER, SURFACE_2, SURFACE_2_BORDER, SURFACE_3, SURFACE_3_BORDER } from '../lib/theme.ts';
+import { api, ApiError } from '../lib/api.ts';
+import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, COPPER_BORDER, PALE_YELLOW, SURFACE_2, SURFACE_2_BORDER, SURFACE_3, SURFACE_3_BORDER } from '../lib/theme.ts';
+import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 
 const COPPER_DIM = 'rgba(196,145,95,0.85)';
 const COPPER_FG  = 'rgba(218,116,34,0.85)';
@@ -16,20 +18,25 @@ interface Props {
 type Step = 'upload' | 'review' | 'done';
 
 export default function CsvImportModal({ existingDates, onClose, onImported }: Props) {
+  const isDesktop = useIsDesktop();
   const [step, setStep]           = useState<Step>('upload');
   const [rows, setRows]           = useState<ParsedRow[]>([]);
   const [parseError, setParseError] = useState('');
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState('');
   const [importedCount, setImportedCount] = useState(0);
+  const [duplicatePrompt, setDuplicatePrompt] = useState<string[] | null>(null);
   const [capped, setCapped]       = useState(false);
+  const [dateFormat, setDateFormat] = useState<DateFormat>('auto');
+  const [currentFile, setCurrentFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Parse ────────────────────────────────────────────────────────────────
 
-  const handleFile = useCallback((file: File) => {
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-      setParseError('Please upload a .csv file.');
+  const handleFile = useCallback(async (file: File, fmt: DateFormat = dateFormat) => {
+    const ext = file.name.toLowerCase().split('.').pop();
+    if (!ext || !['csv', 'json', 'numbers'].includes(ext)) {
+      setParseError('Please upload a .csv, .json, or .numbers file.');
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
@@ -37,30 +44,42 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
       return;
     }
     setParseError('');
-    const wasCapped = file.size > 0; // placeholder; real cap set in callback
-    parseCSV(
-      file,
-      existingDates,
-      (parsed) => {
-        // Detect whether we hit the 500-row cap (parser sliced to 500)
-        setCapped(parsed.length === 500);
-        setRows(parsed);
-        setStep('review');
-      },
-      (msg) => setParseError(msg),
-    );
-    void wasCapped;
-  }, [existingDates]);
+    setCurrentFile(file);
+
+    const onDone = (parsed: ParsedRow[]) => {
+      setCapped(parsed.length === 2000);
+      setRows(parsed);
+      setStep('review');
+    };
+    const onErr = (msg: string) => setParseError(msg);
+
+    if (ext === 'json') {
+      parseJSON(file, existingDates, onDone, onErr);
+    } else if (ext === 'numbers') {
+      try {
+        const { parseNumbers } = await import('../lib/numbersParser.ts');
+        await parseNumbers(file, existingDates, onDone, onErr);
+      } catch {
+        setParseError('Could not load .numbers file parser.');
+      }
+    } else {
+      try {
+        await parseCSV(file, existingDates, onDone, onErr, fmt);
+      } catch {
+        setParseError('Could not load CSV parser.');
+      }
+    }
+  }, [existingDates, dateFormat]);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
-    if (file) handleFile(file);
+    if (file) void handleFile(file);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) handleFile(file);
+    if (file) void handleFile(file);
   };
 
   // ── Row editors ──────────────────────────────────────────────────────────
@@ -80,7 +99,8 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
   // ── Validation ───────────────────────────────────────────────────────────
 
   const activeRows = rows.filter(r => !r.skip);
-  const rowsWithErrors = activeRows.filter(r => r.errors.length > 0 || r.tags.length === 0);
+  const rowsWithErrors = activeRows.filter(r => r.errors.length > 0);
+  const rowsMissingTags = activeRows.filter(r => r.tags.length === 0);
   const canImport = rowsWithErrors.length === 0 && activeRows.length > 0;
 
   // ── Bulk fixes ───────────────────────────────────────────────────────────
@@ -93,12 +113,23 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
     }));
   };
 
+  const [bulkTagOpen, setBulkTagOpen] = useState(false);
+  const setAllMissingTags = (tag: SkillTagValue) => {
+    setRows(prev => prev.map(r => r.skip || r.tags.length > 0 ? r : { ...r, tags: [tag] }));
+    setBulkTagOpen(false);
+  };
+
+  const skipAllUntagged = () => {
+    setRows(prev => prev.map(r => r.tags.length === 0 && !r.skip ? { ...r, skip: true } : r));
+  };
+
   // ── Import ───────────────────────────────────────────────────────────────
 
-  const handleImport = async () => {
+  const doImport = async (confirmDuplicates = false) => {
     if (!canImport) return;
     setImporting(true);
     setImportError('');
+    setDuplicatePrompt(null);
 
     const payload = activeRows.map(r => ({
       date: r.date!,
@@ -108,25 +139,37 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
       session_type: r.session_type,
       tags: r.tags,
       notes: r.notes || '',
+      heading: r.heading ?? null,
+      polarity: r.polarity ?? null,
+      sub_skill_tag: r.sub_skill_tag ?? null,
+      script_source: r.script_source ?? null,
+      resonance: r.resonance ?? null,
     }));
 
     try {
-      const res = await api.post<{ imported: number }>('/api/sessions/import', { sessions: payload });
+      const res = await api.post<{ imported: number }>('/api/sessions/import', { sessions: payload, confirmDuplicates });
       setImportedCount(res.imported);
       setStep('done');
       onImported();
     } catch (err) {
-      setImportError(err instanceof Error ? err.message : 'Import failed. Please try again.');
+      if (err instanceof ApiError && err.status === 409) {
+        // Duplicate dates detected — show confirmation prompt
+        setDuplicatePrompt([err.message]);
+      } else {
+        setImportError(err instanceof Error ? err.message : 'Import failed. Please try again.');
+      }
     } finally {
       setImporting(false);
     }
   };
 
+  const handleImport = () => void doImport(false);
+
   // ── Summary stats ─────────────────────────────────────────────────────────
 
   const totalFound   = rows.length;
   const skipped      = rows.filter(r => r.skip).length;
-  const needAttention = rows.filter(r => !r.skip && (r.errors.length > 0 || r.tags.length === 0)).length;
+  const needAttention = rows.filter(r => !r.skip && r.errors.length > 0).length;
   const duplicates   = rows.filter(r => !r.skip && r.isDuplicate).length;
   const missingDur   = rows.filter(r => !r.skip && r.duration === null).length;
 
@@ -147,29 +190,61 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
       }}
     >
       <div
+        data-testid="csv-import-modal"
         onClick={e => e.stopPropagation()}
         className="animate-j2-modal-in"
         style={{
-          width: '100%', maxWidth: 680,
+          width: '100%',
+          maxWidth: isDesktop ? 1180 : 680,
           backgroundColor: CARD_BG,
-          border: `1px solid ${COPPER_BORDER}`,
-          borderRadius: '1rem',
-          padding: '1.5rem',
+          border: `1px solid ${isDesktop ? CARD_GLOW_BORDER : 'rgba(255,255,255,0.10)'}`,
+          borderRadius: isDesktop ? '1.25rem' : '1rem',
+          boxShadow: isDesktop ? CARD_GLOW : undefined,
+          padding: isDesktop ? '2.5rem 3rem' : '1.5rem',
           position: 'relative',
           maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem)',
           overflowY: 'auto',
         }}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-semibold text-white">Import Training History</h2>
-          <button
-            onClick={onClose}
-            className="text-white/40 hover:text-white/70 transition-colors text-lg leading-none"
-          >
-            ×
-          </button>
-        </div>
+        {/* Header — editorial on desktop, compact on mobile */}
+        {isDesktop ? (
+          <div className="flex items-start justify-between mb-8">
+            <div>
+              <p className="j2-label-copper" style={{ marginBottom: 8 }}>◇ Import training history</p>
+              <h2
+                className="j2-serif-display"
+                style={{ fontSize: 36, lineHeight: 1.1, margin: 0, color: PALE_YELLOW }}
+              >
+                Bring the past on.
+              </h2>
+              <p
+                className="j2-serif-italic"
+                style={{ marginTop: 10, fontSize: 16, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}
+              >
+                Upload a CSV, JSON, or Numbers spreadsheet — review every row before it lands in your record.
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-white/40 hover:text-white/70 transition-colors"
+              style={{ fontSize: 24, lineHeight: 1, padding: 4 }}
+              aria-label="Close"
+            >
+              ×
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-base font-semibold text-white">Import Training History</h2>
+            <button
+              onClick={onClose}
+              className="text-white/40 hover:text-white/70 transition-colors text-lg leading-none"
+              aria-label="Close"
+            >
+              ×
+            </button>
+          </div>
+        )}
 
         {/* ── Step 1: Upload ─────────────────────────────────────────────── */}
         {step === 'upload' && (
@@ -178,42 +253,144 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
               onDragOver={e => e.preventDefault()}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
-              className="flex flex-col items-center justify-center gap-3 rounded-xl cursor-pointer transition-colors"
+              className="flex flex-col items-center justify-center rounded-xl cursor-pointer transition-colors"
               style={{
                 border: `2px dashed ${COPPER_BORDER}`,
-                padding: '3rem 2rem',
+                padding: isDesktop ? '5rem 3rem' : '3rem 2rem',
+                gap: isDesktop ? 16 : 12,
                 backgroundColor: 'rgba(196,145,95,0.04)',
               }}
             >
-              <span style={{ fontSize: 32 }}>📂</span>
-              <p className="text-white/70 text-sm text-center">
-                Drop your CSV file here, or <span style={{ color: COPPER_DIM }}>click to browse</span>
+              <span style={{ fontSize: isDesktop ? 48 : 32 }}>📂</span>
+              <p
+                className="text-center"
+                style={{
+                  color: 'rgba(255,255,255,0.75)',
+                  fontSize: isDesktop ? 16 : 14,
+                  lineHeight: 1.5,
+                }}
+              >
+                Drop your file here, or{' '}
+                <span style={{ color: COPPER_DIM, fontWeight: 600 }}>click to browse</span>
+              </p>
+              <p
+                style={{
+                  color: 'rgba(255,255,255,0.35)',
+                  fontSize: isDesktop ? 12 : 11,
+                  letterSpacing: isDesktop ? '0.08em' : 'normal',
+                  textTransform: isDesktop ? 'uppercase' : 'none',
+                }}
+              >
+                .csv · .json · .numbers
               </p>
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".csv"
+                accept=".csv,.json,.numbers"
                 className="hidden"
                 onChange={handleInputChange}
               />
             </div>
 
+            {/* Date format selector */}
+            <div className={`flex items-center gap-3 ${isDesktop ? 'mt-6' : 'mt-4'}`}>
+              <span
+                style={{
+                  fontSize: isDesktop ? 11 : 12,
+                  color: 'rgba(255,255,255,0.40)',
+                  letterSpacing: isDesktop ? '0.16em' : 'normal',
+                  textTransform: isDesktop ? 'uppercase' : 'none',
+                  fontWeight: isDesktop ? 700 : 400,
+                }}
+              >
+                Date format
+              </span>
+              <div
+                className="flex overflow-hidden"
+                style={{
+                  border: `1px solid ${SURFACE_3_BORDER}`,
+                  borderRadius: isDesktop ? 8 : 4,
+                  height: isDesktop ? 36 : undefined,
+                }}
+              >
+                {([['auto', 'Auto'], ['mdy', 'MM/DD'], ['dmy', 'DD/MM']] as const).map(([val, label]) => (
+                  <button
+                    key={val}
+                    onClick={() => {
+                      setDateFormat(val);
+                      if (currentFile && currentFile.name.toLowerCase().endsWith('.csv')) {
+                        void handleFile(currentFile, val);
+                      }
+                    }}
+                    className="transition-colors"
+                    style={{
+                      fontSize: isDesktop ? 13 : 12,
+                      padding: isDesktop ? '0 16px' : '4px 12px',
+                      backgroundColor: dateFormat === val ? 'rgba(196,145,95,0.3)' : 'transparent',
+                      color: dateFormat === val ? 'rgba(218,116,34,0.9)' : 'rgba(255,255,255,0.4)',
+                      fontWeight: dateFormat === val ? 600 : 500,
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div
-              className="mt-4 rounded-lg px-4 py-3"
+              className={`rounded-lg ${isDesktop ? 'mt-6 px-5 py-4' : 'mt-4 px-4 py-3'}`}
               style={{ backgroundColor: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}` }}
             >
-              <p className="text-xs text-white/40 mb-1 uppercase tracking-wide">Expected columns</p>
+              <p
+                style={{
+                  fontSize: isDesktop ? 11 : 12,
+                  color: 'rgba(255,255,255,0.40)',
+                  letterSpacing: isDesktop ? '0.16em' : '0.08em',
+                  textTransform: 'uppercase',
+                  fontWeight: isDesktop ? 700 : 600,
+                  marginBottom: 8,
+                }}
+              >
+                Expected columns
+              </p>
               <div className="flex flex-wrap gap-2 mt-2">
                 {['Date', '@Hrs', 'Goals/Drilling', 'Restriction'].map(col => (
-                  <span key={col} className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: 'rgba(196,145,95,0.12)', color: COPPER_DIM }}>
+                  <span
+                    key={col}
+                    style={{
+                      fontSize: isDesktop ? 12.5 : 11,
+                      padding: isDesktop ? '4px 10px' : '2px 8px',
+                      borderRadius: 4,
+                      backgroundColor: 'rgba(196,145,95,0.12)',
+                      color: COPPER_DIM,
+                    }}
+                  >
                     {col}
                   </span>
                 ))}
-                <span className="text-xs px-2 py-0.5 rounded text-white/25 line-through" style={{ backgroundColor: SURFACE_2 }}>
+                <span
+                  className="line-through"
+                  style={{
+                    fontSize: isDesktop ? 12.5 : 11,
+                    padding: isDesktop ? '4px 10px' : '2px 8px',
+                    borderRadius: 4,
+                    color: 'rgba(255,255,255,0.25)',
+                    backgroundColor: SURFACE_2,
+                  }}
+                >
                   Hrs-Running total
                 </span>
               </div>
-              <p className="text-xs text-white/30 mt-2">Running totals are ignored — Jornada computes them live.</p>
+              <p
+                style={{
+                  fontSize: isDesktop ? 13 : 11,
+                  color: 'rgba(255,255,255,0.40)',
+                  marginTop: 10,
+                  lineHeight: 1.5,
+                }}
+              >
+                Running totals are ignored — Journada computes them live.
+              </p>
             </div>
 
             {parseError && (
@@ -225,65 +402,285 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
         {/* ── Step 2: Review ─────────────────────────────────────────────── */}
         {step === 'review' && (
           <div>
-            {/* Summary banner */}
-            <div
-              className="rounded-lg px-4 py-3 mb-4 text-sm"
-              style={{ backgroundColor: SURFACE_2, border: `1px solid ${SURFACE_3_BORDER}` }}
-            >
-              <span className="text-white/70">
-                Found <strong className="text-white">{totalFound}</strong> sessions
-                {capped && <span className="text-amber-400"> (capped at 500)</span>}
-                {needAttention > 0 && <span className="text-amber-400"> · {needAttention} need attention</span>}
-                {duplicates > 0 && <span style={{ color: COPPER_FG }}> · {duplicates} duplicate date{duplicates > 1 ? 's' : ''}</span>}
-                {skipped > 0 && <span className="text-white/40"> · {skipped} skipped</span>}
-              </span>
-              {missingDur > 0 && (
-                <button
-                  onClick={fixMissingDurations}
-                  className="ml-3 text-xs underline"
-                  style={{ color: COPPER_DIM }}
+            {/* Summary banner — desktop: 5-cell stat strip; mobile: inline pills */}
+            {isDesktop ? (
+              <>
+                <div
+                  className="grid mb-3"
+                  style={{ gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}
                 >
-                  Set all missing durations to 60 min
-                </button>
-              )}
-            </div>
+                  {[
+                    { label: 'Found',          value: capped ? `${totalFound}/2k` : String(totalFound), tone: 'champagne' as const },
+                    { label: 'Need attention', value: String(needAttention), tone: needAttention > 0 ? 'amber' : 'dim' as const },
+                    { label: 'Without tags',   value: String(rowsMissingTags.length), tone: rowsMissingTags.length > 0 ? 'champagne' : 'dim' as const },
+                    { label: 'Duplicates',     value: String(duplicates), tone: duplicates > 0 ? 'copper' : 'dim' as const },
+                    { label: 'Skipped',        value: String(skipped), tone: 'dim' as const },
+                  ].map(cell => {
+                    const valueColor =
+                      cell.tone === 'amber' ? 'rgba(245,158,11,0.95)' :
+                      cell.tone === 'copper' ? COPPER_FG :
+                      cell.tone === 'champagne' ? PALE_YELLOW :
+                      'rgba(255,255,255,0.45)';
+                    return (
+                      <div
+                        key={cell.label}
+                        className="rounded-xl"
+                        style={{
+                          backgroundColor: SURFACE_2,
+                          border: `1px solid ${SURFACE_2_BORDER}`,
+                          padding: '14px 16px',
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: 10.5,
+                            fontWeight: 700,
+                            letterSpacing: '0.16em',
+                            textTransform: 'uppercase',
+                            color: 'rgba(255,255,255,0.40)',
+                            marginBottom: 6,
+                          }}
+                        >
+                          {cell.label}
+                        </div>
+                        <div
+                          className="j2-serif-display"
+                          style={{ fontSize: 24, lineHeight: 1, color: valueColor }}
+                        >
+                          {cell.value}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* Bulk-action row */}
+                {(missingDur > 0 || rows.some(r => !r.skip && r.tags.length === 0)) && (
+                  <div className="flex items-center justify-end gap-4 mb-4 flex-wrap">
+                    {missingDur > 0 && (
+                      <button
+                        onClick={fixMissingDurations}
+                        className="text-xs"
+                        style={{
+                          color: COPPER_DIM,
+                          fontWeight: 600,
+                          letterSpacing: '0.04em',
+                          borderBottom: `1px solid rgba(196,145,95,0.30)`,
+                          paddingBottom: 1,
+                        }}
+                      >
+                        Set all missing durations to 60 min
+                      </button>
+                    )}
+                    {rows.some(r => !r.skip && r.tags.length === 0) && (
+                      <span className="relative inline-block">
+                        <button
+                          onClick={() => setBulkTagOpen(!bulkTagOpen)}
+                          className="text-xs"
+                          style={{
+                            color: COPPER_DIM,
+                            fontWeight: 600,
+                            letterSpacing: '0.04em',
+                            borderBottom: `1px solid rgba(196,145,95,0.30)`,
+                            paddingBottom: 1,
+                          }}
+                        >
+                          Set all missing tags to…
+                        </button>
+                        {bulkTagOpen && (
+                          <span
+                            className="absolute right-0 top-full mt-1 z-10 flex flex-wrap gap-1 p-2 rounded-lg"
+                            style={{
+                              backgroundColor: SURFACE_3,
+                              border: `1px solid ${SURFACE_3_BORDER}`,
+                              minWidth: 240,
+                            }}
+                          >
+                            {SKILL_TAGS.map(tag => (
+                              <button
+                                key={tag.value}
+                                onClick={() => setAllMissingTags(tag.value as SkillTagValue)}
+                                className="text-[11px] px-2.5 py-1 rounded-full transition-colors"
+                                style={{ backgroundColor: 'rgba(196,145,95,0.2)', color: COPPER_DIM, border: `1px solid ${COPPER_BORDER}` }}
+                              >
+                                {tag.label}
+                              </button>
+                            ))}
+                          </span>
+                        )}
+                      </span>
+                    )}
+                    {rows.some(r => !r.skip && r.tags.length === 0) && (
+                      <button
+                        onClick={skipAllUntagged}
+                        className="text-xs"
+                        style={{ color: 'rgba(255,255,255,0.45)', letterSpacing: '0.04em' }}
+                      >
+                        Skip all untagged
+                      </button>
+                    )}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div
+                className="rounded-lg px-4 py-3 mb-4 text-sm"
+                style={{ backgroundColor: SURFACE_2, border: `1px solid ${SURFACE_3_BORDER}` }}
+              >
+                <span className="text-white/70">
+                  Found <strong className="text-white">{totalFound}</strong> sessions
+                  {capped && <span className="text-amber-400"> (capped at 2,000)</span>}
+                  {needAttention > 0 && <span className="text-amber-400"> · {needAttention} need attention</span>}
+                  {rowsMissingTags.length > 0 && <span className="text-white/30"> · {rowsMissingTags.length} without tags</span>}
+                  {duplicates > 0 && <span style={{ color: COPPER_FG }}> · {duplicates} duplicate date{duplicates > 1 ? 's' : ''}</span>}
+                  {skipped > 0 && <span className="text-white/40"> · {skipped} skipped</span>}
+                </span>
+                {missingDur > 0 && (
+                  <button
+                    onClick={fixMissingDurations}
+                    className="ml-3 text-xs underline"
+                    style={{ color: COPPER_DIM }}
+                  >
+                    Set all missing durations to 60 min
+                  </button>
+                )}
+                {rows.some(r => !r.skip && r.tags.length === 0) && (
+                  <span className="relative ml-2 inline-block">
+                    <button
+                      onClick={() => setBulkTagOpen(!bulkTagOpen)}
+                      className="text-xs underline"
+                      style={{ color: COPPER_DIM }}
+                    >
+                      Set all missing tags to…
+                    </button>
+                    {bulkTagOpen && (
+                      <span className="absolute left-0 top-full mt-1 z-10 flex flex-wrap gap-1 p-2 rounded-lg" style={{ backgroundColor: SURFACE_3, border: `1px solid ${SURFACE_3_BORDER}`, minWidth: 200 }}>
+                        {SKILL_TAGS.map(tag => (
+                          <button
+                            key={tag.value}
+                            onClick={() => setAllMissingTags(tag.value as SkillTagValue)}
+                            className="text-[10px] px-2 py-1 rounded-full transition-colors"
+                            style={{ backgroundColor: 'rgba(196,145,95,0.2)', color: COPPER_DIM, border: `1px solid ${COPPER_BORDER}` }}
+                          >
+                            {tag.label}
+                          </button>
+                        ))}
+                      </span>
+                    )}
+                  </span>
+                )}
+                {rows.some(r => !r.skip && r.tags.length === 0) && (
+                  <button
+                    onClick={skipAllUntagged}
+                    className="ml-2 text-xs underline"
+                    style={{ color: 'rgba(255,255,255,0.35)' }}
+                  >
+                    Skip all untagged
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Rows */}
-            <div className="space-y-2" style={{ maxHeight: '55vh', overflowY: 'auto', paddingRight: 4 }}>
+            <div
+              className="space-y-2"
+              style={{
+                maxHeight: isDesktop ? '60vh' : '55vh',
+                overflowY: 'auto',
+                paddingRight: 4,
+              }}
+            >
               {rows.map(row => (
                 <ReviewRow
                   key={row.rowIndex}
                   row={row}
                   onUpdate={patch => updateRow(row.rowIndex, patch)}
                   onToggleTag={tag => toggleTag(row.rowIndex, tag)}
+                  isDesktop={isDesktop}
                 />
               ))}
             </div>
+
+            {duplicatePrompt && (
+              <div className="mt-3 rounded-lg px-4 py-3" style={{ backgroundColor: 'rgba(196,145,95,0.1)', border: `1px solid ${COPPER_BORDER}` }}>
+                <p className="text-sm" style={{ color: COPPER_DIM }}>{duplicatePrompt[0]}</p>
+                <div className="flex gap-3 mt-2">
+                  <button
+                    onClick={() => void doImport(true)}
+                    disabled={importing}
+                    className="text-xs font-semibold px-4 py-1.5 rounded-lg"
+                    style={{ backgroundColor: 'rgba(218,116,34,0.85)', color: 'white' }}
+                  >
+                    {importing ? 'Importing…' : 'Import anyway'}
+                  </button>
+                  <button
+                    onClick={() => setDuplicatePrompt(null)}
+                    className="text-xs text-white/40 hover:text-white/70"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
 
             {importError && (
               <p className="mt-3 text-sm text-red-400">{importError}</p>
             )}
 
             {/* Footer */}
-            <div className="flex items-center justify-between mt-5 pt-4" style={{ borderTop: `1px solid ${SURFACE_3_BORDER}` }}>
+            <div
+              className={`flex items-center justify-between ${isDesktop ? 'mt-7 pt-5' : 'mt-5 pt-4'}`}
+              style={{ borderTop: `1px solid ${SURFACE_3_BORDER}` }}
+            >
               <button
                 onClick={() => setStep('upload')}
-                className="text-sm text-white/40 hover:text-white/70 transition-colors"
+                className="transition-colors"
+                style={{
+                  fontSize: isDesktop ? 12 : 14,
+                  color: isDesktop ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.40)',
+                  fontWeight: isDesktop ? 600 : 400,
+                  letterSpacing: isDesktop ? '0.10em' : 'normal',
+                  textTransform: isDesktop ? 'uppercase' : 'none',
+                }}
               >
                 ← Back
               </button>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
                 {!canImport && needAttention > 0 && (
-                  <span className="text-xs text-amber-400">Fix {needAttention} row{needAttention > 1 ? 's' : ''} or mark as skip</span>
+                  <span
+                    style={{
+                      fontSize: isDesktop ? 13 : 12,
+                      color: 'rgba(245,158,11,0.95)',
+                    }}
+                  >
+                    Fix {needAttention} error{needAttention > 1 ? 's' : ''} to import
+                  </span>
                 )}
                 {!canImport && activeRows.length === 0 && (
-                  <span className="text-xs text-white/40">All rows skipped</span>
+                  <span
+                    style={{
+                      fontSize: isDesktop ? 13 : 12,
+                      color: 'rgba(255,255,255,0.40)',
+                    }}
+                  >
+                    All rows skipped
+                  </span>
                 )}
                 <button
                   onClick={handleImport}
                   disabled={!canImport || importing}
-                  className="text-sm font-semibold px-5 py-2 rounded-lg transition-colors disabled:opacity-40"
-                  style={{ backgroundColor: canImport && !importing ? 'rgba(218,116,34,0.85)' : 'rgba(196,145,95,0.2)', color: 'white' }}
+                  className="transition-all disabled:opacity-40 j2-press"
+                  style={{
+                    height: isDesktop ? 52 : 36,
+                    padding: isDesktop ? '0 28px' : '8px 20px',
+                    fontSize: isDesktop ? 15 : 14,
+                    fontWeight: 600,
+                    color: 'white',
+                    borderRadius: isDesktop ? 12 : 8,
+                    backgroundColor: canImport && !importing ? '#DA7422' : 'rgba(196,145,95,0.2)',
+                    boxShadow: isDesktop && canImport && !importing
+                      ? '0 2px 12px rgba(218,116,34,0.25), 0 0 0 1px rgba(218,116,34,0.30)'
+                      : undefined,
+                  }}
                 >
                   {importing ? 'Importing…' : `Import ${activeRows.length} session${activeRows.length !== 1 ? 's' : ''}`}
                 </button>
@@ -294,22 +691,60 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
 
         {/* ── Step 3: Done ───────────────────────────────────────────────── */}
         {step === 'done' && (
-          <div className="flex flex-col items-center gap-4 py-8 text-center">
-            <span style={{ fontSize: 40 }}>✓</span>
+          <div
+            className="flex flex-col items-center text-center"
+            style={{
+              gap: isDesktop ? 18 : 16,
+              padding: isDesktop ? '32px 0 8px' : '32px 0',
+            }}
+          >
+            <span style={{ fontSize: isDesktop ? 56 : 40, color: PALE_YELLOW, lineHeight: 1 }}>✓</span>
             <div>
-              <p className="text-white font-semibold text-lg">
-                {importedCount} session{importedCount !== 1 ? 's' : ''} imported
-              </p>
+              {isDesktop ? (
+                <>
+                  <p className="j2-label-copper" style={{ marginBottom: 8 }}>◇ Imported</p>
+                  <p
+                    className="j2-serif-display j2-heading-glow"
+                    style={{ fontSize: 36, lineHeight: 1.1, margin: 0 }}
+                  >
+                    {importedCount} session{importedCount !== 1 ? 's' : ''} on the record.
+                  </p>
+                </>
+              ) : (
+                <p className="text-white font-semibold text-lg">
+                  {importedCount} session{importedCount !== 1 ? 's' : ''} imported
+                </p>
+              )}
               {rows.filter(r => r.skip).length > 0 && (
-                <p className="text-sm text-white/40 mt-1">
+                <p
+                  style={{
+                    marginTop: isDesktop ? 12 : 4,
+                    fontSize: isDesktop ? 14 : 13,
+                    color: 'rgba(255,255,255,0.45)',
+                    fontStyle: isDesktop ? 'italic' : 'normal',
+                    fontFamily: isDesktop ? '"Cormorant Garamond", Georgia, serif' : undefined,
+                  }}
+                >
                   {rows.filter(r => r.skip).length} skipped
                 </p>
               )}
             </div>
             <button
               onClick={onClose}
-              className="mt-2 text-sm font-medium px-5 py-2 rounded-lg"
-              style={{ backgroundColor: 'rgba(196,145,95,0.2)', color: COPPER_DIM }}
+              className="transition-all j2-press"
+              style={{
+                marginTop: isDesktop ? 12 : 8,
+                height: isDesktop ? 52 : 36,
+                padding: isDesktop ? '0 28px' : '8px 20px',
+                fontSize: isDesktop ? 15 : 14,
+                fontWeight: 600,
+                color: 'white',
+                borderRadius: isDesktop ? 12 : 8,
+                backgroundColor: '#DA7422',
+                boxShadow: isDesktop
+                  ? '0 2px 12px rgba(218,116,34,0.25), 0 0 0 1px rgba(218,116,34,0.30)'
+                  : undefined,
+              }}
             >
               Done
             </button>
@@ -326,6 +761,7 @@ interface ReviewRowProps {
   row: ParsedRow;
   onUpdate: (patch: Partial<ParsedRow>) => void;
   onToggleTag: (tag: SkillTagValue) => void;
+  isDesktop?: boolean;
 }
 
 const GI_NOGI_OPTIONS: { value: GiNogi; label: string }[] = [
@@ -341,9 +777,9 @@ const SESSION_TYPE_OPTIONS: { value: SessionType; label: string }[] = [
 
 const COPPER_BORDER_STR = 'rgba(196,145,95,0.45)';
 
-function ReviewRow({ row, onUpdate, onToggleTag }: ReviewRowProps) {
+function ReviewRow({ row, onUpdate, onToggleTag, isDesktop = false }: ReviewRowProps) {
   const needsTag = !row.skip && row.tags.length === 0;
-  const hasErrors = row.errors.length > 0 || needsTag;
+  const hasErrors = row.errors.length > 0;
 
   const rowBg = row.skip
     ? 'rgba(255,255,255,0.02)'
@@ -363,15 +799,28 @@ function ReviewRow({ row, onUpdate, onToggleTag }: ReviewRowProps) {
 
   return (
     <div
-      className="rounded-lg px-3 py-2.5"
+      className="rounded-lg"
       style={{
         backgroundColor: rowBg,
         border: `1px solid ${rowBorder}`,
         opacity: row.skip ? 0.45 : 1,
+        padding: isDesktop ? '12px 16px' : '10px 12px',
       }}
     >
-      {/* Top row: date, duration, gi/nogi, type, skip */}
-      <div className="flex flex-wrap items-center gap-2">
+      {/* Top row: aligned grid on desktop, flex-wrap on mobile.
+          Desktop columns: date | duration | gi/nogi | type | intensity | notes-preview | skip */}
+      <div
+        style={
+          isDesktop
+            ? {
+                display: 'grid',
+                gridTemplateColumns: '94px 110px 100px 132px 124px 1fr 78px',
+                gap: 12,
+                alignItems: 'center',
+              }
+            : { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }
+        }
+      >
 
         {/* Date */}
         <span
@@ -449,11 +898,34 @@ function ReviewRow({ row, onUpdate, onToggleTag }: ReviewRowProps) {
           ))}
         </div>
 
+        {/* Notes preview — desktop only, lives in the grid's 6th column.
+            On mobile the notes block renders below the row instead. */}
+        {isDesktop && (
+          <div
+            className="truncate"
+            style={{
+              fontSize: 12,
+              color: row.notes ? 'rgba(255,255,255,0.50)' : 'rgba(255,255,255,0.20)',
+              fontStyle: row.notes ? 'normal' : 'italic',
+            }}
+            title={row.notes ?? ''}
+          >
+            {row.notes || '—'}
+          </div>
+        )}
+
         {/* Skip toggle */}
         <button
           onClick={() => onUpdate({ skip: !row.skip })}
-          className="ml-auto text-xs transition-colors"
-          style={{ color: row.skip ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)' }}
+          className="transition-colors"
+          style={{
+            fontSize: isDesktop ? 12 : 12,
+            color: row.skip ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.4)',
+            fontWeight: isDesktop ? 600 : 400,
+            letterSpacing: isDesktop ? '0.06em' : 'normal',
+            textAlign: isDesktop ? 'right' : undefined,
+            marginLeft: isDesktop ? 0 : 'auto',
+          }}
         >
           {row.skip ? 'Undo skip' : 'Skip'}
         </button>
@@ -480,13 +952,13 @@ function ReviewRow({ row, onUpdate, onToggleTag }: ReviewRowProps) {
             );
           })}
           {needsTag && (
-            <span className="text-[10px] text-amber-400 self-center ml-1">← select at least one</span>
+            <span className="text-[10px] text-white/25 self-center ml-1">← optional</span>
           )}
         </div>
       )}
 
-      {/* Notes preview */}
-      {!row.skip && row.notes && (
+      {/* Notes preview — mobile only; desktop renders this inside the grid above */}
+      {!isDesktop && !row.skip && row.notes && (
         <p className="text-[10px] text-white/25 mt-1.5 truncate">{row.notes}</p>
       )}
 

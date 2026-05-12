@@ -33,7 +33,7 @@ export const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 export const INTENSITY_COLOR: Record<number, string> = {
   1: '#A8CB72',
   2: '#A8CB72',
-  3: '#52B56C',
+  3: '#4BA862',
   4: '#D4A040',   // warm amber mid-step
   5: '#DA7422',
 };
@@ -43,3 +43,32 @@ export const SESSION_TYPE_LABELS: Record<string, string> = {
   drilling:             'Drilling',
   competition_training: 'Competition',
 };
+
+// ── Gi / No-Gi helpers (mig 025 — 'both' added) ────────────────────────────
+//
+// 'both' captures sessions that mixed gi and no-gi work in one block. For
+// display we render a compact "Gi + No-Gi" label; for analytics rollups we
+// weight each side at 0.5 so the totals don't double-count.
+
+export type GiNoGi = 'gi' | 'no_gi' | 'both';
+
+export function formatGiNogi(value: GiNoGi | string | null | undefined): string {
+  if (value === 'gi')    return 'Gi';
+  if (value === 'no_gi') return 'No-Gi';
+  if (value === 'both')  return 'Gi + No-Gi';
+  return '';
+}
+
+/** Share of this session that should count toward the gi rollup. */
+export function giShare(value: GiNoGi | string | null | undefined): number {
+  if (value === 'gi')   return 1;
+  if (value === 'both') return 0.5;
+  return 0;
+}
+
+/** Share of this session that should count toward the no-gi rollup. */
+export function nogiShare(value: GiNoGi | string | null | undefined): number {
+  if (value === 'no_gi') return 1;
+  if (value === 'both')  return 0.5;
+  return 0;
+}
