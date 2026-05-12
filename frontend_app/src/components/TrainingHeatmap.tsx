@@ -101,14 +101,14 @@ export function buildDayMap(sessions: SessionSummary[]): Map<string, DayData> {
   return map;
 }
 
-interface WeekRow {
+export interface WeekRow {
   days: { date: Date; day: DayData }[];
   monthLabel: string;
   isMonthStart: boolean;
   monthIndex: number;
 }
 
-function buildWeekRows(dayMap: Map<string, DayData>, year: number): { rows: WeekRow[]; year: number } {
+export function buildWeekRows(dayMap: Map<string, DayData>, year: number): { rows: WeekRow[]; year: number } {
 
   const jan1 = new Date(year, 0, 1);
   const dow = jan1.getDay();
