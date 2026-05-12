@@ -131,7 +131,16 @@ export default function LoginPage() {
             : 'radial-gradient(ellipse 380px 440px at center, rgba(13,26,20,0.88) 0%, rgba(13,26,20,0.60) 35%, rgba(13,26,20,0.22) 65%, transparent 100%)',
         }}
       />
-
+      {/* Floor darkening — bottom-up gradient so content lifts off the wave */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'none',
+          background: 'linear-gradient(to top, rgba(13,26,20,0.82) 0%, rgba(13,26,20,0.45) 35%, transparent 60%)',
+        }}
+      />
 
       {/* ── Editorial header ───────────────────────────────────────────── */}
       <div className="relative z-10 text-center mb-8" style={{ maxWidth: cardMaxWidth, width: '100%' }}>
@@ -152,17 +161,6 @@ export default function LoginPage() {
         >
           Journada
         </h1>
-        <p
-          className="j2-serif-italic"
-          style={{
-            marginTop: isDesktop ? 18 : 16,
-            fontSize: isDesktop ? 21 : 19,
-            color: 'rgba(255,255,255,0.65)',
-            lineHeight: 1.4,
-          }}
-        >
-          The mat remembers every session.
-        </p>
       </div>
 
       {/* ── Auth card ──────────────────────────────────────────────────── */}
