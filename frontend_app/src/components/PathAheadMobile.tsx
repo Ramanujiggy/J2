@@ -21,6 +21,7 @@ import RepRouletteFab from './RepRouletteFab.tsx';
 import PageContent from './PageContent.tsx';
 import PathAheadWeekSection, { type WeekViewMode } from './PathAheadWeekSection.tsx';
 import { toDateString } from '../lib/sessionUtils.ts';
+import { useTodayClass } from './today/useTodayClass.ts';
 import type { Intention, SessionSummary } from '../types/api.ts';
 import type { ACWRResult, DecayResult, PillarACWRResult } from '../lib/analyticsModels.ts';
 
@@ -116,10 +117,12 @@ export default function PathAheadMobile({
   handleDeleteIntention,
 }: Props) {
   const navigate = useNavigate();
+  const todayClass = useTodayClass(allSessions);
+  const hasClassToday = !todayClass.loading && todayClass.state !== 'no_class_today' && todayClass.schedule !== null;
 
   return (
     <PageContent ready={!loading} loadingMessages={['Shrimping down the mat...', 'Doing mat swims...', 'Pulling up gi pants...']}>
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 space-y-4">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-0 pb-3 space-y-4">
       {styleBlock}
 
       {/* ── A. Hero — greeting + streak + this-week numerals ───────
@@ -161,25 +164,47 @@ export default function PathAheadMobile({
         <div style={{ marginBottom: 8 }}>{telemetryContent}</div>
       </div>
 
-      {/* ── B + C. TodayCard + IntentionHeroCard — side-by-side ───── */}
-      <div style={{ display: 'grid', gridTemplateColumns: intentionsEnabled ? '1fr 1fr' : '1fr', gap: 10 }}>
-        <TodayCard
-          sessions={allSessions}
-          onLogSession={(ctx) => openLog({ date: ctx.date })}
-          compact
-        />
-        {intentionsEnabled && (
-          <IntentionHeroCard
-            intention={activeIntention}
-            weekSessionCount={weekSessionCount}
-            onSetIntent={() => setSetIntentOpen(true)}
-            onEditIntent={activeIntention ? () => setEditIntention(activeIntention) : undefined}
-            onViewJournal={activeIntention ? () => navigate(`/intentions/${activeIntention.id}/journal`) : undefined}
-            onDeleteIntent={handleDeleteIntention}
+      {/* ── B + C. TodayCard + IntentionHeroCard ────────────────────
+            When no class today: quiet inline text + full-width intent card.
+            When class exists: side-by-side compact cards. */}
+      {hasClassToday ? (
+        <div style={{ display: 'grid', gridTemplateColumns: intentionsEnabled ? '1fr 1fr' : '1fr', gap: 10 }}>
+          <TodayCard
+            sessions={allSessions}
+            onLogSession={(ctx) => openLog({ date: ctx.date })}
             compact
           />
-        )}
-      </div>
+          {intentionsEnabled && (
+            <IntentionHeroCard
+              intention={activeIntention}
+              weekSessionCount={weekSessionCount}
+              onSetIntent={() => setSetIntentOpen(true)}
+              onEditIntent={activeIntention ? () => setEditIntention(activeIntention) : undefined}
+              onViewJournal={activeIntention ? () => navigate(`/intentions/${activeIntention.id}/journal`) : undefined}
+              onDeleteIntent={handleDeleteIntention}
+              compact
+            />
+          )}
+        </div>
+      ) : (
+        <>
+          <TodayCard
+            sessions={allSessions}
+            onLogSession={(ctx) => openLog({ date: ctx.date })}
+            quiet
+          />
+          {intentionsEnabled && (
+            <IntentionHeroCard
+              intention={activeIntention}
+              weekSessionCount={weekSessionCount}
+              onSetIntent={() => setSetIntentOpen(true)}
+              onEditIntent={activeIntention ? () => setEditIntention(activeIntention) : undefined}
+              onViewJournal={activeIntention ? () => navigate(`/intentions/${activeIntention.id}/journal`) : undefined}
+              onDeleteIntent={handleDeleteIntention}
+            />
+          )}
+        </>
+      )}
 
       {/* ── D-H. Main content (conditional on sessions) ────────── */}
       {!loading && allSessions.length === 0 ? (

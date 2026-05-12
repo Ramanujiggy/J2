@@ -133,12 +133,12 @@ export default function HomeHero({
       style={{
         background: 'transparent',
         border: 'none',
-        padding: '14px 4px 18px',
+        padding: '4px 4px 18px',
         cursor: onTap ? 'pointer' : 'default',
       }}
     >
       {/* Kicker — greeting + date, quiet so the hero numeral leads */}
-      <div className="flex flex-col gap-0.5" style={{ marginBottom: 22 }}>
+      <div className="flex flex-col gap-0.5" style={{ marginBottom: 14 }}>
         <span
           style={{
             fontSize: 11.5,
@@ -201,8 +201,8 @@ export default function HomeHero({
             style={{
               fontFamily: FONT_EDITORIAL,
               fontWeight: 500,
-              fontSize: 64,
-              lineHeight: 0.95,
+              fontSize: 104,
+              lineHeight: 0.9,
               letterSpacing: '-0.025em',
               color: valueColor,
               textShadow: view === 'daily' && streak > 0 ? '0 0 28px rgba(196,145,95,0.20)' : undefined,
@@ -212,7 +212,7 @@ export default function HomeHero({
           </div>
           <div
             style={{
-              marginTop: 8,
+              marginTop: 5,
               fontSize: 11.5,
               fontWeight: 700,
               letterSpacing: '0.18em',
@@ -264,28 +264,28 @@ export default function HomeHero({
       </div>
 
       {/* This-week numerals — flat row, no chrome */}
-      <div style={{ marginTop: 26, display: 'flex', gap: 24, alignItems: 'baseline', maxWidth: '55%' }}>
+      <div style={{ marginTop: 16, display: 'flex', gap: 20, alignItems: 'baseline' }}>
         <div>
           <div
             style={{
               fontFamily: FONT_EDITORIAL,
               fontWeight: 500,
-              fontSize: 30,
+              fontSize: 22,
               lineHeight: 1,
               letterSpacing: '-0.015em',
-              color: 'rgba(255,255,255,0.88)',
+              color: 'rgba(255,255,255,0.65)',
             }}
           >
             {weekTotalMinutes > 0 ? formatDuration(weekTotalMinutes) : '0h'}
           </div>
           <div
             style={{
-              marginTop: 5,
-              fontSize: 10.5,
+              marginTop: 4,
+              fontSize: 9.5,
               fontWeight: 700,
               letterSpacing: '0.18em',
               textTransform: 'uppercase',
-              color: 'rgba(255,255,255,0.34)',
+              color: 'rgba(255,255,255,0.28)',
             }}
           >
             this week
@@ -296,22 +296,22 @@ export default function HomeHero({
             style={{
               fontFamily: FONT_EDITORIAL,
               fontWeight: 500,
-              fontSize: 30,
+              fontSize: 22,
               lineHeight: 1,
               letterSpacing: '-0.015em',
-              color: 'rgba(255,255,255,0.88)',
+              color: 'rgba(255,255,255,0.65)',
             }}
           >
             {weekSessionCount}
           </div>
           <div
             style={{
-              marginTop: 5,
-              fontSize: 10.5,
+              marginTop: 4,
+              fontSize: 9.5,
               fontWeight: 700,
               letterSpacing: '0.18em',
               textTransform: 'uppercase',
-              color: 'rgba(255,255,255,0.34)',
+              color: 'rgba(255,255,255,0.28)',
             }}
           >
             {weekSessionCount === 1 ? 'session' : 'sessions'}
