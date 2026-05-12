@@ -112,12 +112,15 @@ export default function CalendarPage() {
 
       {/* Header row */}
       <div className="flex items-center justify-between">
-        <h2
-          className="text-2xl font-display font-bold tracking-tight"
-          style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}
-        >
-          {displayYear} Mat Time
-        </h2>
+        {calView !== 'heatmap' && (
+          <h2
+            className="text-2xl font-display font-bold tracking-tight"
+            style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}
+          >
+            {displayYear} Mat Time
+          </h2>
+        )}
+        {calView === 'heatmap' && <div />}
 
         <div className="flex items-center gap-2">
           {/* Search toggle */}
@@ -162,8 +165,8 @@ export default function CalendarPage() {
             })}
           </div>
 
-          {/* Year navigation — same pill treatment as view toggle */}
-          <div className="flex items-center p-0.5 rounded-lg" style={{ backgroundColor: SURFACE_2 }}>
+          {/* Year navigation — hidden when heatmap renders its own */}
+          {calView !== 'heatmap' && <div className="flex items-center p-0.5 rounded-lg" style={{ backgroundColor: SURFACE_2 }}>
             <button
               onClick={() => navigateYear(-1)}
               aria-label="Previous year"
@@ -191,7 +194,7 @@ export default function CalendarPage() {
                 <path d="M9 18l6-6-6-6" />
               </svg>
             </button>
-          </div>
+          </div>}
         </div>
       </div>
 
