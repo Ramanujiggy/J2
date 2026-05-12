@@ -16,7 +16,7 @@ import { formatDuration } from '../lib/sessionUtils.ts';
 
 const CELL = 32;
 const GAP = 2;
-const MONTH_COL = 32;
+const MONTH_COL = 38;
 const DOW = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -61,10 +61,14 @@ export default function CalendarHeatmapView({
     );
   }, [year]);
 
-  // Scroll to today on mount
+  // Scroll to today on mount, or first data row for past years
   useEffect(() => {
-    const el = gridRef.current?.querySelector('[data-today]');
-    if (el) el.scrollIntoView({ block: 'center', behavior: 'auto' });
+    const container = gridRef.current;
+    if (!container) return;
+    const todayEl = container.querySelector('[data-today]');
+    if (todayEl) { todayEl.scrollIntoView({ block: 'center', behavior: 'auto' }); return; }
+    const firstData = container.querySelector('[data-has-session]');
+    if (firstData) firstData.scrollIntoView({ block: 'center', behavior: 'auto' });
   }, [rows]);
 
   const handleCellTap = useCallback((date: Date, day: DayData) => {
@@ -233,8 +237,8 @@ export default function CalendarHeatmapView({
                     <div style={{
                       fontFamily: FONT_EDITORIAL,
                       fontStyle: 'italic',
-                      fontSize: monthHasData ? 13 : 11,
-                      color: monthHasData ? 'rgba(242,228,168,0.45)' : 'rgba(242,228,168,0.18)',
+                      fontSize: monthHasData ? 15 : 11,
+                      color: monthHasData ? 'rgba(242,228,168,0.55)' : 'rgba(242,228,168,0.18)',
                       textAlign: 'right',
                       paddingRight: 6,
                     }}>
@@ -257,6 +261,7 @@ export default function CalendarHeatmapView({
                     <div
                       key={key}
                       ref={el => { if (el) cellsRef.current[idx] = el; }}
+                      {...(hasSession ? { 'data-has-session': '' } : {})}
                       role="gridcell"
                       aria-label={`${date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}${hasSession ? `, ${intensityLabel}, ${day.count} session${day.count !== 1 ? 's' : ''}` : ', no sessions'}`}
                       onClick={() => handleCellTap(date, day)}
@@ -273,7 +278,7 @@ export default function CalendarHeatmapView({
                         cursor: hasSession ? 'pointer' : 'default',
                         outline: isThisToday ? '1.5px solid rgba(242,228,168,0.7)' : 'none',
                         outlineOffset: isThisToday ? -1 : undefined,
-                        boxShadow: isMaxIntensity && hasSession ? '0 0 8px rgba(196,145,95,0.4)' : 'none',
+                        boxShadow: isMaxIntensity && hasSession ? '0 0 10px rgba(196,145,95,0.5)' : 'none',
                       }}
                     />
                   );
@@ -282,6 +287,9 @@ export default function CalendarHeatmapView({
             </div>
           );
         })}
+
+        {/* Bottom edge gradient — fades grid into page background */}
+        <div style={{ position: 'sticky', bottom: 0, height: 40, background: 'linear-gradient(to top, #0D1A14 0%, transparent 100%)', pointerEvents: 'none', marginTop: -40 }} />
       </div>
 
       {/* Long-press tooltip */}
