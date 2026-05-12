@@ -59,6 +59,7 @@ type LogPickPreset = LogDrillPreset | LogConstraintPreset;
 
 interface Props {
   onLogDrill: (preset: LogPickPreset) => void;
+  fabPosition?: 'fixed' | 'inline';
 }
 
 type Phase = 'fab' | 'opening' | 'open' | 'closing';
@@ -93,7 +94,7 @@ export default function RepRouletteFab(props: Props) {
   return <RepRouletteFabImpl {...props} />;
 }
 
-function RepRouletteFabImpl({ onLogDrill }: Props) {
+function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
   const [phase, setPhase] = useState<Phase>('fab');
 
   // Pool toggle — drill (existing) or constraint (CLA prompt). Persisted to
@@ -290,11 +291,10 @@ function RepRouletteFabImpl({ onLogDrill }: Props) {
 
       {/* ── FAB button ── */}
       <button
-        className="fixed z-50 sm:hidden flex items-center justify-center rounded-full touch-manipulation j2-press"
+        className={`${fabPosition === 'fixed' ? 'fixed' : ''} z-50 sm:hidden flex items-center justify-center rounded-full touch-manipulation j2-press`}
         onClick={handleOpen}
         style={{
-          right: 16,
-          bottom: fabBottom,
+          ...(fabPosition === 'fixed' ? { right: 16, bottom: fabBottom } : {}),
           width: 48,
           height: 48,
           backgroundColor: 'rgba(196,145,95,0.20)',
@@ -302,7 +302,6 @@ function RepRouletteFabImpl({ onLogDrill }: Props) {
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
           boxShadow: '0 4px 16px rgba(0,0,0,0.3), 0 0 0 1px rgba(196,145,95,0.15)',
-          // Morph out: scale down + fade when card opens
           transform: fabVisible ? 'scale(1)' : 'scale(0.5)',
           opacity: fabVisible ? 1 : 0,
           transition: `transform ${OPEN_MS}ms ${OPEN_CURVE}, opacity ${OPEN_MS * 0.4}ms ease`,

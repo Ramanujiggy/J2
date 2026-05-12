@@ -32,6 +32,8 @@ interface Props {
   sessions: SessionSummary[];
   /** Called when the user taps "Open log" in the post-class hero state. */
   onLogSession: (ctx: LogContext) => void;
+  /** Half-width mode for side-by-side layout on mobile home. */
+  compact?: boolean;
 }
 
 export interface LogContext {
@@ -53,7 +55,7 @@ function todayDateString(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export default function TodayCard({ sessions, onLogSession }: Props) {
+export default function TodayCard({ sessions, onLogSession, compact = false }: Props) {
   const today = useTodayClass(sessions);
 
   if (today.loading) return <TodaySkeleton />;
@@ -63,8 +65,8 @@ export default function TodayCard({ sessions, onLogSession }: Props) {
   // ── State: no_class_today ─────────────────────────────────────────────
   if (state === 'no_class_today' || schedule === null) {
     return (
-      <Frame variant="quiet">
-        <Italic large>No class scheduled today.</Italic>
+      <Frame variant="quiet" compact={compact}>
+        <Italic large compact={compact}>No class scheduled today.</Italic>
         <SecondaryAction
           label="Log a session anyway →"
           onClick={() => onLogSession({ date: todayDateString() })}
@@ -85,8 +87,8 @@ export default function TodayCard({ sessions, onLogSession }: Props) {
   // ── State: pre_class_unanswered ───────────────────────────────────────
   if (state === 'pre_class_unanswered' && today.minutesUntilStart !== null) {
     return (
-      <Frame variant="quiet">
-        <ClassTitle name={className} />
+      <Frame variant="quiet" compact={compact}>
+        <ClassTitle name={className} compact={compact} />
         <Meta>
           {timeLabel}
           {giNogiLabel && ` · ${giNogiLabel}`}
@@ -107,8 +109,8 @@ export default function TodayCard({ sessions, onLogSession }: Props) {
   // and the card reverts to pre_class_unanswered.
   if (state === 'pre_class_skipped') {
     return (
-      <Frame variant="muted">
-        <ClassTitle name={className} struck />
+      <Frame variant="muted" compact={compact}>
+        <ClassTitle name={className} struck compact={compact} />
         <Meta muted>
           {timeLabel}
           {giNogiLabel && ` · ${giNogiLabel}`}
@@ -122,8 +124,8 @@ export default function TodayCard({ sessions, onLogSession }: Props) {
   // ── State: pre_class_planning ─────────────────────────────────────────
   if (state === 'pre_class_planning' && today.minutesUntilStart !== null) {
     return (
-      <Frame variant="quiet">
-        <ClassTitle name={className} />
+      <Frame variant="quiet" compact={compact}>
+        <ClassTitle name={className} compact={compact} />
         <Meta>
           {timeLabel}
           {giNogiLabel && ` · ${giNogiLabel}`}
@@ -139,8 +141,8 @@ export default function TodayCard({ sessions, onLogSession }: Props) {
   // ── State: in_class ───────────────────────────────────────────────────
   if (state === 'in_class') {
     return (
-      <Frame variant="quiet">
-        <ClassTitle name={className} />
+      <Frame variant="quiet" compact={compact}>
+        <ClassTitle name={className} compact={compact} />
         <Meta>
           {timeLabel}
           {giNogiLabel && ` · ${giNogiLabel}`}
@@ -154,8 +156,8 @@ export default function TodayCard({ sessions, onLogSession }: Props) {
   if (state === 'post_class_unanswered') {
     const since = today.minutesSinceEnd ?? 0;
     return (
-      <Frame variant="quiet">
-        <ClassTitle name={className} />
+      <Frame variant="quiet" compact={compact}>
+        <ClassTitle name={className} compact={compact} />
         <Meta>
           {timeLabel}
           {giNogiLabel && ` · ${giNogiLabel}`}
@@ -177,8 +179,8 @@ export default function TodayCard({ sessions, onLogSession }: Props) {
   if (state === 'post_class_skipped') {
     const sinceSkip = today.minutesSinceEnd ?? 0;
     return (
-      <Frame variant="muted">
-        <ClassTitle name={className} struck />
+      <Frame variant="muted" compact={compact}>
+        <ClassTitle name={className} struck compact={compact} />
         <Meta muted>
           {timeLabel}
           {giNogiLabel && ` · ${giNogiLabel}`}
@@ -193,8 +195,8 @@ export default function TodayCard({ sessions, onLogSession }: Props) {
   // ── State: logged ─────────────────────────────────────────────────────
   if (state === 'logged') {
     return (
-      <Frame variant="quiet">
-        <ClassTitle name={className} />
+      <Frame variant="quiet" compact={compact}>
+        <ClassTitle name={className} compact={compact} />
         <Meta>
           {timeLabel}
           {giNogiLabel && ` · ${giNogiLabel}`}
@@ -207,8 +209,8 @@ export default function TodayCard({ sessions, onLogSession }: Props) {
   // ── State: post_class_attended_unlogged (hero / drive-home moment) ────
   const since = today.minutesSinceEnd ?? 0;
   return (
-    <Frame variant="hero">
-      <ClassTitle name={className} />
+    <Frame variant="hero" compact={compact}>
+      <ClassTitle name={className} compact={compact} />
       <Meta>
         {timeLabel}
         {giNogiLabel && ` · ${giNogiLabel}`}
@@ -224,7 +226,7 @@ export default function TodayCard({ sessions, onLogSession }: Props) {
 
 // ── Sub-pieces ───────────────────────────────────────────────────────────
 
-function Frame({ variant, children }: { variant: 'quiet' | 'hero' | 'muted'; children: React.ReactNode }) {
+function Frame({ variant, compact, children }: { variant: 'quiet' | 'hero' | 'muted'; compact?: boolean; children: React.ReactNode }) {
   const isHero = variant === 'hero';
   const isMuted = variant === 'muted';
   return (
@@ -233,8 +235,10 @@ function Frame({ variant, children }: { variant: 'quiet' | 'hero' | 'muted'; chi
         backgroundColor: CARD_BG,
         border: `1px solid ${isHero ? COPPER_BORDER : CARD_GLOW_BORDER}`,
         boxShadow: isHero ? `${CARD_GLOW}, 0 0 22px rgba(196,145,95,0.10)` : CARD_GLOW,
-        borderRadius: 16,
-        padding: isHero ? '32px 32px 28px' : '24px 28px',
+        borderRadius: compact ? 12 : 16,
+        padding: compact
+          ? (isHero ? '16px 14px 14px' : '14px 14px')
+          : (isHero ? '32px 32px 28px' : '24px 28px'),
         position: 'relative',
         opacity: isMuted ? 0.62 : 1,
         transition: 'border-color 240ms ease, box-shadow 240ms ease, opacity 240ms ease',
@@ -245,16 +249,16 @@ function Frame({ variant, children }: { variant: 'quiet' | 'hero' | 'muted'; chi
   );
 }
 
-function ClassTitle({ name, struck = false }: { name: string; struck?: boolean }) {
+function ClassTitle({ name, struck = false, compact = false }: { name: string; struck?: boolean; compact?: boolean }) {
   return (
     <h2
       style={{
         fontFamily: FONT_EDITORIAL,
-        fontSize: 28,
+        fontSize: compact ? 18 : 28,
         fontWeight: 600,
         color: PALE_YELLOW,
         textShadow: struck ? 'none' : GLOW_SOFT,
-        marginBottom: 6,
+        marginBottom: compact ? 4 : 6,
         letterSpacing: '-0.005em',
         textDecoration: struck ? 'line-through' : 'none',
         textDecorationColor: struck ? 'rgba(242,228,168,0.5)' : undefined,
@@ -284,14 +288,15 @@ function Meta({ children, muted = false }: { children: React.ReactNode; muted?: 
 function Italic({
   children,
   large = false,
+  compact = false,
   style,
-}: { children: React.ReactNode; large?: boolean; style?: React.CSSProperties }) {
+}: { children: React.ReactNode; large?: boolean; compact?: boolean; style?: React.CSSProperties }) {
   return (
     <span
       style={{
         fontFamily: FONT_EDITORIAL,
         fontStyle: 'italic',
-        fontSize: large ? 18 : 'inherit',
+        fontSize: large ? (compact ? 15 : 18) : 'inherit',
         color: large ? 'rgba(242,228,168,0.72)' : undefined,
         display: large ? 'block' : 'inline',
         ...style,

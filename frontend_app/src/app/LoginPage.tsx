@@ -146,7 +146,14 @@ export default function LoginPage() {
       <div className="relative z-10 text-center mb-8" style={{ maxWidth: cardMaxWidth, width: '100%' }}>
         <p
           className="j2-label-copper"
-          style={{ marginBottom: isDesktop ? 14 : 12 }}
+          style={{
+            marginBottom: isDesktop ? 14 : 12,
+            backgroundColor: 'rgba(13,26,20,0.55)',
+            backdropFilter: 'blur(6px)',
+            padding: '4px 14px',
+            borderRadius: 999,
+            display: 'inline-block',
+          }}
         >
           ◇ For intentional grappling
         </p>
