@@ -27,6 +27,10 @@ interface Props {
 
 export default function VideoPlayer({ tag, onClose }: Props) {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  // Tracked separately so we can pass an explicit type to <source>. iOS PWA
+  // standalone mode takes a different code path for <video><source type=...>
+  // than for <video src=...>, and sometimes only the former plays a blob URL.
+  const [sourceType, setSourceType] = useState<string>('video/mp4');
   const [loading, setLoading] = useState(true);
   const [missing, setMissing] = useState(false);
   const [downloadPercent, setDownloadPercent] = useState<number | null>(null);
@@ -44,6 +48,7 @@ export default function VideoPlayer({ tag, onClose }: Props) {
         if (blob) {
           const url = URL.createObjectURL(blob);
           urlToRevoke = url;
+          setSourceType(blob.type || 'video/mp4');
           setVideoUrl(url);
           setLoading(false);
           return;
@@ -87,6 +92,7 @@ export default function VideoPlayer({ tag, onClose }: Props) {
           const blob = new Blob(chunks as BlobPart[], { type: 'video/mp4' });
           const url = URL.createObjectURL(blob);
           urlToRevoke = url;
+          setSourceType('video/mp4');
           setVideoUrl(url);
           setLoading(false);
 
@@ -160,7 +166,7 @@ export default function VideoPlayer({ tag, onClose }: Props) {
 
       {!loading && videoUrl && (
         <video
-          src={videoUrl}
+          key={videoUrl}
           controls
           autoPlay
           loop
@@ -179,7 +185,9 @@ export default function VideoPlayer({ tag, onClose }: Props) {
             setPlayerError(`MediaError ${code} (${codeLabel})${message ? ` — ${message}` : ''}`);
           }}
           style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-        />
+        >
+          <source src={videoUrl} type={sourceType} />
+        </video>
       )}
 
       {/* Inline error surface — defensive; doesn't fire on the happy path */}
