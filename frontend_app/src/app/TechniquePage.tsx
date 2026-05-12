@@ -685,6 +685,10 @@ function VideoBlock({
 }) {
   const inputId = `video-pokedex-${tag.id}`;
   const [isPlaying, setIsPlaying] = useState(false);
+  // Sticky / mini-player state — true when the inline slot is fully out of
+  // viewport during playback. Watched via IntersectionObserver below.
+  const [stuck, setStuck] = useState(false);
+  const slotRef = useRef<HTMLDivElement>(null);
   const hasReadyVideo = !!tag.has_video && tag.video_status === 'ready' && !!tag.video_thumbnail;
   const isProcessing = !!tag.has_video && tag.video_status === 'processing';
   const isFailed     = !!tag.has_video && tag.video_status === 'failed';
@@ -694,6 +698,27 @@ function VideoBlock({
   useEffect(() => {
     if (isPlaying && !hasReadyVideo) setIsPlaying(false);
   }, [isPlaying, hasReadyVideo]);
+
+  // Sticky mini-player: when the slot scrolls out of view while playing,
+  // flip `stuck` so the player wrapper repositions itself fixed-bottom-right.
+  // The <video> element itself doesn't remount, so playback is uninterrupted.
+  useEffect(() => {
+    if (!isPlaying) {
+      setStuck(false);
+      return;
+    }
+    const slot = slotRef.current;
+    if (!slot) return;
+    const observer = new IntersectionObserver(
+      entries => {
+        const entry = entries[0];
+        if (entry) setStuck(!entry.isIntersecting);
+      },
+      { threshold: 0 },
+    );
+    observer.observe(slot);
+    return () => observer.disconnect();
+  }, [isPlaying]);
   // Show the thumbnail during processing too — extracted client-side at
   // upload time, so users see something the moment they finish uploading
   // rather than waiting through 15-30s of encode time staring at a blank box.
@@ -716,8 +741,31 @@ function VideoBlock({
         padding: 14,
       }}
     >
+      <div ref={slotRef} style={{ position: 'relative' }}>
       {isPlaying && hasReadyVideo ? (
-        <VideoPlayer tag={tag} onClose={() => setIsPlaying(false)} />
+        <>
+          {/* Placeholder while the player is in its sticky mini state.
+              Holds the slot's 16/9 dimensions so the page doesn't reflow
+              and gives the user a visual marker of where the player will
+              return when they scroll back. */}
+          {stuck && tag.video_thumbnail && (
+            <div
+              style={{
+                width: '100%',
+                aspectRatio: '16 / 9',
+                background: `url(${tag.video_thumbnail}) center / cover no-repeat, ${SURFACE_2}`,
+                borderRadius: 10,
+                border: '1px solid rgba(255,255,255,0.06)',
+                opacity: 0.55,
+              }}
+            />
+          )}
+          <VideoPlayer
+            tag={tag}
+            onClose={() => setIsPlaying(false)}
+            stuck={stuck}
+          />
+        </>
       ) : showThumb ? (
         <button
           onClick={() => { if (hasReadyVideo) setIsPlaying(true); }}
@@ -829,6 +877,7 @@ function VideoBlock({
           )}
         </label>
       )}
+      </div>
 
       {/* Hidden input — drives both the empty-state Add Video CTA and the
           Replace button below. iOS Safari's three-way sheet handles

@@ -23,9 +23,16 @@ import type { UserTag } from '../types/api.ts';
 interface Props {
   tag: UserTag;
   onClose: () => void;
+  /**
+   * When true, the player wrapper is repositioned to a fixed mini-player at
+   * bottom-right of the viewport. The `<video>` element itself doesn't
+   * remount — only the wrapper's CSS changes — so playback continues
+   * seamlessly when the user scrolls past the inline slot and back.
+   */
+  stuck?: boolean;
 }
 
-export default function VideoPlayer({ tag, onClose }: Props) {
+export default function VideoPlayer({ tag, onClose, stuck = false }: Props) {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   // Tracked separately so we can pass an explicit type to <source>. iOS PWA
   // standalone mode takes a different code path for <video><source type=...>
@@ -121,9 +128,24 @@ export default function VideoPlayer({ tag, onClose }: Props) {
     };
   }, [tag.id]);
 
-  return (
-    <div
-      style={{
+  const wrapperStyle: React.CSSProperties = stuck
+    ? {
+        position: 'fixed',
+        bottom: 'max(16px, env(safe-area-inset-bottom))',
+        right: 'max(16px, env(safe-area-inset-right))',
+        width: 'min(240px, 38vw)',
+        aspectRatio: '16 / 9',
+        backgroundColor: '#000',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: 10,
+        overflow: 'hidden',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 60,
+        boxShadow: '0 10px 28px rgba(0,0,0,0.55), 0 0 0 1px rgba(196,145,95,0.18)',
+      }
+    : {
         position: 'relative',
         width: '100%',
         aspectRatio: '16 / 9',
@@ -134,8 +156,10 @@ export default function VideoPlayer({ tag, onClose }: Props) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-      }}
-    >
+      };
+
+  return (
+    <div style={wrapperStyle}>
       {loading && (
         <p className="text-sm" style={{ color: 'rgba(255,255,255,0.40)' }}>
           {downloadPercent != null ? `Downloading ${downloadPercent}%…` : 'Loading…'}
