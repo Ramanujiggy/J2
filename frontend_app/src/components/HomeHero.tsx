@@ -22,6 +22,7 @@ interface Props {
   rustiest?: DecayResult | null;
   spikiest?: PillarACWRResult | null;
   onTap?: () => void;
+  rouletteSlot?: React.ReactNode;
 }
 
 function getActiveGate(consistentWeeks: number) {
@@ -41,6 +42,7 @@ export default function HomeHero({
   rustiest: rustiestPillar,
   spikiest,
   onTap,
+  rouletteSlot,
 }: Props) {
   type View = 'daily' | 'weekly' | 'sessions' | 'readiness' | 'rustiest' | 'spike';
   const views: View[] = [
@@ -153,12 +155,13 @@ export default function HomeHero({
         </span>
       </div>
 
-      {/* Hero streak — Cormorant 64pt, tappable to cycle views */}
+      {/* Hero streak + roulette — two-column layout */}
+      <div style={{ display: 'flex', alignItems: 'flex-start' }}>
       <button
         type="button"
         onClick={handleStreakTap}
-        className="block w-full text-left touch-manipulation relative"
-        style={{ background: 'transparent', border: 'none', padding: 0 }}
+        className="block text-left touch-manipulation relative"
+        style={{ background: 'transparent', border: 'none', padding: 0, flex: '0 0 50%' }}
       >
         {showPrestigeAura && (
           <div
@@ -252,8 +255,16 @@ export default function HomeHero({
         </span>
       </button>
 
+      {/* Roulette slot — right half */}
+      {rouletteSlot && (
+        <div style={{ flex: '0 0 50%', display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-start', paddingTop: 8 }}>
+          {rouletteSlot}
+        </div>
+      )}
+      </div>
+
       {/* This-week numerals — flat row, no chrome */}
-      <div style={{ marginTop: 26, display: 'flex', gap: 32, alignItems: 'baseline' }}>
+      <div style={{ marginTop: 26, display: 'flex', gap: 24, alignItems: 'baseline', maxWidth: '55%' }}>
         <div>
           <div
             style={{

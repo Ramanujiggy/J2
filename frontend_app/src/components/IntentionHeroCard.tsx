@@ -25,6 +25,7 @@ import { addDays, toDateString } from '../lib/sessionUtils.ts';
 interface Props {
   intention: Intention | null;
   weekSessionCount?: number;
+  compact?: boolean;
   onSetIntent: () => void;
   onEditIntent?: () => void;
   onViewJournal?: () => void;
@@ -34,6 +35,7 @@ interface Props {
 export default function IntentionHeroCard({
   intention,
   weekSessionCount = 0,
+  compact = false,
   onSetIntent,
   onEditIntent,
   onViewJournal,
@@ -81,11 +83,12 @@ export default function IntentionHeroCard({
     return (
       <button
         onClick={onSetIntent}
-        className="w-full rounded-xl px-5 py-5 text-left touch-manipulation j2-press"
+        className="w-full rounded-xl text-left touch-manipulation j2-press"
         style={{
           backgroundColor: 'rgba(196,145,95,0.04)',
           border: '1px solid rgba(196,145,95,0.22)',
-          borderRadius: 14,
+          borderRadius: compact ? 12 : 14,
+          padding: compact ? '14px 14px' : '20px 20px',
           position: 'relative',
           overflow: 'hidden',
         }}
@@ -98,14 +101,14 @@ export default function IntentionHeroCard({
             pointerEvents: 'none',
           }}
         />
-        <div className="j2-label-copper" style={{ marginBottom: 10 }}>◇ This week</div>
-        <div className="j2-serif-display" style={{ fontSize: 26, lineHeight: 1.1, color: PALE_YELLOW }}>
+        <div className="j2-label-copper" style={{ marginBottom: compact ? 8 : 10 }}>◇ This week</div>
+        <div className="j2-serif-display" style={{ fontSize: compact ? 18 : 26, lineHeight: 1.1, color: PALE_YELLOW }}>
           Set your focus
         </div>
         <div
           style={{
-            marginTop: 14,
-            fontSize: 14, fontWeight: 600,
+            marginTop: compact ? 10 : 14,
+            fontSize: compact ? 12 : 14, fontWeight: 600,
             color: COPPER, borderBottom: `1px solid ${COPPER}40`,
             display: 'inline-block',
           }}
@@ -122,9 +125,9 @@ export default function IntentionHeroCard({
   return (
     <div
       style={{
-        padding: 20,
+        padding: compact ? 14 : 20,
         border: '1px solid rgba(196,145,95,0.22)',
-        borderRadius: 14,
+        borderRadius: compact ? 12 : 14,
         background: 'rgba(196,145,95,0.04)',
         position: 'relative',
         overflow: 'hidden',
@@ -142,13 +145,11 @@ export default function IntentionHeroCard({
 
       <div style={{ position: 'relative', zIndex: 1 }}>
         {/* Kicker */}
-        <div className="j2-label-copper" style={{ marginBottom: 10 }}>◇ This week</div>
+        <div className="j2-label-copper" style={{ marginBottom: compact ? 8 : 10 }}>◇ This week</div>
 
-        {/* Serif title — the user's freeform goal (intent_label) when set,
-            else the pillar label as fallback */}
         <div
           className="j2-serif-display"
-          style={{ fontSize: 28, lineHeight: 1.1, color: PALE_YELLOW }}
+          style={{ fontSize: compact ? 18 : 28, lineHeight: 1.1, color: PALE_YELLOW }}
         >
           {primaryLabel}
         </div>

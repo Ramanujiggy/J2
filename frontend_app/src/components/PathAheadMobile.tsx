@@ -138,6 +138,17 @@ export default function PathAheadMobile({
         rustiest={rustiest}
         spikiest={spikiest}
         onTap={() => setTelemetryOpen(prev => !prev)}
+        rouletteSlot={
+          <RepRouletteFab
+            fabPosition="inline"
+            onLogDrill={(preset) => {
+              const presetData = preset.pool === 'drill'
+                ? { heading: preset.heading, sessionType: preset.sessionType, subSkillTag: preset.subSkillTag }
+                : { heading: preset.heading, sessionType: preset.sessionType, constraintName: preset.constraintName };
+              openLog({ date: toDateString(today), preset: presetData });
+            }}
+          />
+        }
       />
 
       {/* ── Telemetry expanded panel (above tiles) ──────────────── */}
@@ -150,28 +161,25 @@ export default function PathAheadMobile({
         <div style={{ marginBottom: 8 }}>{telemetryContent}</div>
       </div>
 
-      {/* ── B. TodayCard — operational centerpiece. Same time-aware
-            attendance dialog as desktop (pre-class "Planning to attend?"
-            → in-session → post-class "Did you attend?" → drive-home log
-            CTA). Sits between the hero stats and the week's intention
-            so "what's happening today" precedes "what am I focused on
-            this week." */}
-      <TodayCard
-        sessions={allSessions}
-        onLogSession={(ctx) => openLog({ date: ctx.date })}
-      />
-
-      {/* ── C. Intention Hero Card ─────────────────────────────── */}
-      {intentionsEnabled && (
-        <IntentionHeroCard
-          intention={activeIntention}
-          weekSessionCount={weekSessionCount}
-          onSetIntent={() => setSetIntentOpen(true)}
-          onEditIntent={activeIntention ? () => setEditIntention(activeIntention) : undefined}
-          onViewJournal={activeIntention ? () => navigate(`/intentions/${activeIntention.id}/journal`) : undefined}
-          onDeleteIntent={handleDeleteIntention}
+      {/* ── B + C. TodayCard + IntentionHeroCard — side-by-side ───── */}
+      <div style={{ display: 'grid', gridTemplateColumns: intentionsEnabled ? '1fr 1fr' : '1fr', gap: 10 }}>
+        <TodayCard
+          sessions={allSessions}
+          onLogSession={(ctx) => openLog({ date: ctx.date })}
+          compact
         />
-      )}
+        {intentionsEnabled && (
+          <IntentionHeroCard
+            intention={activeIntention}
+            weekSessionCount={weekSessionCount}
+            onSetIntent={() => setSetIntentOpen(true)}
+            onEditIntent={activeIntention ? () => setEditIntention(activeIntention) : undefined}
+            onViewJournal={activeIntention ? () => navigate(`/intentions/${activeIntention.id}/journal`) : undefined}
+            onDeleteIntent={handleDeleteIntention}
+            compact
+          />
+        )}
+      </div>
 
       {/* ── D-H. Main content (conditional on sessions) ────────── */}
       {!loading && allSessions.length === 0 ? (
@@ -192,18 +200,11 @@ export default function PathAheadMobile({
           onDayTap={onDayTap}
           onSessionTap={onSessionTap}
         />
-        {primaryCta}
         {heatmapSection}
       </>
       )}
 
       {modals}
-      <RepRouletteFab onLogDrill={(preset) => {
-        const presetData = preset.pool === 'drill'
-          ? { heading: preset.heading, sessionType: preset.sessionType, subSkillTag: preset.subSkillTag }
-          : { heading: preset.heading, sessionType: preset.sessionType, constraintName: preset.constraintName };
-        openLog({ date: toDateString(today), preset: presetData });
-      }} />
     </div>
     </PageContent>
   );
