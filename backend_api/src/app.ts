@@ -19,6 +19,7 @@ import classAttendanceRoutes from './routes/classAttendanceRoutes.js';
 import pushSubscriptionRoutes from './routes/pushSubscriptionRoutes.js';
 import caseRoutes from './routes/caseRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import beltHistoryRoutes from './routes/beltHistoryRoutes.js';
 // db import triggers pool connection test on startup
 import { query } from './config/db.js';
 
@@ -183,6 +184,7 @@ app.use('/api/class-attendance', classAttendanceRoutes);
 app.use('/api/push-subscriptions', pushSubscriptionRoutes);
 app.use('/api/cases', caseRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/belt-history', beltHistoryRoutes);
 
 
 // Catch-all JSON error handler — must be registered after all routes.

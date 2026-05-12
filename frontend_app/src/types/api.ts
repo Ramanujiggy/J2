@@ -364,3 +364,15 @@ export interface ClassScheduleInput {
   duration_min: number;
   gi_nogi: 'gi' | 'no_gi' | 'both' | null;
 }
+
+export interface BeltHistoryEntry {
+  id: string;
+  belt_rank: string;
+  stripes: number;
+  promoted_at: string;
+  notes: string | null;
+}
+
+export interface BeltHistoryResponse {
+  belt_history: BeltHistoryEntry[];
+}
