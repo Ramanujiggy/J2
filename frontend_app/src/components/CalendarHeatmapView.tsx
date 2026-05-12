@@ -14,8 +14,8 @@ import {
 } from '../lib/theme.ts';
 import { formatDuration } from '../lib/sessionUtils.ts';
 
-const CELL = 28;
-const GAP = 4;
+const CELL = 32;
+const GAP = 2;
 const MONTH_COL = 32;
 const DOW = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -234,11 +234,9 @@ export default function CalendarHeatmapView({
                 {/* Day cells */}
                 {row.days.map(({ date, day }) => {
                   const key = localDateKey(date);
-                  const isFuture = key > todayStr;
                   const isThisToday = key === todayStr;
                   const hasSession = day.count > 0;
-                  const bg = hasSession ? cellColor(day) : '#152E22';
-                  const borderColor = isFuture ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.08)';
+                  const bg = hasSession ? cellColor(day) : 'rgba(255,255,255,0.025)';
                   const isMaxIntensity = day.maxIntensity >= 5;
                   const idx = cellIdx++;
                   const intensityLabel = hasSession ? (INT_LABELS[day.maxIntensity] ?? '') : '';
@@ -258,11 +256,10 @@ export default function CalendarHeatmapView({
                       style={{
                         width: CELL,
                         height: CELL,
-                        borderRadius: 4,
+                        borderRadius: 1,
                         backgroundColor: bg,
-                        border: hasSession ? 'none' : `1px solid ${borderColor}`,
-                        cursor: 'pointer',
-                        outline: isThisToday ? '1.5px solid rgba(242,228,168,0.8)' : 'none',
+                        cursor: hasSession ? 'pointer' : 'default',
+                        outline: isThisToday ? '1.5px solid rgba(242,228,168,0.7)' : 'none',
                         outlineOffset: isThisToday ? -1 : undefined,
                         boxShadow: isMaxIntensity && hasSession ? '0 0 8px rgba(196,145,95,0.4)' : 'none',
                       }}
