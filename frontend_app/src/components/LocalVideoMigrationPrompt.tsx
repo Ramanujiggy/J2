@@ -14,7 +14,7 @@
 //   • Skip / Continue both set the localStorage flag so we never re-prompt.
 //
 // Note: even after dismissal, the user can still play their local clips
-// (VideoPlayerModal tries OPFS first). The prompt is about elevating
+// (VideoPlayer in VideoBlock tries OPFS first). The prompt is about elevating
 // them to cloud-resident; declining doesn't break anything immediately.
 
 import { useEffect, useState, useCallback, useMemo } from 'react';

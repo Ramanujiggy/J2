@@ -14,6 +14,7 @@
 
 import { useNavigate } from 'react-router-dom';
 import HomeHero from './HomeHero.tsx';
+import TodayCard from './today/TodayCard.tsx';
 import IntentionHeroCard from './IntentionHeroCard.tsx';
 import FirstVisitCard from './FirstVisitCard.tsx';
 import RepRouletteFab from './RepRouletteFab.tsx';
@@ -148,6 +149,17 @@ export default function PathAheadMobile({
       }}>
         <div style={{ marginBottom: 8 }}>{telemetryContent}</div>
       </div>
+
+      {/* ── B. TodayCard — operational centerpiece. Same time-aware
+            attendance dialog as desktop (pre-class "Planning to attend?"
+            → in-session → post-class "Did you attend?" → drive-home log
+            CTA). Sits between the hero stats and the week's intention
+            so "what's happening today" precedes "what am I focused on
+            this week." */}
+      <TodayCard
+        sessions={allSessions}
+        onLogSession={(ctx) => openLog({ date: ctx.date })}
+      />
 
       {/* ── C. Intention Hero Card ─────────────────────────────── */}
       {intentionsEnabled && (

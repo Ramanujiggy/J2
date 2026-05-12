@@ -34,7 +34,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { api } from '../lib/api.ts';
 import PageContent from '../components/PageContent.tsx';
-import VideoPlayerModal from '../components/VideoPlayerModal.tsx';
+import VideoPlayer from '../components/VideoPlayer.tsx';
 import SessionDetailModal from '../components/SessionDetailModal.tsx';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import {
@@ -106,7 +106,6 @@ export default function TechniquePage() {
 
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
-  const [playing, setPlaying] = useState(false);
   const [openSession, setOpenSession] = useState<SessionSummary | null>(null);
   const [uploadingVideo, setUploadingVideo] = useState(false);
 
@@ -319,7 +318,6 @@ export default function TechniquePage() {
       uploading={uploadingVideo}
       uploadPercent={uploadPercent}
       uploadError={hookError}
-      onPlay={() => setPlaying(true)}
       onAttachFile={onAttachFile}
       onRemoveVideo={onRemoveVideo}
       onRetryEncode={onRetryEncode}
@@ -529,14 +527,6 @@ export default function TechniquePage() {
         </div>
       )}
 
-      {/* Video player modal — same component the Library uses */}
-      {playing && (
-        <VideoPlayerModal
-          tag={tag}
-          onClose={() => setPlaying(false)}
-        />
-      )}
-
       {/* Session detail modal — opened from a session-list row tap */}
       {openSession && (
         <SessionDetailModal
@@ -681,7 +671,6 @@ function VideoBlock({
   uploading,
   uploadPercent,
   uploadError,
-  onPlay,
   onAttachFile,
   onRemoveVideo,
   onRetryEncode,
@@ -690,15 +679,21 @@ function VideoBlock({
   uploading: boolean;
   uploadPercent: number | null;
   uploadError: string | null;
-  onPlay: () => void;
   onAttachFile: (file: File) => void;
   onRemoveVideo: () => void;
   onRetryEncode: () => void;
 }) {
   const inputId = `video-pokedex-${tag.id}`;
+  const [isPlaying, setIsPlaying] = useState(false);
   const hasReadyVideo = !!tag.has_video && tag.video_status === 'ready' && !!tag.video_thumbnail;
   const isProcessing = !!tag.has_video && tag.video_status === 'processing';
   const isFailed     = !!tag.has_video && tag.video_status === 'failed';
+
+  // Auto-close the inline player when the underlying tag stops being ready
+  // (e.g. user hit Remove during playback, encode regressed to failed).
+  useEffect(() => {
+    if (isPlaying && !hasReadyVideo) setIsPlaying(false);
+  }, [isPlaying, hasReadyVideo]);
   // Show the thumbnail during processing too — extracted client-side at
   // upload time, so users see something the moment they finish uploading
   // rather than waiting through 15-30s of encode time staring at a blank box.
@@ -721,9 +716,11 @@ function VideoBlock({
         padding: 14,
       }}
     >
-      {showThumb ? (
+      {isPlaying && hasReadyVideo ? (
+        <VideoPlayer tag={tag} onClose={() => setIsPlaying(false)} />
+      ) : showThumb ? (
         <button
-          onClick={onPlay}
+          onClick={() => { if (hasReadyVideo) setIsPlaying(true); }}
           disabled={uploading || isProcessing || isFailed}
           className="w-full j2-press touch-manipulation"
           style={{
@@ -931,6 +928,38 @@ function VideoBlock({
         >
           {uploadError}
         </p>
+      )}
+
+      {/* Video notes — per-clip annotation, kept visible during playback so
+          the user can cross-reference notes while watching. Previously
+          lived inside the modal that this inline player replaces. */}
+      {tag.video_notes && (
+        <div
+          style={{
+            marginTop: 12,
+            background: SURFACE_2,
+            border: '1px solid rgba(255,255,255,0.05)',
+            borderRadius: 10,
+            padding: '12px 14px',
+          }}
+        >
+          <p
+            className="j2-label-copper"
+            style={{ marginBottom: 6 }}
+          >
+            ◇ Notes
+          </p>
+          <p
+            style={{
+              fontSize: 14,
+              lineHeight: 1.5,
+              color: 'rgba(255,255,255,0.70)',
+              whiteSpace: 'pre-wrap',
+            }}
+          >
+            {tag.video_notes}
+          </p>
+        </div>
       )}
     </div>
   );
