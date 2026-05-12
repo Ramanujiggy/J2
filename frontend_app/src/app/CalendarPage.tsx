@@ -5,6 +5,7 @@ import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import TrainingHeatmap from '../components/TrainingHeatmap.tsx';
 import CompactHeatmap from '../components/CompactHeatmap.tsx';
 import CalendarHeatmap from '../components/CalendarHeatmap.tsx';
+import CalendarHeatmapView from '../components/CalendarHeatmapView.tsx';
 import LogSessionForm from '../components/LogSessionForm.tsx';
 import ErrorBoundary from '../components/ErrorBoundary.tsx';
 import { LayoutGrid, CalendarDays, Search, X } from 'lucide-react';
@@ -27,10 +28,13 @@ export default function CalendarPage() {
   const [logDate,     setLogDate]     = useState<string | null>(null); // YYYY-MM-DD for log-from-calendar
   const [searchOpen,  setSearchOpen]  = useState(false);
 
-  // View toggle — compact hero vs full detailed heatmap
-  type CalendarViewMode = 'compact' | 'detailed';
+  type CalendarViewMode = 'heatmap' | 'detailed';
   const [calView, setCalView] = useState<CalendarViewMode>(
-    () => (localStorage.getItem('j2_cal_view') as CalendarViewMode) || 'detailed'
+    () => {
+      const stored = localStorage.getItem('j2_cal_view');
+      if (stored === 'heatmap' || stored === 'detailed') return stored;
+      return 'heatmap';
+    }
   );
   const handleCalViewChange = useCallback((mode: CalendarViewMode) => {
     setCalView(mode);
@@ -131,10 +135,10 @@ export default function CalendarPage() {
             {searchOpen ? <X size={14} /> : <Search size={14} />}
           </button>
 
-          {/* View toggle */}
-          <div className="flex gap-0.5 p-0.5 rounded-lg" style={{ backgroundColor: SURFACE_2 }}>
+          {/* View toggle — heatmap (density scan) vs detailed (book mode) */}
+          <div className="flex gap-0.5 p-0.5 rounded-lg" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.06)' }}>
             {([
-              { id: 'compact' as const, Icon: LayoutGrid },
+              { id: 'heatmap' as const, Icon: LayoutGrid },
               { id: 'detailed' as const, Icon: CalendarDays },
             ]).map(({ id, Icon }) => {
               const isActive = calView === id;
@@ -150,7 +154,7 @@ export default function CalendarPage() {
                     color: isActive ? '#fff' : 'rgba(255,255,255,0.35)',
                     transition: 'background-color 200ms ease, color 200ms ease',
                   }}
-                  aria-label={id === 'compact' ? 'Compact view' : 'Detailed view'}
+                  aria-label={id === 'heatmap' ? 'Heatmap view' : 'Detailed view'}
                 >
                   <Icon size={14} strokeWidth={isActive ? 2 : 1.5} />
                 </button>
@@ -207,20 +211,15 @@ export default function CalendarPage() {
               animation: `j2PageFlip${flipDir === 'forward' ? 'Forward' : 'Back'} 380ms ease-out both`,
             } : undefined}
           >
-            {calView === 'compact' ? (
-              isDesktop ? (
-                <CalendarHeatmap
-                  sessions={allSessions}
-                  year={displayYear}
-                  onLogSession={handleLogSession}
-                />
-              ) : (
-                <CompactHeatmap
-                  sessions={allSessions}
-                  year={displayYear}
-                  loading={loading}
-                />
-              )
+            {calView === 'heatmap' ? (
+              <CalendarHeatmapView
+                sessions={allSessions}
+                year={displayYear}
+                loading={loading}
+                onYearChange={setDisplayYear}
+                onLogSession={handleLogSession}
+                onSessionUpdated={fetchAll}
+              />
             ) : (
               <TrainingHeatmap
                 sessions={allSessions}
