@@ -122,7 +122,7 @@ export default function PathAheadMobile({
 
   return (
     <PageContent ready={!loading} loadingMessages={['Shrimping down the mat...', 'Doing mat swims...', 'Pulling up gi pants...']}>
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-0 pb-3 space-y-4">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-0 pb-3 space-y-2">
       {styleBlock}
 
       {/* ── A. Hero — greeting + streak + this-week numerals ───────

@@ -215,7 +215,7 @@ function MobileAppShell({ children }: Props) {
         />
 
         {/* Header top row: logo + logout */}
-        <div className="relative z-10 px-6 pt-4 pb-2 flex items-center justify-between">
+        <div className="relative z-10 px-6 pt-2 pb-1 flex items-center justify-between">
           <div style={{ position: 'relative' }}>
             {/* Fading shadow behind title + belt only */}
             <div style={{
