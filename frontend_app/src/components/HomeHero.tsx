@@ -258,7 +258,7 @@ export default function HomeHero({
 
       {/* Roulette slot — right half */}
       {rouletteSlot && (
-        <div style={{ flex: '0 0 50%', display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-start', paddingTop: 8 }}>
+        <div style={{ flex: '0 0 50%', display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-start', paddingTop: 8, position: 'relative', zIndex: 45 }}>
           {rouletteSlot}
         </div>
       )}
