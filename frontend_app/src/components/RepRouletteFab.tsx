@@ -1,9 +1,10 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
+import gsap from 'gsap';
 import { ROULETTE_DRILLS } from '../lib/constants.ts';
 import { useCanonicalConstraints } from '../hooks/useCanonicalConstraints.ts';
-import { PALE_YELLOW, GLOW_SOFT, COPPER, COPPER_BORDER, SURFACE_3 } from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, COPPER, COPPER_BORDER, SURFACE_3, FONT_EDITORIAL } from '../lib/theme.ts';
 import { vibrate } from '../lib/haptics.ts';
 import type { Pillar } from '../types/api.ts';
 
@@ -246,6 +247,20 @@ function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
     setIsDragging(false);
   }, [pool, activeHistory, activeIndex, activePoolLength, drillHistoryIndex, constraintHistoryIndex]);
 
+  const handleReroll = useCallback(() => {
+    vibrate(5);
+    if (activePoolLength <= 0) return;
+    const current = activeHistory[activeIndex] ?? 0;
+    const next = (current + 1 + Math.floor(Math.random() * Math.max(1, activePoolLength - 1))) % activePoolLength;
+    if (pool === 'drill') {
+      setDrillHistory(prev => [...prev.slice(0, drillHistoryIndex + 1), next]);
+      setDrillHistoryIndex(i => i + 1);
+    } else {
+      setConstraintHistory(prev => [...prev.slice(0, constraintHistoryIndex + 1), next]);
+      setConstraintHistoryIndex(i => i + 1);
+    }
+  }, [pool, activeHistory, activeIndex, activePoolLength, drillHistoryIndex, constraintHistoryIndex]);
+
   const handleLog = () => {
     if (pool === 'drill') {
       onLogDrill({
@@ -274,12 +289,188 @@ function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
 
   // ── Render ─────────────────────────────────────────────────────────
 
+  const panelRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // GSAP morph for inline expand/collapse
+  useEffect(() => {
+    if (fabPosition !== 'inline') return;
+    const panel = panelRef.current;
+    const content = contentRef.current;
+    if (!panel || !content) return;
+
+    if (phase === 'opening') {
+      gsap.fromTo(panel,
+        { scale: 0.15, borderRadius: 24, opacity: 0 },
+        { scale: 1, borderRadius: 16, opacity: 1, duration: 0.38, ease: 'elastic.out(1, 0.82)' },
+      );
+      gsap.fromTo(content,
+        { opacity: 0, y: 6 },
+        { opacity: 1, y: 0, duration: 0.25, delay: 0.18, ease: 'power2.out' },
+      );
+    } else if (phase === 'closing') {
+      gsap.to(content, { opacity: 0, duration: 0.1, ease: 'power2.in' });
+      gsap.to(panel, { scale: 0.15, borderRadius: 24, opacity: 0, duration: 0.28, delay: 0.06, ease: 'power2.in' });
+    }
+  }, [phase, fabPosition]);
+
+  const diceIcon = (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ color: PALE_YELLOW, flexShrink: 0 }}>
+      <rect x="2" y="2" width="20" height="20" rx="3" />
+      <circle cx="8" cy="8" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="16" cy="8" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="8" cy="16" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="16" cy="16" r="1.5" fill="currentColor" stroke="none" />
+    </svg>
+  );
+
+  // ── Inline mode (mobile homepage) ─────────────────────────────────
+  if (fabPosition === 'inline') {
+    const scrim = showCard ? createPortal(
+      <div
+        className="fixed inset-0 z-40 sm:hidden"
+        onClick={handleClose}
+        style={{
+          backgroundColor: 'rgba(13, 26, 20, 0.5)',
+          opacity: phase === 'open' ? 1 : 0,
+          transition: `opacity ${phase === 'closing' ? CLOSE_MS : OPEN_MS}ms ease`,
+        }}
+      />,
+      document.body,
+    ) : null;
+
+    if (fabVisible) {
+      return (
+        <>
+          <button
+            className="z-50 sm:hidden flex items-center justify-center rounded-full touch-manipulation j2-press"
+            onClick={handleOpen}
+            style={{
+              width: 48, height: 48,
+              backgroundColor: 'rgba(196,145,95,0.20)',
+              border: `1px solid ${COPPER_BORDER}`,
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.3), 0 0 0 1px rgba(196,145,95,0.15)',
+            }}
+            aria-label="Rep Roulette"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ color: PALE_YELLOW }}>
+              <rect x="2" y="2" width="20" height="20" rx="3" />
+              <circle cx="8" cy="8" r="1.5" fill="currentColor" stroke="none" />
+              <circle cx="16" cy="8" r="1.5" fill="currentColor" stroke="none" />
+              <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
+              <circle cx="8" cy="16" r="1.5" fill="currentColor" stroke="none" />
+              <circle cx="16" cy="16" r="1.5" fill="currentColor" stroke="none" />
+            </svg>
+          </button>
+          {scrim}
+        </>
+      );
+    }
+
+    return (
+      <>
+        <div
+          ref={panelRef}
+          className="z-50 sm:hidden rounded-2xl"
+          style={{
+            width: '100%',
+            backgroundColor: 'rgba(26,53,40,0.95)',
+            border: '1px solid rgba(196,145,95,0.35)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            padding: 14,
+            transformOrigin: 'top right',
+          }}
+        >
+          <div ref={contentRef}>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <button onClick={handleClose} className="touch-manipulation" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
+                  {diceIcon}
+                </button>
+                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: COPPER }}>{pool === 'drill' ? 'Drill' : 'Constraint'}</span>
+              </div>
+              <button
+                onClick={() => setPool(p => p === 'drill' ? 'constraint' : 'drill')}
+                className="touch-manipulation"
+                style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)', background: 'none', border: 'none', padding: '2px 0', cursor: 'pointer' }}
+              >
+                {pool === 'drill' ? '→ CLA' : '→ Drill'}
+              </button>
+            </div>
+
+            {/* Copper hairline */}
+            <div style={{ height: 1, background: 'linear-gradient(to right, rgba(196,145,95,0.4), transparent)', marginBottom: 12 }} />
+
+            {/* Technique */}
+            {item ? (
+              <>
+                <div style={{ fontFamily: FONT_EDITORIAL, fontSize: 20, fontWeight: 500, color: PALE_YELLOW, lineHeight: 1.15, marginBottom: 4 }}>
+                  {item.name}
+                </div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', marginBottom: 14 }}>
+                  {item.focus}{item.suggestion ? ` · ${item.suggestion}` : ''}
+                </div>
+              </>
+            ) : (
+              <div style={{ fontSize: 12, fontStyle: 'italic', color: 'rgba(255,255,255,0.30)', marginBottom: 14 }}>
+                No {pool === 'drill' ? 'drills' : 'constraints'} available.
+              </div>
+            )}
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={handleReroll}
+                className="touch-manipulation j2-press"
+                style={{
+                  flex: 1, fontSize: 11, fontWeight: 600,
+                  color: 'rgba(255,255,255,0.50)',
+                  padding: '7px 0', borderRadius: 8,
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  backgroundColor: 'rgba(255,255,255,0.04)',
+                  cursor: 'pointer',
+                }}
+              >
+                ↻ Reroll
+              </button>
+              {item && (
+                <button
+                  onClick={handleLog}
+                  className="touch-manipulation j2-press"
+                  style={{
+                    flex: 1, fontSize: 11, fontWeight: 600,
+                    color: COPPER,
+                    padding: '7px 0', borderRadius: 8,
+                    border: '1px solid rgba(196,145,95,0.3)',
+                    backgroundColor: 'rgba(196,145,95,0.06)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Log this →
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+        {scrim}
+      </>
+    );
+  }
+
+  // ── Fixed mode (desktop / fallback) ───────────────────────────────
+
   const fabButton = (
     <button
-      className={`${fabPosition === 'fixed' ? 'fixed' : ''} z-50 sm:hidden flex items-center justify-center rounded-full touch-manipulation j2-press`}
+      className="fixed z-50 sm:hidden flex items-center justify-center rounded-full touch-manipulation j2-press"
       onClick={handleOpen}
       style={{
-        ...(fabPosition === 'fixed' ? { right: 16, bottom: fabBottom } : {}),
+        right: 16,
+        bottom: fabBottom,
         width: 48,
         height: 48,
         backgroundColor: 'rgba(196,145,95,0.20)',
