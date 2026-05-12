@@ -112,7 +112,7 @@ export default function PathAheadWeekSection({
           </button>
         </div>
         {/* View mode toggle */}
-        <div className="flex gap-0.5 p-0.5 rounded-lg" style={{ backgroundColor: SURFACE_2 }}>
+        <div className="flex gap-0.5 p-0.5 rounded-lg" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.06)' }}>
           {([
             { id: 'carousel' as const, Icon: CalendarDays },
             { id: 'list' as const, Icon: List },

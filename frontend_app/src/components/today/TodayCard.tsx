@@ -34,6 +34,8 @@ interface Props {
   onLogSession: (ctx: LogContext) => void;
   /** Half-width mode for side-by-side layout on mobile home. */
   compact?: boolean;
+  /** When true, no-class state renders as a quiet inline line (no card). */
+  quiet?: boolean;
 }
 
 export interface LogContext {
@@ -55,7 +57,7 @@ function todayDateString(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export default function TodayCard({ sessions, onLogSession, compact = false }: Props) {
+export default function TodayCard({ sessions, onLogSession, compact = false, quiet = false }: Props) {
   const today = useTodayClass(sessions);
 
   if (today.loading) return <TodaySkeleton />;
@@ -64,6 +66,29 @@ export default function TodayCard({ sessions, onLogSession, compact = false }: P
 
   // ── State: no_class_today ─────────────────────────────────────────────
   if (state === 'no_class_today' || schedule === null) {
+    if (quiet) {
+      return (
+        <div style={{ padding: '2px 0' }}>
+          <Italic large compact>No class today.</Italic>{' '}
+          <button
+            onClick={() => onLogSession({ date: todayDateString() })}
+            style={{
+              fontFamily: FONT_EDITORIAL,
+              fontStyle: 'italic',
+              fontSize: 14,
+              color: COPPER,
+              background: 'none',
+              border: 'none',
+              borderBottom: `1px solid rgba(196,145,95,0.3)`,
+              padding: 0,
+              cursor: 'pointer',
+            }}
+          >
+            Log a session anyway →
+          </button>
+        </div>
+      );
+    }
     return (
       <Frame variant="quiet" compact={compact}>
         <Italic large compact={compact}>No class scheduled today.</Italic>

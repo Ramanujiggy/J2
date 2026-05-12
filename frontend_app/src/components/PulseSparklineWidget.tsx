@@ -81,11 +81,10 @@ export default function PulseSparklineWidget({ sessions }: PulseSparklineWidgetP
   if (sessionCount < 5) {
     return (
       <div
-        className="rounded-2xl px-5 py-6"
         style={{
-          backgroundColor: CARD_BG,
-          border: `1px solid ${CARD_GLOW_BORDER}`,
-          boxShadow: CARD_GLOW,
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+          paddingTop: 20,
+          paddingBottom: 8,
         }}
       >
         <div
@@ -112,13 +111,11 @@ export default function PulseSparklineWidget({ sessions }: PulseSparklineWidgetP
 
   return (
     <div
-      className="rounded-2xl"
       style={{
-        backgroundColor: CARD_BG,
-        border: `1px solid ${CARD_GLOW_BORDER}`,
-        boxShadow: CARD_GLOW,
+        borderTop: '1px solid rgba(255,255,255,0.06)',
         cursor: 'pointer',
-        padding: '20px 22px 18px',
+        paddingTop: 20,
+        paddingBottom: 8,
       }}
       onClick={() => navigate('/calendar')}
     >
