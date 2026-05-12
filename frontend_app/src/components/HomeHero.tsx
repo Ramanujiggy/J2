@@ -204,6 +204,7 @@ export default function HomeHero({
               fontSize: 128,
               lineHeight: 0.9,
               letterSpacing: '-0.025em',
+              marginBottom: 8,
               color: valueColor,
               textShadow: view === 'daily' && streak > 0 ? '0 0 28px rgba(196,145,95,0.20)' : undefined,
             }}
