@@ -86,15 +86,24 @@ export default function HomePage() {
       {/* Logo / Title */}
       <div
         className="mb-10 text-center relative z-10 px-8 py-5 rounded-2xl"
-        style={{ backgroundColor: 'rgba(13, 26, 20, 0.45)', backdropFilter: 'blur(4px)' }}
+        style={{ backgroundColor: 'rgba(13, 26, 20, 0.55)', backdropFilter: 'blur(6px)' }}
       >
+        <p className="mb-2 text-xs font-semibold tracking-[0.25em] uppercase" style={{ color: PALE_YELLOW, opacity: 0.85, textShadow: GLOW_NAV }}>
+          ◇ For Intentional Grappling
+        </p>
         <h1 className="text-3xl sm:text-5xl font-display tracking-tight" style={{ color: PALE_YELLOW, textShadow: GLOW_TITLE }}>
           Journada
         </h1>
-        <p className="mt-3 text-lg" style={{ color: PALE_YELLOW, textShadow: GLOW_NAV }}>
-          For Intentional Grappling
-        </p>
       </div>
+
+      {/* Floor darkening — gradient overlay at the bottom to lift content off the wave */}
+      <div
+        className="absolute inset-x-0 bottom-0 pointer-events-none z-[1]"
+        style={{
+          height: '55%',
+          background: 'linear-gradient(to top, rgba(13,26,20,0.85) 0%, rgba(13,26,20,0.5) 40%, transparent 100%)',
+        }}
+      />
 
       {/* Card */}
       <div className="w-[calc(100%-2rem)] max-w-sm rounded-2xl p-8 relative z-10" style={{ backgroundColor: CARD_BG, border: `1px solid ${COPPER_BORDER}`, boxShadow: CARD_SHADOW }}>
