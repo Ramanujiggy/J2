@@ -4,7 +4,7 @@ import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 
 import { api } from '../lib/api.ts';
 import { useAuth } from '../hooks/useAuth.ts';
-import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, SURFACE_2, SURFACE_2_BORDER, SURFACE_3, COPPER } from '../lib/theme.ts';
+import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, SURFACE_2, SURFACE_2_BORDER, SURFACE_3, COPPER, PALE_YELLOW, FONT_EDITORIAL } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import CsvImportModal from '../components/CsvImportModal.tsx';
 import ReportProblemModal from '../components/ReportProblemModal.tsx';
@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from '../components/ui/select.tsx';
 import { toast } from '../hooks/use-toast.ts';
+import { useBeltHistory } from '../hooks/useBeltHistory.ts';
 import { getStorageEstimate, type StorageEstimate } from '../lib/videoStore.ts';
 import { formatBytes } from '../lib/videoUtils.ts';
 import { Library, ChevronRight, Bell } from 'lucide-react';
@@ -97,6 +98,47 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  // Belt history
+  const { entries: beltEntries, refetch: refetchBeltHistory } = useBeltHistory();
+  const [beltFormOpen, setBeltFormOpen] = useState(false);
+  const [beltForm, setBeltForm] = useState({ belt_rank: 'blue' as string, stripes: 0, promoted_at: '', notes: '' });
+  const [beltSaving, setBeltSaving] = useState(false);
+  const [beltDeleting, setBeltDeleting] = useState<string | null>(null);
+
+  const handleAddBeltEntry = async () => {
+    if (!beltForm.promoted_at) return;
+    setBeltSaving(true);
+    try {
+      await api.post('/api/belt-history', {
+        belt_rank: beltForm.belt_rank,
+        stripes: beltForm.stripes,
+        promoted_at: beltForm.promoted_at,
+        notes: beltForm.notes.trim() || null,
+      });
+      refetchBeltHistory();
+      setBeltForm({ belt_rank: 'blue', stripes: 0, promoted_at: '', notes: '' });
+      setBeltFormOpen(false);
+      toast({ title: 'Promotion recorded.' });
+    } catch {
+      toast({ title: 'Failed to save promotion.', variant: 'destructive' });
+    } finally {
+      setBeltSaving(false);
+    }
+  };
+
+  const handleDeleteBeltEntry = async (id: string) => {
+    setBeltDeleting(id);
+    try {
+      await api.delete(`/api/belt-history/${id}`);
+      refetchBeltHistory();
+      toast({ title: 'Promotion removed.' });
+    } catch {
+      toast({ title: 'Failed to delete.', variant: 'destructive' });
+    } finally {
+      setBeltDeleting(null);
+    }
+  };
   const [importOpen, setImportOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [existingDates, setExistingDates] = useState<Set<string>>(new Set());
@@ -324,6 +366,109 @@ export default function ProfilePage() {
                 </div>
               </div>
             )}
+
+            {/* Belt Timeline */}
+            <div style={{ marginTop: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)' }}>
+                  Belt Timeline
+                </span>
+                <span style={{ flex: 1, height: 1, backgroundColor: 'rgba(196,145,95,0.25)', borderRadius: 1 }} />
+              </div>
+
+              {beltEntries.length === 0 && !beltFormOpen && (
+                <p style={{ fontSize: 13, fontStyle: 'italic', color: 'rgba(255,255,255,0.35)', marginBottom: 10 }}>
+                  No promotions recorded yet. Add your belt history to see milestones on the calendar.
+                </p>
+              )}
+
+              {beltEntries.map(entry => (
+                <div key={entry.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: BELT_COLORS[entry.belt_rank as BeltRank] ?? COPPER, flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.80)' }}>
+                      {entry.belt_rank.charAt(0).toUpperCase() + entry.belt_rank.slice(1)} Belt
+                      {entry.stripes > 0 && <span style={{ color: 'rgba(255,255,255,0.45)' }}> · {entry.stripes} stripe{entry.stripes !== 1 ? 's' : ''}</span>}
+                    </div>
+                    {entry.notes && (
+                      <div style={{ fontSize: 12, fontStyle: 'italic', color: 'rgba(255,255,255,0.30)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        "{entry.notes}"
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>
+                    {new Date(entry.promoted_at + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteBeltEntry(entry.id)}
+                    disabled={beltDeleting === entry.id}
+                    style={{ fontSize: 14, color: 'rgba(255,255,255,0.20)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px' }}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+
+              {beltFormOpen ? (
+                <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <select
+                      value={beltForm.belt_rank}
+                      onChange={e => setBeltForm(f => ({ ...f, belt_rank: e.target.value }))}
+                      style={{ flex: 1, fontSize: 13, padding: '8px 10px', borderRadius: 8, backgroundColor: SURFACE_3, border: '1px solid rgba(255,255,255,0.08)', color: 'white' }}
+                    >
+                      {BELT_RANKS.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
+                    </select>
+                    <select
+                      value={beltForm.stripes}
+                      onChange={e => setBeltForm(f => ({ ...f, stripes: Number(e.target.value) }))}
+                      style={{ width: 60, fontSize: 13, padding: '8px 6px', borderRadius: 8, backgroundColor: SURFACE_3, border: '1px solid rgba(255,255,255,0.08)', color: 'white' }}
+                    >
+                      {[0,1,2,3,4].map(n => <option key={n} value={n}>{n} str</option>)}
+                    </select>
+                  </div>
+                  <input
+                    type="date"
+                    value={beltForm.promoted_at}
+                    onChange={e => setBeltForm(f => ({ ...f, promoted_at: e.target.value }))}
+                    style={{ fontSize: 13, padding: '8px 10px', borderRadius: 8, backgroundColor: SURFACE_3, border: '1px solid rgba(255,255,255,0.08)', color: 'white', colorScheme: 'dark' }}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Notes (optional)"
+                    value={beltForm.notes}
+                    onChange={e => setBeltForm(f => ({ ...f, notes: e.target.value }))}
+                    style={{ fontSize: 13, padding: '8px 10px', borderRadius: 8, backgroundColor: SURFACE_3, border: '1px solid rgba(255,255,255,0.08)', color: 'white' }}
+                  />
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={handleAddBeltEntry}
+                      disabled={beltSaving || !beltForm.promoted_at}
+                      style={{ flex: 1, fontSize: 13, fontWeight: 600, padding: '8px 0', borderRadius: 8, border: `1px solid ${COPPER}`, color: COPPER, backgroundColor: 'rgba(196,145,95,0.06)', cursor: 'pointer' }}
+                    >
+                      {beltSaving ? 'Saving…' : '+ Add Promotion'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBeltFormOpen(false)}
+                      style={{ fontSize: 13, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.45)', backgroundColor: 'transparent', cursor: 'pointer' }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setBeltFormOpen(true)}
+                  style={{ marginTop: 8, fontSize: 13, fontWeight: 600, color: COPPER, background: 'none', border: 'none', borderBottom: `1px solid rgba(196,145,95,0.3)`, padding: 0, cursor: 'pointer' }}
+                >
+                  + Add promotion →
+                </button>
+              )}
+            </div>
 
             {/* Home gym */}
             <div>
