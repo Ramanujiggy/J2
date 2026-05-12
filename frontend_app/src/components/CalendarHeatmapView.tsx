@@ -85,9 +85,10 @@ export default function CalendarHeatmapView({
     const containerRect = gridRef.current?.getBoundingClientRect();
     if (!containerRect) return;
     longPressTimer.current = setTimeout(() => {
+      const scrollTop = gridRef.current?.scrollTop ?? 0;
       setTooltip({
         x: rect.left - containerRect.left + CELL / 2,
-        y: rect.top - containerRect.top - 8,
+        y: rect.top - containerRect.top + scrollTop - 8,
         date, day,
       });
     }, 500);
@@ -159,12 +160,14 @@ export default function CalendarHeatmapView({
         </button>
       </div>
 
+      <style>{`.j2-heatmap-scroll::-webkit-scrollbar { display: none; }`}</style>
       {/* Heatmap grid */}
       <div
         ref={gridRef}
         role="grid"
         aria-label={`Training heatmap for ${year}`}
-        style={{ position: 'relative', overflowY: 'auto', maxHeight: 'calc(100dvh - 280px)' }}
+        className="j2-heatmap-scroll"
+        style={{ position: 'relative', overflowY: 'auto', maxHeight: 'calc(100dvh - 280px)', scrollbarWidth: 'none' }}
       >
         {/* Sticky day-of-week header */}
         <div
@@ -215,21 +218,30 @@ export default function CalendarHeatmapView({
                 style={{
                   display: 'grid',
                   gridTemplateColumns: `${MONTH_COL}px repeat(7, ${CELL}px)`,
+                  gridAutoRows: CELL,
                   gap: GAP,
                   alignItems: 'center',
                 }}
               >
-                {/* Month label */}
-                <div style={{
-                  fontFamily: FONT_EDITORIAL,
-                  fontStyle: 'italic',
-                  fontSize: 13,
-                  color: 'rgba(242,228,168,0.45)',
-                  textAlign: 'right',
-                  paddingRight: 6,
-                }}>
-                  {row.isMonthStart ? MONTH_ABBR[row.monthIndex] : ''}
-                </div>
+                {/* Month label — demoted when the month has no sessions */}
+                {(() => {
+                  if (!row.isMonthStart) return <div />;
+                  const monthHasData = rows
+                    .filter(r => r.monthIndex === row.monthIndex)
+                    .some(r => r.days.some(d => d.day.count > 0));
+                  return (
+                    <div style={{
+                      fontFamily: FONT_EDITORIAL,
+                      fontStyle: 'italic',
+                      fontSize: monthHasData ? 13 : 11,
+                      color: monthHasData ? 'rgba(242,228,168,0.45)' : 'rgba(242,228,168,0.18)',
+                      textAlign: 'right',
+                      paddingRight: 6,
+                    }}>
+                      {MONTH_ABBR[row.monthIndex]}
+                    </div>
+                  );
+                })()}
 
                 {/* Day cells */}
                 {row.days.map(({ date, day }) => {
@@ -256,7 +268,7 @@ export default function CalendarHeatmapView({
                       style={{
                         width: CELL,
                         height: CELL,
-                        borderRadius: 1,
+                        borderRadius: 2,
                         backgroundColor: bg,
                         cursor: hasSession ? 'pointer' : 'default',
                         outline: isThisToday ? '1.5px solid rgba(242,228,168,0.7)' : 'none',
