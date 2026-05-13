@@ -608,12 +608,12 @@ export default function NotesPage() {
             <span style={{ flex: 1, height: 1, backgroundColor: 'rgba(196,145,95,0.2)', borderRadius: 1 }} />
           </div>
           {pinned.map(note => (
-            <NoteRow key={note.id} note={note} onTap={() => openEditor(note)} onDelete={handleDelete} />
+            <NoteRow key={note.id} note={note} onTap={() => openEditor(note)} onDelete={handleDelete} searchQuery={searchText} />
           ))}
         </>
       )}
 
-      {/* Recent section */}
+      {/* Recent section — with month headers */}
       {recent.length > 0 && (
         <>
           {pinned.length > 0 && (
@@ -622,9 +622,32 @@ export default function NotesPage() {
               <span style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 1 }} />
             </div>
           )}
-          {recent.map(note => (
-            <NoteRow key={note.id} note={note} onTap={() => openEditor(note)} onDelete={handleDelete} />
-          ))}
+          {(() => {
+            let lastMonth = '';
+            return recent.map(note => {
+              const d = new Date(note.created_at);
+              const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+              const monthLabel = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
+              const monthCount = recent.filter(n => {
+                const nd = new Date(n.created_at);
+                return `${nd.getFullYear()}-${String(nd.getMonth() + 1).padStart(2, '0')}` === monthKey;
+              }).length;
+              const showHeader = monthKey !== lastMonth;
+              if (showHeader) lastMonth = monthKey;
+              return (
+                <div key={note.id}>
+                  {showHeader && recent.length > 3 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 16, marginBottom: 6 }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: COPPER, opacity: 0.5 }}>
+                        {monthLabel} · {monthCount}
+                      </span>
+                    </div>
+                  )}
+                  <NoteRow note={note} onTap={() => openEditor(note)} onDelete={handleDelete} searchQuery={searchText} />
+                </div>
+              );
+            });
+          })()}
         </>
       )}
     </div>
@@ -632,7 +655,21 @@ export default function NotesPage() {
   );
 }
 
-function NoteRow({ note, onTap, onDelete }: { note: TrainingNote; onTap: () => void; onDelete?: (id: string) => void }) {
+function highlightMatch(text: string, query: string): React.ReactNode {
+  if (!query.trim()) return text;
+  const q = query.trim().toLowerCase();
+  const idx = text.toLowerCase().indexOf(q);
+  if (idx === -1) return text;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <span style={{ color: COPPER, fontWeight: 700 }}>{text.slice(idx, idx + query.trim().length)}</span>
+      {text.slice(idx + query.trim().length)}
+    </>
+  );
+}
+
+function NoteRow({ note, onTap, onDelete, searchQuery = '' }: { note: TrainingNote; onTap: () => void; onDelete?: (id: string) => void; searchQuery?: string }) {
   const date = new Date(note.created_at);
   const longPressRef = useRef<ReturnType<typeof setTimeout>>();
   const handlePointerDown = () => {
@@ -690,7 +727,7 @@ function NoteRow({ note, onTap, onDelete }: { note: TrainingNote; onTap: () => v
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           lineHeight: 1.4,
         }}>
-          {firstLine.length > 80 ? firstLine.slice(0, 80) + '…' : firstLine}
+          {highlightMatch(firstLine.length > 80 ? firstLine.slice(0, 80) + '…' : firstLine, searchQuery)}
         </p>
         {bodyPreview !== null && (
           <p style={{
@@ -698,7 +735,7 @@ function NoteRow({ note, onTap, onDelete }: { note: TrainingNote; onTap: () => v
             overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
             lineHeight: 1.5,
           }}>
-            {bodyPreview}
+            {highlightMatch(bodyPreview!, searchQuery)}
           </p>
         )}
         {note.tags.length > 0 && (
