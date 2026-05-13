@@ -127,15 +127,15 @@ export default function NotesPage() {
           padding: '12px 14px',
           borderRadius: 12,
           backgroundColor: SURFACE_3,
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid rgba(255,255,255,0.04)',
           color: 'white',
-          marginBottom: 20,
+          marginBottom: 16,
           outline: 'none',
         }}
       />
 
-      {/* Compose / Add */}
-      {composing ? (
+      {/* Compose / Add — hidden when editing */}
+      {!editingNote && (composing ? (
         <div style={{ marginBottom: 20 }}>
           <textarea
             autoFocus
@@ -186,42 +186,82 @@ export default function NotesPage() {
           style={{
             fontSize: 13, fontWeight: 600, color: COPPER, background: 'none',
             border: 'none', borderBottom: `1px solid rgba(196,145,95,0.3)`,
-            padding: 0, cursor: 'pointer', marginBottom: 20, display: 'block',
+            padding: 0, cursor: 'pointer', marginBottom: 16, display: 'block',
           }}
         >
           + New note →
         </button>
-      )}
+      ))}
 
-      {/* Edit modal (inline) */}
+      {/* Inline edit — replaces the note row */}
       {editingNote && (
         <div style={{
-          marginBottom: 20, padding: 16, borderRadius: 12,
+          marginBottom: 16, padding: 14, borderRadius: 12,
           backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(196,145,95,0.2)',
         }}>
+          {/* Edit header — date + pin toggle + close */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)' }}>
+              {new Date(editingNote.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </span>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <button
+                onClick={() => handleTogglePin(editingNote)}
+                className="touch-manipulation"
+                title={editingNote.pinned ? 'Unpin' : 'Pin'}
+                style={{
+                  width: 28, height: 28, borderRadius: 6,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  backgroundColor: editingNote.pinned ? 'rgba(242,228,168,0.12)' : 'transparent',
+                  border: `1px solid ${editingNote.pinned ? 'rgba(242,228,168,0.25)' : 'rgba(255,255,255,0.08)'}`,
+                  color: editingNote.pinned ? PALE_YELLOW : 'rgba(255,255,255,0.30)',
+                  cursor: 'pointer', fontSize: 13,
+                }}
+              >
+                ◈
+              </button>
+              <button
+                onClick={() => setEditingNote(null)}
+                className="touch-manipulation"
+                style={{ fontSize: 16, color: 'rgba(255,255,255,0.30)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px' }}
+              >
+                ×
+              </button>
+            </div>
+          </div>
+
           <textarea
             autoFocus
             value={editText}
             onChange={e => setEditText(e.target.value)}
-            rows={5}
+            rows={4}
             style={{
               width: '100%', fontSize: 14, padding: '10px 12px', borderRadius: 10,
               backgroundColor: SURFACE_3, border: '1px solid rgba(255,255,255,0.08)',
               color: 'white', resize: 'vertical', outline: 'none', marginBottom: 10,
             }}
           />
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={handleSaveEdit} style={{ flex: 1, fontSize: 12, fontWeight: 600, padding: '8px 0', borderRadius: 8, border: `1px solid ${COPPER}`, color: COPPER, backgroundColor: 'rgba(196,145,95,0.06)', cursor: 'pointer' }}>
+
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button
+              onClick={handleSaveEdit}
+              style={{
+                flex: 1, fontSize: 13, fontWeight: 600, padding: '9px 0', borderRadius: 8,
+                border: `1px solid ${COPPER}`, color: COPPER,
+                backgroundColor: 'rgba(196,145,95,0.06)', cursor: 'pointer',
+              }}
+            >
               Save
             </button>
-            <button onClick={() => handleTogglePin(editingNote)} style={{ fontSize: 12, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.45)', backgroundColor: 'transparent', cursor: 'pointer' }}>
-              {editingNote.pinned ? 'Unpin' : 'Pin'}
-            </button>
-            <button onClick={() => handleDelete(editingNote.id)} style={{ fontSize: 12, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(248,113,113,0.3)', color: 'rgba(248,113,113,0.7)', backgroundColor: 'transparent', cursor: 'pointer' }}>
+            <button
+              onClick={() => { if (confirm('Delete this note?')) handleDelete(editingNote.id); }}
+              style={{
+                fontSize: 12, padding: '9px 12px', borderRadius: 8,
+                border: 'none', color: 'rgba(255,255,255,0.25)',
+                backgroundColor: 'transparent', cursor: 'pointer',
+              }}
+            >
               Delete
-            </button>
-            <button onClick={() => setEditingNote(null)} style={{ fontSize: 12, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.45)', backgroundColor: 'transparent', cursor: 'pointer' }}>
-              ×
             </button>
           </div>
         </div>
@@ -253,7 +293,7 @@ export default function NotesPage() {
             <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)' }}>Pinned</span>
             <span style={{ flex: 1, height: 1, backgroundColor: 'rgba(196,145,95,0.2)', borderRadius: 1 }} />
           </div>
-          {pinned.map(note => (
+          {pinned.filter(n => n.id !== editingNote?.id).map(note => (
             <NoteRow key={note.id} note={note} onTap={() => { setEditingNote(note); setEditText(note.text); }} />
           ))}
         </>
@@ -268,7 +308,7 @@ export default function NotesPage() {
               <span style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 1 }} />
             </div>
           )}
-          {recent.map(note => (
+          {recent.filter(n => n.id !== editingNote?.id).map(note => (
             <NoteRow key={note.id} note={note} onTap={() => { setEditingNote(note); setEditText(note.text); }} />
           ))}
         </>
