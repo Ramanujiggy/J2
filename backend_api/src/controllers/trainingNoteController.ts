@@ -18,7 +18,7 @@ const UpdateSchema = z.object({
 export async function list(req: Request, res: Response) {
   try {
     const q = typeof req.query.q === 'string' ? req.query.q : undefined;
-    const notes = await listNotes(req.user.id, q);
+    const notes = await listNotes(req.user!.id, q);
     res.json({ notes });
   } catch (err) {
     console.error('listNotes error:', err);
@@ -33,7 +33,13 @@ export async function create(req: Request, res: Response) {
     return;
   }
   try {
-    const note = await createNote(req.user.id, parsed.data);
+    // Strip undefined keys so optional model params accept the payload under
+    // exactOptionalPropertyTypes: true.
+    const payload: Parameters<typeof createNote>[1] = { text: parsed.data.text };
+    if (parsed.data.tags              !== undefined) payload.tags              = parsed.data.tags;
+    if (parsed.data.linked_session_id !== undefined) payload.linked_session_id = parsed.data.linked_session_id;
+    if (parsed.data.pinned            !== undefined) payload.pinned            = parsed.data.pinned;
+    const note = await createNote(req.user!.id, payload);
     res.status(201).json({ note });
   } catch (err) {
     console.error('createNote error:', err);
@@ -48,7 +54,16 @@ export async function update(req: Request, res: Response) {
     return;
   }
   try {
-    const note = await updateNote(req.user.id, req.params.id, parsed.data);
+    const id = req.params.id;
+    if (!id) {
+      res.status(400).json({ error: 'Missing note id.' });
+      return;
+    }
+    const payload: Parameters<typeof updateNote>[2] = {};
+    if (parsed.data.text   !== undefined) payload.text   = parsed.data.text;
+    if (parsed.data.tags   !== undefined) payload.tags   = parsed.data.tags;
+    if (parsed.data.pinned !== undefined) payload.pinned = parsed.data.pinned;
+    const note = await updateNote(req.user!.id, id, payload);
     if (!note) {
       res.status(404).json({ error: 'Note not found.' });
       return;
@@ -62,7 +77,12 @@ export async function update(req: Request, res: Response) {
 
 export async function remove(req: Request, res: Response) {
   try {
-    const deleted = await deleteNote(req.user.id, req.params.id);
+    const id = req.params.id;
+    if (!id) {
+      res.status(400).json({ error: 'Missing note id.' });
+      return;
+    }
+    const deleted = await deleteNote(req.user!.id, id);
     if (!deleted) {
       res.status(404).json({ error: 'Note not found.' });
       return;

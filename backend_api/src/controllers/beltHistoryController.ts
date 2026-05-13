@@ -13,7 +13,7 @@ const CreateSchema = z.object({
 
 export async function listBeltHistory(req: Request, res: Response) {
   try {
-    const entries = await getHistory(req.user.id);
+    const entries = await getHistory(req.user!.id);
     res.json({ belt_history: entries });
   } catch (err) {
     console.error('listBeltHistory error:', err);
@@ -28,7 +28,15 @@ export async function createBeltHistory(req: Request, res: Response) {
     return;
   }
   try {
-    const entry = await addEntry(req.user.id, parsed.data);
+    // Strip undefined keys so the model's optional-but-not-undefined params
+    // (exactOptionalPropertyTypes: true) accept the payload.
+    const payload: Parameters<typeof addEntry>[1] = {
+      belt_rank: parsed.data.belt_rank,
+      stripes: parsed.data.stripes,
+      promoted_at: parsed.data.promoted_at,
+    };
+    if (parsed.data.notes !== undefined) payload.notes = parsed.data.notes;
+    const entry = await addEntry(req.user!.id, payload);
     res.status(201).json({ entry });
   } catch (err) {
     console.error('createBeltHistory error:', err);
@@ -38,7 +46,12 @@ export async function createBeltHistory(req: Request, res: Response) {
 
 export async function deleteBeltHistory(req: Request, res: Response) {
   try {
-    const deleted = await deleteEntry(req.user.id, req.params.id);
+    const id = req.params.id;
+    if (!id) {
+      res.status(400).json({ error: 'Missing entry id.' });
+      return;
+    }
+    const deleted = await deleteEntry(req.user!.id, id);
     if (!deleted) {
       res.status(404).json({ error: 'Entry not found.' });
       return;
