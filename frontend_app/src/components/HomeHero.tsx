@@ -101,8 +101,8 @@ export default function HomeHero({
     'rgba(255,255,255,0.92)';
 
   const cellValue =
-    view === 'daily'     ? (streak > 0 ? `${streak}` : '—') :
-    view === 'weekly'    ? (consistentWeeks > 0 ? `${consistentWeeks}` : '—') :
+    view === 'daily'     ? `${streak}` :
+    view === 'weekly'    ? (consistentWeeks > 0 ? `${consistentWeeks}` : '0') :
     view === 'readiness' ? (acwr?.ratio != null ? acwr.ratio.toFixed(1) : '—') :
     view === 'rustiest'  ? (rustiestPillar ? `${Math.round(rustiestPillar.retention * 100)}%` : '—') :
     view === 'spike'     ? (spikiest?.ratio != null ? spikiest.ratio.toFixed(1) : '—') :

@@ -211,6 +211,8 @@ export function formatRelativeMinutes(minutes: number, suffix: 'until' | 'since'
   const abs = Math.abs(minutes);
   const h = Math.floor(abs / 60);
   const m = abs % 60;
+  if (suffix === 'until' && h >= 6) return 'tonight';
+  if (suffix === 'until' && h >= 2) return `in about ${h} hours`;
   const compact = h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`;
   return suffix === 'until' ? `in ${compact}` : `${compact} ago`;
 }

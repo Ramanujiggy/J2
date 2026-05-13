@@ -120,7 +120,7 @@ export default function TodayCard({ sessions, onLogSession, compact = false, qui
           <Italic>{` · ${formatRelativeMinutes(today.minutesUntilStart, 'until')}`}</Italic>
         </Meta>
         <PromptRow
-          question="Planning to attend?"
+          question={pickPrompt(PRE_CLASS_PROMPTS)}
           onYes={() => setPlanning('yes')}
           onNo={() => setPlanning('no')}
         />
@@ -189,7 +189,7 @@ export default function TodayCard({ sessions, onLogSession, compact = false, qui
           <Italic>{` · ended ${formatRelativeMinutes(since, 'since')}`}</Italic>
         </Meta>
         <PromptRow
-          question="Did you attend?"
+          question={pickPrompt(POST_CLASS_PROMPTS)}
           onYes={() => setAttended('yes')}
           onNo={() => setAttended('no')}
         />
@@ -332,43 +332,61 @@ function Italic({
   );
 }
 
+const PRE_CLASS_PROMPTS = [
+  'On the mat tonight?',
+  'Training tonight?',
+  'Heading to the gym?',
+  'Getting some rolls in?',
+  'Hitting the mats today?',
+];
+
+const POST_CLASS_PROMPTS = [
+  'Did you make it on the mat?',
+  'Get some rounds in?',
+  'How were the rolls?',
+  'Make it to class?',
+  'Did you train?',
+];
+
+function pickPrompt(prompts: string[]): string {
+  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+  return prompts[dayOfYear % prompts.length]!;
+}
+
 function PromptRow({
   question, onYes, onNo,
 }: { question: string; onYes: () => void; onNo: () => void }) {
   return (
-    <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+    <div style={{ marginTop: 14, display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
       <Italic large style={{ flex: '0 0 auto' }}>{question}</Italic>
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div style={{ display: 'flex', gap: 10 }}>
         <button
           onClick={onYes}
           style={{
-            backgroundColor: COPPER, color: '#fff',
-            fontSize: 13, fontWeight: 600,
-            padding: '7px 16px', borderRadius: 999,
-            border: `1px solid ${COPPER_BORDER}`,
-            cursor: 'pointer',
+            fontFamily: FONT_EDITORIAL, fontStyle: 'italic',
+            fontSize: 14, color: COPPER,
+            background: 'none', border: 'none',
+            borderBottom: '1px solid rgba(196,145,95,0.3)',
+            cursor: 'pointer', padding: 0,
           }}
         >
-          Yes
+          Yes →
         </button>
         <button
           onClick={onNo}
           style={{
-            background: 'transparent',
-            color: 'rgba(242,228,168,0.65)',
-            fontSize: 13, fontWeight: 600,
-            padding: '7px 16px', borderRadius: 999,
-            border: '1px solid rgba(242,228,168,0.22)',
-            cursor: 'pointer',
+            fontFamily: FONT_EDITORIAL, fontStyle: 'italic',
+            fontSize: 14, color: 'rgba(255,255,255,0.35)',
+            background: 'none', border: 'none',
+            cursor: 'pointer', padding: 0,
           }}
         >
-          No
+          Skip
         </button>
       </div>
     </div>
   );
 }
-
 function PrimaryAction({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button
