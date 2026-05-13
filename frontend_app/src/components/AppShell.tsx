@@ -352,9 +352,12 @@ function MobileAppShell({ children }: Props) {
                 <button
                   key="fab-log"
                   onClick={() => {
-                    // Open the modal directly — no route flip. The modal
-                    // state lives in MobileAppShell now, so it works from
-                    // any page without redirecting through /home.
+                    // Context-aware: on /notes, dispatch note creation event.
+                    // On all other routes, open the log session modal.
+                    if (location.pathname === '/notes') {
+                      window.dispatchEvent(new Event('journada:open-new-note'));
+                      return;
+                    }
                     setLogDate(toDateString(new Date()));
                     setLogPreset(null);
                     setLogOpen(true);

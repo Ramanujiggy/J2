@@ -94,7 +94,7 @@ export default function IntentionsMobileView({
             className="text-2xl font-display font-bold tracking-tight"
             style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT, margin: 0 }}
           >
-            Intentions
+            Journal
           </h2>
           <SegmentedToggle<'entries' | 'intentions' | 'notes'>
             size="compact"
@@ -110,8 +110,8 @@ export default function IntentionsMobileView({
             }}
           />
         </div>
-        <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.30)' }}>
-          Your training focus over time
+        <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13, marginTop: 4 }}>
+          {intentions.length} {intentions.length === 1 ? 'intention' : 'intentions'}
         </p>
       </div>
 
@@ -136,16 +136,18 @@ export default function IntentionsMobileView({
             enterKeyHint="search"
             autoCapitalize="none"
             autoCorrect="off"
-            placeholder="Search…"
+            placeholder="Search intentions…"
             value={mobileQuery}
             onChange={e => setMobileQuery(e.target.value)}
             className="w-full rounded-xl"
             style={{
-              background: 'var(--j2-surface-3)',
-              border: '1px solid var(--j2-border-1)',
-              padding: '11px 14px',
+              background: 'rgba(255,255,255,0.06)',
+              border: 'none',
+              padding: '12px 16px',
               color: 'rgba(255,255,255,0.90)',
-              fontSize: 14,
+              fontSize: 16,
+              fontFamily: 'var(--font-editorial)',
+              fontStyle: 'italic',
               outline: 'none',
             }}
           />

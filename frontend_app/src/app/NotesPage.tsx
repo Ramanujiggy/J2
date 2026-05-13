@@ -35,6 +35,13 @@ export default function NotesPage() {
 
   const { tags: allUserTags } = useUserTags();
 
+  // Listen for tab bar + to create a new note
+  useEffect(() => {
+    const handler = () => openEditor('new');
+    window.addEventListener('journada:open-new-note', handler);
+    return () => window.removeEventListener('journada:open-new-note', handler);
+  }, []);
+
   const handleSearch = useCallback((value: string) => {
     setSearchText(value);
     search(value);
@@ -505,43 +512,26 @@ export default function NotesPage() {
         {notes.length} {notes.length === 1 ? 'note' : 'notes'}
       </p>
 
-      {/* Search + New note */}
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 18 }}>
-        <input
-          type="search"
-          inputMode="search"
-          placeholder="Search your reflections…"
-          value={searchText}
-          onChange={e => handleSearch(e.target.value)}
-          style={{
-            flex: 1,
-            fontSize: 15,
-            padding: '12px 14px',
-            borderRadius: 12,
-            backgroundColor: SURFACE_3,
-            border: '1px solid rgba(255,255,255,0.04)',
-            color: 'white',
-            outline: 'none',
-          }}
-        />
-        <button
-          onClick={() => openEditor('new')}
-          className="touch-manipulation"
-          style={{
-            flexShrink: 0,
-            width: 40, height: 40, borderRadius: 10,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            backgroundColor: 'rgba(196,145,95,0.12)',
-            border: '1px solid rgba(196,145,95,0.25)',
-            color: COPPER, fontSize: 20, fontWeight: 300,
-            cursor: 'pointer',
-          }}
-          aria-label="New note"
-        >
-          +
-        </button>
-      </div>
-
+      {/* Search */}
+      <input
+        type="search"
+        inputMode="search"
+        placeholder="Search your reflections…"
+        value={searchText}
+        onChange={e => handleSearch(e.target.value)}
+        className="w-full rounded-xl"
+        style={{
+          background: 'rgba(255,255,255,0.06)',
+          border: 'none',
+          padding: '12px 16px',
+          color: 'rgba(255,255,255,0.90)',
+          fontSize: 16,
+          fontFamily: FONT_EDITORIAL,
+          fontStyle: 'italic',
+          outline: 'none',
+          marginBottom: 18,
+        }}
+      />
       {/* Empty state */}
       {notes.length === 0 && !loading && !searchText && (
         <div style={{ textAlign: 'center', padding: '48px 0' }}>
