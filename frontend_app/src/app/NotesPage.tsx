@@ -215,9 +215,11 @@ export default function NotesPage() {
             onClick={closeEditor}
             style={{
               fontFamily: FONT_EDITORIAL,
-              fontStyle: 'italic',
-              fontSize: 15,
-              color: COPPER,
+              fontWeight: 700,
+              fontStyle: 'normal',
+              fontSize: 16,
+              color: PALE_YELLOW,
+              textShadow: GLOW_SOFT,
               background: 'none',
               border: 'none',
               cursor: 'pointer',
