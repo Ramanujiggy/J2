@@ -284,31 +284,26 @@ export default function NotesPage() {
 
         {/* Tag input — appears when "Add tag" is tapped */}
         {showTagInput && (
-          <div style={{ display: 'flex', gap: 8, marginTop: 8, marginBottom: 8 }}>
+          <div style={{ display: 'flex', gap: 8, marginTop: 8, marginBottom: 8, alignItems: 'center' }}>
             <input
               autoFocus
               type="text"
               placeholder="Tag name…"
               value={tagInput}
               onChange={e => setTagInput(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(tagInput); } }}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(tagInput); } if (e.key === 'Escape') { setShowTagInput(false); setTagInput(''); } }}
               style={{
-                flex: 1, fontSize: 13, padding: '8px 12px', borderRadius: 8,
-                backgroundColor: SURFACE_3, border: '1px solid rgba(255,255,255,0.08)',
+                flex: 1, fontSize: 13, fontFamily: FONT_EDITORIAL, fontStyle: 'italic',
+                padding: '8px 0', borderRadius: 0,
+                backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid rgba(196,145,95,0.20)',
                 color: 'white', outline: 'none',
               }}
             />
             <button
               onClick={() => addTag(tagInput)}
-              style={{ fontSize: 13, fontWeight: 600, color: COPPER, background: 'none', border: `1px solid rgba(196,145,95,0.3)`, borderRadius: 8, padding: '8px 14px', cursor: 'pointer' }}
+              style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 13, color: 'rgba(196,145,95,0.55)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
             >
-              Add
-            </button>
-            <button
-              onClick={() => { setShowTagInput(false); setTagInput(''); }}
-              style={{ fontSize: 13, color: 'rgba(255,255,255,0.30)', background: 'none', border: 'none', cursor: 'pointer' }}
-            >
-              ×
+              Add →
             </button>
           </div>
         )}
@@ -323,7 +318,7 @@ export default function NotesPage() {
                 <div key={tagId} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '8px 12px', borderRadius: 8,
-                  backgroundColor: '#152E22', border: '1px solid rgba(196,145,95,0.35)',
+                  backgroundColor: 'rgba(255,255,255,0.025)', border: 'none',
                 }}>
                   <div>
                     <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.90)' }}>{tag.name}</span>
@@ -345,7 +340,7 @@ export default function NotesPage() {
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               padding: '8px 12px', borderRadius: 8, marginTop: 8,
-              backgroundColor: '#152E22', border: '1px solid rgba(196,145,95,0.35)',
+              backgroundColor: 'rgba(255,255,255,0.025)', border: 'none',
             }}>
               <div>
                 <span style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 14, color: PALE_YELLOW }}>
@@ -366,8 +361,7 @@ export default function NotesPage() {
         {showTechniquePicker && (
           <div style={{
             marginTop: 10, maxHeight: 200, overflowY: 'auto',
-            borderRadius: 10, border: '1px solid rgba(196,145,95,0.25)',
-            backgroundColor: 'rgba(21,46,34,0.95)', padding: 10,
+            backgroundColor: 'rgba(255,255,255,0.025)', borderRadius: 8, padding: '8px 10px',
           }}>
             <input
               autoFocus
@@ -375,7 +369,7 @@ export default function NotesPage() {
               placeholder="Search techniques…"
               value={techSearch}
               onChange={e => setTechSearch(e.target.value)}
-              style={{ width: '100%', fontSize: 13, padding: '8px 10px', borderRadius: 8, backgroundColor: SURFACE_3, border: '1px solid rgba(255,255,255,0.08)', color: 'white', outline: 'none', marginBottom: 8 }}
+              style={{ width: '100%', fontSize: 13, fontFamily: FONT_EDITORIAL, fontStyle: 'italic', padding: '6px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'white', outline: 'none', marginBottom: 8 }}
             />
             {allUserTags
               .filter(t => !editorLinkedTagIds.includes(t.id))
@@ -406,8 +400,7 @@ export default function NotesPage() {
         {showSessionPicker && (
           <div style={{
             marginTop: 10, maxHeight: 220, overflowY: 'auto',
-            borderRadius: 10, border: '1px solid rgba(196,145,95,0.25)',
-            backgroundColor: 'rgba(21,46,34,0.95)', padding: 10,
+            backgroundColor: 'rgba(255,255,255,0.025)', borderRadius: 8, padding: '8px 10px',
           }}>
             <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)', marginBottom: 8 }}>Recent sessions</p>
             {recentSessions.slice(0, 20).map(s => (
