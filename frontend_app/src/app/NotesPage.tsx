@@ -212,47 +212,23 @@ export default function NotesPage() {
           >
             {noteDate}
           </span>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            {isExisting && (
-              <>
-                <button
-                  onClick={() => handleTogglePin(editorNote)}
-                  className="touch-manipulation"
-                  style={{
-                    fontSize: 14,
-                    color: editorNote.pinned ? PALE_YELLOW : 'rgba(255,255,255,0.25)',
-                    background: 'none', border: 'none', cursor: 'pointer',
-                  }}
-                >
-                  ◈
-                </button>
-                <button
-                  onClick={() => { if (confirm('Delete this note?')) handleDelete(editorNote.id); }}
-                  className="touch-manipulation"
-                  style={{ fontSize: 12, color: 'rgba(255,255,255,0.20)', background: 'none', border: 'none', cursor: 'pointer' }}
-                >
-                  Delete
-                </button>
-              </>
-            )}
-            <button
-              onClick={closeEditor}
-              style={{
-                fontFamily: FONT_EDITORIAL,
-                fontStyle: 'italic',
-                fontSize: 15,
-                color: COPPER,
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              Done
-            </button>
-          </div>
+          <button
+            onClick={closeEditor}
+            style={{
+              fontFamily: FONT_EDITORIAL,
+              fontStyle: 'italic',
+              fontSize: 15,
+              color: COPPER,
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            Done
+          </button>
         </div>
 
-        {/* Writing surface — no chrome, just text on the page */}
+        {/* Writing surface */}
         <textarea
           autoFocus
           placeholder="What's on your mind about training?"
@@ -260,7 +236,7 @@ export default function NotesPage() {
           onChange={e => handleEditorChange(e.target.value)}
           style={{
             width: '100%',
-            minHeight: 'calc(100vh - 260px)',
+            minHeight: 120,
             fontSize: 16,
             lineHeight: 1.7,
             color: 'rgba(255,255,255,0.90)',
@@ -455,11 +431,11 @@ export default function NotesPage() {
           </div>
         )}
 
-        {/* Bottom toolbar — quiet affordances */}
+        {/* Bottom toolbar — anchored to content, quiet */}
         <div style={{
-          borderTop: '1px solid rgba(196,145,95,0.10)',
-          paddingTop: 14,
-          marginTop: 12,
+          borderTop: '1px solid rgba(196,145,95,0.08)',
+          paddingTop: 12,
+          marginTop: 16,
           display: 'flex',
           gap: 6,
           alignItems: 'center',
@@ -467,21 +443,21 @@ export default function NotesPage() {
         }}>
           <button
             onClick={() => { setShowTechniquePicker(v => !v); setShowSessionPicker(false); }}
-            style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 14, color: COPPER, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 14, color: 'rgba(196,145,95,0.45)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
           >
             Link technique
           </button>
-          <span style={{ color: 'rgba(196,145,95,0.30)', fontSize: 12 }}>·</span>
+          <span style={{ color: 'rgba(196,145,95,0.20)', fontSize: 12 }}>·</span>
           <button
             onClick={() => setShowTagInput(true)}
-            style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 14, color: COPPER, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 14, color: 'rgba(196,145,95,0.45)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
           >
             Add tag
           </button>
-          <span style={{ color: 'rgba(196,145,95,0.30)', fontSize: 12 }}>·</span>
+          <span style={{ color: 'rgba(196,145,95,0.20)', fontSize: 12 }}>·</span>
           <button
             onClick={() => { setShowSessionPicker(v => !v); setShowTechniquePicker(false); }}
-            style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 14, color: COPPER, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 14, color: 'rgba(196,145,95,0.45)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
           >
             Link session
           </button>
@@ -611,7 +587,7 @@ export default function NotesPage() {
             <span style={{ flex: 1, height: 1, backgroundColor: 'rgba(196,145,95,0.2)', borderRadius: 1 }} />
           </div>
           {pinned.map(note => (
-            <NoteRow key={note.id} note={note} onTap={() => openEditor(note)} />
+            <NoteRow key={note.id} note={note} onTap={() => openEditor(note)} onDelete={handleDelete} />
           ))}
         </>
       )}
@@ -626,7 +602,7 @@ export default function NotesPage() {
             </div>
           )}
           {recent.map(note => (
-            <NoteRow key={note.id} note={note} onTap={() => openEditor(note)} />
+            <NoteRow key={note.id} note={note} onTap={() => openEditor(note)} onDelete={handleDelete} />
           ))}
         </>
       )}
@@ -635,8 +611,16 @@ export default function NotesPage() {
   );
 }
 
-function NoteRow({ note, onTap }: { note: TrainingNote; onTap: () => void }) {
+function NoteRow({ note, onTap, onDelete }: { note: TrainingNote; onTap: () => void; onDelete?: (id: string) => void }) {
   const date = new Date(note.created_at);
+  const longPressRef = useRef<ReturnType<typeof setTimeout>>();
+  const handlePointerDown = () => {
+    if (!onDelete) return;
+    longPressRef.current = setTimeout(() => {
+      if (confirm('Delete this note?')) onDelete(note.id);
+    }, 600);
+  };
+  const clearPress = () => clearTimeout(longPressRef.current);
   const fullText = note.text.trim();
   const firstLine = fullText.split('\n')[0]?.trim() ?? '';
   const rest = fullText.slice(firstLine.length).trim();
@@ -645,6 +629,10 @@ function NoteRow({ note, onTap }: { note: TrainingNote; onTap: () => void }) {
   return (
     <button
       onClick={onTap}
+      onPointerDown={handlePointerDown}
+      onPointerUp={clearPress}
+      onPointerCancel={clearPress}
+      onPointerLeave={clearPress}
       className="w-full text-left touch-manipulation"
       style={{
         display: 'flex', alignItems: 'flex-start', gap: 10,
