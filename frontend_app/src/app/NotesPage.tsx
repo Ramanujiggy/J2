@@ -35,6 +35,22 @@ export default function NotesPage() {
 
   const { tags: allUserTags } = useUserTags();
 
+  // Track keyboard height via visualViewport for toolbar positioning
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
+  useEffect(() => {
+    if (editorNote === null) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      const offset = window.innerHeight - vv.height - vv.offsetTop;
+      setKeyboardOffset(Math.max(0, offset));
+    };
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    update();
+    return () => { vv.removeEventListener('resize', update); vv.removeEventListener('scroll', update); };
+  }, [editorNote]);
+
   // Listen for tab bar + to create a new note
   useEffect(() => {
     const handler = () => openEditor('new');
@@ -204,7 +220,16 @@ export default function NotesPage() {
 
     return (
       <div
-        style={{ display: 'flex', flexDirection: 'column', height: '100dvh', backgroundColor: '#0D1A14', padding: '0 20px', paddingTop: 'env(safe-area-inset-top, 16px)' }}
+        style={{
+          display: 'flex', flexDirection: 'column',
+          height: `calc(${window.innerHeight}px - ${keyboardOffset}px)`,
+          backgroundColor: '#0D1A14',
+          padding: '0 20px',
+          paddingTop: 'env(safe-area-inset-top, 16px)',
+          position: 'fixed', top: 0, left: 0, right: 0,
+          zIndex: 50,
+          overflow: 'hidden',
+        }}
       >
         {/* Top bar — date + Done */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0 12px', flexShrink: 0 }}>
@@ -266,7 +291,7 @@ export default function NotesPage() {
         </div>
 
         {/* Metadata + toolbar — sticky at bottom */}
-        <div style={{ flexShrink: 0, paddingBottom: 'max(12px, env(safe-area-inset-bottom, 0px))' }}>
+        <div style={{ flexShrink: 0, paddingBottom: keyboardOffset > 0 ? 4 : 'max(12px, env(safe-area-inset-bottom, 0px))' }}>
 
         {/* Metadata — tags displayed as copper pills */}
         {editorTags.length > 0 && (
