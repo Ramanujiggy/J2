@@ -68,6 +68,10 @@ export default function PulseSparklineWidget({ sessions }: PulseSparklineWidgetP
     () => slots.reduce((acc, s) => acc + s.day.count, 0),
     [slots],
   );
+  const windowMinutes = useMemo(
+    () => slots.reduce((acc, s) => acc + s.day.totalMinutes, 0),
+    [slots],
+  );
   const weeklyAvg = useMemo(
     () => sessionCount * (7 / WINDOW_DAYS),
     [sessionCount],
@@ -155,13 +159,8 @@ export default function PulseSparklineWidget({ sessions }: PulseSparklineWidgetP
         }}
       >
         <Stat value={String(sessionCount)} label="sessions" />
+        <Stat value={(windowMinutes / 60).toFixed(1)} suffix="h" label="hours" />
         <Stat value={weeklyAvg.toFixed(1)} suffix="/ wk" label="avg" />
-        {stats.streak > 0 && (
-          <Stat
-            value={String(stats.streak)}
-            label={stats.streak === 1 ? 'day streak' : 'day streak'}
-          />
-        )}
       </div>
 
       {/* ── Sparkline ────────────────────────────────────────────────────────── */}

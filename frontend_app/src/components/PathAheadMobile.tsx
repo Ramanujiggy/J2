@@ -140,7 +140,7 @@ export default function PathAheadMobile({
         acwr={acwr}
         rustiest={rustiest}
         spikiest={spikiest}
-        onTap={() => setTelemetryOpen(prev => !prev)}
+        onTap={undefined}
         rouletteSlot={
           <RepRouletteFab
             fabPosition="inline"
