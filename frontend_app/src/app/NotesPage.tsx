@@ -236,8 +236,14 @@ export default function NotesPage() {
           </button>
         </div>
 
-        {/* Writing surface — scrollable, fills available space */}
-        <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+        {/* Writing surface — fills available space, tappable everywhere */}
+        <div
+          style={{ flex: 1, overflowY: 'auto', minHeight: 0, display: 'flex', flexDirection: 'column' }}
+          onClick={e => {
+            const ta = (e.currentTarget as HTMLElement).querySelector('textarea');
+            if (ta && e.target === e.currentTarget) { ta.focus(); ta.selectionStart = ta.selectionEnd = ta.value.length; }
+          }}
+        >
         <textarea
           autoFocus
           placeholder="What's on your mind about training?"
@@ -245,7 +251,7 @@ export default function NotesPage() {
           onChange={e => handleEditorChange(e.target.value)}
           style={{
             width: '100%',
-            minHeight: 120,
+            flex: 1,
             fontSize: 16,
             lineHeight: 1.7,
             color: 'rgba(255,255,255,0.90)',
