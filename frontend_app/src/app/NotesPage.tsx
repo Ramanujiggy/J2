@@ -647,6 +647,9 @@ function NoteRow({ note, onTap, onDelete }: { note: TrainingNote; onTap: () => v
   const rest = fullText.slice(firstLine.length).trim();
   const bodyPreview = rest.length > 0 ? rest.replace(/\n+/g, ' ') : null;
 
+  const day = date.getDate();
+  const dow = date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+
   return (
     <button
       onClick={onTap}
@@ -656,7 +659,7 @@ function NoteRow({ note, onTap, onDelete }: { note: TrainingNote; onTap: () => v
       onPointerLeave={clearPress}
       className="w-full text-left touch-manipulation"
       style={{
-        display: 'flex', alignItems: 'flex-start', gap: 10,
+        display: 'flex', alignItems: 'flex-start', gap: 12,
         padding: '14px 0',
         borderBottom: '1px solid rgba(196,145,95,0.08)',
         background: 'none', border: 'none',
@@ -665,9 +668,22 @@ function NoteRow({ note, onTap, onDelete }: { note: TrainingNote; onTap: () => v
         minHeight: 72,
       }}
     >
+      {/* Left column — date */}
+      <div style={{ flexShrink: 0, width: 36, textAlign: 'right', paddingTop: 2 }}>
+        <div style={{ fontFamily: FONT_EDITORIAL, fontSize: 18, fontWeight: 500, color: 'rgba(242,228,168,0.50)', lineHeight: 1 }}>
+          {day}
+        </div>
+        <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.22)', marginTop: 2 }}>
+          {dow}
+        </div>
+      </div>
+
+      {/* Pin indicator */}
       {note.pinned && (
         <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: PALE_YELLOW, flexShrink: 0, marginTop: 7 }} />
       )}
+
+      {/* Content */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{
           fontSize: 15, fontWeight: 600, color: 'rgba(255,255,255,0.85)', margin: 0,
@@ -685,29 +701,23 @@ function NoteRow({ note, onTap, onDelete }: { note: TrainingNote; onTap: () => v
             {bodyPreview}
           </p>
         )}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 5, flexWrap: 'wrap' }}>
-          <span
-            style={{
-              fontFamily: FONT_EDITORIAL, fontStyle: 'italic',
-              fontSize: 12, color: 'rgba(255,255,255,0.25)',
-            }}
-          >
-            {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-          </span>
-          {note.tags.length > 0 && note.tags.map(tag => (
-            <span
-              key={tag}
-              style={{
-                fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
-                color: 'rgba(196,145,95,0.60)',
-                backgroundColor: 'rgba(196,145,95,0.08)',
-                borderRadius: 4, padding: '1px 5px',
-              }}
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
+        {note.tags.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 5, flexWrap: 'wrap' }}>
+            {note.tags.map(tag => (
+              <span
+                key={tag}
+                style={{
+                  fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+                  color: 'rgba(196,145,95,0.60)',
+                  backgroundColor: 'rgba(196,145,95,0.08)',
+                  borderRadius: 4, padding: '1px 5px',
+                }}
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     </button>
   );
