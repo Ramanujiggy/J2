@@ -184,16 +184,18 @@ export default function JournalIndexPage() {
             enterKeyHint="search"
             autoCapitalize="none"
             autoCorrect="off"
-            placeholder="Search…"
+            placeholder="Search entries…"
             value={query}
             onChange={e => setQuery(e.target.value)}
             className="w-full rounded-xl mb-3"
             style={{
-              background: 'var(--j2-surface-3)',
-              border: '1px solid var(--j2-border-1)',
-              padding: '11px 14px',
+              background: 'rgba(255,255,255,0.06)',
+              border: 'none',
+              padding: '12px 16px',
               color: 'rgba(255,255,255,0.90)',
-              fontSize: 14,
+              fontSize: 16,
+              fontFamily: 'var(--font-editorial)',
+              fontStyle: 'italic',
               outline: 'none',
             }}
           />
