@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.ts';
 import { useTrainingNotes } from '../hooks/useTrainingNotes.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
+import { useUserTags } from '../hooks/useUserTags.ts';
 import SegmentedToggle from '../components/SegmentedToggle.tsx';
 import PageContent from '../components/PageContent.tsx';
 import { PALE_YELLOW, GLOW_SOFT, COPPER, FONT_EDITORIAL, SURFACE_3 } from '../lib/theme.ts';
 import { toast } from '../hooks/use-toast.ts';
-import type { TrainingNote } from '../types/api.ts';
+import { formatDuration } from '../lib/sessionUtils.ts';
+import type { TrainingNote, SessionSummary } from '../types/api.ts';
 
 export default function NotesPage() {
   const navigate = useNavigate();
@@ -19,11 +21,19 @@ export default function NotesPage() {
   const [editorNote, setEditorNote] = useState<TrainingNote | 'new' | null>(null);
   const [editorText, setEditorText] = useState('');
   const [editorTags, setEditorTags] = useState<string[]>([]);
+  const [editorLinkedTagIds, setEditorLinkedTagIds] = useState<string[]>([]);
+  const [editorLinkedSessionId, setEditorLinkedSessionId] = useState<string | null>(null);
   const [tagInput, setTagInput] = useState('');
   const [showTagInput, setShowTagInput] = useState(false);
+  const [showTechniquePicker, setShowTechniquePicker] = useState(false);
+  const [showSessionPicker, setShowSessionPicker] = useState(false);
+  const [techSearch, setTechSearch] = useState('');
+  const [recentSessions, setRecentSessions] = useState<SessionSummary[]>([]);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout>>();
   const lastSavedText = useRef('');
   const createdIdRef = useRef<string | null>(null);
+
+  const { tags: allUserTags } = useUserTags();
 
   const handleSearch = useCallback((value: string) => {
     setSearchText(value);
@@ -31,12 +41,25 @@ export default function NotesPage() {
   }, [search]);
 
   // Open editor
+  // Load recent sessions when session picker opens
+  useEffect(() => {
+    if (!showSessionPicker || recentSessions.length > 0) return;
+    api.get<{ sessions: SessionSummary[] }>('/api/sessions?limit=30')
+      .then(res => setRecentSessions(res.sessions ?? []))
+      .catch(() => {});
+  }, [showSessionPicker]);
+
   const openEditor = (note: TrainingNote | 'new') => {
     setEditorNote(note);
     setEditorText(note === 'new' ? '' : note.text);
     setEditorTags(note === 'new' ? [] : (note.tags ?? []));
+    setEditorLinkedTagIds(note === 'new' ? [] : (note.linked_tag_ids ?? []));
+    setEditorLinkedSessionId(note === 'new' ? null : (note.linked_session_id ?? null));
     setShowTagInput(false);
+    setShowTechniquePicker(false);
+    setShowSessionPicker(false);
     setTagInput('');
+    setTechSearch('');
     lastSavedText.current = note === 'new' ? '' : note.text;
     createdIdRef.current = null;
   };
@@ -87,6 +110,37 @@ export default function NotesPage() {
     setEditorText('');
     createdIdRef.current = null;
     refetch();
+  };
+
+  const getNoteId = () => editorNote !== 'new' && typeof editorNote === 'object' ? editorNote.id : createdIdRef.current;
+
+  const linkTechnique = async (tagId: string) => {
+    if (editorLinkedTagIds.includes(tagId)) return;
+    const newIds = [...editorLinkedTagIds, tagId];
+    setEditorLinkedTagIds(newIds);
+    setShowTechniquePicker(false);
+    const noteId = getNoteId();
+    if (noteId) { try { await api.put(`/api/notes/${noteId}`, { linked_tag_ids: newIds }); } catch {} }
+  };
+
+  const unlinkTechnique = async (tagId: string) => {
+    const newIds = editorLinkedTagIds.filter(id => id !== tagId);
+    setEditorLinkedTagIds(newIds);
+    const noteId = getNoteId();
+    if (noteId) { try { await api.put(`/api/notes/${noteId}`, { linked_tag_ids: newIds }); } catch {} }
+  };
+
+  const linkSession = async (sessionId: string) => {
+    setEditorLinkedSessionId(sessionId);
+    setShowSessionPicker(false);
+    const noteId = getNoteId();
+    if (noteId) { try { await api.put(`/api/notes/${noteId}`, { linked_session_id: sessionId }); } catch {} }
+  };
+
+  const unlinkSession = async () => {
+    setEditorLinkedSessionId(null);
+    const noteId = getNoteId();
+    if (noteId) { try { await api.put(`/api/notes/${noteId}`, { linked_session_id: null }); } catch {} }
   };
 
   const addTag = async (tag: string) => {
@@ -283,6 +337,124 @@ export default function NotesPage() {
           </div>
         )}
 
+        {/* Linked techniques — copper-bordered mini-cards */}
+        {editorLinkedTagIds.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 14 }}>
+            {editorLinkedTagIds.map(tagId => {
+              const tag = allUserTags.find(t => t.id === tagId);
+              if (!tag) return null;
+              return (
+                <div key={tagId} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '8px 12px', borderRadius: 8,
+                  backgroundColor: '#152E22', border: '1px solid rgba(196,145,95,0.35)',
+                }}>
+                  <div>
+                    <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.90)' }}>{tag.name}</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(196,145,95,0.60)', marginLeft: 8 }}>
+                      {tag.parent_pillar}
+                    </span>
+                  </div>
+                  <button onClick={() => unlinkTechnique(tagId)} style={{ fontSize: 14, color: 'rgba(255,255,255,0.25)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px' }}>×</button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Linked session — copper-bordered mini-card */}
+        {editorLinkedSessionId && (() => {
+          const session = recentSessions.find(s => s.id === editorLinkedSessionId);
+          return (
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '8px 12px', borderRadius: 8, marginTop: 8,
+              backgroundColor: '#152E22', border: '1px solid rgba(196,145,95,0.35)',
+            }}>
+              <div>
+                <span style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 14, color: PALE_YELLOW }}>
+                  {session ? new Date(session.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Linked session'}
+                </span>
+                {session && (
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)', marginLeft: 8 }}>
+                    {session.heading ?? ''} · {formatDuration(session.duration)}
+                  </span>
+                )}
+              </div>
+              <button onClick={unlinkSession} style={{ fontSize: 14, color: 'rgba(255,255,255,0.25)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px' }}>×</button>
+            </div>
+          );
+        })()}
+
+        {/* Technique picker overlay */}
+        {showTechniquePicker && (
+          <div style={{
+            marginTop: 10, maxHeight: 200, overflowY: 'auto',
+            borderRadius: 10, border: '1px solid rgba(196,145,95,0.25)',
+            backgroundColor: 'rgba(21,46,34,0.95)', padding: 10,
+          }}>
+            <input
+              autoFocus
+              type="search"
+              placeholder="Search techniques…"
+              value={techSearch}
+              onChange={e => setTechSearch(e.target.value)}
+              style={{ width: '100%', fontSize: 13, padding: '8px 10px', borderRadius: 8, backgroundColor: SURFACE_3, border: '1px solid rgba(255,255,255,0.08)', color: 'white', outline: 'none', marginBottom: 8 }}
+            />
+            {allUserTags
+              .filter(t => !editorLinkedTagIds.includes(t.id))
+              .filter(t => !techSearch.trim() || t.name.toLowerCase().includes(techSearch.toLowerCase()))
+              .slice(0, 15)
+              .map(tag => (
+                <button
+                  key={tag.id}
+                  onClick={() => linkTechnique(tag.id)}
+                  className="w-full text-left touch-manipulation"
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 6px', borderRadius: 6, background: 'none', border: 'none', cursor: 'pointer' }}
+                >
+                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.80)' }}>{tag.name}</span>
+                  <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(196,145,95,0.50)' }}>{tag.parent_pillar}</span>
+                  {tag.affinity && <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>{tag.affinity === 'go_to' ? '★' : tag.affinity === 'learning' ? '◐' : '◌'}</span>}
+                </button>
+              ))
+            }
+            {allUserTags.filter(t => !editorLinkedTagIds.includes(t.id)).filter(t => !techSearch.trim() || t.name.toLowerCase().includes(techSearch.toLowerCase())).length === 0 && (
+              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.30)', fontStyle: 'italic', padding: '8px 0', textAlign: 'center' }}>
+                {techSearch ? 'No matching techniques' : 'No techniques in library yet'}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Session picker overlay */}
+        {showSessionPicker && (
+          <div style={{
+            marginTop: 10, maxHeight: 220, overflowY: 'auto',
+            borderRadius: 10, border: '1px solid rgba(196,145,95,0.25)',
+            backgroundColor: 'rgba(21,46,34,0.95)', padding: 10,
+          }}>
+            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)', marginBottom: 8 }}>Recent sessions</p>
+            {recentSessions.slice(0, 20).map(s => (
+              <button
+                key={s.id}
+                onClick={() => linkSession(s.id)}
+                className="w-full text-left touch-manipulation"
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 6px', borderRadius: 6, background: 'none', border: 'none', cursor: 'pointer' }}
+              >
+                <span style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 13, color: PALE_YELLOW }}>
+                  {new Date(s.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </span>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)' }}>
+                  {s.heading ?? ''} · {formatDuration(s.duration)}
+                </span>
+              </button>
+            ))}
+            {recentSessions.length === 0 && (
+              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.30)', fontStyle: 'italic', textAlign: 'center' }}>No sessions yet</p>
+            )}
+          </div>
+        )}
+
         {/* Bottom toolbar — quiet affordances */}
         <div style={{
           borderTop: '1px solid rgba(196,145,95,0.10)',
@@ -294,7 +466,7 @@ export default function NotesPage() {
           flexWrap: 'wrap',
         }}>
           <button
-            onClick={() => toast({ title: 'Technique linking coming soon.' })}
+            onClick={() => { setShowTechniquePicker(v => !v); setShowSessionPicker(false); }}
             style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 14, color: COPPER, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
           >
             Link technique
@@ -308,7 +480,7 @@ export default function NotesPage() {
           </button>
           <span style={{ color: 'rgba(196,145,95,0.30)', fontSize: 12 }}>·</span>
           <button
-            onClick={() => toast({ title: 'Session linking coming soon.' })}
+            onClick={() => { setShowSessionPicker(v => !v); setShowTechniquePicker(false); }}
             style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 14, color: COPPER, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
           >
             Link session

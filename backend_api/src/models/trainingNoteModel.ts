@@ -6,6 +6,7 @@ export interface TrainingNote {
   text: string;
   tags: string[];
   linked_session_id: string | null;
+  linked_tag_ids: string[];
   pinned: boolean;
   created_at: string;
   updated_at: string;
@@ -45,7 +46,7 @@ export async function createNote(
 export async function updateNote(
   userId: string,
   noteId: string,
-  data: { text?: string; tags?: string[]; pinned?: boolean },
+  data: { text?: string; tags?: string[]; pinned?: boolean; linked_session_id?: string | null; linked_tag_ids?: string[] },
 ): Promise<TrainingNote | null> {
   const sets: string[] = [];
   const vals: unknown[] = [];
@@ -54,6 +55,8 @@ export async function updateNote(
   if (data.text !== undefined) { sets.push(`text = $${idx++}`); vals.push(data.text); }
   if (data.tags !== undefined) { sets.push(`tags = $${idx++}`); vals.push(data.tags); }
   if (data.pinned !== undefined) { sets.push(`pinned = $${idx++}`); vals.push(data.pinned); }
+  if (data.linked_session_id !== undefined) { sets.push(`linked_session_id = $${idx++}`); vals.push(data.linked_session_id); }
+  if (data.linked_tag_ids !== undefined) { sets.push(`linked_tag_ids = $${idx++}`); vals.push(data.linked_tag_ids); }
 
   if (sets.length === 0) return null;
   sets.push(`updated_at = NOW()`);
