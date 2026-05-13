@@ -197,11 +197,10 @@ export default function NotesPage() {
 
     return (
       <div
-        className="min-h-screen"
-        style={{ backgroundColor: '#0D1A14', padding: '0 20px', paddingTop: 'env(safe-area-inset-top, 16px)' }}
+        style={{ display: 'flex', flexDirection: 'column', height: '100dvh', backgroundColor: '#0D1A14', padding: '0 20px', paddingTop: 'env(safe-area-inset-top, 16px)' }}
       >
         {/* Top bar — date + Done */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0 12px', flexShrink: 0 }}>
           <span
             style={{
               fontFamily: FONT_EDITORIAL,
@@ -228,7 +227,8 @@ export default function NotesPage() {
           </button>
         </div>
 
-        {/* Writing surface */}
+        {/* Writing surface — scrollable, fills available space */}
+        <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
         <textarea
           autoFocus
           placeholder="What's on your mind about training?"
@@ -248,6 +248,10 @@ export default function NotesPage() {
             fontFamily: 'Inter, system-ui, sans-serif',
           }}
         />
+        </div>
+
+        {/* Metadata + toolbar — sticky at bottom */}
+        <div style={{ flexShrink: 0, paddingBottom: 'max(12px, env(safe-area-inset-bottom, 0px))' }}>
 
         {/* Metadata — tags displayed as copper pills */}
         {editorTags.length > 0 && (
@@ -454,6 +458,7 @@ export default function NotesPage() {
           >
             Link session
           </button>
+        </div>
         </div>
       </div>
     );
