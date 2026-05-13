@@ -13,6 +13,8 @@ const UpdateSchema = z.object({
   text: z.string().min(1).max(5000).optional(),
   tags: z.array(z.string().max(50)).max(10).optional(),
   pinned: z.boolean().optional(),
+  linked_session_id: z.string().uuid().nullable().optional(),
+  linked_tag_ids: z.array(z.string().uuid()).max(10).optional(),
 });
 
 export async function list(req: Request, res: Response) {

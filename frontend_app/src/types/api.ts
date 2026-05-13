@@ -382,6 +382,7 @@ export interface TrainingNote {
   text: string;
   tags: string[];
   linked_session_id: string | null;
+  linked_tag_ids: string[];
   pinned: boolean;
   created_at: string;
   updated_at: string;
