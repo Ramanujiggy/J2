@@ -29,6 +29,7 @@ const AtlasPage                 = lazy(() => import('./app/AtlasPage.tsx'));
 const IntentionsPage            = lazy(() => import('./app/IntentionsPage.tsx'));
 const JournalEntryPage          = lazy(() => import('./app/JournalEntryPage.tsx'));
 const JournalIndexPage          = lazy(() => import('./app/JournalIndexPage.tsx'));
+const NotesPage                 = lazy(() => import('./app/NotesPage.tsx'));
 const SessionDetailPage         = lazy(() => import('./app/SessionDetailPage.tsx'));
 const ProfilePage               = lazy(() => import('./app/ProfilePage.tsx'));
 const ClassSchedulesPage        = lazy(() => import('./app/ClassSchedulesPage.tsx'));
@@ -141,6 +142,7 @@ function App() {
         <Route path="/atlas"       element={<ProtectedShell><AtlasPage /></ProtectedShell>} />
         <Route path="/journal"     element={<ProtectedShell><JournalIndexPage /></ProtectedShell>} />
         <Route path="/journal/:id" element={<ProtectedShell><SessionDetailPage /></ProtectedShell>} />
+        <Route path="/notes"        element={<ProtectedShell><NotesPage /></ProtectedShell>} />
         <Route path="/intentions"              element={<ProtectedShell><IntentionsPage /></ProtectedShell>} />
         <Route path="/intentions/:id/journal" element={<ProtectedShell><JournalEntryPage /></ProtectedShell>} />
         <Route path="/profile"          element={<ProtectedShell><ProfilePage /></ProtectedShell>} />
