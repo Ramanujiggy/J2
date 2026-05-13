@@ -376,3 +376,17 @@ export interface BeltHistoryEntry {
 export interface BeltHistoryResponse {
   belt_history: BeltHistoryEntry[];
 }
+
+export interface TrainingNote {
+  id: string;
+  text: string;
+  tags: string[];
+  linked_session_id: string | null;
+  pinned: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TrainingNotesResponse {
+  notes: TrainingNote[];
+}
