@@ -233,37 +233,42 @@ export default function NotesPage() {
         {notes.length} {notes.length === 1 ? 'note' : 'notes'}
       </p>
 
-      {/* Search */}
-      <input
-        type="search"
-        inputMode="search"
-        placeholder="Search your reflections…"
-        value={searchText}
-        onChange={e => handleSearch(e.target.value)}
-        style={{
-          width: '100%',
-          fontSize: 15,
-          padding: '12px 14px',
-          borderRadius: 12,
-          backgroundColor: SURFACE_3,
-          border: '1px solid rgba(255,255,255,0.04)',
-          color: 'white',
-          marginBottom: 14,
-          outline: 'none',
-        }}
-      />
-
-      {/* New note */}
-      <button
-        onClick={() => openEditor('new')}
-        style={{
-          fontSize: 14, fontWeight: 600, color: COPPER, background: 'none',
-          border: 'none', borderBottom: `1px solid rgba(196,145,95,0.3)`,
-          padding: 0, cursor: 'pointer', marginBottom: 20, display: 'block',
-        }}
-      >
-        + New note →
-      </button>
+      {/* Search + New note */}
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 18 }}>
+        <input
+          type="search"
+          inputMode="search"
+          placeholder="Search your reflections…"
+          value={searchText}
+          onChange={e => handleSearch(e.target.value)}
+          style={{
+            flex: 1,
+            fontSize: 15,
+            padding: '12px 14px',
+            borderRadius: 12,
+            backgroundColor: SURFACE_3,
+            border: '1px solid rgba(255,255,255,0.04)',
+            color: 'white',
+            outline: 'none',
+          }}
+        />
+        <button
+          onClick={() => openEditor('new')}
+          className="touch-manipulation"
+          style={{
+            flexShrink: 0,
+            width: 40, height: 40, borderRadius: 10,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            backgroundColor: 'rgba(196,145,95,0.12)',
+            border: '1px solid rgba(196,145,95,0.25)',
+            color: COPPER, fontSize: 20, fontWeight: 300,
+            cursor: 'pointer',
+          }}
+          aria-label="New note"
+        >
+          +
+        </button>
+      </div>
 
       {/* Empty state */}
       {notes.length === 0 && !loading && !searchText && (
@@ -336,9 +341,10 @@ export default function NotesPage() {
 
 function NoteRow({ note, onTap }: { note: TrainingNote; onTap: () => void }) {
   const date = new Date(note.created_at);
-  const lines = note.text.split('\n').filter(l => l.trim());
-  const firstLine = lines[0] ?? '';
-  const bodyPreview = lines.slice(1).join(' ').trim() || (firstLine.length > 60 ? '' : note.text.slice(firstLine.length).trim());
+  const fullText = note.text.trim();
+  const firstLine = fullText.split('\n')[0]?.trim() ?? '';
+  const rest = fullText.slice(firstLine.length).trim();
+  const bodyPreview = rest.length > 0 ? rest.replace(/\n+/g, ' ') : null;
 
   return (
     <button
@@ -365,7 +371,7 @@ function NoteRow({ note, onTap }: { note: TrainingNote; onTap: () => void }) {
         }}>
           {firstLine.length > 80 ? firstLine.slice(0, 80) + '…' : firstLine}
         </p>
-        {bodyPreview && (
+        {bodyPreview !== null && (
           <p style={{
             fontSize: 13, color: 'rgba(255,255,255,0.45)', margin: '4px 0 0',
             overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
