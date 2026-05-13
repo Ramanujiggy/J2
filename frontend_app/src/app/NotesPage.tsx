@@ -18,6 +18,9 @@ export default function NotesPage() {
   // Editor state — null = list view, 'new' = composing, TrainingNote = editing
   const [editorNote, setEditorNote] = useState<TrainingNote | 'new' | null>(null);
   const [editorText, setEditorText] = useState('');
+  const [editorTags, setEditorTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState('');
+  const [showTagInput, setShowTagInput] = useState(false);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout>>();
   const lastSavedText = useRef('');
   const createdIdRef = useRef<string | null>(null);
@@ -31,6 +34,9 @@ export default function NotesPage() {
   const openEditor = (note: TrainingNote | 'new') => {
     setEditorNote(note);
     setEditorText(note === 'new' ? '' : note.text);
+    setEditorTags(note === 'new' ? [] : (note.tags ?? []));
+    setShowTagInput(false);
+    setTagInput('');
     lastSavedText.current = note === 'new' ? '' : note.text;
     createdIdRef.current = null;
   };
@@ -81,6 +87,28 @@ export default function NotesPage() {
     setEditorText('');
     createdIdRef.current = null;
     refetch();
+  };
+
+  const addTag = async (tag: string) => {
+    const trimmed = tag.trim().toLowerCase();
+    if (!trimmed || editorTags.includes(trimmed)) return;
+    const newTags = [...editorTags, trimmed];
+    setEditorTags(newTags);
+    setTagInput('');
+    setShowTagInput(false);
+    const noteId = editorNote !== 'new' && typeof editorNote === 'object' ? editorNote.id : createdIdRef.current;
+    if (noteId) {
+      try { await api.put(`/api/notes/${noteId}`, { tags: newTags }); } catch {}
+    }
+  };
+
+  const removeTag = async (tag: string) => {
+    const newTags = editorTags.filter(t => t !== tag);
+    setEditorTags(newTags);
+    const noteId = editorNote !== 'new' && typeof editorNote === 'object' ? editorNote.id : createdIdRef.current;
+    if (noteId) {
+      try { await api.put(`/api/notes/${noteId}`, { tags: newTags }); } catch {}
+    }
   };
 
   const handleTogglePin = async (note: TrainingNote) => {
@@ -178,7 +206,7 @@ export default function NotesPage() {
           onChange={e => handleEditorChange(e.target.value)}
           style={{
             width: '100%',
-            minHeight: 'calc(100vh - 120px)',
+            minHeight: 'calc(100vh - 260px)',
             fontSize: 16,
             lineHeight: 1.7,
             color: 'rgba(255,255,255,0.90)',
@@ -190,6 +218,102 @@ export default function NotesPage() {
             fontFamily: 'Inter, system-ui, sans-serif',
           }}
         />
+
+        {/* Metadata — tags displayed as copper pills */}
+        {editorTags.length > 0 && (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 16, marginBottom: 8 }}>
+            {editorTags.map(tag => (
+              <span
+                key={tag}
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  color: COPPER,
+                  backgroundColor: 'rgba(196,145,95,0.12)',
+                  border: '1px solid rgba(196,145,95,0.30)',
+                  borderRadius: 999,
+                  padding: '3px 10px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                {tag}
+                <button
+                  onClick={() => removeTag(tag)}
+                  style={{ fontSize: 14, color: 'rgba(196,145,95,0.50)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Tag input — appears when "Add tag" is tapped */}
+        {showTagInput && (
+          <div style={{ display: 'flex', gap: 8, marginTop: 8, marginBottom: 8 }}>
+            <input
+              autoFocus
+              type="text"
+              placeholder="Tag name…"
+              value={tagInput}
+              onChange={e => setTagInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(tagInput); } }}
+              style={{
+                flex: 1, fontSize: 13, padding: '8px 12px', borderRadius: 8,
+                backgroundColor: SURFACE_3, border: '1px solid rgba(255,255,255,0.08)',
+                color: 'white', outline: 'none',
+              }}
+            />
+            <button
+              onClick={() => addTag(tagInput)}
+              style={{ fontSize: 13, fontWeight: 600, color: COPPER, background: 'none', border: `1px solid rgba(196,145,95,0.3)`, borderRadius: 8, padding: '8px 14px', cursor: 'pointer' }}
+            >
+              Add
+            </button>
+            <button
+              onClick={() => { setShowTagInput(false); setTagInput(''); }}
+              style={{ fontSize: 13, color: 'rgba(255,255,255,0.30)', background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              ×
+            </button>
+          </div>
+        )}
+
+        {/* Bottom toolbar — quiet affordances */}
+        <div style={{
+          borderTop: '1px solid rgba(196,145,95,0.10)',
+          paddingTop: 14,
+          marginTop: 12,
+          display: 'flex',
+          gap: 6,
+          alignItems: 'center',
+          flexWrap: 'wrap',
+        }}>
+          <button
+            onClick={() => toast({ title: 'Technique linking coming soon.' })}
+            style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 14, color: COPPER, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+          >
+            Link technique
+          </button>
+          <span style={{ color: 'rgba(196,145,95,0.30)', fontSize: 12 }}>·</span>
+          <button
+            onClick={() => setShowTagInput(true)}
+            style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 14, color: COPPER, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+          >
+            Add tag
+          </button>
+          <span style={{ color: 'rgba(196,145,95,0.30)', fontSize: 12 }}>·</span>
+          <button
+            onClick={() => toast({ title: 'Session linking coming soon.' })}
+            style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 14, color: COPPER, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+          >
+            Link session
+          </button>
+        </div>
       </div>
     );
   }
@@ -380,14 +504,29 @@ function NoteRow({ note, onTap }: { note: TrainingNote; onTap: () => void }) {
             {bodyPreview}
           </p>
         )}
-        <span
-          style={{
-            fontFamily: FONT_EDITORIAL, fontStyle: 'italic',
-            fontSize: 12, color: 'rgba(255,255,255,0.25)', marginTop: 4, display: 'block',
-          }}
-        >
-          {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 5, flexWrap: 'wrap' }}>
+          <span
+            style={{
+              fontFamily: FONT_EDITORIAL, fontStyle: 'italic',
+              fontSize: 12, color: 'rgba(255,255,255,0.25)',
+            }}
+          >
+            {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          </span>
+          {note.tags.length > 0 && note.tags.map(tag => (
+            <span
+              key={tag}
+              style={{
+                fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+                color: 'rgba(196,145,95,0.60)',
+                backgroundColor: 'rgba(196,145,95,0.08)',
+                borderRadius: 4, padding: '1px 5px',
+              }}
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
       </div>
     </button>
   );
