@@ -340,7 +340,6 @@ export default function IntentionsMobileView({
                   )}
                 </div>
               </button>
-              </div>
             );
           })}
         </div>
