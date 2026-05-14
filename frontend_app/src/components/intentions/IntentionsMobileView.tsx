@@ -187,6 +187,7 @@ export default function IntentionsMobileView({
           Hidden on the empty state since there's nothing to switch between. */}
       {intentions.length > 0 && (
         <SegmentedToggle<IntentionsLayout>
+          size="compact"
           options={[
             { value: 'timeline', label: 'Timeline' },
             { value: 'eras',     label: 'Eras' },
