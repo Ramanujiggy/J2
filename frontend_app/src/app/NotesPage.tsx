@@ -143,27 +143,27 @@ export default function NotesPage() {
     setEditorLinkedTagIds(newIds);
     setShowTechniquePicker(false);
     const noteId = getNoteId();
-    if (noteId) { try { await api.put(`/api/notes/${noteId}`, { linked_tag_ids: newIds }); } catch {} }
+    if (noteId) { try { await api.put(`/api/notes/${noteId}`, { linked_tag_ids: newIds }); refetch(); } catch {} }
   };
 
   const unlinkTechnique = async (tagId: string) => {
     const newIds = editorLinkedTagIds.filter(id => id !== tagId);
     setEditorLinkedTagIds(newIds);
     const noteId = getNoteId();
-    if (noteId) { try { await api.put(`/api/notes/${noteId}`, { linked_tag_ids: newIds }); } catch {} }
+    if (noteId) { try { await api.put(`/api/notes/${noteId}`, { linked_tag_ids: newIds }); refetch(); } catch {} }
   };
 
   const linkSession = async (sessionId: string) => {
     setEditorLinkedSessionId(sessionId);
     setShowSessionPicker(false);
     const noteId = getNoteId();
-    if (noteId) { try { await api.put(`/api/notes/${noteId}`, { linked_session_id: sessionId }); } catch {} }
+    if (noteId) { try { await api.put(`/api/notes/${noteId}`, { linked_session_id: sessionId }); refetch(); } catch {} }
   };
 
   const unlinkSession = async () => {
     setEditorLinkedSessionId(null);
     const noteId = getNoteId();
-    if (noteId) { try { await api.put(`/api/notes/${noteId}`, { linked_session_id: null }); } catch {} }
+    if (noteId) { try { await api.put(`/api/notes/${noteId}`, { linked_session_id: null }); refetch(); } catch {} }
   };
 
   const addTag = async (tag: string) => {
@@ -175,7 +175,7 @@ export default function NotesPage() {
     setShowTagInput(false);
     const noteId = editorNote !== 'new' && typeof editorNote === 'object' ? editorNote.id : createdIdRef.current;
     if (noteId) {
-      try { await api.put(`/api/notes/${noteId}`, { tags: newTags }); } catch {}
+      try { await api.put(`/api/notes/${noteId}`, { tags: newTags }); refetch(); } catch {}
     }
   };
 
@@ -184,7 +184,7 @@ export default function NotesPage() {
     setEditorTags(newTags);
     const noteId = editorNote !== 'new' && typeof editorNote === 'object' ? editorNote.id : createdIdRef.current;
     if (noteId) {
-      try { await api.put(`/api/notes/${noteId}`, { tags: newTags }); } catch {}
+      try { await api.put(`/api/notes/${noteId}`, { tags: newTags }); refetch(); } catch {}
     }
   };
 
@@ -671,14 +671,45 @@ function highlightMatch(text: string, query: string): React.ReactNode {
 
 function NoteRow({ note, onTap, onDelete, searchQuery = '' }: { note: TrainingNote; onTap: () => void; onDelete?: (id: string) => void; searchQuery?: string }) {
   const date = new Date(note.created_at);
-  const longPressRef = useRef<ReturnType<typeof setTimeout>>();
-  const handlePointerDown = () => {
-    if (!onDelete) return;
-    longPressRef.current = setTimeout(() => {
-      if (confirm('Delete this note?')) onDelete(note.id);
-    }, 600);
+
+  // Swipe-to-delete state
+  const [swipeX, setSwipeX] = useState(0);
+  const [swiping, setSwiping] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const isHorizontal = useRef<boolean | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    isHorizontal.current = null;
+    setSwiping(true);
   };
-  const clearPress = () => clearTimeout(longPressRef.current);
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const dx = e.touches[0].clientX - touchStartX.current;
+    const dy = e.touches[0].clientY - touchStartY.current;
+    if (isHorizontal.current === null) {
+      if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+        isHorizontal.current = Math.abs(dx) > Math.abs(dy);
+      }
+      return;
+    }
+    if (!isHorizontal.current) return;
+    setSwipeX(Math.min(0, dx));
+  };
+
+  const handleTouchEnd = () => {
+    setSwiping(false);
+    if (swipeX < -60) {
+      setShowDelete(true);
+      setSwipeX(-80);
+    } else {
+      setSwipeX(0);
+      setShowDelete(false);
+    }
+  };
   const fullText = note.text.trim();
   const firstLine = fullText.split('\n')[0]?.trim() ?? '';
   const rest = fullText.slice(firstLine.length).trim();
@@ -688,21 +719,40 @@ function NoteRow({ note, onTap, onDelete, searchQuery = '' }: { note: TrainingNo
   const dow = date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
 
   return (
+    <div style={{ position: 'relative', overflow: 'hidden' }}>
+      {/* Delete button behind the row */}
+      {showDelete && onDelete && (
+        <button
+          onClick={() => onDelete(note.id)}
+          className="touch-manipulation"
+          style={{
+            position: 'absolute', right: 0, top: 0, bottom: 0,
+            width: 80, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            backgroundColor: 'rgba(239,68,68,0.85)',
+            color: '#fff', fontSize: 13, fontWeight: 600,
+            border: 'none', cursor: 'pointer',
+          }}
+        >
+          Delete
+        </button>
+      )}
     <button
-      onClick={onTap}
-      onPointerDown={handlePointerDown}
-      onPointerUp={clearPress}
-      onPointerCancel={clearPress}
-      onPointerLeave={clearPress}
+      onClick={() => { if (showDelete) { setShowDelete(false); setSwipeX(0); } else { onTap(); } }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
       className="w-full text-left touch-manipulation"
       style={{
         display: 'flex', alignItems: 'flex-start', gap: 12,
         padding: '14px 0',
         borderBottom: '1px solid rgba(196,145,95,0.08)',
-        background: 'none', border: 'none',
+        background: '#0D1A14', border: 'none',
         borderBottomStyle: 'solid', borderBottomWidth: 1, borderBottomColor: 'rgba(196,145,95,0.08)',
         cursor: 'pointer',
         minHeight: 72,
+        position: 'relative', zIndex: 1,
+        transform: `translateX(${swipeX}px)`,
+        transition: swiping ? 'none' : 'transform 0.25s cubic-bezier(0.25, 1, 0.5, 1)',
       }}
     >
       {/* Left column — date */}
@@ -757,5 +807,6 @@ function NoteRow({ note, onTap, onDelete, searchQuery = '' }: { note: TrainingNo
         )}
       </div>
     </button>
+    </div>
   );
 }

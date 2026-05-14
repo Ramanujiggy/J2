@@ -234,14 +234,7 @@ export default function IntentionsMobileView({
         </div>
       ) : layout === 'eras' ? (
         /* ── Eras layout (mobile) ───────────────────────────── */
-        <div className="space-y-3">
-          <p
-            className="j2-serif-italic"
-            style={{ fontSize: 12, color: 'rgba(255,255,255,0.50)', fontStyle: 'italic', marginBottom: 4 }}
-          >
-            Consecutive weeks on the same focus form an{' '}
-            <span style={{ color: COPPER }}>era</span>.
-          </p>
+        <div className="space-y-0">
           {mobileEras.map((era, idx) => (
             <EraCard
               key={`${era.firstWk}-${era.focus}-${idx}`}
@@ -272,106 +265,80 @@ export default function IntentionsMobileView({
               : null;
 
             return (
-              <div
+              <button
                 key={intention.id}
-                className="rounded-xl px-4 py-4 space-y-3"
-                style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}
+                onClick={() => onNavigate(`/intentions/${intention.id}/journal`)}
+                className="w-full text-left touch-manipulation"
+                style={{
+                  display: 'flex', alignItems: 'flex-start', gap: 14,
+                  padding: '14px 0',
+                  borderBottom: '1px solid rgba(196,145,95,0.08)',
+                  background: 'none', border: 'none',
+                  borderBottomStyle: 'solid', borderBottomWidth: 1, borderBottomColor: 'rgba(196,145,95,0.08)',
+                  cursor: 'pointer',
+                }}
               >
-                {/* Top row — week date + duration + edit */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.40)' }}>
-                      {formatWeekShort(intention.week_start)}
-                    </span>
-                    <span
-                      className="text-[10px] px-2 py-0.5 rounded-lg font-medium"
-                      style={{ backgroundColor: SURFACE_3, color: COPPER }}
-                    >
-                      {intention.duration_days}d
-                    </span>
-                    {categoryColor && (
-                      <span
-                        className="text-[10px] px-2 py-0.5 rounded-lg font-medium capitalize"
-                        style={{ backgroundColor: `${categoryColor}20`, color: categoryColor }}
-                      >
-                        {intention.intent_category}
-                      </span>
-                    )}
+                {/* Left column — date + duration */}
+                <div style={{ flexShrink: 0, width: 52, textAlign: 'right', paddingTop: 2 }}>
+                  <div style={{ fontFamily: 'var(--font-editorial)', fontStyle: 'italic', fontSize: 16, color: 'rgba(242,228,168,0.50)', lineHeight: 1 }}>
+                    {new Date(intention.week_start + 'T00:00:00').getDate()}
                   </div>
-                  <button
-                    onClick={() => onOpenEdit(intention)}
-                    className="p-1.5 rounded-lg transition-colors touch-manipulation"
-                    style={{ color: 'rgba(255,255,255,0.25)' }}
-                    title="Edit intention"
-                  >
-                    <Pencil size={13} />
-                  </button>
+                  <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.22)', marginTop: 2 }}>
+                    {new Date(intention.week_start + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()}
+                  </div>
+                  <div style={{ fontFamily: 'var(--font-editorial)', fontStyle: 'italic', fontSize: 10, color: 'rgba(196,145,95,0.35)', marginTop: 3 }}>
+                    {intention.duration_days}d
+                  </div>
                 </div>
 
-                {/* Heading + label */}
-                <div>
-                  <p className="text-base font-semibold" style={{ color: 'rgba(255,255,255,0.90)' }}>
-                    {headingLabel ?? intention.intent_label}
-                  </p>
+                {/* Right column — dot + heading + alignment */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                    {focusColor && <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: focusColor, flexShrink: 0 }} />}
+                    <span style={{ fontSize: 15, fontWeight: 600, color: 'rgba(255,255,255,0.90)' }}>
+                      {headingLabel ?? intention.intent_label}
+                    </span>
+                  </div>
                   {headingLabel && intention.intent_label && intention.intent_label.toLowerCase() !== (headingLabel ?? '').toLowerCase() && (
-                    <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.40)' }}>
+                    <p style={{ fontFamily: 'var(--font-editorial)', fontStyle: 'italic', fontSize: 13, color: 'rgba(255,255,255,0.45)', margin: '0 0 4px' }}>
                       {intention.intent_label}
+                    </p>
+                  )}
+                  {/* Alignment + trained */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                    <div style={{ width: 24, height: 2, borderRadius: 1, backgroundColor: alignment.status === 'aligned' ? 'rgba(82,181,108,0.70)' : alignment.status === 'diverged' ? 'rgba(218,116,34,0.50)' : 'rgba(255,255,255,0.06)' }} />
+                    {ambient ? (
+                      <span style={{ fontSize: 11, fontFamily: 'var(--font-editorial)', fontStyle: 'italic', color: 'rgba(196,145,95,0.50)' }}>
+                        Trained: {ambient}
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: 11, fontStyle: 'italic', color: 'rgba(255,255,255,0.20)' }}>No sessions</span>
+                    )}
+                  </div>
+                  {/* Journal snippet */}
+                  {hasJournal && (
+                    <p style={{ fontSize: 12, fontFamily: 'var(--font-editorial)', fontStyle: 'italic', color: 'rgba(242,228,168,0.35)', margin: '6px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {journalSnippet}
                     </p>
                   )}
                 </div>
 
-                {/* Alignment row */}
-                <div className="flex items-center gap-2">
-                  {/* Alignment indicator bar */}
-                  <div
-                    className="rounded-full"
-                    style={{
-                      width: 32,
-                      height: 4,
-                      backgroundColor: alignment.status === 'aligned'  ? 'rgba(82,181,108,0.70)'
-                                     : alignment.status === 'diverged' ? 'rgba(218,116,34,0.50)'
-                                     : 'rgba(255,255,255,0.06)',
-                    }}
-                  />
-                  {ambient ? (
-                    <span className="text-xs font-medium" style={{ color: COPPER }}>
-                      Trained: {ambient}
-                    </span>
-                  ) : (
-                    <span className="text-xs italic" style={{ color: 'rgba(255,255,255,0.20)' }}>
-                      No sessions logged
-                    </span>
-                  )}
-                  {alignment.status !== 'no-data' && (
-                    <span
-                      className="text-[10px]"
-                      style={{
-                        color: alignment.status === 'aligned'
-                          ? 'rgba(82,181,108,0.65)'
-                          : 'rgba(218,116,34,0.50)',
-                      }}
-                    >
-                      {alignment.score !== null ? `${alignment.score}%` : (alignment.status === 'aligned' ? 'Aligned' : 'Diverged')}
-                    </span>
-                  )}
-                </div>
-
-                {/* Journal row */}
-                <button
-                  onClick={() => onNavigate(`/intentions/${intention.id}/journal`)}
-                  className="w-full flex items-center gap-2 pt-2 transition-colors touch-manipulation"
-                  style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}
-                >
-                  {hasJournal ? (
-                    <span className="text-xs truncate" style={{ color: 'rgba(242,228,168,0.45)' }}>
-                      {journalSnippet}
-                    </span>
-                  ) : (
-                    <span className="text-xs font-medium" style={{ color: COPPER }}>
+                {/* Right affordance */}
+                <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, paddingTop: 2 }}>
+                  <button
+                    onClick={e => { e.stopPropagation(); onOpenEdit(intention); }}
+                    className="touch-manipulation"
+                    style={{ color: 'rgba(255,255,255,0.18)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}
+                  >
+                    <Pencil size={12} />
+                  </button>
+                  {!hasJournal && (
+                    <span style={{ fontFamily: 'var(--font-editorial)', fontStyle: 'italic', fontSize: 12, color: COPPER, opacity: 0.5 }}>
                       + Write
                     </span>
                   )}
-                </button>
+                </div>
+              </button>
               </div>
             );
           })}
