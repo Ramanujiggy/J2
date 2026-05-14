@@ -105,6 +105,9 @@ export const login = async (req: Request, res: Response) => {
 
         console.log('✅ User logged in:', user.email);
 
+        // Record login timestamp for admin dashboard
+        try { await pool.query('UPDATE users SET last_login_at = NOW() WHERE id = $1', [user.id]); } catch {}
+
         res.status(200).json({
             message: 'Login successful',
             token,

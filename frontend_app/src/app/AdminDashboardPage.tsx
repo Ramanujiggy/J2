@@ -28,6 +28,18 @@ import type {
     CaseStatus,
 } from '../types/api.ts';
 
+function getTimeAgo(iso: string): string {
+    const ms = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(ms / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 7) return `${days}d ago`;
+    return `${Math.floor(days / 7)}w ago`;
+}
+
 type StatusFilter = 'all' | CaseStatus;
 
 const STATUS_LABEL: Record<CaseStatus, string> = {
@@ -61,6 +73,7 @@ export default function AdminDashboardPage() {
     const [stats,         setStats]         = useState<AdminStats | null>(null);
     const [cases,         setCases]         = useState<SupportCaseWithUser[]>([]);
     const [users,         setUsers]         = useState<AdminUserSummary[]>([]);
+    const [recentLogins,  setRecentLogins]  = useState<Array<{ id: string; email: string; name: string | null; belt_rank: string | null; last_login_at: string }>>([]);
     const [statusFilt,    setStatusFilt]    = useState<StatusFilter>('all');
     const [minSessions,   setMinSessions]   = useState<number>(0);
     const [showTestUsers, setShowTestUsers] = useState<boolean>(false);
@@ -73,15 +86,17 @@ export default function AdminDashboardPage() {
             try {
                 setLoading(true);
                 setError(null);
-                const [s, c, u] = await Promise.all([
+                const [s, c, u, l] = await Promise.all([
                     api.get<AdminStatsResponse>('/api/admin/stats'),
                     api.get<AdminCasesResponse>('/api/admin/cases'),
                     api.get<AdminUsersResponse>('/api/admin/users'),
+                    api.get<{ logins: Array<{ id: string; email: string; name: string | null; belt_rank: string | null; last_login_at: string }> }>('/api/admin/recent-logins'),
                 ]);
                 if (cancelled) return;
                 setStats(s.stats);
                 setCases(c.cases);
                 setUsers(u.users);
+                setRecentLogins(l.logins ?? []);
             } catch (e) {
                 if (cancelled) return;
                 if (e instanceof ApiError && e.status === 403) {
@@ -296,6 +311,45 @@ export default function AdminDashboardPage() {
                                     </div>
                                 )}
                             </>
+                        )}
+                    </div>
+                </Card>
+
+                {/* ── Recent logins ── */}
+                <Card style={{ marginTop: 24 }}>
+                    <SectionLabel>Recent logins</SectionLabel>
+                    <div style={{ marginTop: 14 }}>
+                        {recentLogins.length === 0 ? (
+                            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic' }}>No login data yet.</p>
+                        ) : (
+                            recentLogins.slice(0, 15).map(login => {
+                                const ago = getTimeAgo(login.last_login_at);
+                                return (
+                                    <Link
+                                        key={login.id}
+                                        to={`/admin/users/${login.id}`}
+                                        style={{
+                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                            padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.04)',
+                                            textDecoration: 'none',
+                                        }}
+                                    >
+                                        <div>
+                                            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.80)' }}>
+                                                {login.name ?? login.email}
+                                            </span>
+                                            {login.name && (
+                                                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)', marginLeft: 8 }}>
+                                                    {login.email}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <span style={{ fontSize: 11, color: COPPER, opacity: 0.6, whiteSpace: 'nowrap' }}>
+                                            {ago}
+                                        </span>
+                                    </Link>
+                                );
+                            })
                         )}
                     </div>
                 </Card>
