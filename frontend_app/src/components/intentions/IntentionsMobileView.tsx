@@ -295,7 +295,7 @@ export default function IntentionsMobileView({
                 {/* Right column — dot + heading + alignment */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                    {focusColor && <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: focusColor, flexShrink: 0 }} />}
+                    {categoryColor && <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: categoryColor, flexShrink: 0 }} />}
                     <span style={{ fontSize: 15, fontWeight: 600, color: 'rgba(255,255,255,0.90)' }}>
                       {headingLabel ?? intention.intent_label}
                     </span>

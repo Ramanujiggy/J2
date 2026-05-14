@@ -158,6 +158,7 @@ export default function AdminUserDetailPage() {
                                 <Field label="Admin"              value={data.user.is_admin ? '✓ admin' : 'no'} accent={data.user.is_admin ? COPPER : undefined} />
                                 <Field label="Onboarded"          value={data.user.onboarding_completed_at ? formatDate(data.user.onboarding_completed_at) : 'not yet'} />
                                 <Field label="Joined"             value={formatDate(data.user.created_at)} />
+                                <Field label="Last login"         value={data.user.last_login_at ? formatDate(data.user.last_login_at) : 'never'} accent={data.user.last_login_at ? COPPER : undefined} />
                                 {isTestUser && (
                                     <Field label="Test account"   value="✓ matches e2e pattern" accent={COPPER} />
                                 )}

@@ -148,6 +148,7 @@ export const getUserDetail = async (req: Request, res: Response): Promise<void> 
               u.is_admin,
               u.onboarding_completed_at,
               u.created_at,
+              u.last_login_at,
               COALESCE(s.total_sessions, 0)::int  AS total_sessions,
               COALESCE(s.total_minutes, 0)::int   AS total_minutes,
               s.last_session_at,
@@ -215,6 +216,7 @@ export const getUserDetail = async (req: Request, res: Response): Promise<void> 
                 is_admin:                 u.is_admin,
                 onboarding_completed_at:  u.onboarding_completed_at,
                 created_at:               u.created_at,
+                last_login_at:            u.last_login_at ?? null,
             },
             stats: {
                 total_sessions:   Number(u.total_sessions),
