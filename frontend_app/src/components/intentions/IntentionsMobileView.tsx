@@ -10,6 +10,7 @@
 // Extracted from IntentionsPage.tsx during the 2026-05-09 refactor pass.
 
 import { useMemo, useState } from 'react';
+import JournalEmptyState from '../JournalEmptyState.tsx';
 import { Pencil } from 'lucide-react';
 import { COPPER, GLOW_SOFT, PALE_YELLOW, SURFACE_2, SURFACE_3 } from '../../lib/theme.ts';
 import { SKILL_TAGS, CATEGORY_COLORS } from '../../lib/constants.ts';
@@ -198,28 +199,12 @@ export default function IntentionsMobileView({
       )}
 
       {intentions.length === 0 ? (
-        /* ── Empty state ────────────────────────────────────── */
-        <div
-          className="rounded-xl px-6 py-10 text-center"
-          style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.06)' }}
-        >
-          <p className="text-sm mb-1" style={{ color: 'rgba(255,255,255,0.40)' }}>No intentions set yet.</p>
-          <p className="text-xs mb-5" style={{ color: 'rgba(255,255,255,0.22)' }}>
-            Declare what you're working on to track alignment.
-          </p>
-          <button
-            onClick={onOpenCreate}
-            className="w-full max-w-xs mx-auto text-white font-semibold rounded-xl transition-all touch-manipulation"
-            style={{
-              height: 52,
-              backgroundColor: '#DA7422',
-              boxShadow: '0 2px 12px rgba(218,116,34,0.25)',
-              fontSize: 16,
-            }}
-          >
-            Set Your First Intention
-          </button>
-        </div>
+        <JournalEmptyState
+          heroLines={['A focus to return to.']}
+          supporting="Declare what you're working on, and your sessions will tell you whether you're following through."
+          affordance="Declare your first intention →"
+          onAction={onOpenCreate}
+        />
       ) : mobileFilteredIntentions.length === 0 ? (
         /* ── No-matches state (filter or search yields zero) ── */
         <div
