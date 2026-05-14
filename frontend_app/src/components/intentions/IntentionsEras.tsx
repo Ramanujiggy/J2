@@ -13,7 +13,7 @@
 //
 // Extracted from IntentionsPage.tsx during the 2026-05-09 refactor pass.
 
-import { CARD_BG, COPPER, PALE_YELLOW, SURFACE_3 } from '../../lib/theme.ts';
+import { COPPER, PALE_YELLOW, FONT_EDITORIAL } from '../../lib/theme.ts';
 import { MONTH_NAMES } from '../../lib/constants.ts';
 import type { Intention } from '../../types/api.ts';
 import {
@@ -74,115 +74,54 @@ export function EraCard({
   const chronological = [...era.weeks].reverse();
 
   return (
-    <div
+    <button
+      onClick={onOpen}
+      className="w-full text-left touch-manipulation"
       style={{
-        position: 'relative',
-        backgroundColor: CARD_BG,
-        border: '1px solid rgba(255,255,255,0.10)',
-        borderRadius: compact ? 12 : 16,
-        padding: compact ? '16px 18px' : '24px 28px',
-        marginBottom: compact ? 0 : 14,
-        overflow: 'hidden',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 14,
+        padding: compact ? '14px 0' : '18px 0',
+        borderBottom: '1px solid rgba(196,145,95,0.08)',
+        background: 'none',
+        border: 'none',
+        borderBottomStyle: 'solid',
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(196,145,95,0.08)',
+        cursor: 'pointer',
       }}
     >
-      {/* Color sliver */}
-      <div
-        style={{
-          position: 'absolute',
-          left: 0,
-          top: 0,
-          bottom: 0,
-          width: 3,
-          background: color,
-          boxShadow: `0 0 12px ${color}80`,
-          pointerEvents: 'none',
-        }}
-      />
-      {/* Soft corner glow */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          right: 0,
-          width: compact ? 140 : 200,
-          height: compact ? 140 : 200,
-          background: `radial-gradient(circle at 100% 0%, ${color}18, transparent 65%)`,
-          pointerEvents: 'none',
-        }}
-      />
+      {/* Left column — duration + date */}
+      <div style={{ flexShrink: 0, width: 72, textAlign: 'right', paddingTop: 2 }}>
+        <div style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 14, color: 'rgba(196,145,95,0.60)', lineHeight: 1.2 }}>
+          {weeksCount === 1 ? 'One week' : `${weeksCount} weeks`}
+        </div>
+        <div style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 11, color: 'rgba(196,145,95,0.35)', marginTop: 3 }}>
+          {new Date(era.lastWk + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+        </div>
+      </div>
 
-      <div
-        style={compact
-          ? { display: 'flex', flexDirection: 'column', gap: 14, position: 'relative' }
-          : { display: 'grid', gridTemplateColumns: '1.4fr 1fr auto', gap: 28, alignItems: 'center', position: 'relative' }
-        }
-      >
-        {/* Title */}
-        <div style={{ minWidth: 0 }}>
-          <div
-            className="j2-label-micro"
-            style={{
-              marginBottom: compact ? 6 : 10,
-              fontSize: compact ? 11 : 13,
-              letterSpacing: '0.16em',
-            }}
-          >
-            {eyebrow}
-          </div>
-          <div
+      {/* Right column — dot + title + stats */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: color, flexShrink: 0 }} />
+          <span
             className="j2-serif-display"
-            style={{
-              fontSize: compact ? 22 : 34,
-              fontWeight: 600,
-              color: PALE_YELLOW,
-              lineHeight: 1.1,
-              letterSpacing: '-0.01em',
-              display: 'inline-flex',
-              alignItems: 'baseline',
-              gap: 12,
-            }}
+            style={{ fontSize: compact ? 18 : 22, fontWeight: 600, color: PALE_YELLOW, lineHeight: 1.1 }}
           >
             {PILLAR_LABEL[era.focus]}
-            {weeksCount >= 4 && (
-              <span
-                className="j2-serif-italic"
-                style={{ fontSize: compact ? 13 : 17, fontWeight: 500, color: COPPER }}
-              >
-                · a chapter
-              </span>
-            )}
-          </div>
+          </span>
         </div>
 
-        {/* Stats + bar chart */}
+        {/* Stats line */}
         <EraStats era={era} chronological={chronological} statsMap={statsMap} color={color} />
-
-        {/* Action */}
-        <button
-          onClick={onOpen}
-          style={{
-            height: 40,
-            padding: '0 18px',
-            background: SURFACE_3,
-            border: '1px solid rgba(255,255,255,0.10)',
-            borderRadius: 10,
-            color: 'rgba(255,255,255,0.88)',
-            fontWeight: 600,
-            fontSize: 13,
-            letterSpacing: '0.02em',
-            cursor: 'pointer',
-            transition: 'background 180ms ease',
-            whiteSpace: 'nowrap',
-            width: compact ? '100%' : 'auto',
-            touchAction: 'manipulation',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = SURFACE_3; }}
-        >
-          Open era →
-        </button>
       </div>
-    </div>
+
+      {/* Open affordance */}
+      <span style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 13, color: COPPER, opacity: 0.5, flexShrink: 0, paddingTop: 4 }}>
+        Open →
+      </span>
+    </button>
   );
 }
 
