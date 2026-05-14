@@ -295,6 +295,7 @@ export interface AdminUserProfile {
   is_admin: boolean;
   onboarding_completed_at: string | null;
   created_at: string;
+  last_login_at: string | null;
 }
 
 export interface AdminUserActivityStats {
