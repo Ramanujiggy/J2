@@ -5,17 +5,19 @@ interface Props {
   supporting: string;
   affordance: string;
   onAction: () => void;
+  /** When true, removes top padding (for use inside existing page flow). */
+  inline?: boolean;
 }
 
-export default function JournalEmptyState({ heroLines, supporting, affordance, onAction }: Props) {
+export default function JournalEmptyState({ heroLines, supporting, affordance, onAction, inline = false }: Props) {
   return (
-    <div style={{ paddingTop: '18vh', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+    <div style={{ paddingTop: inline ? 24 : '18vh', paddingBottom: inline ? 24 : 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <h1
         style={{
           fontFamily: FONT_EDITORIAL,
           fontStyle: 'italic',
           fontWeight: 600,
-          fontSize: 'clamp(28px, 8vw, 36px)',
+          fontSize: inline ? 'clamp(32px, 9vw, 40px)' : 'clamp(28px, 8vw, 36px)',
           color: PALE_YELLOW,
           textShadow: GLOW_SOFT,
           lineHeight: 1.2,
