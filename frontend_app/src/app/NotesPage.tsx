@@ -6,6 +6,7 @@ import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import { useUserTags } from '../hooks/useUserTags.ts';
 import SegmentedToggle from '../components/SegmentedToggle.tsx';
 import PageContent from '../components/PageContent.tsx';
+import JournalEmptyState from '../components/JournalEmptyState.tsx';
 import { PALE_YELLOW, GLOW_SOFT, COPPER, FONT_EDITORIAL, SURFACE_3 } from '../lib/theme.ts';
 import { toast } from '../hooks/use-toast.ts';
 import { formatDuration } from '../lib/sessionUtils.ts';
@@ -565,32 +566,12 @@ export default function NotesPage() {
       />
       {/* Empty state */}
       {notes.length === 0 && !loading && !searchText && (
-        <div style={{ textAlign: 'center', padding: '48px 0' }}>
-          <p style={{
-            fontFamily: FONT_EDITORIAL,
-            fontStyle: 'italic',
-            fontSize: 18,
-            color: 'rgba(242,228,168,0.40)',
-            marginBottom: 8,
-            lineHeight: 1.4,
-          }}>
-            A space for thoughts<br />between sessions.
-          </p>
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.22)', marginBottom: 20 }}>
-            Ideas, observations, and half-formed insights<br />that don't belong to a single session.
-          </p>
-          <button
-            onClick={() => openEditor('new')}
-            style={{
-              fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 15,
-              color: COPPER, background: 'none', border: 'none',
-              borderBottom: `1px solid rgba(196,145,95,0.3)`,
-              cursor: 'pointer', padding: 0,
-            }}
-          >
-            Write your first note →
-          </button>
-        </div>
+        <JournalEmptyState
+          heroLines={['A space for thoughts', 'between sessions.']}
+          supporting="Ideas, observations, and half-formed insights that don't belong to a single session."
+          affordance="Write your first note →"
+          onAction={() => openEditor('new')}
+        />
       )}
 
       {/* No search results */}
