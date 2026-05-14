@@ -92,8 +92,15 @@ export default function IntentionsMobileView({
       <div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <h2
-            className="text-2xl font-display font-bold tracking-tight"
-            style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT, margin: 0 }}
+            style={{
+              fontFamily: 'var(--font-editorial)',
+              fontWeight: 500,
+              color: PALE_YELLOW,
+              textShadow: GLOW_SOFT,
+              fontSize: 28,
+              letterSpacing: '-0.01em',
+              margin: 0,
+            }}
           >
             Journal
           </h2>
