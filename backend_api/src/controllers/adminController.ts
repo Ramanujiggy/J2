@@ -243,6 +243,7 @@ export const getUsers = async (_req: Request, res: Response): Promise<void> => {
               u.name,
               u.belt_rank,
               u.created_at,
+              u.last_login_at,
               COUNT(s.id)::text                AS session_count,
               MAX(s.created_at)                AS last_session_at
             FROM users u
@@ -257,6 +258,7 @@ export const getUsers = async (_req: Request, res: Response): Promise<void> => {
             name: string | null;
             belt_rank: string | null;
             created_at: string;
+            last_login_at: string | null;
             session_count: string;
             last_session_at: string | null;
         }>;
@@ -267,12 +269,29 @@ export const getUsers = async (_req: Request, res: Response): Promise<void> => {
                 name:            u.name,
                 belt_rank:       u.belt_rank,
                 created_at:      u.created_at,
+                last_login_at:   u.last_login_at,
                 session_count:   Number(u.session_count),
                 last_session_at: u.last_session_at,
             })),
         });
     } catch (err) {
         console.error('❌ Error listing users:', err);
+        res.status(500).json({ message: 'Server error.' });
+    }
+};
+
+export const getRecentLogins = async (_req: Request, res: Response): Promise<void> => {
+    try {
+        const result = await query(`
+            SELECT id, email, name, belt_rank, last_login_at
+            FROM users
+            WHERE last_login_at IS NOT NULL
+            ORDER BY last_login_at DESC
+            LIMIT 20
+        `);
+        res.json({ logins: result.rows });
+    } catch (err) {
+        console.error('❌ Error listing recent logins:', err);
         res.status(500).json({ message: 'Server error.' });
     }
 };
