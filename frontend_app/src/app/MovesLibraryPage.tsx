@@ -18,7 +18,7 @@
 // Tier 1 (free, default, mig 010): video files live in browser storage; only
 // the thumbnail + metadata sync via the server.
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContent from '../components/PageContent.tsx';
 import LibraryEmptyHero from '../components/empty/LibraryEmptyHero.tsx';
@@ -72,7 +72,12 @@ export default function MovesLibraryPage() {
   const [filter, setFilter] = useState<LibraryFilter>('all');
   // Section state is local to the page (not persisted across navigation).
   // All sections collapsed by default — the user opens what they want.
+  // When a filter is active we override this and auto-expand below.
   const [expanded, setExpanded] = useState<Set<Pillar>>(() => new Set());
+  // Tracks which pillars the user has manually collapsed since the current
+  // filter went active. Lets them re-collapse an auto-expanded section
+  // without us snapping it back open.
+  const [userCollapsed, setUserCollapsed] = useState<Set<Pillar>>(() => new Set());
 
   const togglePillar = useCallback((p: Pillar) => {
     vibrate(6);
@@ -82,7 +87,18 @@ export default function MovesLibraryPage() {
       else next.add(p);
       return next;
     });
+    // Record manual collapse intent so an active filter doesn't fight it.
+    setUserCollapsed(prev => {
+      const next = new Set(prev);
+      if (next.has(p)) next.delete(p);
+      else next.add(p);
+      return next;
+    });
   }, []);
+
+  // When the filter changes, clear the manual-collapse memory so a fresh
+  // filter starts from the auto-expand defaults.
+  useEffect(() => { setUserCollapsed(new Set()); }, [filter]);
 
   // Pre-bucket tags by pillar (filtered + sorted) so each section just renders.
   // We compute filtered counts here so the section header chevron can show
@@ -152,18 +168,17 @@ export default function MovesLibraryPage() {
             </h2>
             <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.40)' }}>
               {counts.total} technique{counts.total === 1 ? '' : 's'}
-              {counts.goTo > 0 && ` · ${counts.goTo} go-to`}
-              {counts.withVideo > 0 && ` · ${counts.withVideo} with video`}
             </p>
           </div>
         </div>
 
         {/* Recently added ribbon — horizontal scroll of the newest 8 user_tags.
             Gives returning users an immediate tap target without forcing them
-            to drill into the accordion. Hidden when the user has < 3 tags
-            (the accordion below already surfaces those prominently — a
-            2-card ribbon would look accidental). */}
-        {recentTags.length >= 3 && (
+            to drill into the accordion. Hidden when the user has < 3 tags,
+            or whenever a filter is active (the ribbon shows unfiltered
+            recents, which is confusing when "Has video / Go-to / etc." is
+            selected — the accordion below carries the filtered view). */}
+        {filter === 'all' && recentTags.length >= 3 && (
           <RecentlyAddedRibbon
             tags={recentTags}
             onOpenTechnique={id => navigate(`/techniques/${id}`)}
@@ -175,11 +190,11 @@ export default function MovesLibraryPage() {
             section's row list simultaneously. */}
         <div className="flex gap-2 flex-wrap">
           {([
-            ['all',         'All',          counts.total],
-            ['go_to',       '★ Go-to',      counts.goTo],
-            ['learning',    '◐ Learning',   counts.learning],
-            ['shelved',     '◌ Shelved',    counts.shelved],
-            ['with-video',  'Has video',    counts.withVideo],
+            ['all',         'All',        counts.total],
+            ['go_to',       'Go-to',      counts.goTo],
+            ['learning',    'Learning',   counts.learning],
+            ['shelved',     'Shelved',    counts.shelved],
+            ['with-video',  'Has video',  counts.withVideo],
           ] as const).map(([val, label, n]) => (
             <button
               key={val}
@@ -213,18 +228,28 @@ export default function MovesLibraryPage() {
               overflow: 'hidden',
             }}
           >
-            {PILLAR_ORDER.map((p, idx) => (
-              <PillarSection
-                key={p}
-                pillar={p}
-                tags={sections[p]}
-                expanded={expanded.has(p)}
-                onToggle={() => togglePillar(p)}
-                onOpenTechnique={id => navigate(`/techniques/${id}`)}
-                isFirst={idx === 0}
-                filterActive={filter !== 'all'}
-              />
-            ))}
+            {PILLAR_ORDER.map((p, idx) => {
+              // Effective expanded state:
+              //  • Filter active + section has matches + user hasn't manually
+              //    collapsed it → auto-expand so the filter's effect is visible
+              //  • Otherwise → fall back to the user's explicit toggle state
+              const isExpanded =
+                filter !== 'all' && sections[p].length > 0 && !userCollapsed.has(p)
+                  ? true
+                  : expanded.has(p);
+              return (
+                <PillarSection
+                  key={p}
+                  pillar={p}
+                  tags={sections[p]}
+                  expanded={isExpanded}
+                  onToggle={() => togglePillar(p)}
+                  onOpenTechnique={id => navigate(`/techniques/${id}`)}
+                  isFirst={idx === 0}
+                  filterActive={filter !== 'all'}
+                />
+              );
+            })}
           </div>
         )}
       </div>
@@ -252,6 +277,9 @@ function PillarSection({
   pillar, tags, expanded, onToggle, onOpenTechnique, isFirst, filterActive,
 }: PillarSectionProps) {
   const goToCount = tags.filter(t => t.affinity === 'go_to').length;
+  // Pillars with no rows under the active view recede so productive sections
+  // lead the reading order. Header still tappable (the empty body explains why).
+  const isEmpty = tags.length === 0;
 
   return (
     <section
@@ -275,6 +303,8 @@ function PillarSection({
           border: 'none',
           cursor: 'pointer',
           textAlign: 'left',
+          opacity: isEmpty ? 0.45 : 1,
+          transition: 'opacity 200ms ease',
         }}
       >
         <span

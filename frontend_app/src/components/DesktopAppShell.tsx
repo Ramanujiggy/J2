@@ -83,6 +83,12 @@ type NavItem = {
   label: string;
   Icon: (p: IconProps) => JSX.Element;
   gated?: 'intentions' | 'admin';
+  /** Extra path prefixes that should highlight this nav item. Used for
+   *  sub-surfaces that aren't themselves nav targets — e.g. the Technique
+   *  Library lives under Profile but routes at `/library` + `/techniques`,
+   *  and Notes is a Journal-adjacent surface routed at `/notes`. Without
+   *  this, those routes fall through to `/home` (the default). */
+  alsoActiveOn?: readonly string[];
 };
 
 // Atlas absorbs what used to be Calendar + Analytics. /calendar still
@@ -90,10 +96,10 @@ type NavItem = {
 // redirects to /atlas (its functionality is now Atlas's Prism tab).
 const NAV_ITEMS: readonly NavItem[] = [
   { path: '/home',       label: 'Path Ahead', Icon: CompassIcon },
-  { path: '/journal',    label: 'Journal',    Icon: BookIcon },
-  { path: '/atlas',      label: 'Atlas',      Icon: MapIcon },
+  { path: '/journal',    label: 'Journal',    Icon: BookIcon, alsoActiveOn: ['/notes'] },
+  { path: '/atlas',      label: 'Atlas',      Icon: MapIcon, alsoActiveOn: ['/calendar'] },
   { path: '/intentions', label: 'Intentions', Icon: DiamondIcon, gated: 'intentions' },
-  { path: '/profile',    label: 'Profile',    Icon: UserIcon },
+  { path: '/profile',    label: 'Profile',    Icon: UserIcon, alsoActiveOn: ['/library', '/techniques'] },
   // Admin gate (mig 023). Only renders for users with users.is_admin = true.
   // The route /admin needs to appear in NAV_ITEMS for activeTab's prefix
   // match to highlight it correctly when the founder is on the dashboard.
@@ -119,7 +125,10 @@ export default function DesktopAppShell({ children }: Props) {
     }),
     [intentionsEnabled, isAdmin],
   );
-  const activeTab = items.find(it => location.pathname.startsWith(it.path))?.path ?? '/home';
+  const activeTab = items.find(it =>
+    location.pathname.startsWith(it.path) ||
+    it.alsoActiveOn?.some(p => location.pathname.startsWith(p))
+  )?.path ?? '/home';
 
   // PageTransition is now non-directional (single fade-and-settle), so the
   // mobile-matching forward/back state machine that used to live here is

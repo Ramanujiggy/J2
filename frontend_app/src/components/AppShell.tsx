@@ -68,11 +68,16 @@ function JournalIcon({ active }: { active: boolean }) {
 // nav because users reach their sessions much more often than aggregate
 // charts. The /analytics route now redirects to /atlas — analytics
 // functionality is folded into the Atlas Prism tab.
+// `alsoActiveOn` covers sub-surfaces that aren't themselves nav targets:
+// Notes lives under Journal, Technique Library under Profile. Without
+// these prefixes the active-tab match falls through to `/home`.
+// /intentions and /atlas have no bottom-nav tab on mobile and fall
+// through to /home by design (they're side trips from Home).
 const ALL_TABS = [
-  { path: '/home',        label: 'Home',       Icon: HomeIcon,       intentionsGated: false },
-  { path: '/journal',     label: 'Journal',    Icon: JournalIcon,    intentionsGated: false },
-  { path: '/calendar',    label: 'Calendar',   Icon: CalendarIcon,   intentionsGated: false },
-  { path: '/profile',     label: 'Profile',    Icon: ProfileIcon,    intentionsGated: false },
+  { path: '/home',        label: 'Home',       Icon: HomeIcon,       intentionsGated: false, alsoActiveOn: [] as readonly string[] },
+  { path: '/journal',     label: 'Journal',    Icon: JournalIcon,    intentionsGated: false, alsoActiveOn: ['/notes'] as readonly string[] },
+  { path: '/calendar',    label: 'Calendar',   Icon: CalendarIcon,   intentionsGated: false, alsoActiveOn: [] as readonly string[] },
+  { path: '/profile',     label: 'Profile',    Icon: ProfileIcon,    intentionsGated: false, alsoActiveOn: ['/library', '/techniques'] as readonly string[] },
 ] as const;
 
 function beltThumbGradient(beltColor: string, patchColor: string, stripes: number): string {
@@ -118,7 +123,10 @@ function MobileAppShell({ children }: Props) {
     () => ALL_TABS.filter(t => !t.intentionsGated || intentionsEnabled),
     [intentionsEnabled],
   );
-  const activeTab = TABS.find(t => location.pathname.startsWith(t.path))?.path ?? '/home';
+  const activeTab = TABS.find(t =>
+    location.pathname.startsWith(t.path) ||
+    t.alsoActiveOn?.some(p => location.pathname.startsWith(p))
+  )?.path ?? '/home';
   const activeIdx = TABS.findIndex(t => t.path === activeTab);
 
   // Page-level horizontal swipe-to-navigate has been retired — it made the
