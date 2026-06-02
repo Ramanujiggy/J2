@@ -3,9 +3,8 @@ import gsap from 'gsap';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   localDateKey, buildDayMap, cellColor, buildWeekRows, computeStats,
-  EMPTY_DAY,
 } from './TrainingHeatmap.tsx';
-import type { DayData, WeekRow } from './TrainingHeatmap.tsx';
+import type { DayData } from './TrainingHeatmap.tsx';
 import type { SessionSummary } from '../types/api.ts';
 import SessionDetailModal from './SessionDetailModal.tsx';
 import { useBeltHistory } from '../hooks/useBeltHistory.ts';
@@ -42,7 +41,6 @@ interface Props {
 export default function CalendarHeatmapView({
   sessions,
   year,
-  loading = false,
   onYearChange,
   onLogSession,
   onSessionUpdated,

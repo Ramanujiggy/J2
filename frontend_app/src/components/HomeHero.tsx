@@ -6,7 +6,6 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { COPPER, PRESTIGE_TEAL, PRESTIGE_TEAL_GLOW, FONT_EDITORIAL } from '../lib/theme.ts';
-import { formatDuration } from '../lib/sessionUtils.ts';
 import { EIGHT_GATES } from '../lib/constants.ts';
 import { generateBurstParticles } from '../lib/particles.ts';
 import type { ACWRResult, DecayResult, PillarACWRResult } from '../lib/analyticsModels.ts';
@@ -16,7 +15,6 @@ interface Props {
   streak: number;
   longestStreak: number;
   weekSessionCount: number;
-  weekTotalMinutes: number;
   consistentWeeks: number;
   acwr?: ACWRResult | null;
   rustiest?: DecayResult | null;
@@ -36,7 +34,6 @@ export default function HomeHero({
   streak,
   longestStreak,
   weekSessionCount,
-  weekTotalMinutes,
   consistentWeeks,
   acwr,
   rustiest: rustiestPillar,

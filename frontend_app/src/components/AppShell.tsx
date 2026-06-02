@@ -4,7 +4,7 @@ import { Plus } from 'lucide-react';
 import { useProfile } from '../context/ProfileContext.tsx';
 import WaveBackground from './WaveBackground.tsx';
 import BeltBar, { type BeltRank, BELT_COLORS, PATCH_COLORS } from './BeltBar.tsx';
-import { PAGE_BG, PALE_YELLOW, GLOW_TITLE, GLOW_NAV, COPPER_BORDER, CARD_BG } from '../lib/theme.ts';
+import { PAGE_BG, PALE_YELLOW, GLOW_TITLE, GLOW_NAV, COPPER_BORDER } from '../lib/theme.ts';
 import PageTransition from './PageTransition.tsx';
 import OfflineBanner from './OfflineBanner.tsx';
 import { useOnlineSync } from '../hooks/useOnlineSync.ts';

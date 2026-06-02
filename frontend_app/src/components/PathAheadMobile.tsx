@@ -40,14 +40,13 @@ interface Props {
   streak: number;
   longestStreak: number;
   weekSessionCount: number;
-  weekTotalMinutes: number;
   consistentWeeks: number;
   acwr?: ACWRResult | null;
   rustiest?: DecayResult | null;
   spikiest?: PillarACWRResult | null;
-  // Telemetry panel
-  telemetryOpen: boolean;
-  setTelemetryOpen: (next: boolean | ((prev: boolean) => boolean)) => void;
+  // Telemetry panel — always-visible content (the collapsible-panel
+  // open/close state was removed; telemetry now renders inline above
+  // TodayCard, so only the content node is passed in).
   telemetryContent: React.ReactNode;
   // Intention
   activeIntention: Intention | null;
@@ -67,7 +66,6 @@ interface Props {
   onDayTap: (day: Date, sessions: SessionSummary[]) => void;
   onSessionTap: (entry: DaySessionEntry) => void;
   // Other shared elements
-  primaryCta: React.ReactNode;
   heatmapSection: React.ReactNode;
   modals: React.ReactNode;
   styleBlock: React.ReactNode;
@@ -85,13 +83,10 @@ export default function PathAheadMobile({
   streak,
   longestStreak,
   weekSessionCount,
-  weekTotalMinutes,
   consistentWeeks,
   acwr,
   rustiest,
   spikiest,
-  telemetryOpen,
-  setTelemetryOpen,
   telemetryContent,
   activeIntention,
   allSessions,
@@ -107,7 +102,6 @@ export default function PathAheadMobile({
   onLogTap,
   onDayTap,
   onSessionTap,
-  primaryCta,
   heatmapSection,
   modals,
   styleBlock,
@@ -135,7 +129,6 @@ export default function PathAheadMobile({
         streak={streak}
         longestStreak={longestStreak}
         weekSessionCount={weekSessionCount}
-        weekTotalMinutes={weekTotalMinutes}
         consistentWeeks={consistentWeeks}
         acwr={acwr}
         rustiest={rustiest}

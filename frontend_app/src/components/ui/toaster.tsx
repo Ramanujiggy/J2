@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { PALE_YELLOW, COPPER, FONT_EDITORIAL, GLOW_SOFT } from '@/lib/theme';
+import { PALE_YELLOW, FONT_EDITORIAL, GLOW_SOFT } from '@/lib/theme';
 
 export function Toaster() {
   const { toasts } = useToast();

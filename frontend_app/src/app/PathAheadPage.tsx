@@ -49,9 +49,6 @@ export default function PathAheadPage() {
   const MINI_CARD_W = 110;
   const MINI_CARD_GAP = 10;
 
-  // Training Telemetry — expand/collapse + stat toggle
-  const [telemetryOpen, setTelemetryOpen] = useState(false);
-
   // Week view toggle — carousel (minimalist) vs list (detailed)
   type WeekViewMode = 'carousel' | 'list';
   const [weekView, setWeekView] = useState<WeekViewMode>(
@@ -377,20 +374,6 @@ export default function PathAheadPage() {
     openLog(date ? { date } : undefined);
   }, [openLog]);
 
-  const primaryCta = (sessionsByDate.get(toDateString(today)) ?? []).length === 0 ? (
-    <button
-      onClick={() => openLog()}
-      className="w-full rounded-xl py-3 text-base font-semibold text-white touch-manipulation"
-      style={{
-        backgroundColor: '#DA7422',
-        boxShadow: '0 2px 12px rgba(218,116,34,0.3)',
-        transition: 'transform 150ms ease, box-shadow 150ms ease',
-      }}
-    >
-      + Mat Time
-    </button>
-  ) : null;
-
   // PulseSparklineWidget handles the sparse / empty case internally — it
   // renders the same invitational copy when fewer than 5 sessions exist in
   // the last 30 days, so no outer gate is needed here.
@@ -473,13 +456,10 @@ export default function PathAheadPage() {
       streak={streak}
       longestStreak={longestStreak}
       weekSessionCount={weekStats.count}
-      weekTotalMinutes={weekStats.totalMinutes}
       consistentWeeks={consistentWeeks}
       acwr={acwr}
       rustiest={rustiestPillar}
       spikiest={spikiest}
-      telemetryOpen={telemetryOpen}
-      setTelemetryOpen={setTelemetryOpen}
       telemetryContent={telemetryContent}
       activeIntention={activeIntention}
       allSessions={allSessions}
@@ -495,7 +475,6 @@ export default function PathAheadPage() {
       onLogTap={handleLogTap}
       onDayTap={handleDayTap}
       onSessionTap={handleSessionTap}
-      primaryCta={primaryCta}
       heatmapSection={heatmapSection}
       modals={modals}
       styleBlock={styleBlock}

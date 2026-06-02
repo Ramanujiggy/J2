@@ -12,9 +12,9 @@
 import { useMemo, useState } from 'react';
 import JournalEmptyState from '../JournalEmptyState.tsx';
 import { Pencil } from 'lucide-react';
-import { COPPER, GLOW_SOFT, PALE_YELLOW, SURFACE_2, SURFACE_3 } from '../../lib/theme.ts';
+import { COPPER, GLOW_SOFT, PALE_YELLOW, SURFACE_2 } from '../../lib/theme.ts';
 import { SKILL_TAGS, CATEGORY_COLORS } from '../../lib/constants.ts';
-import { computeAlignment, formatWeekShort, tagHoursInRange, topTagInRange } from '../../lib/analyticsUtils.ts';
+import { computeAlignment, tagHoursInRange, topTagInRange } from '../../lib/analyticsUtils.ts';
 import type { Intention, SessionSummary } from '../../types/api.ts';
 import PageContent from '../PageContent.tsx';
 import SetIntentionModal from '../SetIntentionModal.tsx';

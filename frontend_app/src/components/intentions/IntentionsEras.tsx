@@ -14,7 +14,6 @@
 // Extracted from IntentionsPage.tsx during the 2026-05-09 refactor pass.
 
 import { COPPER, PALE_YELLOW, FONT_EDITORIAL } from '../../lib/theme.ts';
-import { MONTH_NAMES } from '../../lib/constants.ts';
 import type { Intention } from '../../types/api.ts';
 import {
   FOCUS_COLORS, PILLAR_LABEL,
@@ -62,14 +61,6 @@ export function EraCard({
   const weeksCount = era.weeks.length;
 
   // Date range — first wk is newest, last wk is oldest (per `computeEras`).
-  // For display, show oldest → newest left-to-right.
-  const startDate = new Date(era.lastWk + 'T00:00:00');
-  const endDate = new Date(era.firstWk + 'T00:00:00');
-  const fmt = (d: Date) => `${MONTH_NAMES[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
-  const eyebrow = weeksCount === 1
-    ? `One week · ${fmt(startDate)}`
-    : `${weeksCount} weeks · ${fmt(startDate)} → ${fmt(endDate)}`;
-
   // Bar chart: chronological (oldest left) — reverse era.weeks (newest-first)
   const chronological = [...era.weeks].reverse();
 

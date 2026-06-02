@@ -3,8 +3,6 @@ import { api, ApiError } from '../lib/api.ts';
 import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import TrainingHeatmap from '../components/TrainingHeatmap.tsx';
-import CompactHeatmap from '../components/CompactHeatmap.tsx';
-import CalendarHeatmap from '../components/CalendarHeatmap.tsx';
 import CalendarHeatmapView from '../components/CalendarHeatmapView.tsx';
 import LogSessionForm from '../components/LogSessionForm.tsx';
 import ErrorBoundary from '../components/ErrorBoundary.tsx';

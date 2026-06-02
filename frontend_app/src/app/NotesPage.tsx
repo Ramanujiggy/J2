@@ -7,7 +7,7 @@ import { useUserTags } from '../hooks/useUserTags.ts';
 import SegmentedToggle from '../components/SegmentedToggle.tsx';
 import PageContent from '../components/PageContent.tsx';
 import JournalEmptyState from '../components/JournalEmptyState.tsx';
-import { PALE_YELLOW, GLOW_SOFT, COPPER, FONT_EDITORIAL, SURFACE_3 } from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, COPPER, FONT_EDITORIAL } from '../lib/theme.ts';
 import { toast } from '../hooks/use-toast.ts';
 import { formatDuration } from '../lib/sessionUtils.ts';
 import type { TrainingNote, SessionSummary } from '../types/api.ts';
@@ -136,7 +136,7 @@ export default function NotesPage() {
     refetch();
   };
 
-  const getNoteId = () => editorNote !== 'new' && typeof editorNote === 'object' ? editorNote.id : createdIdRef.current;
+  const getNoteId = () => editorNote && typeof editorNote === 'object' ? editorNote.id : createdIdRef.current;
 
   const linkTechnique = async (tagId: string) => {
     if (editorLinkedTagIds.includes(tagId)) return;
@@ -174,7 +174,7 @@ export default function NotesPage() {
     setEditorTags(newTags);
     setTagInput('');
     setShowTagInput(false);
-    const noteId = editorNote !== 'new' && typeof editorNote === 'object' ? editorNote.id : createdIdRef.current;
+    const noteId = editorNote && typeof editorNote === 'object' ? editorNote.id : createdIdRef.current;
     if (noteId) {
       try { await api.put(`/api/notes/${noteId}`, { tags: newTags }); refetch(); } catch {}
     }
@@ -183,20 +183,16 @@ export default function NotesPage() {
   const removeTag = async (tag: string) => {
     const newTags = editorTags.filter(t => t !== tag);
     setEditorTags(newTags);
-    const noteId = editorNote !== 'new' && typeof editorNote === 'object' ? editorNote.id : createdIdRef.current;
+    const noteId = editorNote && typeof editorNote === 'object' ? editorNote.id : createdIdRef.current;
     if (noteId) {
       try { await api.put(`/api/notes/${noteId}`, { tags: newTags }); refetch(); } catch {}
     }
   };
 
-  const handleTogglePin = async (note: TrainingNote) => {
-    try {
-      await api.put(`/api/notes/${note.id}`, { pinned: !note.pinned });
-      refetch();
-    } catch {
-      toast({ title: 'Failed to update note.', variant: 'destructive' });
-    }
-  };
+  // Pin toggle: the backend already accepts `{ pinned }` on PUT /api/notes/:id
+  // and pinned notes render in their own group above recents. The UI gesture
+  // for toggling isn't wired yet — when we pick one (long-press menu vs.
+  // swipe-right counterpart to delete), re-add a handler here.
 
   const handleDelete = async (id: string) => {
     try {
@@ -214,7 +210,7 @@ export default function NotesPage() {
 
   // ── Full-page editor ────────────────────────────────────────────
   if (editorNote !== null) {
-    const isExisting = editorNote !== 'new' && typeof editorNote === 'object';
+    const isExisting = editorNote && typeof editorNote === 'object';
     const noteDate = isExisting
       ? new Date(editorNote.created_at).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
       : new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });

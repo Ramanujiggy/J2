@@ -197,22 +197,46 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
               <button
                 type="button"
                 onClick={() => { vibrate(8); setWriteJournal(v => !v); }}
-                className="w-full flex items-center gap-3 rounded-xl px-4 py-3 transition-colors touch-manipulation"
+                className="w-full rounded-xl transition-colors touch-manipulation"
                 style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 14,
+                  padding: '12px 16px',
                   backgroundColor: writeJournal ? 'rgba(196,145,95,0.08)' : SURFACE_2,
                   border: writeJournal ? '1px solid rgba(196,145,95,0.25)' : '1px solid rgba(255,255,255,0.05)',
                 }}
               >
-                <div
-                  className="w-11 h-6 rounded-full relative flex-shrink-0 transition-colors"
-                  style={{ backgroundColor: writeJournal ? COPPER : 'rgba(255,255,255,0.10)' }}
+                <span
+                  aria-hidden
+                  style={{
+                    position: 'relative',
+                    flex: '0 0 auto',
+                    width: 44,
+                    height: 24,
+                    borderRadius: 999,
+                    backgroundColor: writeJournal ? COPPER : 'rgba(255,255,255,0.10)',
+                    transition: 'background-color 180ms ease',
+                  }}
                 >
                   <span
-                    className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform"
-                    style={{ transform: writeJournal ? 'translateX(22px)' : 'translateX(2px)' }}
+                    style={{
+                      position: 'absolute',
+                      top: 2,
+                      left: 2,
+                      width: 20,
+                      height: 20,
+                      borderRadius: '50%',
+                      backgroundColor: '#fff',
+                      transform: writeJournal ? 'translateX(20px)' : 'translateX(0)',
+                      transition: 'transform 180ms ease',
+                    }}
                   />
-                </div>
-                <span className="text-sm" style={{ color: writeJournal ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.40)' }}>
+                </span>
+                <span
+                  className="text-sm"
+                  style={{ color: writeJournal ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.40)' }}
+                >
                   Write a journal entry
                 </span>
               </button>

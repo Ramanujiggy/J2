@@ -11,11 +11,11 @@
 
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { localDateKey, buildDayMap, EMPTY_DAY, computeStats } from './TrainingHeatmap.tsx';
+import { localDateKey, buildDayMap, EMPTY_DAY } from './TrainingHeatmap.tsx';
 import type { DayData } from './TrainingHeatmap.tsx';
 import type { SessionSummary } from '../types/api.ts';
 import {
-  CARD_BG, COPPER, PALE_YELLOW, CARD_GLOW, CARD_GLOW_BORDER, INT_COLORS,
+  COPPER, PALE_YELLOW, INT_COLORS,
 } from '../lib/theme.ts';
 
 const WINDOW_DAYS = 30;
@@ -61,7 +61,6 @@ export default function PulseSparklineWidget({ sessions }: PulseSparklineWidgetP
 
   const dayMap = useMemo(() => buildDayMap(sessions), [sessions]);
   const slots  = useMemo(() => buildLast30(dayMap), [dayMap]);
-  const stats  = useMemo(() => computeStats(sessions, new Date().getFullYear()), [sessions]);
 
   // Window-scoped aggregates (last 30 days, not the calendar year).
   const sessionCount = useMemo(

@@ -4,14 +4,14 @@ import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 
 import { api } from '../lib/api.ts';
 import { useAuth } from '../hooks/useAuth.ts';
-import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, SURFACE_2, SURFACE_2_BORDER, SURFACE_3, COPPER, PALE_YELLOW, FONT_EDITORIAL } from '../lib/theme.ts';
+import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, SURFACE_2, SURFACE_2_BORDER, SURFACE_3, COPPER } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import CsvImportModal from '../components/CsvImportModal.tsx';
 import ReportProblemModal from '../components/ReportProblemModal.tsx';
 import { exportSessionsCsv, exportIntentionsCsv } from '../lib/csvExport.ts';
 import type { SessionSummary, Intention } from '../types/api.ts';
 import PageContent from '../components/PageContent.tsx';
-import { type BeltRank } from '../components/BeltBar.tsx';
+import { type BeltRank, BELT_COLORS } from '../components/BeltBar.tsx';
 import { useProfile } from '../context/ProfileContext.tsx';
 import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import {
