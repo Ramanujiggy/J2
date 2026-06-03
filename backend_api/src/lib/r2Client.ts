@@ -27,6 +27,8 @@ import {
     PutObjectCommand,
     GetObjectCommand,
     DeleteObjectCommand,
+    ListObjectsV2Command,
+    type ListObjectsV2CommandOutput,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Readable } from 'node:stream';
@@ -158,6 +160,31 @@ export async function deleteObject(storageKey: string): Promise<void> {
         Key: storageKey,
     });
     await r2Client.send(command);
+}
+
+/**
+ * List every object in the bucket. Paginates internally — handles buckets
+ * with >1000 keys. Returns key + byte size for each object. Used by the
+ * admin orphan-cleanup task to walk the bucket and compare against the
+ * keys claimed by user_tags rows.
+ */
+export async function listAllObjects(): Promise<Array<{ key: string; sizeBytes: number }>> {
+    const all: Array<{ key: string; sizeBytes: number }> = [];
+    let continuationToken: string | undefined = undefined;
+    while (true) {
+        const result: ListObjectsV2CommandOutput = await r2Client.send(
+            new ListObjectsV2Command({
+                Bucket: R2_BUCKET_NAME,
+                ContinuationToken: continuationToken,
+            }),
+        );
+        for (const obj of result.Contents ?? []) {
+            if (obj.Key) all.push({ key: obj.Key, sizeBytes: obj.Size ?? 0 });
+        }
+        if (!result.NextContinuationToken) break;
+        continuationToken = result.NextContinuationToken;
+    }
+    return all;
 }
 
 // ── Key generators — keep storage layout in one place ──────────────────────

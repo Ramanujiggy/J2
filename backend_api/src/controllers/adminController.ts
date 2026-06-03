@@ -5,6 +5,7 @@ import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { query } from '../config/db.js';
 import { listCases, updateCase } from '../models/supportCaseModel.js';
+import { listAllObjects, deleteObject } from '../lib/r2Client.js';
 
 // ── GET /api/admin/stats ──────────────────────────────────────────────────
 // Single-row aggregate. Cheap enough to run on every dashboard load.
@@ -295,5 +296,91 @@ export const getRecentLogins = async (_req: Request, res: Response): Promise<voi
     } catch (err) {
         console.error('❌ Error listing recent logins:', err);
         res.status(500).json({ message: 'Server error.' });
+    }
+};
+
+// ── POST /api/admin/cleanup-orphaned-videos ───────────────────────────────
+//
+// Walks the R2 bucket, joins each object key against the storage keys
+// claimed by `user_tags` rows (video_storage_key OR video_raw_storage_key),
+// and reports any object not referenced by a tag as an orphan.
+//
+// These orphans typically come from broken upload sessions: the PUT to R2
+// succeeded (so bytes landed in the bucket) but the subsequent
+// `/upload-complete` call failed before the DB row was updated. The result
+// is bytes in R2 that no DB row knows about.
+//
+// Modes:
+//   • Default (dry-run) — returns the orphan list + total bytes, deletes
+//     nothing. Safe to run anytime.
+//   • `?execute=true` — also deletes the orphans from R2. Idempotent;
+//     re-running yields fewer/zero orphans.
+//
+// Response shape:
+//   {
+//     mode: 'dry-run' | 'execute',
+//     scanned: number,         // total R2 objects walked
+//     claimed: number,         // distinct storage keys referenced by tags
+//     orphans: Array<{ key, sizeBytes }>,
+//     totalOrphanedBytes: number,
+//     deleted: number,         // 0 in dry-run
+//     errors: Array<{ key, message }>
+//   }
+export const cleanupOrphanedVideos = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const execute = req.query.execute === 'true';
+
+        // Pull every storage key currently claimed by a user_tags row, from
+        // either the encoded slot or the (transient) raw slot. UNION
+        // dedupes; we want the set of "in-use" keys.
+        const claimResult = await query(`
+            SELECT video_storage_key AS key FROM user_tags
+             WHERE video_storage_key IS NOT NULL
+            UNION
+            SELECT video_raw_storage_key AS key FROM user_tags
+             WHERE video_raw_storage_key IS NOT NULL
+        `);
+        const claimedKeys = new Set<string>(
+            (claimResult.rows as Array<{ key: string }>).map(r => r.key),
+        );
+
+        const allObjects = await listAllObjects();
+
+        const orphans: Array<{ key: string; sizeBytes: number }> = [];
+        for (const obj of allObjects) {
+            if (!claimedKeys.has(obj.key)) {
+                orphans.push(obj);
+            }
+        }
+        const totalOrphanedBytes = orphans.reduce((sum, o) => sum + o.sizeBytes, 0);
+
+        let deleted = 0;
+        const errors: Array<{ key: string; message: string }> = [];
+        if (execute) {
+            for (const orphan of orphans) {
+                try {
+                    await deleteObject(orphan.key);
+                    deleted++;
+                } catch (err) {
+                    errors.push({
+                        key: orphan.key,
+                        message: err instanceof Error ? err.message : 'unknown error',
+                    });
+                }
+            }
+        }
+
+        res.status(200).json({
+            mode: execute ? 'execute' : 'dry-run',
+            scanned: allObjects.length,
+            claimed: claimedKeys.size,
+            orphans,
+            totalOrphanedBytes,
+            deleted,
+            errors,
+        });
+    } catch (err) {
+        console.error('❌ Error in cleanupOrphanedVideos:', err);
+        res.status(500).json({ message: 'Server error' });
     }
 };
