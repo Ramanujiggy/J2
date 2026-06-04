@@ -16,7 +16,7 @@
 // user wants to watch the move repeat a few times without tapping again.
 
 import { useState, useEffect } from 'react';
-import { loadVideo, saveVideo } from '../lib/videoStore.ts';
+import { loadVideo, saveVideo, deleteVideosForTag } from '../lib/videoStore.ts';
 import { api } from '../lib/api.ts';
 import type { UserTag } from '../types/api.ts';
 
@@ -48,9 +48,17 @@ export default function VideoPlayer({ tag, onClose, stuck = false }: Props) {
     let urlToRevoke: string | null = null;
     const abortController = new AbortController();
 
+    // Cache key includes the server's authoritative byte size as a version
+    // discriminator. A re-upload from any device produces a different
+    // encoded size and therefore a different cache key — so the next
+    // playback on every device misses the stale cache and refetches.
+    const cacheKey = tag.video_byte_size != null
+      ? `${tag.id}@${tag.video_byte_size}`
+      : tag.id;
+
     (async () => {
       try {
-        const blob = await loadVideo(tag.id);
+        const blob = await loadVideo(cacheKey);
         if (cancelled) return;
         if (blob) {
           const url = URL.createObjectURL(blob);
@@ -104,10 +112,17 @@ export default function VideoPlayer({ tag, onClose, stuck = false }: Props) {
           setLoading(false);
 
           // Best-effort cache backfill for next time. Cloud is canonical;
-          // don't block playback on this.
-          saveVideo(tag.id, blob).catch(err => {
-            console.warn(`OPFS cache backfill failed for tag ${tag.id}:`, err);
-          });
+          // don't block playback on this. Sweep any stale entries for the
+          // same tag (older sizes, legacy unversioned key) before writing
+          // the fresh one so OPFS doesn't accumulate orphans.
+          (async () => {
+            try {
+              await deleteVideosForTag(tag.id);
+              await saveVideo(cacheKey, blob);
+            } catch (err) {
+              console.warn(`OPFS cache backfill failed for tag ${tag.id}:`, err);
+            }
+          })();
         } else {
           setMissing(true);
           setLoading(false);

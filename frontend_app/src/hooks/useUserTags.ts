@@ -8,7 +8,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '../lib/api.ts';
 import type { UserTag, UserTagsResponse, UserTagVideoUpdate, Pillar, Affinity } from '../types/api.ts';
-import { saveVideo, deleteVideo, hasQuotaFor } from '../lib/videoStore.ts';
+import { deleteVideosForTag, hasQuotaFor } from '../lib/videoStore.ts';
 import { validateVideoFile, probeVideo, extractThumbnail } from '../lib/videoUtils.ts';
 import { uploadToR2, type UploadProgressCallback } from '../lib/videoUploader.ts';
 
@@ -153,14 +153,16 @@ export function useUserTags() {
       setTags(prev => prev.map(t => (t.id === completed.tag.id ? completed.tag : t)));
       setError(null);
 
-      // 8. Best-effort OPFS cache write so the next playback is local.
-      if (localOk) {
-        try { await saveVideo(id, file); }
-        catch (err) {
-          // Non-fatal — cloud is canonical.
-          console.warn(`Failed to cache video ${id} locally:`, err);
-        }
-      }
+      // We deliberately do NOT cache the raw file locally here. The raw
+      // file's byte size doesn't match the encoded variant's byte size
+      // (the worker re-encodes to H.264/AAC + scale-1080p), and the
+      // playback cache key is derived from the server's encoded
+      // video_byte_size. Caching the raw under any composite key would
+      // either never be found (size mismatch) or would serve stale
+      // content across re-uploads. The first playback after upload pays a
+      // ~1-3s fetch cost; everything afterwards is local + correctly
+      // invalidated.
+      void localOk;
 
       return completed.tag;
     } catch (err) {
@@ -196,8 +198,9 @@ export function useUserTags() {
    */
   const detachVideo = useCallback(async (id: string): Promise<UserTag | null> => {
     try {
-      // Best-effort local cache clear
-      try { await deleteVideo(id); } catch { /* ignore */ }
+      // Best-effort local cache clear — sweep every cached variant for
+      // this tag (composite keys + the legacy unversioned key).
+      try { await deleteVideosForTag(id); } catch { /* ignore */ }
       const res = await api.delete<{ tag: UserTag }>(`/api/user-tags/${id}/video`);
       setTags(prev => prev.map(t => (t.id === res.tag.id ? res.tag : t)));
       setError(null);

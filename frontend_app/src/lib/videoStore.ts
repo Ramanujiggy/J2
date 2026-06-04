@@ -198,6 +198,19 @@ export async function listVideoIds(): Promise<string[]> {
   return idbListIds();
 }
 
+/**
+ * Delete every cache entry associated with a tag — both the legacy
+ * unversioned key (`tagId`) and the post-2026-06 composite keys
+ * (`tagId@<size>`). Used by the playback path to sweep stale entries when
+ * a new version is fetched from the cloud, and by detachVideo to fully
+ * clear the cache for a removed video.
+ */
+export async function deleteVideosForTag(tagId: string): Promise<void> {
+  const all = await listVideoIds();
+  const matches = all.filter(k => k === tagId || k.startsWith(`${tagId}@`));
+  await Promise.all(matches.map(k => deleteVideo(k)));
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Quota helpers — surface to UI
 // ─────────────────────────────────────────────────────────────────────────────
