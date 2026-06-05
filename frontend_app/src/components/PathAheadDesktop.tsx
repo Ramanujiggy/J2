@@ -48,6 +48,8 @@ interface Props {
   consistentWeeks: number;
   // Intention
   activeIntention: Intention | null;
+  /** Completion progress for non-'days' intentions (mig 034). null otherwise. */
+  activeIntentionProgress: { completed: number; target: number; unit: 'sessions' | 'training_weeks' } | null;
   // Sessions
   allSessions: SessionSummary[];
   // Week section
@@ -123,6 +125,7 @@ export default function PathAheadDesktop({
   weekStatsTotalMinutes,
   consistentWeeks,
   activeIntention,
+  activeIntentionProgress,
   allSessions,
   weekOffset,
   weekLabel,
@@ -376,6 +379,7 @@ export default function PathAheadDesktop({
             <IntentionHeroCard
               intention={activeIntention}
               weekSessionCount={weekStatsCount}
+              progress={activeIntentionProgress}
               onSetIntent={() => setSetIntentOpen(true)}
               onEditIntent={activeIntention ? () => setEditIntention(activeIntention) : undefined}
               onViewJournal={activeIntention ? () => navigate(`/intentions/${activeIntention.id}/journal`) : undefined}

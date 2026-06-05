@@ -11,14 +11,14 @@ import { api, ApiError } from '../lib/api.ts';
 import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock.ts';
-import { SKILL_TAGS, MONTH_NAMES, EIGHT_GATES } from '../lib/constants.ts';
+import { MONTH_NAMES, EIGHT_GATES } from '../lib/constants.ts';
 import type { SessionSummary, Intention, SessionsResponse } from '../types/api.ts';
 import { toast } from '../hooks/use-toast.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import { useActiveIntention } from '../context/ActiveIntentionContext.tsx';
 import PulseSparklineWidget from '../components/PulseSparklineWidget.tsx';
-import { computeACWR, computeDecay, rustiest, computeACWRByPillar, spikiestPillar } from '../lib/analyticsModels.ts';
-import { sessionPillarHours } from '../lib/analyticsUtils.ts';
+import { computeACWR, computeDecay, rustiest, computeACWRByPillar, spikiestPillar, computeTelemetry } from '../lib/analyticsModels.ts';
+import { isIntentionComplete, computeIntentionProgress } from '../lib/analyticsUtils.ts';
 import PathAheadTelemetryCard from '../components/PathAheadTelemetryCard.tsx';
 import PathAheadModals from '../components/PathAheadModals.tsx';
 import PathAheadMobile from '../components/PathAheadMobile.tsx';
@@ -170,14 +170,6 @@ export default function PathAheadPage() {
 
   const today = useMemo(() => new Date(), []);
 
-  const windowDays = useMemo(() => {
-    return Array.from({ length: 11 }, (_, i) => {
-      const d = new Date(today);
-      d.setDate(today.getDate() + (i - 5));
-      return d;
-    });
-  }, [today]);
-
   // Mon–Sun of the current ISO week — used for weekStats (HomeHero always shows current week)
   const weekDays = useMemo(() => {
     const monday = new Date(today);
@@ -217,13 +209,20 @@ export default function PathAheadPage() {
   // Days-from-Monday offset for today (used to map weekDays index → windowDays index)
   const todayDowOffset = today.getDay() === 0 ? 6 : today.getDay() - 1;
 
-  // Active intention: any intention whose window contains today
+  // Active intention: any intention whose calendar window contains today
+  // AND, for non-'days' completion modes, that hasn't hit its target yet.
+  // For 'days' mode, the calendar window IS the completion criterion.
   const todayStr = toDateString(today);
   const activeIntention = intentions.find(i => {
     const start = i.week_start.slice(0, 10);
     const end   = addDays(start, (i.duration_days ?? 7) - 1);
-    return todayStr >= start && todayStr <= end;
+    if (todayStr < start || todayStr > end) return false;
+    if (i.completion_type !== 'days' && isIntentionComplete(i, allSessions)) return false;
+    return true;
   }) ?? null;
+  const activeIntentionProgress = activeIntention
+    ? computeIntentionProgress(activeIntention, allSessions)
+    : null;
 
   const intentionStartStr = activeIntention ? activeIntention.week_start.slice(0, 10) : null;
   const intentionEndStr = intentionStartStr && activeIntention
@@ -272,30 +271,9 @@ export default function PathAheadPage() {
     return list;
   }, [displayWeekDays, sessionsByDate]);
 
-  // ── Window stats ───────────────────────────────────────────────────────
+  // ── Telemetry — 7d acute vs 28d chronic (aligned with ACWR windows) ────
 
-  const windowStats = useMemo(() => {
-    const windowDateStrings = new Set(windowDays.map(toDateString));
-    const windowSessions = allSessions.filter(s => {
-      const key = typeof s.date === 'string' ? s.date.slice(0, 10) : toDateString(new Date(s.date));
-      return windowDateStrings.has(key);
-    });
-    const totalMinutes = windowSessions.reduce((acc, s) => acc + s.duration, 0);
-    // Top skill tag
-    const tagCounts: Record<string, number> = {};
-    windowSessions.forEach(s => {
-      const ph = sessionPillarHours(s);
-      for (const [k, v] of Object.entries(ph)) tagCounts[k] = (tagCounts[k] ?? 0) + v;
-    });
-    const sorted = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]);
-    const topTagEntry = sorted[0] ?? null;
-    const topTag      = topTagEntry?.[0] ?? null;
-    const topTagCount = topTagEntry?.[1] ?? 0;
-    const topTagLabel = topTag ? (SKILL_TAGS.find(s => s.value === topTag)?.label ?? topTag) : null;
-    const tag2Entry   = sorted[1] ?? null;
-    const tag2Label   = tag2Entry ? (SKILL_TAGS.find(s => s.value === tag2Entry[0])?.label ?? tag2Entry[0]) : null;
-    return { count: windowSessions.length, totalMinutes, topTagLabel, topTagCount, tag2Label };
-  }, [allSessions, windowDays]);
+  const telemetry = useMemo(() => computeTelemetry(allSessions, today), [allSessions, today]);
 
   // ── Week stats (Mon-Sun of current week) ──────────────────────────────
   const weekStats = useMemo(() => {
@@ -346,7 +324,7 @@ export default function PathAheadPage() {
     `}</style>
   );
 
-  const telemetryContent = <PathAheadTelemetryCard windowStats={windowStats} />;
+  const telemetryContent = <PathAheadTelemetryCard telemetry={telemetry} />;
 
   // Tap handlers shared between desktop + mobile WeekSection. Centralises
   // the sessionsByDate / getIntentionInfo / activeIntention bookkeeping so
@@ -420,6 +398,7 @@ export default function PathAheadPage() {
         weekStatsTotalMinutes={weekStats.totalMinutes}
         consistentWeeks={consistentWeeks}
         activeIntention={activeIntention}
+        activeIntentionProgress={activeIntentionProgress}
         allSessions={allSessions}
         weekOffset={weekOffset}
         weekLabel={weekLabel}
@@ -462,6 +441,7 @@ export default function PathAheadPage() {
       spikiest={spikiest}
       telemetryContent={telemetryContent}
       activeIntention={activeIntention}
+      activeIntentionProgress={activeIntentionProgress}
       allSessions={allSessions}
       weekOffset={weekOffset}
       weekLabel={weekLabel}

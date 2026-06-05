@@ -29,7 +29,7 @@ function getWeekStart(date: Date): string {
 export const createIntention = async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
-    const { intent_label, heading, intent_category, week_start, duration_days } = req.body;
+    const { intent_label, heading, intent_category, week_start, duration_days, completion_type, target_count } = req.body;
 
     // Heading is the primary focus selector (Prism vertex). Label is optional flavor text.
     if (heading !== undefined && heading !== null && !VALID_HEADINGS.has(heading)) {
@@ -44,9 +44,25 @@ export const createIntention = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Invalid intent_category.' });
     }
 
-    const durationDays = duration_days !== undefined ? Math.round(Number(duration_days)) : 7;
-    if (!Number.isFinite(durationDays) || durationDays < 1 || durationDays > 30) {
-      return res.status(400).json({ message: 'duration_days must be an integer between 1 and 30.' });
+    // Completion mode (mig 034). For non-'days' modes, duration_days serves
+    // as a soft calendar ceiling (default 90d) so an unmet target doesn't
+    // keep the intention "active" forever.
+    const completionType: 'days' | 'sessions' | 'training_weeks' =
+      completion_type === 'sessions' || completion_type === 'training_weeks' ? completion_type : 'days';
+    let targetCount: number | null = null;
+    if (completionType !== 'days') {
+      const t = Math.round(Number(target_count));
+      if (!Number.isFinite(t) || t < 1 || t > 99) {
+        return res.status(400).json({ message: 'target_count must be an integer between 1 and 99 for sessions / training_weeks modes.' });
+      }
+      targetCount = t;
+    }
+
+    const defaultDuration = completionType === 'days' ? 7 : 90;
+    const maxDuration     = completionType === 'days' ? 30 : 180;
+    const durationDays = duration_days !== undefined ? Math.round(Number(duration_days)) : defaultDuration;
+    if (!Number.isFinite(durationDays) || durationDays < 1 || durationDays > maxDuration) {
+      return res.status(400).json({ message: `duration_days must be an integer between 1 and ${maxDuration}.` });
     }
 
     // Use client-supplied start date or today
@@ -76,6 +92,8 @@ export const createIntention = async (req: Request, res: Response) => {
         intent_category ?? null,
         heading ?? null,
         durationDays,
+        completionType,
+        targetCount,
         client,
       );
 
@@ -180,7 +198,7 @@ export const patchIntention = async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
     const { id } = req.params;
-    const { intent_label, heading, intent_category, duration_days } = req.body;
+    const { intent_label, heading, intent_category, duration_days, completion_type, target_count } = req.body;
 
     const label = (typeof intent_label === 'string' && intent_label.trim()) ? intent_label.trim() : '';
     if (label.length > 20) {
@@ -193,9 +211,22 @@ export const patchIntention = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Invalid intent_category.' });
     }
 
-    const durationDays = duration_days !== undefined ? Math.round(Number(duration_days)) : 7;
-    if (!Number.isFinite(durationDays) || durationDays < 1 || durationDays > 30) {
-      return res.status(400).json({ message: 'duration_days must be an integer between 1 and 30.' });
+    const completionType: 'days' | 'sessions' | 'training_weeks' =
+      completion_type === 'sessions' || completion_type === 'training_weeks' ? completion_type : 'days';
+    let targetCount: number | null = null;
+    if (completionType !== 'days') {
+      const t = Math.round(Number(target_count));
+      if (!Number.isFinite(t) || t < 1 || t > 99) {
+        return res.status(400).json({ message: 'target_count must be an integer between 1 and 99 for sessions / training_weeks modes.' });
+      }
+      targetCount = t;
+    }
+
+    const defaultDuration = completionType === 'days' ? 7 : 90;
+    const maxDuration     = completionType === 'days' ? 30 : 180;
+    const durationDays = duration_days !== undefined ? Math.round(Number(duration_days)) : defaultDuration;
+    if (!Number.isFinite(durationDays) || durationDays < 1 || durationDays > maxDuration) {
+      return res.status(400).json({ message: `duration_days must be an integer between 1 and ${maxDuration}.` });
     }
 
     const updated = await intentionModel.updateIntention(
@@ -205,6 +236,8 @@ export const patchIntention = async (req: Request, res: Response) => {
       intent_category ?? null,
       heading ?? null,
       durationDays,
+      completionType,
+      targetCount,
     );
 
     if (!updated) {

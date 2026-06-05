@@ -8,6 +8,8 @@ interface Executor {
 }
 const defaultExec: Executor = { query };
 
+export type CompletionType = 'days' | 'sessions' | 'training_weeks';
+
 export interface Intention {
   id: string;
   user_id: string;
@@ -16,6 +18,19 @@ export interface Intention {
   intent_category: 'technical' | 'physical' | 'mental' | 'positional' | 'competitive' | null;
   heading: string | null; // Prism vertex: standup/passing/pins/submissions/guard
   duration_days: number;
+  /**
+   * Completion mode (mig 034).
+   *   • 'days'           — duration_days is authoritative (legacy behavior)
+   *   • 'sessions'       — completes once `target_count` sessions touching
+   *                        `heading` have been logged on or after week_start
+   *   • 'training_weeks' — completes once `target_count` distinct ISO weeks
+   *                        containing >= 1 session have elapsed since week_start
+   * For non-'days' modes, `duration_days` acts as a soft calendar ceiling
+   * so an unreached target doesn't keep the intention "active" forever.
+   */
+  completion_type: CompletionType;
+  /** Target for 'sessions' / 'training_weeks'. NULL when completion_type='days'. */
+  target_count: number | null;
   journal_entry: string | null;
   created_at: Date;
 }
@@ -27,13 +42,17 @@ export const createIntention = async (
   intentCategory: string | null,
   heading: string | null,
   durationDays: number,
+  completionType: CompletionType = 'days',
+  targetCount: number | null = null,
   exec: Executor | PoolClient = defaultExec,
 ): Promise<Intention> => {
   const result = await exec.query(
-    `INSERT INTO weekly_intentions (user_id, week_start, intent_label, intent_category, heading, duration_days)
-     VALUES ($1, $2, $3, $4, $5, $6)
+    `INSERT INTO weekly_intentions
+       (user_id, week_start, intent_label, intent_category, heading,
+        duration_days, completion_type, target_count)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      RETURNING *`,
-    [userId, weekStart, intentLabel, intentCategory, heading, durationDays],
+    [userId, weekStart, intentLabel, intentCategory, heading, durationDays, completionType, targetCount],
   );
   return (result.rows[0] as Intention);
 };
@@ -112,13 +131,16 @@ export const updateIntention = async (
   intentCategory: string | null,
   heading: string | null,
   durationDays: number,
+  completionType: CompletionType = 'days',
+  targetCount: number | null = null,
 ): Promise<Intention | null> => {
   const result = await query(
     `UPDATE weekly_intentions
-     SET intent_label = $1, intent_category = $2, heading = $3, duration_days = $4
-     WHERE id = $5 AND user_id = $6
+     SET intent_label = $1, intent_category = $2, heading = $3,
+         duration_days = $4, completion_type = $5, target_count = $6
+     WHERE id = $7 AND user_id = $8
      RETURNING *`,
-    [intentLabel, intentCategory, heading, durationDays, id, userId],
+    [intentLabel, intentCategory, heading, durationDays, completionType, targetCount, id, userId],
   );
   return result.rows[0] ?? null;
 };

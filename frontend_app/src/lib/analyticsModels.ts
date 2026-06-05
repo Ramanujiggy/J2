@@ -253,3 +253,103 @@ export function spikiestPillar(perPillar: PillarACWRResult[]): PillarACWRResult 
   if (candidates.length === 0) return null;
   return candidates.reduce((max, p) => (p.ratio ?? 0) > (max.ratio ?? 0) ? p : max);
 }
+
+// ── 5. Telemetry — acute (7d) vs chronic (28d) snapshot ────────────────────
+//
+// Drives the homepage Training Telemetry card. Aligns with ACWR's windows
+// so the user has one mental model for "recent vs baseline" across the app.
+//
+//   acute     = last 7 days
+//   chronic28 = last 28 days
+//   chronicPerWeek = chronic28 / 4 (averaged per week — comparable to acute)
+//
+// We report acute as the headline (what's happening now) and surface a
+// delta vs the per-week chronic baseline so the user sees whether they're
+// up, down, or steady relative to their typical week.
+
+export interface TelemetryWindowStats {
+  count: number;
+  totalMinutes: number;
+  /** Pillar with the most hours in this window. null if no tagged sessions. */
+  topPillarLabel: string | null;
+  topPillarHours: number;
+  /** Second-place pillar — surfaced for "splitting time between X and Y" narrative. */
+  secondPillarLabel: string | null;
+}
+
+export interface TelemetryResult {
+  acute: TelemetryWindowStats;
+  /** Per-week averages from the 28d window. Direct comparison to `acute`. */
+  chronicPerWeek: { count: number; totalMinutes: number };
+  /**
+   * Delta of acute vs chronicPerWeek as a fraction (e.g. 0.30 = +30%).
+   * null when chronic baseline has too little data to be meaningful.
+   */
+  sessionDelta: number | null;
+  minutesDelta: number | null;
+  /** True when the chronic window has enough sessions to anchor a comparison. */
+  hasBaseline: boolean;
+}
+
+const TELEMETRY_BASELINE_MIN_SESSIONS = 4; // need at least one session/week on average
+
+function computeWindowStats(
+  sessions: SessionSummary[],
+  startMs: number,
+  endMs: number,
+): TelemetryWindowStats {
+  let count = 0;
+  let totalMinutes = 0;
+  const pillarHours: Record<string, number> = {};
+
+  for (const s of sessions) {
+    const iso = typeof s.date === 'string' ? s.date.slice(0, 10) : new Date(s.date).toISOString().slice(0, 10);
+    const dateMs = new Date(iso + 'T00:00:00').getTime();
+    if (dateMs < startMs || dateMs > endMs) continue;
+    count++;
+    totalMinutes += s.duration ?? 0;
+    const ph = sessionPillarHours(s);
+    for (const [k, v] of Object.entries(ph)) pillarHours[k] = (pillarHours[k] ?? 0) + v;
+  }
+
+  const sorted = Object.entries(pillarHours).sort((a, b) => b[1] - a[1]);
+  const top = sorted[0];
+  const second = sorted[1];
+  const labelFor = (key: string) => SKILL_TAGS.find(t => t.value === key)?.label ?? key;
+
+  return {
+    count,
+    totalMinutes,
+    topPillarLabel: top ? labelFor(top[0]) : null,
+    topPillarHours: top ? top[1] : 0,
+    secondPillarLabel: second ? labelFor(second[0]) : null,
+  };
+}
+
+export function computeTelemetry(
+  sessions: SessionSummary[],
+  today: Date = new Date(),
+): TelemetryResult {
+  const todayMs = today.getTime();
+  const msPerDay = 86_400_000;
+  const acuteStart   = todayMs - 7  * msPerDay;
+  const chronicStart = todayMs - 28 * msPerDay;
+
+  const acute   = computeWindowStats(sessions, acuteStart,   todayMs);
+  const chronic = computeWindowStats(sessions, chronicStart, todayMs);
+
+  const chronicPerWeek = {
+    count: chronic.count / 4,
+    totalMinutes: chronic.totalMinutes / 4,
+  };
+
+  const hasBaseline = chronic.count >= TELEMETRY_BASELINE_MIN_SESSIONS;
+  const sessionDelta = hasBaseline && chronicPerWeek.count > 0
+    ? (acute.count - chronicPerWeek.count) / chronicPerWeek.count
+    : null;
+  const minutesDelta = hasBaseline && chronicPerWeek.totalMinutes > 0
+    ? (acute.totalMinutes - chronicPerWeek.totalMinutes) / chronicPerWeek.totalMinutes
+    : null;
+
+  return { acute, chronicPerWeek, sessionDelta, minutesDelta, hasBaseline };
+}

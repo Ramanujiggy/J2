@@ -155,3 +155,80 @@ export function tagHoursInRange(
   });
   return counts;
 }
+
+// ── Intention completion (mig 034) ──────────────────────────────────────────
+//
+// Intentions can complete via three mechanisms:
+//   • 'days'           — purely calendar; never "completed early"
+//   • 'sessions'       — completes after N sessions touching the intention's
+//                        heading (or, if heading is null, any session)
+//   • 'training_weeks' — completes after N distinct ISO weeks containing
+//                        >= 1 session since week_start
+//
+// `isIntentionComplete` lets the active-intention picker drop a non-'days'
+// intention from the active slot once the target has been reached, even if
+// the soft calendar ceiling hasn't elapsed yet.
+
+export interface IntentionProgress {
+  completed: number;
+  target: number;
+  unit: 'sessions' | 'training_weeks';
+}
+
+function isoWeekKey(dateStr: string): string {
+  // YYYY-Www. Uses Thursday-of-week trick to mirror ISO 8601.
+  const d = new Date(dateStr + 'T00:00:00Z');
+  const day = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const week = Math.ceil(((d.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7);
+  return `${d.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
+}
+
+function sessionTouchesHeading(s: SessionSummary, heading: string): boolean {
+  // Distribution-first: if the session has pillar_distribution, the heading
+  // counts when its weight is > 0. Else legacy: heading field or tags array.
+  const dist = (s as unknown as { pillar_distribution?: Record<string, number> | null }).pillar_distribution;
+  if (dist && typeof dist === 'object') {
+    return (dist[heading] ?? 0) > 0;
+  }
+  if (s.heading === heading) return true;
+  const tags = (s as unknown as { tags?: string[] | null }).tags;
+  return Array.isArray(tags) && tags.includes(heading);
+}
+
+export function computeIntentionProgress(
+  intention: Intention,
+  sessions: SessionSummary[],
+): IntentionProgress | null {
+  if (intention.completion_type === 'days' || intention.target_count == null) return null;
+  const start = intention.week_start.slice(0, 10);
+
+  if (intention.completion_type === 'sessions') {
+    let count = 0;
+    for (const s of sessions) {
+      const d = typeof s.date === 'string' ? s.date.slice(0, 10) : new Date(s.date).toISOString().slice(0, 10);
+      if (d < start) continue;
+      // If a heading is set, only sessions touching that pillar count.
+      // If null, any session counts (generic consistency intention).
+      if (intention.heading && !sessionTouchesHeading(s, intention.heading)) continue;
+      count++;
+    }
+    return { completed: count, target: intention.target_count, unit: 'sessions' };
+  }
+
+  // 'training_weeks'
+  const weeks = new Set<string>();
+  for (const s of sessions) {
+    const d = typeof s.date === 'string' ? s.date.slice(0, 10) : new Date(s.date).toISOString().slice(0, 10);
+    if (d < start) continue;
+    weeks.add(isoWeekKey(d));
+  }
+  return { completed: weeks.size, target: intention.target_count, unit: 'training_weeks' };
+}
+
+export function isIntentionComplete(intention: Intention, sessions: SessionSummary[]): boolean {
+  const progress = computeIntentionProgress(intention, sessions);
+  if (!progress) return false;
+  return progress.completed >= progress.target;
+}

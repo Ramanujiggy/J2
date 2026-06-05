@@ -50,6 +50,8 @@ interface Props {
   telemetryContent: React.ReactNode;
   // Intention
   activeIntention: Intention | null;
+  /** Completion progress for non-'days' intentions (mig 034). null otherwise. */
+  activeIntentionProgress: { completed: number; target: number; unit: 'sessions' | 'training_weeks' } | null;
   // Sessions
   allSessions: SessionSummary[];
   // Week section
@@ -89,6 +91,7 @@ export default function PathAheadMobile({
   spikiest,
   telemetryContent,
   activeIntention,
+  activeIntentionProgress,
   allSessions,
   weekOffset,
   weekLabel,
@@ -164,6 +167,7 @@ export default function PathAheadMobile({
             <IntentionHeroCard
               intention={activeIntention}
               weekSessionCount={weekSessionCount}
+              progress={activeIntentionProgress}
               onSetIntent={() => setSetIntentOpen(true)}
               onEditIntent={activeIntention ? () => setEditIntention(activeIntention) : undefined}
               onViewJournal={activeIntention ? () => navigate(`/intentions/${activeIntention.id}/journal`) : undefined}
@@ -183,6 +187,7 @@ export default function PathAheadMobile({
             <IntentionHeroCard
               intention={activeIntention}
               weekSessionCount={weekSessionCount}
+              progress={activeIntentionProgress}
               onSetIntent={() => setSetIntentOpen(true)}
               onEditIntent={activeIntention ? () => setEditIntention(activeIntention) : undefined}
               onViewJournal={activeIntention ? () => navigate(`/intentions/${activeIntention.id}/journal`) : undefined}

@@ -22,9 +22,22 @@ import { COPPER, PALE_YELLOW } from '../lib/theme.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
 import { addDays, toDateString } from '../lib/sessionUtils.ts';
 
+interface IntentionProgress {
+  completed: number;
+  target: number;
+  unit: 'sessions' | 'training_weeks';
+}
+
 interface Props {
   intention: Intention | null;
   weekSessionCount?: number;
+  /**
+   * Completion progress for non-'days' intentions (mig 034). When provided,
+   * replaces the "days remaining" + weekly-cap progress bar with progress
+   * toward target_count of sessions or training weeks. Null / undefined for
+   * 'days' mode and for surfaces that don't drive progress.
+   */
+  progress?: IntentionProgress | null;
   compact?: boolean;
   onSetIntent: () => void;
   onEditIntent?: () => void;
@@ -35,6 +48,7 @@ interface Props {
 export default function IntentionHeroCard({
   intention,
   weekSessionCount = 0,
+  progress = null,
   compact = false,
   onSetIntent,
   onEditIntent,
@@ -120,7 +134,25 @@ export default function IntentionHeroCard({
   }
 
   // ── Active intention ────────────────────────────────────────────────────
-  const progressFraction = Math.min(1, weekSessionCount / 3);
+  // Progress fraction: for non-'days' intentions, completion progress
+  // toward target_count. For 'days' intentions (or when progress isn't
+  // provided), fall back to a 3-sessions/week soft cap.
+  const progressFraction = progress
+    ? Math.min(1, progress.completed / Math.max(1, progress.target))
+    : Math.min(1, weekSessionCount / 3);
+  const progressComplete = progress
+    ? progress.completed >= progress.target
+    : weekSessionCount >= 3;
+  const statusLabel = (() => {
+    if (progress) {
+      const unitWord = progress.unit === 'sessions'
+        ? (progress.target === 1 ? 'session' : 'sessions')
+        : (progress.target === 1 ? 'training week' : 'training weeks');
+      return `${progress.completed} / ${progress.target} ${unitWord}`;
+    }
+    return daysRemaining === 0 ? 'Ends today' : `${daysRemaining} day${daysRemaining === 1 ? '' : 's'} left`;
+  })();
+  const trailingCount = progress ? null : `${weekSessionCount} session${weekSessionCount !== 1 ? 's' : ''}`;
 
   return (
     <div
@@ -169,7 +201,8 @@ export default function IntentionHeroCard({
           </div>
         )}
 
-        {/* Days-left status */}
+        {/* Status line — days remaining (for 'days' mode) or progress
+            toward target (for 'sessions' / 'training_weeks' modes). */}
         <div
           style={{
             marginTop: 14,
@@ -178,11 +211,11 @@ export default function IntentionHeroCard({
             color: 'rgba(255,255,255,0.40)',
           }}
         >
-          {daysRemaining === 0 ? 'Ends today' : `${daysRemaining} day${daysRemaining === 1 ? '' : 's'} left`}
+          {statusLabel}
         </div>
 
-        {/* Weekly session progress bar — quieter than the prior animated
-            version. 3 sessions/week is the soft cap; bar fills to that. */}
+        {/* Progress bar — fills toward 3 sessions/week (days mode) or
+            target_count (sessions / training_weeks mode). */}
         <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
           <div
             style={{
@@ -198,19 +231,21 @@ export default function IntentionHeroCard({
                 width: '100%',
                 height: '100%',
                 borderRadius: 999,
-                background: weekSessionCount >= 3
+                background: progressComplete
                   ? 'linear-gradient(90deg, #A8CB72, #C4915F 70%, #F2E4A8)'
                   : COPPER,
                 transform: `scaleX(${progressFraction})`,
                 transformOrigin: 'left center',
                 transition: 'transform 600ms cubic-bezier(0.16, 1, 0.3, 1), background 400ms ease',
-                boxShadow: weekSessionCount >= 3 ? '0 0 10px rgba(242,228,168,0.20)' : 'none',
+                boxShadow: progressComplete ? '0 0 10px rgba(242,228,168,0.20)' : 'none',
               }}
             />
           </div>
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)', flexShrink: 0, letterSpacing: '0.04em' }}>
-            {weekSessionCount} session{weekSessionCount !== 1 ? 's' : ''}
-          </span>
+          {trailingCount && (
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)', flexShrink: 0, letterSpacing: '0.04em' }}>
+              {trailingCount}
+            </span>
+          )}
         </div>
 
         {/* Action row — quieter than before. Edit/Journal copper + faint

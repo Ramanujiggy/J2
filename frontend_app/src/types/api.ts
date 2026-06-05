@@ -165,6 +165,8 @@ export interface UserTagsResponse {
   tags: UserTag[];
 }
 
+export type IntentionCompletionType = 'days' | 'sessions' | 'training_weeks';
+
 export interface Intention {
   id: string;
   user_id: string;
@@ -173,6 +175,17 @@ export interface Intention {
   intent_category: string | null;
   heading: string | null;
   duration_days: number;
+  /**
+   * Completion mode (mig 034). Determines what "active" / "complete" mean:
+   *   • 'days'           — wall-clock; ends after duration_days elapse
+   *   • 'sessions'       — ends once target_count sessions touching heading
+   *                        have been logged since week_start
+   *   • 'training_weeks' — ends once target_count distinct ISO weeks
+   *                        containing >= 1 session have elapsed
+   * For non-'days' modes, duration_days is a soft calendar ceiling.
+   */
+  completion_type: IntentionCompletionType;
+  target_count: number | null;
   journal_entry: string | null;
   created_at: string;
 }

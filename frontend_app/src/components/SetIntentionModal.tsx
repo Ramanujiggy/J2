@@ -8,13 +8,35 @@ import FocusAreaChips from './FocusAreaChips.tsx';
 import PrismShape from './PrismShape.tsx';
 import SegmentedToggle from './SegmentedToggle.tsx';
 import type { ChipSelection } from '../lib/selectionsToDistribution.ts';
-import type { Intention, Pillar } from '../types/api.ts';
+import type { Intention, IntentionCompletionType, Pillar } from '../types/api.ts';
 
 const DURATION_OPTIONS: { value: string; label: string }[] = [
   { value: '3',  label: '3d' },
   { value: '5',  label: '5d' },
   { value: '7',  label: '7d' },
   { value: '14', label: '14d' },
+];
+
+const COMPLETION_MODE_OPTIONS: { value: IntentionCompletionType; label: string }[] = [
+  { value: 'days',           label: 'Days'     },
+  { value: 'sessions',       label: 'Sessions' },
+  { value: 'training_weeks', label: 'Weeks'    },
+];
+
+const SESSION_TARGET_OPTIONS: { value: string; label: string }[] = [
+  { value: '3',  label: '3'  },
+  { value: '4',  label: '4'  },
+  { value: '6',  label: '6'  },
+  { value: '8',  label: '8'  },
+  { value: '12', label: '12' },
+];
+
+const TRAINING_WEEK_TARGET_OPTIONS: { value: string; label: string }[] = [
+  { value: '2', label: '2' },
+  { value: '3', label: '3' },
+  { value: '4', label: '4' },
+  { value: '6', label: '6' },
+  { value: '8', label: '8' },
 ];
 
 function todayStr(): string {
@@ -45,6 +67,23 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
   const heading = selections.find(s => s.primary)?.pillar ?? null;
   const [label,        setLabel]        = useState(editIntention?.intent_label ?? '');
   const [durationDays, setDurationDays] = useState<number>(editIntention?.duration_days ?? 7);
+  // Completion mode (mig 034). 'days' is the legacy default; 'sessions' and
+  // 'training_weeks' use target_count instead of (or as a soft cap alongside)
+  // duration_days. We track them as separate state so flipping mode
+  // preserves the user's recent target picks.
+  const [completionType, setCompletionType] = useState<IntentionCompletionType>(
+    editIntention?.completion_type ?? 'days',
+  );
+  const [sessionTarget, setSessionTarget] = useState<number>(
+    editIntention?.completion_type === 'sessions' && editIntention?.target_count
+      ? editIntention.target_count
+      : 4,
+  );
+  const [trainingWeekTarget, setTrainingWeekTarget] = useState<number>(
+    editIntention?.completion_type === 'training_weeks' && editIntention?.target_count
+      ? editIntention.target_count
+      : 3,
+  );
   const [writeJournal, setWriteJournal] = useState(false);
   const [saving,       setSaving]       = useState(false);
   const [error,        setError]        = useState('');
@@ -59,21 +98,33 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
     }
     setSaving(true);
     setError('');
+    // Build the completion-mode payload. For 'days' mode, target_count is
+    // null. For 'sessions'/'training_weeks', duration_days serves as a soft
+    // calendar ceiling that the server defaults if we omit it.
+    const targetCount = completionType === 'sessions'
+      ? sessionTarget
+      : completionType === 'training_weeks'
+        ? trainingWeekTarget
+        : null;
     try {
       if (isEdit) {
         await api.patch<IntentionResponse>(`/api/intentions/${editIntention!.id}`, {
-          intent_label:  label.trim() || undefined,
+          intent_label:    label.trim() || undefined,
           heading,
-          duration_days: durationDays,
+          duration_days:   durationDays,
+          completion_type: completionType,
+          target_count:    targetCount,
         });
         onSaved();
         onClose();
       } else {
         const res = await api.post<IntentionResponse>('/api/intentions', {
-          intent_label:  label.trim() || undefined,
+          intent_label:    label.trim() || undefined,
           heading,
-          week_start:    todayStr(),
-          duration_days: durationDays,
+          week_start:      todayStr(),
+          duration_days:   durationDays,
+          completion_type: completionType,
+          target_count:    targetCount,
         });
         onSaved();
         if (writeJournal && res.intention?.id) {
@@ -175,21 +226,60 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
               </div>
             </div>
 
-            {/* ── Duration card ─────────────────────────────── */}
+            {/* ── Completion mode card ────────────────────────
+                  Mig 034: intentions can complete via calendar days,
+                  session count, or distinct training weeks. The first
+                  toggle picks the mode; the inner control picks the
+                  target. Days are the legacy default. */}
             <div className="rounded-xl px-4 py-4 space-y-3" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
               <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.25)' }}>
-                Duration
+                Completes after
               </span>
 
               <SegmentedToggle
-                options={DURATION_OPTIONS}
-                value={String(durationDays)}
-                onChange={v => { if (v) setDurationDays(Number(v)); }}
+                options={COMPLETION_MODE_OPTIONS}
+                value={completionType}
+                onChange={v => { if (v) setCompletionType(v as IntentionCompletionType); }}
               />
 
-              <p className="text-[10px] text-center" style={{ color: 'rgba(255,255,255,0.22)' }}>
-                How long to hold this focus
-              </p>
+              {completionType === 'days' && (
+                <>
+                  <SegmentedToggle
+                    options={DURATION_OPTIONS}
+                    value={String(durationDays)}
+                    onChange={v => { if (v) setDurationDays(Number(v)); }}
+                  />
+                  <p className="text-[10px] text-center" style={{ color: 'rgba(255,255,255,0.22)' }}>
+                    How long to hold this focus
+                  </p>
+                </>
+              )}
+
+              {completionType === 'sessions' && (
+                <>
+                  <SegmentedToggle
+                    options={SESSION_TARGET_OPTIONS}
+                    value={String(sessionTarget)}
+                    onChange={v => { if (v) setSessionTarget(Number(v)); }}
+                  />
+                  <p className="text-[10px] text-center" style={{ color: 'rgba(255,255,255,0.22)' }}>
+                    Sessions touching this focus — missed days don't count against you
+                  </p>
+                </>
+              )}
+
+              {completionType === 'training_weeks' && (
+                <>
+                  <SegmentedToggle
+                    options={TRAINING_WEEK_TARGET_OPTIONS}
+                    value={String(trainingWeekTarget)}
+                    onChange={v => { if (v) setTrainingWeekTarget(Number(v)); }}
+                  />
+                  <p className="text-[10px] text-center" style={{ color: 'rgba(255,255,255,0.22)' }}>
+                    Distinct weeks containing training — a week off pauses the clock
+                  </p>
+                </>
+              )}
             </div>
 
             {/* ── Journal toggle (create only) ──────────────── */}
