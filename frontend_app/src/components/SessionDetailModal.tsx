@@ -420,39 +420,39 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
               )}
 
               {/* Date + close */}
-              <div className="flex items-start justify-between mb-2">
-                <p style={{ fontFamily: FONT_EDITORIAL, fontWeight: 500, fontSize: 26, lineHeight: 1.15, color: intensityColor, margin: 0 }}>
+              <div className="flex items-start justify-between mb-3">
+                <p style={{ fontFamily: FONT_EDITORIAL, fontWeight: 500, fontSize: 32, lineHeight: 1.1, color: intensityColor, margin: 0 }}>
                   {dateLabel}
                 </p>
                 <button onClick={onClose}
-                  className="ml-3 mt-0.5 shrink-0 transition-colors"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'rgba(255,255,255,0.25)' }}
+                  className="ml-3 mt-1 shrink-0 transition-colors"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: 'rgba(255,255,255,0.25)' }}
                   aria-label="Close">
                   ×
                 </button>
               </div>
 
               {/* Metadata line — duration · intensity · gi · type · source */}
-              <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
-                <span style={{ fontFamily: FONT_EDITORIAL, fontWeight: 500, fontSize: 22, color: PALE_YELLOW }}>{fmtDuration(session.duration)}</span>
-                <span style={{ color: 'rgba(196,145,95,0.25)', fontSize: 12 }}>·</span>
-                <span style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 14, color: COPPER }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 7, marginBottom: 24 }}>
+                <span style={{ fontFamily: FONT_EDITORIAL, fontWeight: 500, fontSize: 28, color: PALE_YELLOW }}>{fmtDuration(session.duration)}</span>
+                <span style={{ color: 'rgba(196,145,95,0.25)', fontSize: 14 }}>·</span>
+                <span style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 17, color: COPPER }}>
                   {INT_LABELS[session.intensity] ?? `Intensity ${session.intensity}`}
                 </span>
-                <span style={{ color: 'rgba(196,145,95,0.25)', fontSize: 12 }}>·</span>
-                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>{formatGiNogi(session.gi_nogi)}</span>
-                <span style={{ color: 'rgba(196,145,95,0.25)', fontSize: 12 }}>·</span>
-                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>{SESSION_TYPE_LABELS[session.session_type] ?? session.session_type}</span>
+                <span style={{ color: 'rgba(196,145,95,0.25)', fontSize: 14 }}>·</span>
+                <span style={{ fontSize: 15, color: 'rgba(255,255,255,0.45)' }}>{formatGiNogi(session.gi_nogi)}</span>
+                <span style={{ color: 'rgba(196,145,95,0.25)', fontSize: 14 }}>·</span>
+                <span style={{ fontSize: 15, color: 'rgba(255,255,255,0.45)' }}>{SESSION_TYPE_LABELS[session.session_type] ?? session.session_type}</span>
                 {session.script_source && (
                   <>
-                    <span style={{ color: 'rgba(196,145,95,0.25)', fontSize: 12 }}>·</span>
-                    <span style={{ fontSize: 13, color: COPPER }}>{session.script_source === 'directed' ? 'Coach-led' : 'Open Mat'}</span>
+                    <span style={{ color: 'rgba(196,145,95,0.25)', fontSize: 14 }}>·</span>
+                    <span style={{ fontSize: 15, color: COPPER }}>{session.script_source === 'directed' ? 'Coach-led' : 'Open Mat'}</span>
                   </>
                 )}
                 {session.polarity && (
                   <>
-                    <span style={{ color: 'rgba(196,145,95,0.25)', fontSize: 12 }}>·</span>
-                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', textTransform: 'capitalize' }}>{session.polarity}</span>
+                    <span style={{ color: 'rgba(196,145,95,0.25)', fontSize: 14 }}>·</span>
+                    <span style={{ fontSize: 15, color: 'rgba(255,255,255,0.45)', textTransform: 'capitalize' }}>{session.polarity}</span>
                   </>
                 )}
               </div>
@@ -540,14 +540,14 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
 
                 {/* ── Focus ───────────────────────────── */}
                 {headingLabel && (
-                  <div className="pb-4" style={{ borderBottom: '1px solid rgba(196,145,95,0.08)' }}>
-                    <p style={{ fontFamily: FONT_EDITORIAL, fontWeight: 500, fontSize: 22, color: PALE_YELLOW, textShadow: GLOW_SOFT, margin: 0 }}>
+                  <div className="pb-5" style={{ borderBottom: '1px solid rgba(196,145,95,0.08)' }}>
+                    <p style={{ fontFamily: FONT_EDITORIAL, fontWeight: 500, fontSize: 28, color: PALE_YELLOW, textShadow: GLOW_SOFT, margin: 0 }}>
                       {headingLabel}
                     </p>
                     {(session.sub_skill_tag || session.resonance != null) && (
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4 }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 6 }}>
                         {session.sub_skill_tag && (
-                          <span style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 14, color: 'rgba(255,255,255,0.45)' }}>
+                          <span style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 16, color: 'rgba(255,255,255,0.45)' }}>
                             {session.sub_skill_tag}
                           </span>
                         )}
@@ -607,7 +607,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                       if (entries.length < 2) return null;
                       const sorted = entries.sort((a, b) => (b[1] as number) - (a[1] as number));
                       return (
-                        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.40)', marginTop: 8 }}>
+                        <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.40)', marginTop: 10 }}>
                           {sorted.map(([pillar, weight], i) => {
                             const label = SKILL_TAGS.find(s => s.value === pillar)?.label ?? pillar;
                             const pct = Math.round((weight as number) * 100);
@@ -628,8 +628,8 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                 {/* ── Resonance card ─────────────────────────
                     Holds embodied/reflective prose AND social layer (partners).
                     Renamed from "Journal" to mirror the log form's section eyebrow. */}
-                <div className="py-4">
-                  <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)' }}>
+                <div className="pt-5 pb-4">
+                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)' }}>
                     Resonance
                   </span>
                   {session.notes?.trim() ? (
@@ -640,7 +640,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                     <button
                       onClick={() => setIsEditing(true)}
                       className="touch-manipulation"
-                      style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 14, color: COPPER, opacity: 0.5, background: 'none', border: 'none', borderBottom: '1px solid rgba(196,145,95,0.25)', cursor: 'pointer', padding: 0, marginTop: 8, display: 'block' }}
+                      style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 17, color: COPPER, opacity: 0.6, background: 'none', border: 'none', borderBottom: '1px solid rgba(196,145,95,0.25)', cursor: 'pointer', padding: 0, marginTop: 10, display: 'block' }}
                     >
                       What stood out today? →
                     </button>
@@ -674,7 +674,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                   <button
                     onClick={() => setConfirmDelete(true)}
                     className="touch-manipulation"
-                    style={{ fontSize: 13, color: 'rgba(255,255,255,0.25)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                    style={{ fontSize: 15, color: 'rgba(255,255,255,0.25)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                   >
                     Delete
                   </button>
@@ -691,7 +691,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                 {!confirmDelete && (
                   <button onClick={() => setIsEditing(true)}
                     className="touch-manipulation"
-                    style={{ fontFamily: FONT_EDITORIAL, fontWeight: 700, fontStyle: 'normal', fontSize: 16, color: PALE_YELLOW, textShadow: GLOW_SOFT, background: 'none', border: 'none', cursor: 'pointer' }}>
+                    style={{ fontFamily: FONT_EDITORIAL, fontWeight: 700, fontStyle: 'normal', fontSize: 18, color: PALE_YELLOW, textShadow: GLOW_SOFT, background: 'none', border: 'none', cursor: 'pointer' }}>
                     Edit
                   </button>
                 )}
