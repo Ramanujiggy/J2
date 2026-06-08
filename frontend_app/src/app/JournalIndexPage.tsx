@@ -145,9 +145,11 @@ export default function JournalIndexPage() {
               chrome. */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 4 }}>
             <h1
-              className="font-display font-bold"
               style={{
+                fontFamily: 'var(--font-editorial)',
+                fontWeight: 500,
                 color: PALE_YELLOW,
+                textShadow: GLOW_SOFT,
                 fontSize: 28,
                 letterSpacing: '-0.01em',
                 margin: 0,

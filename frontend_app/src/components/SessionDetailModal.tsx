@@ -421,11 +421,12 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
 
               {/* Date + close */}
               <div className="flex items-start justify-between mb-4">
-                <p className="text-2xl font-display font-bold leading-tight" style={{ color: intensityColor }}>
+                <p style={{ fontFamily: FONT_EDITORIAL, fontWeight: 500, fontSize: 26, lineHeight: 1.15, color: intensityColor, margin: 0 }}>
                   {dateLabel}
                 </p>
                 <button onClick={onClose}
-                  className="ml-3 mt-0.5 shrink-0 text-white/30 hover:text-white/70 transition-colors text-lg leading-none"
+                  className="ml-3 mt-0.5 shrink-0 text-white/25 hover:text-white/60 transition-colors text-lg leading-none"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18 }}
                   aria-label="Close">
                   ×
                 </button>
@@ -512,25 +513,29 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
 
               <div className="space-y-3">
                 {/* ── Stats card ───────────────────────────── */}
-                <div className="rounded-xl px-4 py-4 space-y-3" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
+                <div className="space-y-3 pb-4" style={{ borderBottom: '1px solid rgba(196,145,95,0.08)' }}>
                   {/* Style + Type pills */}
                   <div className="flex gap-2">
-                    <span className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ backgroundColor: SURFACE_3, color: 'rgba(255,255,255,0.65)' }}>
+                    <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.50)' }}>
                       {formatGiNogi(session.gi_nogi)}
                     </span>
-                    <span className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ backgroundColor: SURFACE_3, color: 'rgba(255,255,255,0.65)' }}>
+                    <span style={{ color: 'rgba(196,145,95,0.25)', fontSize: 12 }}>·</span>
+                    <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.50)' }}>
                       {SESSION_TYPE_LABELS[session.session_type] ?? session.session_type}
                     </span>
                     {session.script_source && (
-                      <span className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ backgroundColor: SURFACE_3, color: COPPER }}>
-                        {session.script_source === 'directed' ? 'Coach-led' : 'Open Mat'}
-                      </span>
+                      <>
+                        <span style={{ color: 'rgba(196,145,95,0.25)', fontSize: 12 }}>·</span>
+                        <span className="text-xs font-medium" style={{ color: COPPER }}>
+                          {session.script_source === 'directed' ? 'Coach-led' : 'Open Mat'}
+                        </span>
+                      </>
                     )}
                   </div>
 
                   {/* Duration — large */}
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-bold" style={{ color: PALE_YELLOW }}>{fmtDuration(session.duration)}</span>
+                  <div className="flex items-baseline gap-3">
+                    <span style={{ fontFamily: FONT_EDITORIAL, fontWeight: 500, fontSize: 28, color: PALE_YELLOW }}>{fmtDuration(session.duration)}</span>
                     {session.polarity && (
                       <span className="text-xs font-medium capitalize" style={{ color: COPPER }}>
                         {session.polarity}
@@ -542,17 +547,17 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                   <IntensityBar value={session.intensity} />
                 </div>
 
-                {/* ── Focus card ───────────────────────────── */}
+                {/* ── Focus section ───────────────────────────── */}
                 {headingLabel && (
-                  <div className="rounded-xl px-4 py-4" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div className="py-4" style={{ borderBottom: '1px solid rgba(196,145,95,0.08)' }}>
                     {/* Pokedex layout: text on the left, static Prism shape on the right.
                         Mirrors the edit-mode layout so the saved shape is visible on read-only reopen. */}
                     <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
                       <div style={{ flex: '1 1 220px', minWidth: 0 }}>
-                        <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                        <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)' }}>
                           Focus
                         </span>
-                        <p className="text-base font-semibold mt-1" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
+                        <p style={{ fontFamily: FONT_EDITORIAL, fontWeight: 500, fontSize: 20, color: PALE_YELLOW, textShadow: GLOW_SOFT, marginTop: 4, margin: '4px 0 0' }}>
                           {headingLabel}
                         </p>
                         <div className="flex items-center gap-2 mt-1.5">
@@ -653,16 +658,16 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                 {/* ── Resonance card ─────────────────────────
                     Holds embodied/reflective prose AND social layer (partners).
                     Renamed from "Journal" to mirror the log form's section eyebrow. */}
-                <div className="rounded-xl px-4 py-4" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
-                  <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                <div className="py-4">
+                  <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)' }}>
                     Resonance
                   </span>
                   {session.notes?.trim() ? (
-                    <p className="text-sm leading-relaxed mt-2" style={{ color: 'rgba(255,255,255,0.6)', whiteSpace: 'pre-wrap' }}>
+                    <p style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 15, lineHeight: 1.6, color: 'rgba(255,255,255,0.55)', whiteSpace: 'pre-wrap', marginTop: 8 }}>
                       {session.notes.trim()}
                     </p>
                   ) : (
-                    <p className="text-xs italic mt-2" style={{ color: 'rgba(255,255,255,0.20)' }}>No notes recorded.</p>
+                    <p style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 14, color: 'rgba(255,255,255,0.25)', marginTop: 8 }}>No notes recorded.</p>
                   )}
 
                   {/* Partners chip strip — social-as-data layer */}
@@ -688,32 +693,29 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
               </div>
 
               {/* ── Action row ─────────────────────────────── */}
-              <div className="flex items-center justify-between mt-5 pt-3" style={{ borderTop: '1px solid rgba(196,145,95,0.12)' }}>
+              <div className="flex items-center justify-between mt-5 pt-4" style={{ borderTop: '1px solid rgba(196,145,95,0.08)' }}>
                 {!confirmDelete ? (
                   <button
                     onClick={() => setConfirmDelete(true)}
-                    className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
-                    style={{ color: 'rgba(196,145,95,0.6)', backgroundColor: SURFACE_2 }}
-                    onMouseEnter={e => { e.currentTarget.style.color = 'rgba(239,68,68,0.85)'; e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.1)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.color = 'rgba(196,145,95,0.6)'; e.currentTarget.style.backgroundColor = SURFACE_2; }}
+                    className="touch-manipulation"
+                    style={{ fontSize: 13, color: 'rgba(255,255,255,0.25)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                   >
-                    Delete session
+                    Delete
                   </button>
                 ) : (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Delete?</span>
-                    <button onClick={() => setConfirmDelete(false)} className="text-xs text-white/40 hover:text-white transition-colors">Cancel</button>
+                  <div className="flex items-center gap-3">
+                    <span style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 13, color: 'rgba(255,255,255,0.40)' }}>Delete this session?</span>
+                    <button onClick={() => setConfirmDelete(false)} style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', background: 'none', border: 'none', cursor: 'pointer' }}>Cancel</button>
                     <button onClick={handleDelete} disabled={deleting}
-                      className="text-xs font-semibold px-3 py-1 rounded-lg transition-colors disabled:opacity-50"
-                      style={{ backgroundColor: 'rgba(239,68,68,0.15)', color: 'rgba(239,68,68,0.9)' }}>
-                      {deleting ? 'Deleting...' : 'Delete'}
+                      style={{ fontSize: 12, fontWeight: 600, color: 'rgba(239,68,68,0.85)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                      {deleting ? 'Deleting...' : 'Confirm'}
                     </button>
                   </div>
                 )}
                 {!confirmDelete && (
                   <button onClick={() => setIsEditing(true)}
-                    className="text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors touch-manipulation"
-                    style={{ backgroundColor: COPPER, color: '#fff' }}>
+                    className="touch-manipulation"
+                    style={{ fontFamily: FONT_EDITORIAL, fontWeight: 700, fontStyle: 'normal', fontSize: 16, color: PALE_YELLOW, textShadow: GLOW_SOFT, background: 'none', border: 'none', cursor: 'pointer' }}>
                     Edit
                   </button>
                 )}
