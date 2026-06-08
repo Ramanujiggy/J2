@@ -421,11 +421,12 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
 
               {/* Date + close */}
               <div className="flex items-start justify-between mb-4">
-                <p className="text-2xl font-display font-bold leading-tight" style={{ color: intensityColor }}>
+                <p style={{ fontFamily: FONT_EDITORIAL, fontWeight: 500, fontSize: 26, lineHeight: 1.15, color: intensityColor, margin: 0 }}>
                   {dateLabel}
                 </p>
                 <button onClick={onClose}
-                  className="ml-3 mt-0.5 shrink-0 text-white/30 hover:text-white/70 transition-colors text-lg leading-none"
+                  className="ml-3 mt-0.5 shrink-0 text-white/25 hover:text-white/60 transition-colors text-lg leading-none"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18 }}
                   aria-label="Close">
                   ×
                 </button>
@@ -533,8 +534,8 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                   </div>
 
                   {/* Duration — large */}
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-bold" style={{ color: PALE_YELLOW }}>{fmtDuration(session.duration)}</span>
+                  <div className="flex items-baseline gap-3">
+                    <span style={{ fontFamily: FONT_EDITORIAL, fontWeight: 500, fontSize: 28, color: PALE_YELLOW }}>{fmtDuration(session.duration)}</span>
                     {session.polarity && (
                       <span className="text-xs font-medium capitalize" style={{ color: COPPER }}>
                         {session.polarity}
@@ -553,10 +554,10 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                         Mirrors the edit-mode layout so the saved shape is visible on read-only reopen. */}
                     <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
                       <div style={{ flex: '1 1 220px', minWidth: 0 }}>
-                        <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                        <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)' }}>
                           Focus
                         </span>
-                        <p className="text-base font-semibold mt-1" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
+                        <p style={{ fontFamily: FONT_EDITORIAL, fontWeight: 500, fontSize: 20, color: PALE_YELLOW, textShadow: GLOW_SOFT, marginTop: 4, margin: '4px 0 0' }}>
                           {headingLabel}
                         </p>
                         <div className="flex items-center gap-2 mt-1.5">
@@ -658,15 +659,15 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                     Holds embodied/reflective prose AND social layer (partners).
                     Renamed from "Journal" to mirror the log form's section eyebrow. */}
                 <div className="py-4">
-                  <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                  <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)' }}>
                     Resonance
                   </span>
                   {session.notes?.trim() ? (
-                    <p className="text-sm leading-relaxed mt-2" style={{ color: 'rgba(255,255,255,0.6)', whiteSpace: 'pre-wrap' }}>
+                    <p style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 15, lineHeight: 1.6, color: 'rgba(255,255,255,0.55)', whiteSpace: 'pre-wrap', marginTop: 8 }}>
                       {session.notes.trim()}
                     </p>
                   ) : (
-                    <p className="text-xs italic mt-2" style={{ color: 'rgba(255,255,255,0.20)' }}>No notes recorded.</p>
+                    <p style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 14, color: 'rgba(255,255,255,0.25)', marginTop: 8 }}>No notes recorded.</p>
                   )}
 
                   {/* Partners chip strip — social-as-data layer */}
