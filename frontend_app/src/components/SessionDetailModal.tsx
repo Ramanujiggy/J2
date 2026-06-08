@@ -720,12 +720,12 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
               padding: '1.25rem',
             }}>
               {/* Date header */}
-              <p className="text-2xl font-display font-bold mb-4" style={{ color: intensityColor }}>{dateLabel}</p>
+              <p style={{ fontFamily: FONT_EDITORIAL, fontWeight: 500, fontSize: 32, lineHeight: 1.1, color: intensityColor, margin: '0 0 16px' }}>{dateLabel}</p>
 
-              <div className="space-y-4">
-                {/* ── Basics card ───────────────────────────── */}
-                <div className="rounded-xl px-4 py-4 space-y-4" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
-                  <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.28)' }}>
+              <div className="space-y-5">
+                {/* ── Basics ───────────────────────────── */}
+                <div className="space-y-4 pb-5" style={{ borderBottom: '1px solid rgba(196,145,95,0.08)' }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)' }}>
                     The Basics
                   </span>
 
@@ -763,7 +763,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                         );
                       })}
                     </div>
-                    <div className="flex items-center justify-center gap-3 rounded-xl py-2" style={{ backgroundColor: SURFACE_3 }}>
+                    <div className="flex items-center justify-center gap-3 py-2">
                       <button type="button"
                         onClick={() => { vibrate(8); setForm(f => ({ ...f, duration: Math.max(DUR_MIN, f.duration - DUR_STEP) })); }}
                         className="w-11 h-11 rounded-lg text-lg font-semibold transition-colors touch-manipulation"
@@ -788,9 +788,9 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                   <IntensityBar value={form.intensity} interactive />
                 </div>
 
-                {/* ── Focus card ────────────────────────────── */}
-                <div className="rounded-xl px-4 py-4 space-y-4" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
-                  <h3 className="text-sm font-semibold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
+                {/* ── Focus ────────────────────────────── */}
+                <div className="space-y-4 pb-5" style={{ borderBottom: '1px solid rgba(196,145,95,0.08)' }}>
+                  <h3 style={{ fontFamily: FONT_EDITORIAL, fontWeight: 500, fontSize: 18, color: PALE_YELLOW, textShadow: GLOW_SOFT, margin: 0 }}>
                     What did you work on?
                   </h3>
 
@@ -838,9 +838,9 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                   </div>
                 </div>
 
-                {/* ── Details card ──────────────────────────── */}
-                <div className="rounded-xl px-4 py-4 space-y-3" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
-                  <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                {/* ── Details ──────────────────────────── */}
+                <div className="space-y-3">
+                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)' }}>
                     Details
                   </span>
 
@@ -910,17 +910,17 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
               {/* ── Action row ─────────────────────────────── */}
               {saveError && <p className="text-red-400 text-xs mt-3">Save failed — please try again.</p>}
 
-              <div className="flex items-center gap-3 mt-5 pt-3" style={{ borderTop: '1px solid rgba(196,145,95,0.12)' }}>
+              <div className="flex items-center justify-between mt-6 pt-4" style={{ borderTop: '1px solid rgba(196,145,95,0.08)' }}>
                 <button
                   onClick={() => { setSaveError(false); setIsEditing(false); }}
-                  className="px-4 py-3 text-sm font-medium transition-colors touch-manipulation"
-                  style={{ color: 'rgba(255,255,255,0.40)' }}>
+                  className="touch-manipulation"
+                  style={{ fontSize: 15, color: 'rgba(255,255,255,0.30)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                   Cancel
                 </button>
                 <button
                   onClick={handleSave} disabled={saving}
-                  className="flex-1 text-white font-semibold rounded-xl transition-all touch-manipulation disabled:opacity-50"
-                  style={{ height: 52, backgroundColor: '#DA7422', boxShadow: '0 2px 12px rgba(218,116,34,0.25)', fontSize: 16 }}>
+                  className="touch-manipulation disabled:opacity-50"
+                  style={{ fontFamily: FONT_EDITORIAL, fontWeight: 700, fontStyle: 'normal', fontSize: 18, color: PALE_YELLOW, textShadow: GLOW_SOFT, background: 'none', border: 'none', cursor: 'pointer' }}>
                   {saving ? 'Saving...' : 'Save'}
                 </button>
               </div>
