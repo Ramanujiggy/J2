@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../lib/api.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
-import { COPPER, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3, CARD_GLOW, CARD_GLOW_BORDER, FONT_EDITORIAL } from '../lib/theme.ts';
+import { COPPER, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3, CARD_GLOW, CARD_GLOW_BORDER, FONT_EDITORIAL, INT_LABELS } from '../lib/theme.ts';
 import { INTENSITY_COLOR, formatGiNogi } from '../lib/sessionUtils.ts';
 import { vibrate } from '../lib/haptics.ts';
 import SegmentedToggle from './SegmentedToggle.tsx';
@@ -322,9 +322,9 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
           onClick={e => e.stopPropagation()}
           style={{
             position: 'relative',
-            backgroundColor: '#152E22',
-            border: `1px solid ${isDesktop ? CARD_GLOW_BORDER : 'rgba(255,255,255,0.10)'}`,
-            borderRadius: isDesktop ? 20 : '1rem',
+            backgroundColor: isDesktop ? '#152E22' : 'transparent',
+            border: isDesktop ? `1px solid ${CARD_GLOW_BORDER}` : 'none',
+            borderRadius: isDesktop ? 20 : 0,
             boxShadow: isDesktop ? CARD_GLOW : undefined,
             overflow: 'hidden',
           }}
@@ -420,16 +420,41 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
               )}
 
               {/* Date + close */}
-              <div className="flex items-start justify-between mb-4">
+              <div className="flex items-start justify-between mb-2">
                 <p style={{ fontFamily: FONT_EDITORIAL, fontWeight: 500, fontSize: 26, lineHeight: 1.15, color: intensityColor, margin: 0 }}>
                   {dateLabel}
                 </p>
                 <button onClick={onClose}
-                  className="ml-3 mt-0.5 shrink-0 text-white/25 hover:text-white/60 transition-colors text-lg leading-none"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18 }}
+                  className="ml-3 mt-0.5 shrink-0 transition-colors"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'rgba(255,255,255,0.25)' }}
                   aria-label="Close">
                   ×
                 </button>
+              </div>
+
+              {/* Metadata line — duration · intensity · gi · type · source */}
+              <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
+                <span style={{ fontFamily: FONT_EDITORIAL, fontWeight: 500, fontSize: 22, color: PALE_YELLOW }}>{fmtDuration(session.duration)}</span>
+                <span style={{ color: 'rgba(196,145,95,0.25)', fontSize: 12 }}>·</span>
+                <span style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 14, color: COPPER }}>
+                  {INT_LABELS[session.intensity] ?? `Intensity ${session.intensity}`}
+                </span>
+                <span style={{ color: 'rgba(196,145,95,0.25)', fontSize: 12 }}>·</span>
+                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>{formatGiNogi(session.gi_nogi)}</span>
+                <span style={{ color: 'rgba(196,145,95,0.25)', fontSize: 12 }}>·</span>
+                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>{SESSION_TYPE_LABELS[session.session_type] ?? session.session_type}</span>
+                {session.script_source && (
+                  <>
+                    <span style={{ color: 'rgba(196,145,95,0.25)', fontSize: 12 }}>·</span>
+                    <span style={{ fontSize: 13, color: COPPER }}>{session.script_source === 'directed' ? 'Coach-led' : 'Open Mat'}</span>
+                  </>
+                )}
+                {session.polarity && (
+                  <>
+                    <span style={{ color: 'rgba(196,145,95,0.25)', fontSize: 12 }}>·</span>
+                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', textTransform: 'capitalize' }}>{session.polarity}</span>
+                  </>
+                )}
               </div>
 
               {/* Intention banner — editorial chrome matching IntentionHeroCard.
@@ -511,74 +536,28 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                 </div>
               )}
 
-              <div className="space-y-3">
-                {/* ── Stats card ───────────────────────────── */}
-                <div className="space-y-3 pb-4" style={{ borderBottom: '1px solid rgba(196,145,95,0.08)' }}>
-                  {/* Style + Type pills */}
-                  <div className="flex gap-2">
-                    <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.50)' }}>
-                      {formatGiNogi(session.gi_nogi)}
-                    </span>
-                    <span style={{ color: 'rgba(196,145,95,0.25)', fontSize: 12 }}>·</span>
-                    <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.50)' }}>
-                      {SESSION_TYPE_LABELS[session.session_type] ?? session.session_type}
-                    </span>
-                    {session.script_source && (
-                      <>
-                        <span style={{ color: 'rgba(196,145,95,0.25)', fontSize: 12 }}>·</span>
-                        <span className="text-xs font-medium" style={{ color: COPPER }}>
-                          {session.script_source === 'directed' ? 'Coach-led' : 'Open Mat'}
-                        </span>
-                      </>
-                    )}
-                  </div>
+              <div className="space-y-0">
 
-                  {/* Duration — large */}
-                  <div className="flex items-baseline gap-3">
-                    <span style={{ fontFamily: FONT_EDITORIAL, fontWeight: 500, fontSize: 28, color: PALE_YELLOW }}>{fmtDuration(session.duration)}</span>
-                    {session.polarity && (
-                      <span className="text-xs font-medium capitalize" style={{ color: COPPER }}>
-                        {session.polarity}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Intensity bar (read-only) */}
-                  <IntensityBar value={session.intensity} />
-                </div>
-
-                {/* ── Focus section ───────────────────────────── */}
+                {/* ── Focus ───────────────────────────── */}
                 {headingLabel && (
-                  <div className="py-4" style={{ borderBottom: '1px solid rgba(196,145,95,0.08)' }}>
-                    {/* Pokedex layout: text on the left, static Prism shape on the right.
-                        Mirrors the edit-mode layout so the saved shape is visible on read-only reopen. */}
-                    <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-                      <div style={{ flex: '1 1 220px', minWidth: 0 }}>
-                        <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)' }}>
-                          Focus
-                        </span>
-                        <p style={{ fontFamily: FONT_EDITORIAL, fontWeight: 500, fontSize: 20, color: PALE_YELLOW, textShadow: GLOW_SOFT, marginTop: 4, margin: '4px 0 0' }}>
-                          {headingLabel}
-                        </p>
-                        <div className="flex items-center gap-2 mt-1.5">
-                          {session.sub_skill_tag && (
-                            <span className="px-2.5 py-1 rounded-lg text-xs font-medium" style={{ backgroundColor: SURFACE_3, color: 'rgba(255,255,255,0.50)' }}>
-                              {session.sub_skill_tag}
-                            </span>
-                          )}
-                          {session.resonance != null && (
-                            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.30)' }}>
-                              {session.resonance >= 10 ? 'Focused' : session.resonance >= 8 ? 'Targeted' : session.resonance >= 6 ? 'Solid' : session.resonance >= 4 ? 'Mixed' : 'Exploratory'}
-                            </span>
-                          )}
-                        </div>
+                  <div className="pb-4" style={{ borderBottom: '1px solid rgba(196,145,95,0.08)' }}>
+                    <p style={{ fontFamily: FONT_EDITORIAL, fontWeight: 500, fontSize: 22, color: PALE_YELLOW, textShadow: GLOW_SOFT, margin: 0 }}>
+                      {headingLabel}
+                    </p>
+                    {(session.sub_skill_tag || session.resonance != null) && (
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4 }}>
+                        {session.sub_skill_tag && (
+                          <span style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 14, color: 'rgba(255,255,255,0.45)' }}>
+                            {session.sub_skill_tag}
+                          </span>
+                        )}
+                        {session.resonance != null && (
+                          <span style={{ fontSize: 12, color: 'rgba(196,145,95,0.50)' }}>
+                            {session.resonance >= 10 ? 'Focused' : session.resonance >= 8 ? 'Targeted' : session.resonance >= 6 ? 'Solid' : session.resonance >= 4 ? 'Mixed' : 'Exploratory'}
+                          </span>
+                        )}
                       </div>
-                      {selections.length > 0 && (
-                        <div style={{ flex: '0 0 auto', opacity: 0.95 }}>
-                          <PrismShape selections={selections} size={isDesktop ? 160 : 130} showLabels={false} />
-                        </div>
-                      )}
-                    </div>
+                    )}
 
                     {/* Constraint row — CLA / any session with a constraint logged */}
                     {resolvedConstraints.length > 0 && (
@@ -620,36 +599,27 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                       </div>
                     )}
 
-                    {/* Distribution chips — only shown when session has multi-pillar IDW data */}
+                    {/* Distribution — inline text */}
                     {(() => {
                       const dist = session.pillar_distribution;
                       if (!dist) return null;
                       const entries = Object.entries(dist).filter(([, v]) => typeof v === 'number' && v > 0.05);
-                      if (entries.length < 2) return null; // skip pure-snap sessions
+                      if (entries.length < 2) return null;
                       const sorted = entries.sort((a, b) => (b[1] as number) - (a[1] as number));
                       return (
-                        <div className="mt-3 pt-3 flex flex-wrap items-center gap-1.5" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                          <span className="text-[10px] uppercase tracking-wider mr-1" style={{ color: 'rgba(255,255,255,0.30)' }}>
-                            Distribution
-                          </span>
-                          {sorted.map(([pillar, weight]) => {
+                        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.40)', marginTop: 8 }}>
+                          {sorted.map(([pillar, weight], i) => {
                             const label = SKILL_TAGS.find(s => s.value === pillar)?.label ?? pillar;
                             const pct = Math.round((weight as number) * 100);
                             const isPrimary = pillar === session.heading;
                             return (
-                              <span
-                                key={pillar}
-                                className="px-2 py-0.5 rounded-md text-[10px] font-medium"
-                                style={{
-                                  backgroundColor: isPrimary ? 'rgba(196,145,95,0.20)' : 'rgba(255,255,255,0.06)',
-                                  color: isPrimary ? COPPER : 'rgba(255,255,255,0.45)',
-                                }}
-                              >
-                                {label} {pct}%
+                              <span key={pillar}>
+                                {i > 0 && <span style={{ color: 'rgba(196,145,95,0.25)', margin: '0 4px' }}>·</span>}
+                                <span style={{ color: isPrimary ? COPPER : 'rgba(255,255,255,0.45)' }}>{label} {pct}%</span>
                               </span>
                             );
                           })}
-                        </div>
+                        </p>
                       );
                     })()}
                   </div>
@@ -667,7 +637,13 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                       {session.notes.trim()}
                     </p>
                   ) : (
-                    <p style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 14, color: 'rgba(255,255,255,0.25)', marginTop: 8 }}>No notes recorded.</p>
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="touch-manipulation"
+                      style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 14, color: COPPER, opacity: 0.5, background: 'none', border: 'none', borderBottom: '1px solid rgba(196,145,95,0.25)', cursor: 'pointer', padding: 0, marginTop: 8, display: 'block' }}
+                    >
+                      What stood out today? →
+                    </button>
                   )}
 
                   {/* Partners chip strip — social-as-data layer */}
