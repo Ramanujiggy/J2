@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
 import { COPPER, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3, CARD_GLOW, CARD_GLOW_BORDER, FONT_EDITORIAL, INT_LABELS } from '../lib/theme.ts';
@@ -82,6 +83,7 @@ interface Props {
 
 export default function SessionDetailModal({ session, date, intention, sessionCount, sessionIndex, onNavigate, onClose, onSaved, onDeleted }: Props) {
   const [isEditing, setIsEditing] = useState(false);
+  const navigate = useNavigate();
   const isDesktop = useIsDesktop();
 
   // ── Form state (includes Pillar Engine fields) ──────────────────────────
@@ -108,17 +110,17 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
   const { byId: userConstraintById } = useUserConstraints();
   const { byId: canonicalConstraintById } = useCanonicalConstraints();
 
-  const resolvedTechTags = useMemo<string[]>(() => {
-    const names: string[] = [];
+  const resolvedTechTags = useMemo<Array<{ id: string; name: string; isUserTag: boolean }>>(() => {
+    const tags: Array<{ id: string; name: string; isUserTag: boolean }> = [];
     for (const id of session.canonical_position_ids ?? []) {
       const p = canonicalPositionById.get(id);
-      if (p) names.push(p.name);
+      if (p) tags.push({ id, name: p.name, isUserTag: false });
     }
     for (const id of session.user_tag_ids ?? []) {
       const t = userTagById.get(id);
-      if (t) names.push(t.name);
+      if (t) tags.push({ id, name: t.name, isUserTag: true });
     }
-    return names;
+    return tags;
   }, [session.canonical_position_ids, session.user_tag_ids, canonicalPositionById, userTagById]);
 
   const resolvedConstraints = useMemo<string[]>(() => {
@@ -586,14 +588,15 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                           Tech Tags
                         </div>
                         <div className="flex flex-wrap gap-1.5">
-                          {resolvedTechTags.map(name => (
-                            <span
-                              key={name}
-                              className="px-2.5 py-1 rounded-md text-xs font-medium"
-                              style={{ backgroundColor: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.65)' }}
+                          {resolvedTechTags.map(tag => (
+                            <button
+                              key={tag.id}
+                              onClick={e => { e.stopPropagation(); onClose(); navigate(tag.isUserTag ? `/techniques/${tag.id}` : `/library`); }}
+                              className="px-2.5 py-1 rounded-md text-xs font-medium touch-manipulation"
+                              style={{ backgroundColor: 'rgba(255,255,255,0.06)', color: 'rgba(196,145,95,0.70)', border: 'none', cursor: 'pointer' }}
                             >
-                              {name}
-                            </span>
+                              {tag.name}
+                            </button>
                           ))}
                         </div>
                       </div>
@@ -952,7 +955,7 @@ interface DesktopViewContentProps {
   selections: ChipSelection[];
   // Resolved display arrays from canonical/user lookups (parent computes via hooks)
   resolvedConstraints: string[];
-  resolvedTechTags: string[];
+  resolvedTechTags: Array<{ id: string; name: string; isUserTag: boolean }>;
   resolvedPartners: string[];
   sessionCount?: number;
   sessionIndex?: number;
@@ -1258,14 +1261,14 @@ function DesktopViewContent({
                     Tech Tags
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    {resolvedTechTags.map(name => (
-                      <span key={name} style={{
+                    {resolvedTechTags.map(tag => (
+                      <span key={tag.id} style={{
                         padding: '6px 12px', borderRadius: 8,
                         background: 'rgba(255,255,255,0.05)',
                         border: '1px solid rgba(255,255,255,0.08)',
                         color: 'rgba(255,255,255,0.70)', fontSize: 13, fontWeight: 500, letterSpacing: '0.01em',
                       }}>
-                        {name}
+                        {tag.name}
                       </span>
                     ))}
                   </div>
