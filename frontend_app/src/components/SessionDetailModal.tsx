@@ -277,22 +277,22 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
             type="button"
             disabled={!interactive}
             onClick={interactive ? () => { vibrate(10); setForm(f => ({ ...f, intensity: n })); } : undefined}
-            className="flex-1 flex items-center justify-center font-semibold"
+            className="flex-1 flex items-center justify-center touch-manipulation"
             style={{
-              height: active ? 44 : 36,
-              borderRadius: 10,
-              backgroundColor: active ? color : 'rgba(255,255,255,0.05)',
-              border: `1px solid ${active ? color : 'rgba(255,255,255,0.08)'}`,
-              color: active ? 'rgba(13,26,20,0.9)' : 'rgba(255,255,255,0.55)',
-              fontSize: 12,
+              height: 36,
+              borderRadius: 8,
+              backgroundColor: active ? color : 'transparent',
+              border: 'none',
+              color: active ? 'rgba(13,26,20,0.9)' : 'rgba(255,255,255,0.30)',
+              fontSize: 11,
+              fontWeight: active ? 700 : 500,
               letterSpacing: '0.06em',
               textTransform: 'uppercase',
               cursor: interactive ? 'pointer' : 'default',
-              transition: 'all 280ms cubic-bezier(0.2, 0.8, 0.2, 1)',
-              boxShadow: active ? `0 0 0 1px ${color}40, 0 8px 20px -8px ${color}80` : 'none',
+              transition: 'all 200ms ease',
             }}
           >
-            {active ? label : ''}
+            {label}
           </button>
         );
       })}
