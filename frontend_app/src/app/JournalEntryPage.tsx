@@ -141,7 +141,14 @@ export default function JournalEntryPage() {
     const t = setTimeout(() => setRevealComplete(true), total);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [revealComplete, journalCardWidth]);
+  }, [revealComplete, journalCardWidth, text]);
+
+  // Safety fallback — if reveal hasn't completed 2s after text loads, force it
+  useEffect(() => {
+    if (revealComplete || !text) return;
+    const fallback = setTimeout(() => setRevealComplete(true), 2000);
+    return () => clearTimeout(fallback);
+  }, [revealComplete, text]);
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
