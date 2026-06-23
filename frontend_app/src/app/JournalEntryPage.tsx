@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { api } from '../lib/api.ts';
 import { PALE_YELLOW, GLOW_SOFT, SURFACE_2, COPPER } from '../lib/theme.ts';
@@ -17,8 +17,13 @@ import { measureLines } from '../lib/pretextMeasure.ts';
 export default function JournalEntryPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const isDesktop = useIsDesktop();
   const { intentionsEnabled } = useProfile();
+
+  // Origin tracking — where did the user come from?
+  const origin = (location.state as { from?: string } | null)?.from ?? '/intentions';
+  const originLabel = origin === '/home' ? 'Home' : 'Intentions';
 
   const [intention, setIntention] = useState<Intention | null>(null);
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
@@ -169,11 +174,11 @@ export default function JournalEntryPage() {
       <div className={`mx-auto py-6 ${isDesktop ? 'max-w-3xl px-8' : 'max-w-2xl px-4 sm:px-6'}`}>
         <p className="text-sm text-red-400">Intention not found.</p>
         <button
-          onClick={() => navigate('/intentions')}
+          onClick={() => navigate(origin)}
           className="mt-4 text-sm transition-colors"
           style={{ color: 'rgba(255,255,255,0.40)' }}
         >
-          ← Back to Intentions
+          ← Back to {originLabel}
         </button>
       </div>
     ) : (
@@ -181,14 +186,14 @@ export default function JournalEntryPage() {
 
       {/* Back */}
       <button
-        onClick={() => navigate('/intentions')}
+        onClick={() => navigate(origin)}
         className="text-sm flex items-center gap-1.5 transition-colors touch-manipulation"
         style={{ color: 'rgba(255,255,255,0.40)' }}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
           <path d="M15 18l-6-6 6-6" />
         </svg>
-        Intentions
+        {originLabel}
       </button>
 
       {/* Header — editorial chrome matching IntentionHeroCard. Promotes the

@@ -170,7 +170,7 @@ export default function PathAheadMobile({
               progress={activeIntentionProgress}
               onSetIntent={() => setSetIntentOpen(true)}
               onEditIntent={activeIntention ? () => setEditIntention(activeIntention) : undefined}
-              onViewJournal={activeIntention ? () => navigate(`/intentions/${activeIntention.id}/journal`) : undefined}
+              onViewJournal={activeIntention ? () => navigate(`/intentions/${activeIntention.id}/journal`, { state: { from: '/home' } }) : undefined}
               onDeleteIntent={handleDeleteIntention}
               compact
             />
@@ -190,7 +190,7 @@ export default function PathAheadMobile({
               progress={activeIntentionProgress}
               onSetIntent={() => setSetIntentOpen(true)}
               onEditIntent={activeIntention ? () => setEditIntention(activeIntention) : undefined}
-              onViewJournal={activeIntention ? () => navigate(`/intentions/${activeIntention.id}/journal`) : undefined}
+              onViewJournal={activeIntention ? () => navigate(`/intentions/${activeIntention.id}/journal`, { state: { from: '/home' } }) : undefined}
               onDeleteIntent={handleDeleteIntention}
             />
           )}

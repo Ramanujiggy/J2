@@ -45,7 +45,7 @@ interface MobileViewProps {
   onOpenEdit: (intention: Intention) => void;
   onCloseModal: () => void;
   onSaved: () => void;
-  onNavigate: (path: string, opts?: { replace?: boolean }) => void;
+  onNavigate: (path: string, opts?: { replace?: boolean; state?: Record<string, unknown> }) => void;
   intentionsCoachmark: CoachmarkHandle;
 }
 
@@ -234,7 +234,7 @@ export default function IntentionsMobileView({
               era={era}
               statsMap={statsMap}
               compact
-              onOpen={() => onNavigate(`/intentions/${era.weeks[0]!.id}/journal`)}
+              onOpen={() => onNavigate(`/intentions/${era.weeks[0]!.id}/journal`, { state: { from: '/intentions' } })}
             />
           ))}
         </div>
@@ -260,7 +260,7 @@ export default function IntentionsMobileView({
             return (
               <button
                 key={intention.id}
-                onClick={() => onNavigate(`/intentions/${intention.id}/journal`)}
+                onClick={() => onNavigate(`/intentions/${intention.id}/journal`, { state: { from: '/intentions' } })}
                 className="w-full text-left touch-manipulation"
                 style={{
                   display: 'flex', alignItems: 'flex-start', gap: 14,
