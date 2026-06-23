@@ -2,15 +2,17 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { api } from '../lib/api.ts';
-import { PALE_YELLOW, GLOW_SOFT, SURFACE_2, COPPER } from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3, COPPER, FONT_EDITORIAL } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import { CATEGORY_COLORS, SKILL_TAGS, MONTH_NAMES, REFLECTION_PROMPTS } from '../lib/constants.ts';
 import { formatDuration, INTENSITY_COLOR } from '../lib/sessionUtils.ts';
 import { vibrate } from '../lib/haptics.ts';
-import type { Intention, IntentionsResponse, SessionSummary, SessionsResponse } from '../types/api.ts';
+import type { Intention, IntentionsResponse, SessionSummary, SessionsResponse, IntentionCompletionType } from '../types/api.ts';
 import PageContent from '../components/PageContent.tsx';
 import SessionDetailModal from '../components/SessionDetailModal.tsx';
+import SegmentedToggle from '../components/SegmentedToggle.tsx';
+import FocusAreaChips from '../components/FocusAreaChips.tsx';
 import { formatWeekLong } from '../lib/analyticsUtils.ts';
 import { measureLines } from '../lib/pretextMeasure.ts';
 
@@ -33,6 +35,15 @@ export default function JournalEntryPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+
+  // Inline edit state
+  const [editOpen, setEditOpen] = useState(false);
+  const [editLabel, setEditLabel] = useState('');
+  const [editHeading, setEditHeading] = useState<string | null>(null);
+  const [editDuration, setEditDuration] = useState(7);
+  const [editCompletionType, setEditCompletionType] = useState<IntentionCompletionType>('days');
+  const [editTarget, setEditTarget] = useState(4);
+  const [editSaving, setEditSaving] = useState(false);
   const saveTimeout  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const textareaRef  = useRef<HTMLTextAreaElement>(null);
   const textInitialized = useRef(false);
@@ -157,6 +168,39 @@ export default function JournalEntryPage() {
   const handleSave = async () => {
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
     await save(text);
+  };
+
+  const openEdit = () => {
+    if (!intention) return;
+    setEditLabel(intention.intent_label ?? '');
+    setEditHeading(intention.heading);
+    setEditDuration(intention.duration_days ?? 7);
+    setEditCompletionType(intention.completion_type ?? 'days');
+    setEditTarget(intention.target_count ?? 4);
+    setEditOpen(true);
+  };
+
+  const saveEdit = async () => {
+    if (!intention) return;
+    setEditSaving(true);
+    try {
+      const targetCount = editCompletionType === 'sessions' ? editTarget
+        : editCompletionType === 'training_weeks' ? editTarget
+        : null;
+      await api.patch(`/api/intentions/${intention.id}`, {
+        intent_label: editLabel.trim() || null,
+        heading: editHeading,
+        duration_days: editDuration,
+        completion_type: editCompletionType,
+        target_count: targetCount,
+      });
+      setEditOpen(false);
+      fetchIntention();
+    } catch {
+      setError('Failed to update focus.');
+    } finally {
+      setEditSaving(false);
+    }
   };
 
   const categoryColor = intention?.intent_category
@@ -298,6 +342,95 @@ export default function JournalEntryPage() {
           </div>
         );
       })()}
+
+      {/* Edit focus — inline collapsible section */}
+      {intentionsEnabled && !editOpen && (
+        <button
+          onClick={openEdit}
+          className="touch-manipulation"
+          style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 15, color: COPPER, opacity: 0.6, background: 'none', border: 'none', borderBottom: '1px solid rgba(196,145,95,0.25)', cursor: 'pointer', padding: 0, display: 'block' }}
+        >
+          Edit focus →
+        </button>
+      )}
+
+      {editOpen && (
+        <div style={{ borderBottom: '1px solid rgba(196,145,95,0.08)', paddingBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)' }}>
+              Edit Focus
+            </span>
+            <button onClick={() => setEditOpen(false)} style={{ fontSize: 14, color: 'rgba(255,255,255,0.25)', background: 'none', border: 'none', cursor: 'pointer' }}>×</button>
+          </div>
+
+          {/* Label */}
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.40)', display: 'block', marginBottom: 4 }}>
+              What specifically? <span style={{ color: 'rgba(255,255,255,0.20)' }}>(optional)</span>
+            </label>
+            <input
+              type="text"
+              maxLength={20}
+              value={editLabel}
+              onChange={e => setEditLabel(e.target.value)}
+              placeholder="e.g. Waiter Guard, Berimbolo"
+              style={{ width: '100%', fontSize: 14, padding: '10px 12px', borderRadius: 10, backgroundColor: SURFACE_3, border: '1px solid rgba(255,255,255,0.08)', color: 'white', outline: 'none' }}
+            />
+          </div>
+
+          {/* Completion mode */}
+          <div style={{ marginBottom: 12 }}>
+            <SegmentedToggle<IntentionCompletionType>
+              size="compact"
+              options={[
+                { value: 'days', label: 'Days' },
+                { value: 'sessions', label: 'Sessions' },
+                { value: 'training_weeks', label: 'Weeks' },
+              ]}
+              value={editCompletionType}
+              onChange={v => v && setEditCompletionType(v)}
+            />
+          </div>
+
+          {/* Duration / target */}
+          <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+            {(editCompletionType === 'days'
+              ? [3, 5, 7, 14]
+              : editCompletionType === 'sessions'
+                ? [3, 4, 6, 8, 12]
+                : [2, 3, 4, 6, 8]
+            ).map(n => {
+              const val = editCompletionType === 'days' ? editDuration : editTarget;
+              const active = val === n;
+              return (
+                <button
+                  key={n}
+                  onClick={() => { vibrate(8); editCompletionType === 'days' ? setEditDuration(n) : setEditTarget(n); }}
+                  className="flex-1 touch-manipulation"
+                  style={{
+                    height: 34, borderRadius: 8, fontSize: 13, fontWeight: 600,
+                    backgroundColor: active ? COPPER : SURFACE_3,
+                    color: active ? '#fff' : 'rgba(255,255,255,0.45)',
+                    border: 'none', cursor: 'pointer',
+                  }}
+                >
+                  {editCompletionType === 'days' ? `${n}d` : n}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Save */}
+          <button
+            onClick={saveEdit}
+            disabled={editSaving}
+            className="touch-manipulation disabled:opacity-50"
+            style={{ fontFamily: FONT_EDITORIAL, fontWeight: 700, fontStyle: 'normal', fontSize: 16, color: PALE_YELLOW, textShadow: GLOW_SOFT, background: 'none', border: 'none', cursor: 'pointer' }}
+          >
+            {editSaving ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      )}
 
       {/* Reflection prompt — daily rotating question. Lives here (instead of
           on Path Ahead, where it used to) because journaling is when it's

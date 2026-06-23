@@ -319,7 +319,7 @@ export default function IntentionsMobileView({
                 {/* Right affordance */}
                 <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, paddingTop: 2 }}>
                   <button
-                    onClick={e => { e.stopPropagation(); onOpenEdit(intention); }}
+                    onClick={e => { e.stopPropagation(); onNavigate(`/intentions/${intention.id}/journal`, { state: { from: '/intentions' } }); }}
                     className="touch-manipulation"
                     style={{ color: 'rgba(255,255,255,0.18)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}
                   >
