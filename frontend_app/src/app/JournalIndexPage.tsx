@@ -10,6 +10,8 @@ import { useNavigate } from 'react-router-dom';
 import { VariableSizeList, type ListChildComponentProps } from 'react-window';
 import { useSessions } from '../context/SessionsContext.tsx';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
+import { useUserTags } from '../hooks/useUserTags.ts';
+import { useCanonicalPositions } from '../hooks/useCanonicalPositions.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import PageContent from '../components/PageContent.tsx';
 import SessionDetailModal from '../components/SessionDetailModal.tsx';
@@ -39,9 +41,9 @@ type DesktopItem =
 
 function mobileItemHeight(item: MobileItem): number {
   if (item.kind === 'month') return 56;
-  // 14+14 padding + ~50px per session + 10px divider between stacked sessions.
+  // 14+14 padding + ~60px per session (includes optional sub_skill_tag line) + 10px divider.
   const n = item.sessions.length;
-  return 28 + 50 * n + 10 * Math.max(0, n - 1);
+  return 28 + 60 * n + 10 * Math.max(0, n - 1);
 }
 
 function desktopItemHeight(item: DesktopItem): number {
@@ -52,6 +54,10 @@ function desktopItemHeight(item: DesktopItem): number {
 export default function JournalIndexPage() {
   const navigate = useNavigate();
   const isDesktop = useIsDesktop();
+
+  // Tech tag resolution — cached module-level, cheap to add here
+  const { byId: userTagById } = useUserTags();
+  const { byId: canonicalPositionById } = useCanonicalPositions();
 
   // Mobile detail modal state — set when a JournalRow is tapped on mobile.
   const [mobileDetailSession, setMobileDetailSession] = useState<SessionSummary | null>(null);
@@ -248,7 +254,7 @@ export default function JournalIndexPage() {
               itemKey={(i) => mobileItems[i]!.key}
             >
               {({ index, style }: ListChildComponentProps) => (
-                <MobileVirtRow item={mobileItems[index]!} style={style} onOpen={setMobileDetailSession} />
+                <MobileVirtRow item={mobileItems[index]!} style={style} onOpen={setMobileDetailSession} userTagById={userTagById} canonicalPositionById={canonicalPositionById} />
               )}
             </VariableSizeList>
           )}
@@ -486,10 +492,14 @@ function MobileDayGroup({
   dateStr,
   sessions,
   onOpen,
+  userTagById,
+  canonicalPositionById,
 }: {
   dateStr: string;
   sessions: SessionSummary[];
   onOpen: (s: SessionSummary) => void;
+  userTagById: Map<string, { name: string }>;
+  canonicalPositionById: Map<string, { name: string }>;
 }) {
   const d = new Date(dateStr + 'T00:00:00');
   const isMulti = sessions.length > 1;
@@ -534,6 +544,8 @@ function MobileDayGroup({
             session={s}
             onOpen={() => onOpen(s)}
             divider={i > 0}
+            userTagById={userTagById}
+            canonicalPositionById={canonicalPositionById}
           />
         ))}
       </div>
@@ -548,10 +560,14 @@ function SessionMiniRow({
   session,
   onOpen,
   divider,
+  userTagById,
+  canonicalPositionById,
 }: {
   session: SessionSummary;
   onOpen: () => void;
   divider: boolean;
+  userTagById: Map<string, { name: string }>;
+  canonicalPositionById: Map<string, { name: string }>;
 }) {
   const intensity = Math.max(1, Math.min(5, session.intensity ?? 3));
   const intColor = INTENSITY_COLOR[intensity] ?? '#A8CB72';
@@ -597,6 +613,25 @@ function SessionMiniRow({
         >
           {classLabel} · {giLabel}
         </div>
+        {/* Resolved tech tags — positions worked on */}
+        {(() => {
+          const names: string[] = [];
+          for (const id of session.canonical_position_ids ?? []) {
+            const p = canonicalPositionById.get(id);
+            if (p) names.push(p.name);
+          }
+          for (const id of session.user_tag_ids ?? []) {
+            const t = userTagById.get(id);
+            if (t && !names.includes(t.name)) names.push(t.name);
+          }
+          if (names.length === 0 && session.sub_skill_tag) names.push(session.sub_skill_tag);
+          if (names.length === 0) return null;
+          return (
+            <div style={{ fontSize: 12, fontFamily: FONT_EDITORIAL, fontStyle: 'italic', color: 'rgba(196,145,95,0.55)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {names.join(' · ')}
+            </div>
+          );
+        })()}
       </div>
 
       <div style={{ fontSize: 15, fontFamily: FONT_EDITORIAL, color: 'rgba(255,255,255,0.85)' }}>
@@ -609,11 +644,13 @@ function SessionMiniRow({
 // ── Virtualized row renderers ────────────────────────────────────────────
 
 function MobileVirtRow({
-  item, style, onOpen,
+  item, style, onOpen, userTagById, canonicalPositionById,
 }: {
   item: MobileItem;
   style: React.CSSProperties;
   onOpen: (s: SessionSummary) => void;
+  userTagById: Map<string, { name: string }>;
+  canonicalPositionById: Map<string, { name: string }>;
 }) {
   if (item.kind === 'month') {
     return (
@@ -632,7 +669,7 @@ function MobileVirtRow({
   }
   return (
     <div style={style}>
-      <MobileDayGroup dateStr={item.dateStr} sessions={item.sessions} onOpen={onOpen} />
+      <MobileDayGroup dateStr={item.dateStr} sessions={item.sessions} onOpen={onOpen} userTagById={userTagById} canonicalPositionById={canonicalPositionById} />
     </div>
   );
 }
