@@ -41,9 +41,9 @@ type DesktopItem =
 
 function mobileItemHeight(item: MobileItem): number {
   if (item.kind === 'month') return 56;
-  // 14+14 padding + ~60px per session (includes optional sub_skill_tag line) + 10px divider.
+  // 14+14 padding + ~50px per session + 10px divider between stacked sessions.
   const n = item.sessions.length;
-  return 28 + 60 * n + 10 * Math.max(0, n - 1);
+  return 28 + 50 * n + 10 * Math.max(0, n - 1);
 }
 
 function desktopItemHeight(item: DesktopItem): number {
@@ -593,45 +593,43 @@ function SessionMiniRow({
       }}
     >
       <div style={{ minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-          <span
-            aria-hidden
-            style={{
-              width: 9, height: 9, borderRadius: '50%', background: intColor,
-              boxShadow: `0 0 6px ${intColor}60`, flexShrink: 0,
-            }}
-          />
-          <div style={{ fontSize: 15, fontWeight: 600, color: 'rgba(255,255,255,0.92)' }}>
-            {focusLabel}
-          </div>
-        </div>
+        {(() => {
+          // Resolve tech tag names — these become the headline when available
+          const techNames: string[] = [];
+          for (const id of session.canonical_position_ids ?? []) {
+            const p = canonicalPositionById.get(id);
+            if (p) techNames.push(p.name);
+          }
+          for (const id of session.user_tag_ids ?? []) {
+            const t = userTagById.get(id);
+            if (t && !techNames.includes(t.name)) techNames.push(t.name);
+          }
+          if (techNames.length === 0 && session.sub_skill_tag) techNames.push(session.sub_skill_tag);
+          const headline = techNames.length > 0 ? techNames.join(' · ') : focusLabel;
+
+          return (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <span
+                aria-hidden
+                style={{
+                  width: 9, height: 9, borderRadius: '50%', background: intColor,
+                  boxShadow: `0 0 6px ${intColor}60`, flexShrink: 0,
+                }}
+              />
+              <div style={{ fontSize: 15, fontWeight: 600, color: 'rgba(255,255,255,0.90)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {headline}
+              </div>
+            </div>
+          );
+        })()}
         <div
           style={{
-            fontSize: 11, color: 'rgba(255,255,255,0.45)',
+            fontSize: 11, color: 'rgba(255,255,255,0.40)',
             letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600,
           }}
         >
           {classLabel} · {giLabel}
         </div>
-        {/* Resolved tech tags — positions worked on */}
-        {(() => {
-          const names: string[] = [];
-          for (const id of session.canonical_position_ids ?? []) {
-            const p = canonicalPositionById.get(id);
-            if (p) names.push(p.name);
-          }
-          for (const id of session.user_tag_ids ?? []) {
-            const t = userTagById.get(id);
-            if (t && !names.includes(t.name)) names.push(t.name);
-          }
-          if (names.length === 0 && session.sub_skill_tag) names.push(session.sub_skill_tag);
-          if (names.length === 0) return null;
-          return (
-            <div style={{ fontSize: 12, fontFamily: FONT_EDITORIAL, fontStyle: 'italic', color: 'rgba(196,145,95,0.55)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {names.join(' · ')}
-            </div>
-          );
-        })()}
       </div>
 
       <div style={{ fontSize: 15, fontFamily: FONT_EDITORIAL, color: 'rgba(255,255,255,0.85)' }}>
