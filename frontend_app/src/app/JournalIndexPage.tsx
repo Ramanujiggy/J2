@@ -39,9 +39,9 @@ type DesktopItem =
 
 function mobileItemHeight(item: MobileItem): number {
   if (item.kind === 'month') return 56;
-  // 14+14 padding + ~50px per session + 10px divider between stacked sessions.
+  // 14+14 padding + ~60px per session (includes optional sub_skill_tag line) + 10px divider.
   const n = item.sessions.length;
-  return 28 + 50 * n + 10 * Math.max(0, n - 1);
+  return 28 + 60 * n + 10 * Math.max(0, n - 1);
 }
 
 function desktopItemHeight(item: DesktopItem): number {
@@ -597,6 +597,12 @@ function SessionMiniRow({
         >
           {classLabel} · {giLabel}
         </div>
+        {/* Sub-skill tag — the specific technique worked on */}
+        {session.sub_skill_tag && (
+          <div style={{ fontSize: 12, fontFamily: FONT_EDITORIAL, fontStyle: 'italic', color: 'rgba(196,145,95,0.55)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {session.sub_skill_tag}
+          </div>
+        )}
       </div>
 
       <div style={{ fontSize: 15, fontFamily: FONT_EDITORIAL, color: 'rgba(255,255,255,0.85)' }}>
