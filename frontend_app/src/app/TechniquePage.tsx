@@ -158,6 +158,11 @@ export default function TechniquePage() {
     [sessions],
   );
 
+  const totalMinutes = useMemo(
+    () => sessions.reduce((sum, s) => sum + (s.duration ?? 0), 0),
+    [sessions],
+  );
+
   // Cross-ref list: other techniques in the same pillar. Free derivation
   // from useUserTags.tagsByPillar — sort go-to first, then alpha; cap.
   const otherInPillar = useMemo<UserTag[]>(() => {
@@ -290,11 +295,6 @@ export default function TechniquePage() {
 
   // ── Section renderers — declared inline so they share scope (drafts, handlers).
   // Reused in both the mobile single-column stack and the desktop two-column grid.
-
-  const totalMinutes = useMemo(
-    () => sessions.reduce((sum, s) => sum + (s.duration ?? 0), 0),
-    [sessions],
-  );
 
   const heroBlock = (
     <Hero
