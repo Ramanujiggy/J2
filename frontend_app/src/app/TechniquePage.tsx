@@ -582,6 +582,20 @@ function describeCadence(
   return countLabel + '.';
 }
 
+function describeOrigin(tag: UserTag): string {
+  const added = new Date(tag.created_at);
+  const monthLabel = added.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+  const parts: string[] = [];
+  if (tag.has_video && tag.video_status === 'ready') parts.push('video recorded');
+  if (tag.video_notes) parts.push('notes written');
+  if (tag.resonance_journal) parts.push('personal journal started');
+
+  if (parts.length === 0) return `Added ${monthLabel}. A blank slate.`;
+  if (parts.length === 3) return `Added ${monthLabel}. Fully documented.`;
+  return `Added ${monthLabel}. ${parts.join(', ').replace(/^./, c => c.toUpperCase())}.`;
+}
+
 function Hero({
   tag, lastDrilledDate, sessionsCount, totalMinutes, sessionsLoading, onAffinityClick,
 }: {
@@ -661,6 +675,19 @@ function Hero({
             {describeCadence(sessionsCount, totalMinutes, lastDrilledDate, tag.created_at)}
           </p>
         )}
+        <p
+          style={{
+            marginTop: 4,
+            fontSize: 12,
+            fontFamily: 'var(--font-editorial)',
+            fontStyle: 'italic',
+            color: 'rgba(255,255,255,0.30)',
+            lineHeight: 1.4,
+            margin: '4px 0 0',
+          }}
+        >
+          {describeOrigin(tag)}
+        </p>
 
         {/* Inline affinity quick-set — sits with the hero so a "Dang, I like
             this" tap doesn't require scrolling to a section below the journal. */}
