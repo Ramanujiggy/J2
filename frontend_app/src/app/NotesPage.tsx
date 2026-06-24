@@ -521,17 +521,19 @@ export default function NotesPage() {
         >
           Journal
         </h1>
-        <SegmentedToggle<'entries' | 'intentions' | 'notes'>
+        <SegmentedToggle<'entries' | 'intentions' | 'notes' | 'techniques'>
           size="compact"
           options={[
             { value: 'entries', label: 'Entries' },
             { value: 'intentions', label: 'Intentions' },
             { value: 'notes', label: 'Notes' },
+            { value: 'techniques', label: 'Techs' },
           ]}
           value="notes"
           onChange={(v) => {
             if (v === 'entries') navigate('/journal', { replace: true });
             if (v === 'intentions') navigate('/intentions', { replace: true });
+            if (v === 'techniques') navigate('/library', { replace: true });
           }}
         />
       </div>

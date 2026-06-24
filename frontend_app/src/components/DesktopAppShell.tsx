@@ -96,10 +96,10 @@ type NavItem = {
 // redirects to /atlas (its functionality is now Atlas's Prism tab).
 const NAV_ITEMS: readonly NavItem[] = [
   { path: '/home',       label: 'Path Ahead', Icon: CompassIcon },
-  { path: '/journal',    label: 'Journal',    Icon: BookIcon, alsoActiveOn: ['/notes'] },
+  { path: '/journal',    label: 'Journal',    Icon: BookIcon, alsoActiveOn: ['/notes', '/library', '/techniques'] },
   { path: '/atlas',      label: 'Atlas',      Icon: MapIcon, alsoActiveOn: ['/calendar'] },
   { path: '/intentions', label: 'Intentions', Icon: DiamondIcon, gated: 'intentions' },
-  { path: '/profile',    label: 'Profile',    Icon: UserIcon, alsoActiveOn: ['/library', '/techniques'] },
+  { path: '/profile',    label: 'Profile',    Icon: UserIcon },
   // Admin gate (mig 023). Only renders for users with users.is_admin = true.
   // The route /admin needs to appear in NAV_ITEMS for activeTab's prefix
   // match to highlight it correctly when the founder is on the dashboard.

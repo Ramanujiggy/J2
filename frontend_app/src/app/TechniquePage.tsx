@@ -291,11 +291,18 @@ export default function TechniquePage() {
   // ── Section renderers — declared inline so they share scope (drafts, handlers).
   // Reused in both the mobile single-column stack and the desktop two-column grid.
 
+  const totalMinutes = useMemo(
+    () => sessions.reduce((sum, s) => sum + (s.duration ?? 0), 0),
+    [sessions],
+  );
+
   const heroBlock = (
     <Hero
       tag={tag}
       lastDrilledDate={lastDrilledDate}
       sessionsCount={sessions.length}
+      totalMinutes={totalMinutes}
+      sessionsLoading={sessionsLoading}
       onAffinityClick={onAffinityClick}
     />
   );
@@ -527,12 +534,62 @@ export default function TechniquePage() {
 
 // ── Sub-components ──────────────────────────────────────────────────────────
 
+function describeCadence(
+  sessionsCount: number,
+  totalMinutes: number,
+  lastDrilledDate: string | null,
+  createdAt: string,
+): string | null {
+  const now = Date.now();
+  const daysSinceAdded = Math.floor(
+    (now - new Date(createdAt).getTime()) / 86_400_000,
+  );
+  const weeksAgo = Math.floor(daysSinceAdded / 7);
+  const addedLabel =
+    weeksAgo < 1 ? 'this week' :
+    weeksAgo === 1 ? '1 week ago' :
+    weeksAgo < 8 ? `${weeksAgo} weeks ago` :
+    `${Math.floor(weeksAgo / 4)} months ago`;
+
+  if (sessionsCount === 0) {
+    return `Added ${addedLabel}. Not yet drilled.`;
+  }
+
+  const hours = Math.floor(totalMinutes / 60);
+  const matTime = hours >= 1 ? `${hours}h` : `${totalMinutes}m`;
+
+  const daysSinceLast = lastDrilledDate
+    ? Math.floor((now - new Date(lastDrilledDate + 'T00:00:00').getTime()) / 86_400_000)
+    : null;
+
+  if (sessionsCount === 1) {
+    if (daysSinceLast !== null && daysSinceLast > 0) {
+      return `Drilled once, ${daysSinceLast} day${daysSinceLast === 1 ? '' : 's'} ago.`;
+    }
+    return 'Drilled once — today.';
+  }
+
+  const countLabel = `${sessionsCount} sessions · ${matTime} on the mat`;
+  if (daysSinceLast !== null && daysSinceLast <= 14) {
+    return `${countLabel}. Active.`;
+  }
+  if (daysSinceLast !== null && daysSinceLast <= 60) {
+    return `${countLabel}, but ${daysSinceLast} days since the last one.`;
+  }
+  if (daysSinceLast !== null) {
+    return `${countLabel}. Dormant for ${daysSinceLast} days.`;
+  }
+  return countLabel + '.';
+}
+
 function Hero({
-  tag, lastDrilledDate, sessionsCount, onAffinityClick,
+  tag, lastDrilledDate, sessionsCount, totalMinutes, sessionsLoading, onAffinityClick,
 }: {
   tag: UserTag;
   lastDrilledDate: string | null;
   sessionsCount: number;
+  totalMinutes: number;
+  sessionsLoading: boolean;
   onAffinityClick: (next: Affinity | null) => void;
 }) {
   return (
@@ -584,26 +641,26 @@ function Hero({
             letterSpacing: '0.14em',
             textTransform: 'uppercase',
             color: 'rgba(255,255,255,0.40)',
-            display: 'flex',
-            gap: 10,
-            flexWrap: 'wrap',
-            alignItems: 'center',
           }}
         >
-          <span>{PILLAR_LABELS[tag.parent_pillar]}</span>
-          {lastDrilledDate && (
-            <>
-              <span style={{ color: 'rgba(255,255,255,0.18)' }}>·</span>
-              <span>Last drilled {formatDate(lastDrilledDate)}</span>
-            </>
-          )}
-          {sessionsCount > 0 && (
-            <>
-              <span style={{ color: 'rgba(255,255,255,0.18)' }}>·</span>
-              <span>{sessionsCount} session{sessionsCount === 1 ? '' : 's'}</span>
-            </>
-          )}
+          {PILLAR_LABELS[tag.parent_pillar]}
         </div>
+
+        {!sessionsLoading && (
+          <p
+            style={{
+              marginTop: 8,
+              fontSize: 13,
+              fontFamily: 'var(--font-editorial)',
+              fontStyle: 'italic',
+              color: 'rgba(255,255,255,0.45)',
+              lineHeight: 1.4,
+              margin: '8px 0 0',
+            }}
+          >
+            {describeCadence(sessionsCount, totalMinutes, lastDrilledDate, tag.created_at)}
+          </p>
+        )}
 
         {/* Inline affinity quick-set — sits with the hero so a "Dang, I like
             this" tap doesn't require scrolling to a section below the journal. */}
