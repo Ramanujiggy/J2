@@ -485,7 +485,6 @@ export default function TechniquePage() {
             >
               {heroBlock}
               {videoBlock}
-              {affinityBlockLarge}
               {crossRefBlock}
             </div>
 
@@ -518,7 +517,6 @@ export default function TechniquePage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             {heroBlock}
             {videoBlock}
-            {affinityBlockLarge}
             {howToBlock}
             {resonanceBlock}
             {sessionsBlock}
@@ -595,7 +593,6 @@ function Hero({
           >
             {tag.name}
           </h1>
-          {tag.affinity && <AffinityBadge value={tag.affinity} />}
         </div>
         <div
           style={{
@@ -1026,13 +1023,11 @@ function SectionCard({
   return (
     <div
       style={{
-        background: CARD_BG,
-        border: '1px solid rgba(255,255,255,0.06)',
-        borderRadius: 14,
-        padding: '18px 20px',
+        paddingTop: 16,
+        borderTop: '1px solid rgba(196,145,95,0.08)',
       }}
     >
-      <div className="j2-label-copper" style={{ marginBottom: subtitle ? 6 : 12 }}>{kicker}</div>
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)', marginBottom: subtitle ? 6 : 12 }}>{kicker}</div>
       {subtitle && (
         <p
           style={{
