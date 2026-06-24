@@ -22,6 +22,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { api } from '../lib/api.ts';
 import PageContent from '../components/PageContent.tsx';
+import ErrorBoundary from '../components/ErrorBoundary.tsx';
 import VideoPlayer from '../components/VideoPlayer.tsx';
 import SessionDetailModal from '../components/SessionDetailModal.tsx';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
@@ -158,6 +159,11 @@ export default function TechniquePage() {
     [sessions],
   );
 
+  const totalMinutes = useMemo(
+    () => sessions.reduce((sum, s) => sum + (s.duration ?? 0), 0),
+    [sessions],
+  );
+
   // Cross-ref list: other techniques in the same pillar. Free derivation
   // from useUserTags.tagsByPillar — sort go-to first, then alpha; cap.
   const otherInPillar = useMemo<UserTag[]>(() => {
@@ -290,11 +296,6 @@ export default function TechniquePage() {
 
   // ── Section renderers — declared inline so they share scope (drafts, handlers).
   // Reused in both the mobile single-column stack and the desktop two-column grid.
-
-  const totalMinutes = useMemo(
-    () => sessions.reduce((sum, s) => sum + (s.duration ?? 0), 0),
-    [sessions],
-  );
 
   const heroBlock = (
     <Hero
@@ -439,6 +440,20 @@ export default function TechniquePage() {
 
   return (
     <PageContent ready={true}>
+      <ErrorBoundary fallback={
+        <div className="mx-auto max-w-2xl px-4 py-10 text-center">
+          <p style={{ color: 'rgba(255,100,100,0.8)', fontSize: 14 }}>
+            Something went wrong loading this technique.
+          </p>
+          <button
+            onClick={() => navigate('/library')}
+            className="mt-4 text-sm"
+            style={{ color: COPPER, textDecoration: 'underline' }}
+          >
+            Back to Technique Library
+          </button>
+        </div>
+      }>
       {isDesktop ? (
         // ─── Desktop: two-column grid ──────────────────────────────────────
         // Left rail (sticky, 360px): hero + video + affinity + cross-ref.
@@ -528,6 +543,7 @@ export default function TechniquePage() {
           }}
         />
       )}
+      </ErrorBoundary>
     </PageContent>
   );
 }
@@ -538,12 +554,13 @@ function describeCadence(
   sessionsCount: number,
   totalMinutes: number,
   lastDrilledDate: string | null,
-  createdAt: string,
+  createdAt: string | undefined,
 ): string | null {
+  if (!createdAt) return null;
   const now = Date.now();
-  const daysSinceAdded = Math.floor(
-    (now - new Date(createdAt).getTime()) / 86_400_000,
-  );
+  const ts = new Date(createdAt).getTime();
+  if (Number.isNaN(ts)) return null;
+  const daysSinceAdded = Math.floor((now - ts) / 86_400_000);
   const weeksAgo = Math.floor(daysSinceAdded / 7);
   const addedLabel =
     weeksAgo < 1 ? 'this week' :
@@ -582,8 +599,10 @@ function describeCadence(
   return countLabel + '.';
 }
 
-function describeOrigin(tag: UserTag): string {
+function describeOrigin(tag: UserTag): string | null {
+  if (!tag.created_at) return null;
   const added = new Date(tag.created_at);
+  if (Number.isNaN(added.getTime())) return null;
   const monthLabel = added.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   const parts: string[] = [];
