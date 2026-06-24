@@ -163,17 +163,19 @@ export default function JournalIndexPage() {
             >
               Journal
             </h1>
-            <SegmentedToggle<'entries' | 'intentions' | 'notes'>
+            <SegmentedToggle<'entries' | 'intentions' | 'notes' | 'techniques'>
               size="compact"
               options={[
                 { value: 'entries',    label: 'Entries' },
                 { value: 'intentions', label: 'Intentions' },
                 { value: 'notes',      label: 'Notes' },
+                { value: 'techniques', label: 'Techs' },
               ]}
               value="entries"
               onChange={(v) => {
                 if (v === 'intentions') navigate('/intentions', { replace: true });
                 if (v === 'notes') navigate('/notes', { replace: true });
+                if (v === 'techniques') navigate('/library', { replace: true });
               }}
             />
           </div>

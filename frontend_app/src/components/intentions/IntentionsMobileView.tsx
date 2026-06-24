@@ -104,17 +104,19 @@ export default function IntentionsMobileView({
           >
             Journal
           </h2>
-          <SegmentedToggle<'entries' | 'intentions' | 'notes'>
+          <SegmentedToggle<'entries' | 'intentions' | 'notes' | 'techniques'>
             size="compact"
             options={[
               { value: 'entries',    label: 'Entries' },
               { value: 'intentions', label: 'Intentions' },
               { value: 'notes',      label: 'Notes' },
+              { value: 'techniques', label: 'Techs' },
             ]}
             value="intentions"
             onChange={(v) => {
               if (v === 'entries') onNavigate('/journal', { replace: true });
               if (v === 'notes') onNavigate('/notes', { replace: true });
+              if (v === 'techniques') onNavigate('/library', { replace: true });
             }}
           />
         </div>
