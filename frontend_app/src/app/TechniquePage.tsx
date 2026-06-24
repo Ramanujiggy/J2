@@ -1,33 +1,21 @@
 // TechniquePage — the per-technique "Pokedex" page (`/techniques/:id`).
 //
 // Migration 027 surface. Lab-notebook + memory-book in one place:
-//   • Title + pillar + ★ affinity badge
+//   • Title + pillar + inline affinity quick-set (Go-to / Learning / Shelved)
 //   • Optional video clip (Move Library — Tier 1, mig 010)
 //   • "How to do it" — editable video_notes (the lab notebook half)
 //   • Resonance — cumulative journal, autosave on blur (the memory book half)
-//   • Affinity chip row — go_to / learning / shelved / clear
 //   • Sessions logged with this technique — derived from training_sessions.user_tag_ids
 //   • Cross-ref: other techniques in the same pillar
 //
-// Editorial chrome matches IntentionHeroCard / SessionDetailModal: copper-tinted
-// card surfaces, ◇ kickers, serif display titles, italic deks where helpful.
-//
 // Mobile (< 1024px): single-column stack ordered for "give me the gist fast" —
-//   hero+affinity → video → How to → Resonance → Sessions → cross-ref. Affinity
-//   sits with the hero so it's a one-tap commitment, not buried below the
-//   journal. Session rows are tappable → SessionDetailModal.
+//   hero → video → How to → Resonance → Sessions → cross-ref.
+//   Affinity quick-set lives in the hero card.
 //
 // Desktop (≥ 1024px): two-column split modeled on PathAheadPage's layout
-//   register — sticky 360px left rail (hero + video + affinity + cross-ref)
-//   beside a wide right column (How to + Resonance + Sessions). The left rail
-//   gives the user persistent context (the video they're describing, their
-//   judgement on the move) while the right column is the writing surface.
-//
-// Forward-looking note: legacy sessions that referenced a canonical position
-// directly (`canonical_position_ids`) won't appear in the session list here
-// because the link is via `user_tag_ids` only. Acceptable per the migration
-// plan — every future session lands cleanly in the user_tag bucket once the
-// promote-on-pick flow runs.
+//   register — sticky 360px left rail (hero + video + cross-ref) beside a wide
+//   right column (How to + Resonance + Sessions). The left rail gives the user
+//   persistent context while the right column is the writing surface.
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -322,12 +310,6 @@ export default function TechniquePage() {
       onRemoveVideo={onRemoveVideo}
       onRetryEncode={onRetryEncode}
     />
-  );
-
-  const affinityBlockLarge = (
-    <SectionCard kicker="◇ Affinity">
-      <AffinityRow current={tag.affinity ?? null} onPick={onAffinityClick} />
-    </SectionCard>
   );
 
   const howToBlock = (
@@ -1046,32 +1028,6 @@ function SectionCard({
   );
 }
 
-// Affinity badge — the rounded pill displayed next to the title.
-function AffinityBadge({ value }: { value: Affinity }) {
-  const opt = AFFINITY_OPTIONS.find(o => o.value === value);
-  if (!opt) return null;
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        fontSize: 12,
-        fontWeight: 600,
-        padding: '4px 10px',
-        borderRadius: 999,
-        background: 'rgba(196,145,95,0.14)',
-        color: COPPER,
-        letterSpacing: '0.04em',
-        flexShrink: 0,
-      }}
-    >
-      <span aria-hidden>{opt.glyph}</span>
-      {opt.label}
-    </span>
-  );
-}
-
 // Tiny inline glyph for cross-ref rows (peer techniques in the same pillar).
 // Uses a fixed-width slot so unset tags align with set ones.
 function AffinityGlyph({ value }: { value: Affinity | null }) {
@@ -1096,72 +1052,6 @@ function AffinityGlyph({ value }: { value: Affinity | null }) {
     >
       {glyph}
     </span>
-  );
-}
-
-// The full affinity chip row used inside the explicit "◇ Affinity" section.
-// Kept distinct from the inline quick-set in the hero — this version surfaces
-// each option's description + adds an explicit Clear action.
-function AffinityRow({
-  current,
-  onPick,
-}: {
-  current: Affinity | null;
-  onPick: (next: Affinity | null) => void;
-}) {
-  return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-      {AFFINITY_OPTIONS.map(opt => {
-        const active = current === opt.value;
-        return (
-          <button
-            key={opt.value}
-            onClick={() => onPick(opt.value)}
-            className="j2-press touch-manipulation"
-            style={{
-              height: 38,
-              padding: '0 14px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              fontSize: 13,
-              fontWeight: 600,
-              borderRadius: 10,
-              background: active ? 'rgba(196,145,95,0.18)' : 'transparent',
-              border: active ? `1px solid ${COPPER}` : '1px solid rgba(255,255,255,0.12)',
-              color: active ? PALE_YELLOW : 'rgba(255,255,255,0.65)',
-              cursor: 'pointer',
-              transition: 'all 160ms ease',
-            }}
-          >
-            <span style={{ color: active ? COPPER : 'rgba(255,255,255,0.55)' }}>{opt.glyph}</span>
-            <span>{opt.label}</span>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)', fontWeight: 500 }}>
-              {opt.description}
-            </span>
-          </button>
-        );
-      })}
-      {current && (
-        <button
-          onClick={() => onPick(null)}
-          className="j2-press touch-manipulation"
-          style={{
-            height: 38,
-            padding: '0 14px',
-            fontSize: 13,
-            fontWeight: 500,
-            borderRadius: 10,
-            background: 'transparent',
-            border: '1px solid transparent',
-            color: 'rgba(255,255,255,0.40)',
-            cursor: 'pointer',
-          }}
-        >
-          — Clear
-        </button>
-      )}
-    </div>
   );
 }
 
