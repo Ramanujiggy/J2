@@ -44,8 +44,7 @@ function sanitize(body: unknown): { input: ClassScheduleInput | null; error: str
 
 export const listClassSchedules = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
-        if (!userId) { res.status(401).json({ message: 'Unauthorized.' }); return; }
+        const userId = req.user!.id;
         const schedules = await listSchedulesForUser(userId);
 
         // Weak ETag over (id, name, day_of_week, start_time, duration_min, gi_nogi).
@@ -63,7 +62,12 @@ export const listClassSchedules = async (req: Request, res: Response): Promise<v
         }
 
         res.setHeader('ETag', etag);
-        res.setHeader('Cache-Control', 'private, max-age=300');
+        // `no-cache` forces revalidation on every request — the ETag still
+        // gives us a cheap 304 when nothing changed, but the browser can
+        // never serve a stale cached body after a PATCH / POST / DELETE
+        // (which is what `max-age=300` here used to enable, masking writes
+        // for up to 5 minutes after they succeeded).
+        res.setHeader('Cache-Control', 'private, no-cache');
         res.json({ schedules });
     } catch (err) {
         console.error('Error listing class schedules:', err);
@@ -73,8 +77,7 @@ export const listClassSchedules = async (req: Request, res: Response): Promise<v
 
 export const createClassSchedule = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
-        if (!userId) { res.status(401).json({ message: 'Unauthorized.' }); return; }
+        const userId = req.user!.id;
         const { input, error } = sanitize(req.body);
         if (!input) { res.status(400).json({ message: error ?? 'Invalid input.' }); return; }
         const schedule = await createSchedule(userId, input);
@@ -87,8 +90,7 @@ export const createClassSchedule = async (req: Request, res: Response): Promise<
 
 export const updateClassSchedule = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
-        if (!userId) { res.status(401).json({ message: 'Unauthorized.' }); return; }
+        const userId = req.user!.id;
         const { id } = req.params;
         if (!id) { res.status(400).json({ message: 'Schedule id is required.' }); return; }
         const { input, error } = sanitize(req.body);
@@ -104,8 +106,7 @@ export const updateClassSchedule = async (req: Request, res: Response): Promise<
 
 export const deleteClassSchedule = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
-        if (!userId) { res.status(401).json({ message: 'Unauthorized.' }); return; }
+        const userId = req.user!.id;
         const { id } = req.params;
         if (!id) { res.status(400).json({ message: 'Schedule id is required.' }); return; }
         const deleted = await softDeleteSchedule(id, userId);

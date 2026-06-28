@@ -3,7 +3,8 @@
 
 import type { Request, Response } from 'express';
 import { z } from 'zod';
-import fs from 'node:fs';
+import fsSync from 'node:fs';
+import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { query } from '../config/db.js';
@@ -11,8 +12,8 @@ import { listCases, updateCase } from '../models/supportCaseModel.js';
 import { listAllObjects, deleteObject } from '../lib/r2Client.js';
 import { getRouteManifest } from '../lib/routeManifest.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ARCHITECTURE_MANIFEST_PATH = path.resolve(__dirname, '..', '..', 'data', 'architecture-manifest.json');
 
 // ── GET /api/admin/stats ──────────────────────────────────────────────────
 // Single-row aggregate. Cheap enough to run on every dashboard load.
@@ -409,7 +410,7 @@ const EXCLUDE = new Set([
 function scanDir(dir: string, depth: number, maxDepth: number): TreeNode[] {
     if (depth >= maxDepth) return [];
     try {
-        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        const entries = fsSync.readdirSync(dir, { withFileTypes: true });
         return entries
             .filter(e => !EXCLUDE.has(e.name) && !e.name.startsWith('.env'))
             .sort((a, b) => {
@@ -447,4 +448,34 @@ export const getFileTree = async (_req: Request, res: Response) => {
 
 export const getRoutes = async (_req: Request, res: Response) => {
     res.status(200).json({ routes: getRouteManifest() });
+};
+
+// ── GET /api/admin/architecture ──────────────────────────────────────────
+// Serves the build-time architecture manifest for the Prod Design page.
+export const getArchitectureManifest = async (_req: Request, res: Response): Promise<void> => {
+    try {
+        let manifest: unknown;
+        try {
+            const raw = await fs.readFile(ARCHITECTURE_MANIFEST_PATH, 'utf-8');
+            manifest = JSON.parse(raw);
+        } catch {
+            manifest = {
+                generatedAt: new Date(0).toISOString(),
+                apiRoutes: [],
+                migrations: [],
+                models: [],
+                frontendRoutes: [],
+                topology: { mermaid: '', lastEdited: null, raw: '' },
+                warnings: [
+                    'architecture-manifest.json not found. Run `npm run build:architecture` ' +
+                    'in backend_api to generate it.',
+                ],
+            };
+        }
+        res.setHeader('Cache-Control', 'private, no-cache');
+        res.status(200).json(manifest);
+    } catch (err) {
+        console.error('❌ Error serving architecture manifest:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
 };

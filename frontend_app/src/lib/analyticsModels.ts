@@ -7,7 +7,7 @@
 
 import { SKILL_TAGS } from './constants.ts';
 import type { SessionSummary } from '../types/api.ts';
-import { sessionPillarHours } from './analyticsUtils.ts';
+import { sessionPillarHours, sessionDateKey } from './analyticsUtils.ts';
 
 // ── 1. Skill Entropy (Shannon Diversity Index) ───────────────────────────────
 //
@@ -86,7 +86,7 @@ export function computeDecay(
       if (!contribution || contribution <= 0) continue;
       totalHours += contribution;
       const dateMs = new Date(
-        (typeof s.date === 'string' ? s.date.slice(0, 10) : new Date(s.date).toISOString().slice(0, 10)) + 'T00:00:00'
+        sessionDateKey(s) + 'T00:00:00'
       ).getTime();
       if (dateMs > lastDateMs) lastDateMs = dateMs;
     }
@@ -149,7 +149,7 @@ export function computeACWR(
 
   for (const s of sessions) {
     const dateMs = new Date(
-      (typeof s.date === 'string' ? s.date.slice(0, 10) : new Date(s.date).toISOString().slice(0, 10)) + 'T00:00:00'
+      sessionDateKey(s) + 'T00:00:00'
     ).getTime();
 
     if (dateMs > todayMs) continue; // future sessions don't count
@@ -213,7 +213,7 @@ export function computeACWRByPillar(
 
   for (const s of sessions) {
     const dateMs = new Date(
-      (typeof s.date === 'string' ? s.date.slice(0, 10) : new Date(s.date).toISOString().slice(0, 10)) + 'T00:00:00'
+      sessionDateKey(s) + 'T00:00:00'
     ).getTime();
     if (dateMs > todayMs) continue;
 
@@ -303,7 +303,7 @@ function computeWindowStats(
   const pillarHours: Record<string, number> = {};
 
   for (const s of sessions) {
-    const iso = typeof s.date === 'string' ? s.date.slice(0, 10) : new Date(s.date).toISOString().slice(0, 10);
+    const iso = sessionDateKey(s);
     const dateMs = new Date(iso + 'T00:00:00').getTime();
     if (dateMs < startMs || dateMs > endMs) continue;
     count++;

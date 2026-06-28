@@ -9,7 +9,8 @@
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "build:architecture": "tsx scripts/generateArchitectureManifest.ts",
+    "build": "npm run build:architecture && tsc",
     "start": "node dist/server.js"
   },
   "keywords": [],

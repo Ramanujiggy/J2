@@ -1,6 +1,18 @@
 import { SKILL_TAGS, MONTH_NAMES } from './constants.ts';
 import type { SessionSummary, Intention } from '../types/api.ts';
 
+// ── Date normalisation ───────────────────────────────────────────────────────
+
+/** YYYY-MM-DD key for a session's `date` field. In practice the backend always
+ *  sends a string, so the `.slice(0, 10)` branch is the hot path; the `Date`
+ *  branch is a defensive fallback that shouldn't fire in production. Used by
+ *  every analytics rollup that buckets sessions by day. */
+export function sessionDateKey(s: { date: string | Date }): string {
+  return typeof s.date === 'string'
+    ? s.date.slice(0, 10)
+    : new Date(s.date).toISOString().slice(0, 10);
+}
+
 // ── Time windows ─────────────────────────────────────────────────────────────
 
 export type TimeWindow = '7d' | '14d' | '30d' | '90d' | '180d' | '1y' | 'all' | 'custom';
@@ -77,7 +89,7 @@ export function topTagInRange(
 
   const counts: Record<string, number> = {};
   sessions.forEach(s => {
-    const d = typeof s.date === 'string' ? s.date.slice(0, 10) : new Date(s.date).toISOString().slice(0, 10);
+    const d = sessionDateKey(s);
     if (d < start || d > endStr) return;
     const ph = sessionPillarHours(s);
     for (const [k, v] of Object.entries(ph)) counts[k] = (counts[k] ?? 0) + v;
@@ -148,7 +160,7 @@ export function tagHoursInRange(
 
   const counts: Record<string, number> = {};
   sessions.forEach(s => {
-    const d = typeof s.date === 'string' ? s.date.slice(0, 10) : new Date(s.date).toISOString().slice(0, 10);
+    const d = sessionDateKey(s);
     if (d < start || d > endStr) return;
     const ph = sessionPillarHours(s);
     for (const [k, v] of Object.entries(ph)) counts[k] = (counts[k] ?? 0) + v;
@@ -207,7 +219,7 @@ export function computeIntentionProgress(
   if (intention.completion_type === 'sessions') {
     let count = 0;
     for (const s of sessions) {
-      const d = typeof s.date === 'string' ? s.date.slice(0, 10) : new Date(s.date).toISOString().slice(0, 10);
+      const d = sessionDateKey(s);
       if (d < start) continue;
       // If a heading is set, only sessions touching that pillar count.
       // If null, any session counts (generic consistency intention).
@@ -220,7 +232,7 @@ export function computeIntentionProgress(
   // 'training_weeks'
   const weeks = new Set<string>();
   for (const s of sessions) {
-    const d = typeof s.date === 'string' ? s.date.slice(0, 10) : new Date(s.date).toISOString().slice(0, 10);
+    const d = sessionDateKey(s);
     if (d < start) continue;
     weeks.add(isoWeekKey(d));
   }

@@ -22,6 +22,17 @@ function isValidTagArray(v: unknown): v is string[] {
 }
 
 /**
+ * Common front of all UUID-array sanitizers below: require an array, drop
+ * non-UUID-shaped strings, dedupe. Returns null for non-array input so the
+ * callers can short-circuit; returns [] if nothing valid remained.
+ */
+function sanitizeUuidArray(raw: unknown): string[] | null {
+    if (!Array.isArray(raw)) return null;
+    const wellFormed = raw.filter((s: unknown): s is string => typeof s === 'string' && UUID_RE.test(s));
+    return [...new Set(wellFormed)];
+}
+
+/**
  * Sanitize a user_tag_ids input from the client:
  * - filter to non-empty strings matching UUID format
  * - deduplicate
@@ -30,9 +41,8 @@ function isValidTagArray(v: unknown): v is string[] {
  * Returns null if input wasn't an array; returns [] if input was empty/all-invalid.
  */
 async function sanitizeUserTagIds(userId: string, raw: unknown): Promise<string[] | null> {
-    if (!Array.isArray(raw)) return null;
-    const wellFormed = raw.filter((s: unknown): s is string => typeof s === 'string' && UUID_RE.test(s));
-    const deduped = [...new Set(wellFormed)];
+    const deduped = sanitizeUuidArray(raw);
+    if (deduped === null) return null;
     if (deduped.length === 0) return [];
     const owned = await getUserTagsByIds(userId, deduped);
     const ownedSet = new Set(owned.map(t => t.id));
@@ -48,9 +58,8 @@ async function sanitizeUserTagIds(userId: string, raw: unknown): Promise<string[
  * Returns null if input wasn't an array; returns [] if empty/all-invalid.
  */
 async function sanitizeCanonicalPositionIds(raw: unknown): Promise<string[] | null> {
-    if (!Array.isArray(raw)) return null;
-    const wellFormed = raw.filter((s: unknown): s is string => typeof s === 'string' && UUID_RE.test(s));
-    const deduped = [...new Set(wellFormed)];
+    const deduped = sanitizeUuidArray(raw);
+    if (deduped === null) return null;
     if (deduped.length === 0) return [];
     return filterExistingCanonicalIds(deduped);
 }
@@ -109,9 +118,8 @@ function sanitizeNonNegInt(raw: unknown): number | null {
  * Sanitize a canonical_constraint_ids input — same shape as the position pattern.
  */
 async function sanitizeCanonicalConstraintIds(raw: unknown): Promise<string[] | null> {
-    if (!Array.isArray(raw)) return null;
-    const wellFormed = raw.filter((s: unknown): s is string => typeof s === 'string' && UUID_RE.test(s));
-    const deduped = [...new Set(wellFormed)];
+    const deduped = sanitizeUuidArray(raw);
+    if (deduped === null) return null;
     if (deduped.length === 0) return [];
     return filterExistingCanonicalConstraintIds(deduped);
 }
@@ -120,9 +128,8 @@ async function sanitizeCanonicalConstraintIds(raw: unknown): Promise<string[] | 
  * Sanitize a user_constraint_ids input — verify ownership of each ID.
  */
 async function sanitizeUserConstraintIds(userId: string, raw: unknown): Promise<string[] | null> {
-    if (!Array.isArray(raw)) return null;
-    const wellFormed = raw.filter((s: unknown): s is string => typeof s === 'string' && UUID_RE.test(s));
-    const deduped = [...new Set(wellFormed)];
+    const deduped = sanitizeUuidArray(raw);
+    if (deduped === null) return null;
     if (deduped.length === 0) return [];
     const owned = await getUserConstraintsByIds(userId, deduped);
     const ownedSet = new Set(owned.map(c => c.id));
@@ -167,11 +174,7 @@ function sanitizeDeepWorkPillars(raw: unknown): string[] | null {
 
 export const logSession = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
-        if (!userId) {
-            res.status(401).json({ message: 'Unauthorized.' });
-            return;
-        }
+        const userId = req.user!.id;
 
         const { date, duration, notes, gi_nogi, intensity, session_type, tags,
                 heading, polarity, sub_skill_tag, script_source, resonance, user_tag_ids, pillar_distribution,
@@ -274,11 +277,7 @@ export const logSession = async (req: Request, res: Response): Promise<void> => 
 
 export const getSessions = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
-        if (!userId) {
-            res.status(401).json({ message: 'Unauthorized.' });
-            return;
-        }
+        const userId = req.user!.id;
 
         const { from, to, limit: limitQ } = req.query as { from?: string; to?: string; limit?: string };
         if (from && !DATE_RE.test(from)) {
@@ -312,11 +311,7 @@ export const getSessions = async (req: Request, res: Response): Promise<void> =>
 
 export const searchSessionsHandler = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
-        if (!userId) {
-            res.status(401).json({ message: 'Unauthorized.' });
-            return;
-        }
+        const userId = req.user!.id;
 
         const { from, to, q, gi_nogi, session_type, heading, polarity,
                 intensity_min, intensity_max, user_tag_id, partner, limit, offset } = req.query as Record<string, string | undefined>;
@@ -365,11 +360,7 @@ export const searchSessionsHandler = async (req: Request, res: Response): Promis
 
 export const deleteSession = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
-        if (!userId) {
-            res.status(401).json({ message: 'Unauthorized.' });
-            return;
-        }
+        const userId = req.user!.id;
 
         const { id } = req.params;
         if (!id) { res.status(400).json({ message: 'Session id is required.' }); return; }
@@ -389,11 +380,7 @@ export const deleteSession = async (req: Request, res: Response): Promise<void> 
 
 export const importSessions = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
-        if (!userId) {
-            res.status(401).json({ message: 'Unauthorized.' });
-            return;
-        }
+        const userId = req.user!.id;
 
         const { sessions, confirmDuplicates } = req.body;
 
@@ -518,11 +505,7 @@ export const importSessions = async (req: Request, res: Response): Promise<void>
 
 export const updateSession = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
-        if (!userId) {
-            res.status(401).json({ message: 'Unauthorized.' });
-            return;
-        }
+        const userId = req.user!.id;
 
         const { id } = req.params;
         const { duration, gi_nogi, intensity, session_type, notes, tags,

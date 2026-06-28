@@ -8,7 +8,7 @@
 
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth.ts';
+import { useAuth } from '../context/AuthContext.tsx';
 import {
   PAGE_BG, COPPER, COPPER_BORDER, PALE_YELLOW,
   FONT_EDITORIAL, FONT_WORDMARK, GLOW_TITLE,

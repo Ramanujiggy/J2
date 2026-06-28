@@ -78,7 +78,6 @@ export default function PathAheadPage() {
     constraintName?: string;
   } | null>(null);
   const [setIntentOpen,       setSetIntentOpen]       = useState(false);
-  const [editIntention,       setEditIntention]       = useState<Intention | null>(null);
   const [detailSessions,      setDetailSessions]      = useState<SessionSummary[]>([]);
   const [detailSessionIndex,  setDetailSessionIndex]  = useState(0);
   const [detailDate,          setDetailDate]          = useState<Date | null>(null);
@@ -378,9 +377,7 @@ export default function PathAheadPage() {
       setDetailDate={setDetailDate}
       setDetailIntention={setDetailIntention}
       setIntentOpen={setIntentOpen}
-      editIntention={editIntention}
       setSetIntentOpen={setSetIntentOpen}
-      setEditIntention={setEditIntention}
     />
   );
 
@@ -418,7 +415,6 @@ export default function PathAheadPage() {
         styleBlock={styleBlock}
         openLog={openLog}
         setSetIntentOpen={setSetIntentOpen}
-        setEditIntention={setEditIntention}
         handleDeleteIntention={handleDeleteIntention}
       />
     );
@@ -460,7 +456,6 @@ export default function PathAheadPage() {
       styleBlock={styleBlock}
       openLog={openLog}
       setSetIntentOpen={setSetIntentOpen}
-      setEditIntention={setEditIntention}
       handleDeleteIntention={handleDeleteIntention}
     />
   );

@@ -13,7 +13,7 @@ const getSubmitBtn = () => screen.getAllByRole('button', { name: /^log in$/i }).
 const mockLogin    = vi.hoisted(() => vi.fn());
 const mockNavigate = vi.hoisted(() => vi.fn());
 
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/context/AuthContext', () => ({
   useAuth: () => ({ login: mockLogin, logout: vi.fn(), token: null, isAuthenticated: false }),
 }));
 

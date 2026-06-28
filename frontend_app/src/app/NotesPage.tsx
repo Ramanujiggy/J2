@@ -98,7 +98,13 @@ export default function NotesPage() {
       try {
         if (editorNote === 'new') {
           if (!createdIdRef.current) {
-            const res = await api.post<{ note: TrainingNote }>('/api/notes', { text: trimmed });
+            // Include any tag/session links the user picked BEFORE the first
+            // autosave fired — otherwise those selections vanish on create.
+            const res = await api.post<{ note: TrainingNote }>('/api/notes', {
+              text: trimmed,
+              linked_tag_ids: editorLinkedTagIds,
+              linked_session_id: editorLinkedSessionId,
+            });
             createdIdRef.current = res.note.id;
           } else {
             await api.put(`/api/notes/${createdIdRef.current}`, { text: trimmed });
@@ -120,7 +126,14 @@ export default function NotesPage() {
     if (trimmed && trimmed !== lastSavedText.current.trim()) {
       try {
         if (editorNote === 'new' && !createdIdRef.current) {
-          await api.post('/api/notes', { text: trimmed });
+          // Same as autosave: pull in current tag/session selections so a
+          // user who closes the editor before the autosave debounce fires
+          // doesn't lose their picks.
+          await api.post('/api/notes', {
+            text: trimmed,
+            linked_tag_ids: editorLinkedTagIds,
+            linked_session_id: editorLinkedSessionId,
+          });
         } else if (editorNote === 'new' && createdIdRef.current) {
           await api.put(`/api/notes/${createdIdRef.current}`, { text: trimmed });
         } else if (editorNote && typeof editorNote === 'object') {
