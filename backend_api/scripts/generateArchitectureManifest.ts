@@ -21,7 +21,7 @@ const __dirname  = path.dirname(fileURLToPath(import.meta.url));
 const ROOT       = path.resolve(__dirname, '..');                       // backend_api/
 const PROJECT    = path.resolve(ROOT, '..');                            // project/J2/
 const FRONTEND   = path.resolve(PROJECT, 'frontend_app');
-const DOCS_ROOT  = path.resolve(PROJECT, '..', '..', 'Docs');           // Journada P2/Docs/
+const DOCS_ROOT  = path.resolve(PROJECT, 'Docs');
 
 const OUTPUT_DIR  = path.join(ROOT, 'data');
 const OUTPUT_FILE = path.join(OUTPUT_DIR, 'architecture-manifest.json');
@@ -228,7 +228,8 @@ function parseFields(body: string): ModelField[] {
 
 async function extractFrontendRoutes(warnings: string[]): Promise<FrontendRoute[]> {
     const appPath = path.join(FRONTEND, 'src', 'App.tsx');
-    const src = await safeRead(appPath);
+    let src = await safeRead(appPath);
+    if (!src) src = await safeRead(path.join(OUTPUT_DIR, 'App.tsx.snapshot'));
     if (!src) { warnings.push('Could not read frontend src/App.tsx'); return []; }
 
     // Build a map of `ComponentName → "src/app/ComponentName.tsx"` from
