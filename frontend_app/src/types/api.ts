@@ -350,6 +350,28 @@ export interface AdminUserDetailResponse {
   cases:             SupportCase[];
 }
 
+// ── Admin app structure ───────────────────────────────────────────────────
+
+export interface FileTreeNode {
+  name: string;
+  type: 'file' | 'directory';
+  children?: FileTreeNode[];
+}
+
+export interface FileTreeResponse {
+  root: string;
+  tree: FileTreeNode[];
+}
+
+export interface RouteEntry {
+  method: string;
+  path: string;
+}
+
+export interface RoutesResponse {
+  routes: RouteEntry[];
+}
+
 // ── Class schedules + push notifications (mig 019/020/021) ──────────────────
 
 export interface ClassSchedule {
