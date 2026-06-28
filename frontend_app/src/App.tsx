@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from './hooks/useAuth.ts';
+import { useAuth } from './context/AuthContext.tsx';
 import { useIsDesktop } from './hooks/useIsDesktop.ts';
 import { ProfileProvider, useProfile } from './context/ProfileContext.tsx';
 import { ActiveIntentionProvider } from './context/ActiveIntentionContext.tsx';
@@ -37,6 +37,7 @@ const MovesLibraryPage          = lazy(() => import('./app/MovesLibraryPage.tsx'
 const TechniquePage             = lazy(() => import('./app/TechniquePage.tsx'));
 const AdminDashboardPage        = lazy(() => import('./app/AdminDashboardPage.tsx'));
 const AdminUserDetailPage       = lazy(() => import('./app/AdminUserDetailPage.tsx'));
+const AdminProdDesignPage       = lazy(() => import('./app/AdminProdDesignPage.tsx'));
 const OnboardingNamePage        = lazy(() => import('./app/OnboardingNamePage.tsx'));
 const OnboardingBeltPage        = lazy(() => import('./app/OnboardingBeltPage.tsx'));
 const OnboardingFirstSessionPage = lazy(() => import('./app/OnboardingFirstSessionPage.tsx'));
@@ -149,8 +150,9 @@ function App() {
         <Route path="/profile/classes"  element={<ProtectedShell><ClassSchedulesPage /></ProtectedShell>} />
         <Route path="/library"        element={<ProtectedShell><MovesLibraryPage /></ProtectedShell>} />
         <Route path="/techniques/:id" element={<ProtectedShell><TechniquePage /></ProtectedShell>} />
-        <Route path="/admin"            element={<ProtectedShell><AdminDashboardPage /></ProtectedShell>} />
+        <Route path="/admin"             element={<ProtectedShell><AdminDashboardPage /></ProtectedShell>} />
         <Route path="/admin/users/:userId" element={<ProtectedShell><AdminUserDetailPage /></ProtectedShell>} />
+        <Route path="/admin/prod-design" element={<ProtectedShell><AdminProdDesignPage /></ProtectedShell>} />
 
         {/* Legacy route — keep for any bookmarks */}
         <Route path="/dashboard"   element={<Navigate to="/home" replace />} />

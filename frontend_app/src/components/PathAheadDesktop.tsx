@@ -73,7 +73,6 @@ interface Props {
   // Callbacks
   openLog: (opts?: { date?: string; preset?: { heading?: string; sessionType?: 'drilling' | 'cla'; subSkillTag?: string; constraintName?: string } | null }) => void;
   setSetIntentOpen: (v: boolean) => void;
-  setEditIntention: (v: Intention | null) => void;
   handleDeleteIntention: () => void;
 }
 
@@ -145,7 +144,6 @@ export default function PathAheadDesktop({
   styleBlock,
   openLog,
   setSetIntentOpen,
-  setEditIntention,
   handleDeleteIntention,
 }: Props) {
   const navigate = useNavigate();
@@ -381,7 +379,6 @@ export default function PathAheadDesktop({
               weekSessionCount={weekStatsCount}
               progress={activeIntentionProgress}
               onSetIntent={() => setSetIntentOpen(true)}
-              onEditIntent={activeIntention ? () => setEditIntention(activeIntention) : undefined}
               onViewJournal={activeIntention ? () => navigate(`/intentions/${activeIntention.id}/journal`) : undefined}
               onDeleteIntent={handleDeleteIntention}
             />

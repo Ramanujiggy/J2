@@ -37,8 +37,7 @@ function todayPlusDays(days: number): string {
 
 export const getAttendance = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
-        if (!userId) { res.status(401).json({ message: 'Unauthorized.' }); return; }
+        const userId = req.user!.id;
 
         const fromQ = typeof req.query.from === 'string' ? req.query.from : '';
         const toQ   = typeof req.query.to   === 'string' ? req.query.to   : '';
@@ -95,8 +94,7 @@ function sanitizePutBody(body: unknown): {
 
 export const putAttendance = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
-        if (!userId) { res.status(401).json({ message: 'Unauthorized.' }); return; }
+        const userId = req.user!.id;
 
         const parsed = sanitizePutBody(req.body);
         if ('error' in parsed) { res.status(400).json({ message: parsed.error }); return; }
@@ -164,8 +162,7 @@ function sanitizeImportEntries(raw: unknown): ImportEntry[] | { error: string } 
 
 export const importAttendance = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
-        if (!userId) { res.status(401).json({ message: 'Unauthorized.' }); return; }
+        const userId = req.user!.id;
 
         const body = req.body as ImportBody;
         const parsed = sanitizeImportEntries(body?.entries);

@@ -17,11 +17,7 @@ const NewCaseSchema = z.object({
 
 export const submitCase = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
-        if (!userId) {
-            res.status(401).json({ message: 'Unauthorized.' });
-            return;
-        }
+        const userId = req.user!.id;
         const parsed = NewCaseSchema.safeParse(req.body);
         if (!parsed.success) {
             res.status(400).json({ message: 'Invalid case data.', errors: parsed.error.flatten() });

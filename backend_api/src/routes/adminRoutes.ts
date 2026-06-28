@@ -8,6 +8,7 @@ import {
     getUserDetail,
     getRecentLogins,
     cleanupOrphanedVideos,
+    getArchitectureManifest,
 } from '../controllers/adminController.js';
 
 const router = Router();
@@ -25,5 +26,9 @@ router.get('/recent-logins',  getRecentLogins);
 // One-off cleanup — walks R2 against user_tags storage keys, reports
 // orphans. ?execute=true to actually delete. Defaults to dry-run.
 router.post('/cleanup-orphaned-videos', cleanupOrphanedVideos);
+
+// Prod Design — serves the build-time architecture manifest. Drives the
+// /admin/prod-design page.
+router.get('/architecture', getArchitectureManifest);
 
 export default router;

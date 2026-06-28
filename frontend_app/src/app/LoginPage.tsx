@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth.ts';
+import { useAuth } from '../context/AuthContext.tsx';
 import { api, ApiError } from '../lib/api.ts';
 import {
   CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, PALE_YELLOW, COPPER, SURFACE_3,

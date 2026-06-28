@@ -55,8 +55,11 @@ export default function IntentionsMobileView({
   intentions, sessions, loading, intentionsEnabled,
   editTarget, createOpen,
   layout, onLayoutChange, statsMap,
-  onOpenCreate, onOpenEdit, onCloseModal, onSaved, onNavigate,
+  onOpenCreate, onCloseModal, onSaved, onNavigate,
   intentionsCoachmark,
+  // onOpenEdit is part of the prop contract for parity with the desktop view
+  // (which keeps it for the same reason). Mobile doesn't render an inline edit
+  // button right now; reintroduce if product asks.
 }: MobileViewProps) {
   // ── Mobile-only search + filter (parallels JournalIndexPage's pattern) ──
   // Search matches against intent_label + the intention's own journal_entry

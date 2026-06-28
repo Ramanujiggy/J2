@@ -17,16 +17,6 @@ const SCRIPT_SOURCE_DISPLAY: Record<string, string> = {
   organic: 'Open Mat',
 };
 
-function headingLabel(value: string | null | undefined): string {
-  if (!value) return '';
-  return SKILL_TAGS.find(s => s.value === value)?.label ?? value;
-}
-
-function capitalize(s: string | null | undefined): string {
-  if (!s) return '';
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
 function downloadCsv(csv: string, filename: string): void {
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -49,8 +39,8 @@ export async function exportSessionsCsv(sessions: SessionSummary[]): Promise<voi
     'Gi / No-Gi': formatGiNogi(s.gi_nogi),
     'Type': SESSION_TYPE_DISPLAY[s.session_type] ?? s.session_type,
     'Intensity': s.intensity,
-    'Pillar': headingLabel(s.heading),
-    'Polarity': capitalize(s.polarity),
+    'Pillar': s.heading ? (SKILL_TAGS.find(t => t.value === s.heading)?.label ?? s.heading) : '',
+    'Polarity': s.polarity ? s.polarity[0]!.toUpperCase() + s.polarity.slice(1) : '',
     'Sub-skill': s.sub_skill_tag ?? '',
     'Script Source': s.script_source ? (SCRIPT_SOURCE_DISPLAY[s.script_source] ?? s.script_source) : '',
     'Resonance': s.resonance ?? '',
@@ -69,8 +59,8 @@ export async function exportIntentionsCsv(intentions: Intention[]): Promise<void
   const rows = sorted.map(i => ({
     'Start Date': i.week_start.slice(0, 10),
     'Label': i.intent_label,
-    'Category': capitalize(i.intent_category),
-    'Pillar': headingLabel(i.heading),
+    'Category': i.intent_category ? i.intent_category[0]!.toUpperCase() + i.intent_category.slice(1) : '',
+    'Pillar': i.heading ? (SKILL_TAGS.find(t => t.value === i.heading)?.label ?? i.heading) : '',
     'Duration (days)': i.duration_days,
     'Journal Entry': i.journal_entry ?? '',
   }));

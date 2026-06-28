@@ -12,7 +12,6 @@ import type { Intention, IntentionsResponse, SessionSummary, SessionsResponse, I
 import PageContent from '../components/PageContent.tsx';
 import SessionDetailModal from '../components/SessionDetailModal.tsx';
 import SegmentedToggle from '../components/SegmentedToggle.tsx';
-import FocusAreaChips from '../components/FocusAreaChips.tsx';
 import { formatWeekLong } from '../lib/analyticsUtils.ts';
 import { measureLines } from '../lib/pretextMeasure.ts';
 

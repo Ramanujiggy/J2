@@ -17,11 +17,7 @@ const ProfileSchema = z.object({
 
 export const fetchProfile = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
-        if (!userId) {
-            res.status(401).json({ message: 'Unauthorized.' });
-            return;
-        }
+        const userId = req.user!.id;
 
         const profile = await getProfile(userId);
         res.json({ profile });
@@ -33,11 +29,7 @@ export const fetchProfile = async (req: Request, res: Response): Promise<void> =
 
 export const saveProfile = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
-        if (!userId) {
-            res.status(401).json({ message: 'Unauthorized.' });
-            return;
-        }
+        const userId = req.user!.id;
 
         const parsed = ProfileSchema.safeParse(req.body);
         if (!parsed.success) {
@@ -78,8 +70,7 @@ function isValidTimezone(tz: string): boolean {
 
 export const completeOnboarding = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
-        if (!userId) { res.status(401).json({ message: 'Unauthorized.' }); return; }
+        const userId = req.user!.id;
         await markOnboardingComplete(userId);
         const profile = await getProfile(userId);
         res.json({ profile });
@@ -98,8 +89,7 @@ const OnboardingStepSchema = z.object({
 
 export const updateOnboardingStep = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
-        if (!userId) { res.status(401).json({ message: 'Unauthorized.' }); return; }
+        const userId = req.user!.id;
         const parsed = OnboardingStepSchema.safeParse(req.body);
         if (!parsed.success) {
             res.status(400).json({ message: 'Invalid step.', errors: parsed.error.flatten() });
@@ -115,8 +105,7 @@ export const updateOnboardingStep = async (req: Request, res: Response): Promise
 
 export const saveTimezone = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
-        if (!userId) { res.status(401).json({ message: 'Unauthorized.' }); return; }
+        const userId = req.user!.id;
         const tz = (req.body ?? {}).timezone;
         if (!isValidTimezone(tz)) { res.status(400).json({ message: 'Invalid timezone.' }); return; }
         await updateUserTimezone(userId, tz);

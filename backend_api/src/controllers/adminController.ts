@@ -3,9 +3,18 @@
 
 import type { Request, Response } from 'express';
 import { z } from 'zod';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { query } from '../config/db.js';
 import { listCases, updateCase } from '../models/supportCaseModel.js';
 import { listAllObjects, deleteObject } from '../lib/r2Client.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// Manifest is generated at build time and lives in backend_api/data/.
+// Path is resolved relative to the compiled module location at runtime
+// (dist/controllers/adminController.js → ../../data/...).
+const ARCHITECTURE_MANIFEST_PATH = path.resolve(__dirname, '..', '..', 'data', 'architecture-manifest.json');
 
 // ── GET /api/admin/stats ──────────────────────────────────────────────────
 // Single-row aggregate. Cheap enough to run on every dashboard load.
@@ -381,6 +390,44 @@ export const cleanupOrphanedVideos = async (req: Request, res: Response): Promis
         });
     } catch (err) {
         console.error('❌ Error in cleanupOrphanedVideos:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// ── GET /api/admin/architecture ──────────────────────────────────────────
+//
+// Serves the architecture manifest produced at build time by
+// `scripts/generateArchitectureManifest.ts`. The admin "Prod Design" page
+// renders it as topology + tables. `no-cache` forces revalidation so a
+// fresh deploy is immediately reflected.
+//
+// When the manifest is missing (local dev without having run
+// `npm run build:architecture` yet), we return a stub with an empty
+// shape + an explanatory warning so the admin page renders gracefully.
+export const getArchitectureManifest = async (_req: Request, res: Response): Promise<void> => {
+    try {
+        let manifest: unknown;
+        try {
+            const raw = await fs.readFile(ARCHITECTURE_MANIFEST_PATH, 'utf-8');
+            manifest = JSON.parse(raw);
+        } catch {
+            manifest = {
+                generatedAt: new Date(0).toISOString(),
+                apiRoutes: [],
+                migrations: [],
+                models: [],
+                frontendRoutes: [],
+                topology: { mermaid: '', lastEdited: null, raw: '' },
+                warnings: [
+                    'architecture-manifest.json not found. Run `npm run build:architecture` ' +
+                    'in backend_api to generate it.',
+                ],
+            };
+        }
+        res.setHeader('Cache-Control', 'private, no-cache');
+        res.status(200).json(manifest);
+    } catch (err) {
+        console.error('❌ Error serving architecture manifest:', err);
         res.status(500).json({ message: 'Server error' });
     }
 };

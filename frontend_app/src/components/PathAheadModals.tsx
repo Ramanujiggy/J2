@@ -50,9 +50,7 @@ interface Props {
   setDetailIntention: (v: Intention | null) => void;
   // Intention modal
   setIntentOpen: boolean;
-  editIntention: Intention | null;
   setSetIntentOpen: (v: boolean) => void;
-  setEditIntention: (v: Intention | null) => void;
 }
 
 export default function PathAheadModals({
@@ -75,9 +73,7 @@ export default function PathAheadModals({
   setDetailDate,
   setDetailIntention,
   setIntentOpen,
-  editIntention,
   setSetIntentOpen,
-  setEditIntention,
 }: Props) {
   return (
     <>

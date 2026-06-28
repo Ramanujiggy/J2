@@ -8,7 +8,7 @@
 // interaction; this shell handles routing rules + visual register.
 
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth.ts';
+import { useAuth } from '../context/AuthContext.tsx';
 import { useProfile } from '../context/ProfileContext.tsx';
 import OnboardingProgress from './OnboardingProgress.tsx';
 import { PAGE_BG } from '../lib/theme.ts';

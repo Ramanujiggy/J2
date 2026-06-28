@@ -18,8 +18,7 @@ export const getPublicKey = async (_req: Request, res: Response): Promise<void> 
 
 export const subscribe = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
-        if (!userId) { res.status(401).json({ message: 'Unauthorized.' }); return; }
+        const userId = req.user!.id;
 
         const { endpoint, keys, user_agent } = req.body ?? {};
         if (typeof endpoint !== 'string' || !endpoint.startsWith('https://')) {
@@ -55,8 +54,7 @@ export const subscribe = async (req: Request, res: Response): Promise<void> => {
 
 export const unsubscribe = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
-        if (!userId) { res.status(401).json({ message: 'Unauthorized.' }); return; }
+        const userId = req.user!.id;
 
         const { endpoint } = req.body ?? {};
         if (typeof endpoint !== 'string') {
@@ -73,8 +71,7 @@ export const unsubscribe = async (req: Request, res: Response): Promise<void> =>
 
 export const updateCategories = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
-        if (!userId) { res.status(401).json({ message: 'Unauthorized.' }); return; }
+        const userId = req.user!.id;
 
         const body = (req.body ?? {}) as Record<string, unknown>;
         const flags: CategoryFlags = {};
@@ -97,8 +94,7 @@ export const updateCategories = async (req: Request, res: Response): Promise<voi
 
 export const getMySubscriptionState = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
-        if (!userId) { res.status(401).json({ message: 'Unauthorized.' }); return; }
+        const userId = req.user!.id;
         const subs = await listSubscriptionsForUser(userId);
         const first = subs[0];
         res.json({

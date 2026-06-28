@@ -40,7 +40,6 @@ interface Props {
   progress?: IntentionProgress | null;
   compact?: boolean;
   onSetIntent: () => void;
-  onEditIntent?: () => void;
   onViewJournal?: () => void;
   onDeleteIntent: () => void;
 }
@@ -51,7 +50,6 @@ export default function IntentionHeroCard({
   progress = null,
   compact = false,
   onSetIntent,
-  onEditIntent,
   onViewJournal,
   onDeleteIntent,
 }: Props) {

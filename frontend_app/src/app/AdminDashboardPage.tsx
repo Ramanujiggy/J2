@@ -188,6 +188,24 @@ export default function AdminDashboardPage() {
                     >
                         Stats, cases, and recent activity.
                     </p>
+
+                    {/* Admin tools — shortcuts to surfaces that don't get
+                        a full card on this page. Add new tools here as
+                        they ship. */}
+                    <div style={{ marginTop: 18, display: 'flex', gap: 18, flexWrap: 'wrap' }}>
+                        <Link
+                            to="/admin/prod-design"
+                            style={{
+                                fontSize: 13, fontWeight: 600,
+                                color: 'rgba(196,145,95,0.95)',
+                                borderBottom: '1.5px solid rgba(196,145,95,0.55)',
+                                paddingBottom: 1,
+                                textDecoration: 'none',
+                            }}
+                        >
+                            ◇ Prod Design →
+                        </Link>
+                    </div>
                 </div>
 
                 {error && (

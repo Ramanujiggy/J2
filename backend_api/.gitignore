@@ -4,6 +4,11 @@ node_modules/
 # Build output (The compiled JavaScript)
 dist/
 
+# Build-time generated architecture manifest (regenerated each deploy).
+# Directory itself stays via data/.gitkeep so the runtime read path always
+# finds either the file or handles its absence gracefully.
+data/architecture-manifest.json
+
 # Environment variables (Crucial Security: Never commit passwords/secrets!)
 .env
 .env.local

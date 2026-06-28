@@ -14,7 +14,7 @@
 //   - Footer/nav idea/journal/field-notes/contact links are inert (no anchors yet)
 
 import { Link, Navigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth.ts';
+import { useAuth } from '../context/AuthContext.tsx';
 
 const PAGE_BG = '#0D1A14';
 const COPPER = '#C4915F';

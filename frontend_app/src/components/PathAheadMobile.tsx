@@ -74,7 +74,6 @@ interface Props {
   // Callbacks
   openLog: (opts?: { date?: string; preset?: { heading?: string; sessionType?: 'drilling' | 'cla'; subSkillTag?: string; constraintName?: string } | null }) => void;
   setSetIntentOpen: (v: boolean) => void;
-  setEditIntention: (v: Intention | null) => void;
   handleDeleteIntention: () => void;
 }
 
@@ -110,7 +109,6 @@ export default function PathAheadMobile({
   styleBlock,
   openLog,
   setSetIntentOpen,
-  setEditIntention,
   handleDeleteIntention,
 }: Props) {
   const navigate = useNavigate();
@@ -169,7 +167,6 @@ export default function PathAheadMobile({
               weekSessionCount={weekSessionCount}
               progress={activeIntentionProgress}
               onSetIntent={() => setSetIntentOpen(true)}
-              onEditIntent={undefined}
               onViewJournal={activeIntention ? () => navigate(`/intentions/${activeIntention.id}/journal`, { state: { from: '/home' } }) : undefined}
               onDeleteIntent={handleDeleteIntention}
               compact
@@ -189,7 +186,6 @@ export default function PathAheadMobile({
               weekSessionCount={weekSessionCount}
               progress={activeIntentionProgress}
               onSetIntent={() => setSetIntentOpen(true)}
-              onEditIntent={undefined}
               onViewJournal={activeIntention ? () => navigate(`/intentions/${activeIntention.id}/journal`, { state: { from: '/home' } }) : undefined}
               onDeleteIntent={handleDeleteIntention}
             />
