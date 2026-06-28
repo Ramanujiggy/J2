@@ -45,7 +45,7 @@ interface MobileViewProps {
   onOpenEdit: (intention: Intention) => void;
   onCloseModal: () => void;
   onSaved: () => void;
-  onNavigate: (path: string, opts?: { replace?: boolean }) => void;
+  onNavigate: (path: string, opts?: { replace?: boolean; state?: Record<string, unknown> }) => void;
   intentionsCoachmark: CoachmarkHandle;
 }
 
@@ -92,22 +92,31 @@ export default function IntentionsMobileView({
       <div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <h2
-            className="text-2xl font-display font-bold tracking-tight"
-            style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT, margin: 0 }}
+            style={{
+              fontFamily: 'var(--font-editorial)',
+              fontWeight: 500,
+              color: PALE_YELLOW,
+              textShadow: GLOW_SOFT,
+              fontSize: 28,
+              letterSpacing: '-0.01em',
+              margin: 0,
+            }}
           >
             Journal
           </h2>
-          <SegmentedToggle<'entries' | 'intentions' | 'notes'>
+          <SegmentedToggle<'entries' | 'intentions' | 'notes' | 'techniques'>
             size="compact"
             options={[
               { value: 'entries',    label: 'Entries' },
               { value: 'intentions', label: 'Intentions' },
               { value: 'notes',      label: 'Notes' },
+              { value: 'techniques', label: 'Techs' },
             ]}
             value="intentions"
             onChange={(v) => {
               if (v === 'entries') onNavigate('/journal', { replace: true });
               if (v === 'notes') onNavigate('/notes', { replace: true });
+              if (v === 'techniques') onNavigate('/library', { replace: true });
             }}
           />
         </div>
@@ -227,7 +236,7 @@ export default function IntentionsMobileView({
               era={era}
               statsMap={statsMap}
               compact
-              onOpen={() => onNavigate(`/intentions/${era.weeks[0]!.id}/journal`)}
+              onOpen={() => onNavigate(`/intentions/${era.weeks[0]!.id}/journal`, { state: { from: '/intentions' } })}
             />
           ))}
         </div>
@@ -253,7 +262,7 @@ export default function IntentionsMobileView({
             return (
               <button
                 key={intention.id}
-                onClick={() => onNavigate(`/intentions/${intention.id}/journal`)}
+                onClick={() => onNavigate(`/intentions/${intention.id}/journal`, { state: { from: '/intentions' } })}
                 className="w-full text-left touch-manipulation"
                 style={{
                   display: 'flex', alignItems: 'flex-start', gap: 14,
@@ -312,7 +321,7 @@ export default function IntentionsMobileView({
                 {/* Right affordance */}
                 <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, paddingTop: 2 }}>
                   <button
-                    onClick={e => { e.stopPropagation(); onOpenEdit(intention); }}
+                    onClick={e => { e.stopPropagation(); onNavigate(`/intentions/${intention.id}/journal`, { state: { from: '/intentions' } }); }}
                     className="touch-manipulation"
                     style={{ color: 'rgba(255,255,255,0.18)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}
                   >

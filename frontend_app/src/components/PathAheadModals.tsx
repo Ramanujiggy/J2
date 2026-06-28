@@ -137,11 +137,10 @@ export default function PathAheadModals({
         />
       )}
 
-      {(setIntentOpen || editIntention) && (
+      {setIntentOpen && (
         <SetIntentionModal
-          editIntention={editIntention ?? undefined}
-          onSaved={() => { fetchAll(); refreshRailIntention(); setEditIntention(null); }}
-          onClose={() => { setSetIntentOpen(false); setEditIntention(null); }}
+          onSaved={() => { fetchAll(); refreshRailIntention(); }}
+          onClose={() => { setSetIntentOpen(false); }}
         />
       )}
     </>

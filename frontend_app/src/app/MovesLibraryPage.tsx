@@ -25,10 +25,11 @@ import LibraryEmptyHero from '../components/empty/LibraryEmptyHero.tsx';
 import LocalVideoMigrationPrompt from '../components/LocalVideoMigrationPrompt.tsx';
 import { useUserTags } from '../hooks/useUserTags.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
+import SegmentedToggle from '../components/SegmentedToggle.tsx';
 import { PALE_YELLOW, GLOW_SOFT, COPPER, SURFACE_2, SURFACE_3, CARD_BG } from '../lib/theme.ts';
 import { formatDurationMMSS } from '../lib/videoUtils.ts';
 import { vibrate } from '../lib/haptics.ts';
-import { ChevronLeft, ChevronRight, ChevronDown, Video } from 'lucide-react';
+import { ChevronRight, ChevronDown, Video } from 'lucide-react';
 import type { UserTag, Pillar, Affinity } from '../types/api.ts';
 
 const PILLAR_LABELS: Record<Pillar, string> = {
@@ -152,17 +153,11 @@ export default function MovesLibraryPage() {
         style={isDesktop ? { paddingTop: 20, paddingBottom: 20 } : { paddingTop: 24, paddingBottom: 24 }}
       >
 
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3">
+        {/* Header — mobile gets the journal toggle; desktop keeps the
+            standalone "Technique Library" heading since the rail nav already
+            provides top-level navigation. */}
+        {isDesktop ? (
           <div>
-            <button
-              onClick={() => navigate('/profile')}
-              className="text-xs flex items-center gap-1 mb-2 transition-colors touch-manipulation"
-              style={{ color: 'rgba(255,255,255,0.40)' }}
-            >
-              <ChevronLeft size={13} />
-              Profile
-            </button>
             <h2 className="text-2xl font-display font-bold tracking-tight" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
               Technique Library
             </h2>
@@ -170,7 +165,43 @@ export default function MovesLibraryPage() {
               {counts.total} technique{counts.total === 1 ? '' : 's'}
             </p>
           </div>
-        </div>
+        ) : (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 4 }}>
+              <h1
+                style={{
+                  fontFamily: 'var(--font-editorial)',
+                  fontWeight: 500,
+                  color: PALE_YELLOW,
+                  textShadow: GLOW_SOFT,
+                  fontSize: 28,
+                  letterSpacing: '-0.01em',
+                  margin: 0,
+                }}
+              >
+                Journal
+              </h1>
+              <SegmentedToggle<'entries' | 'intentions' | 'notes' | 'techniques'>
+                size="compact"
+                options={[
+                  { value: 'entries',    label: 'Entries' },
+                  { value: 'intentions', label: 'Intentions' },
+                  { value: 'notes',      label: 'Notes' },
+                  { value: 'techniques', label: 'Techs' },
+                ]}
+                value="techniques"
+                onChange={(v) => {
+                  if (v === 'entries') navigate('/journal', { replace: true });
+                  if (v === 'intentions') navigate('/intentions', { replace: true });
+                  if (v === 'notes') navigate('/notes', { replace: true });
+                }}
+              />
+            </div>
+            <p style={{ color: 'rgba(255,255,255,0.40)', fontSize: 13, marginBottom: 4 }}>
+              {counts.total} technique{counts.total === 1 ? '' : 's'}
+            </p>
+          </div>
+        )}
 
         {/* Recently added ribbon — horizontal scroll of the newest 8 user_tags.
             Gives returning users an immediate tap target without forcing them

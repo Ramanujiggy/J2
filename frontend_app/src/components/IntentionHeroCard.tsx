@@ -257,9 +257,9 @@ export default function IntentionHeroCard({
             display: 'flex', alignItems: 'center', gap: 4,
           }}
         >
-          {onEditIntent && (
+          {onViewJournal && (
             <button
-              onClick={onEditIntent}
+              onClick={onViewJournal}
               className="touch-manipulation j2-press"
               style={{
                 padding: '8px 12px', borderRadius: 8,
@@ -268,22 +268,7 @@ export default function IntentionHeroCard({
                 minHeight: 40, cursor: 'pointer',
               }}
             >
-              Edit
-            </button>
-          )}
-          {onViewJournal && (
-            <button
-              onClick={onViewJournal}
-              className="touch-manipulation j2-press"
-              style={{
-                padding: '8px 12px', borderRadius: 8,
-                fontSize: 13, fontWeight: 500,
-                color: 'rgba(255,255,255,0.50)',
-                background: 'transparent', border: 'none',
-                minHeight: 40, cursor: 'pointer',
-              }}
-            >
-              Journal
+              Open →
             </button>
           )}
           <div style={{ flex: 1 }} />

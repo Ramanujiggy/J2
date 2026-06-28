@@ -75,9 +75,9 @@ function JournalIcon({ active }: { active: boolean }) {
 // through to /home by design (they're side trips from Home).
 const ALL_TABS = [
   { path: '/home',        label: 'Home',       Icon: HomeIcon,       intentionsGated: false, alsoActiveOn: [] as readonly string[] },
-  { path: '/journal',     label: 'Journal',    Icon: JournalIcon,    intentionsGated: false, alsoActiveOn: ['/notes'] as readonly string[] },
+  { path: '/journal',     label: 'Journal',    Icon: JournalIcon,    intentionsGated: false, alsoActiveOn: ['/notes', '/library', '/techniques'] as readonly string[] },
   { path: '/calendar',    label: 'Calendar',   Icon: CalendarIcon,   intentionsGated: false, alsoActiveOn: [] as readonly string[] },
-  { path: '/profile',     label: 'Profile',    Icon: ProfileIcon,    intentionsGated: false, alsoActiveOn: ['/library', '/techniques'] as readonly string[] },
+  { path: '/profile',     label: 'Profile',    Icon: ProfileIcon,    intentionsGated: false, alsoActiveOn: [] as readonly string[] },
 ] as const;
 
 function beltThumbGradient(beltColor: string, patchColor: string, stripes: number): string {

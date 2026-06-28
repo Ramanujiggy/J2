@@ -1,39 +1,28 @@
 // TechniquePage — the per-technique "Pokedex" page (`/techniques/:id`).
 //
 // Migration 027 surface. Lab-notebook + memory-book in one place:
-//   • Title + pillar + ★ affinity badge
+//   • Title + pillar + inline affinity quick-set (Go-to / Learning / Shelved)
 //   • Optional video clip (Move Library — Tier 1, mig 010)
 //   • "How to do it" — editable video_notes (the lab notebook half)
 //   • Resonance — cumulative journal, autosave on blur (the memory book half)
-//   • Affinity chip row — go_to / learning / shelved / clear
 //   • Sessions logged with this technique — derived from training_sessions.user_tag_ids
 //   • Cross-ref: other techniques in the same pillar
 //
-// Editorial chrome matches IntentionHeroCard / SessionDetailModal: copper-tinted
-// card surfaces, ◇ kickers, serif display titles, italic deks where helpful.
-//
 // Mobile (< 1024px): single-column stack ordered for "give me the gist fast" —
-//   hero+affinity → video → How to → Resonance → Sessions → cross-ref. Affinity
-//   sits with the hero so it's a one-tap commitment, not buried below the
-//   journal. Session rows are tappable → SessionDetailModal.
+//   hero → video → How to → Resonance → Sessions → cross-ref.
+//   Affinity quick-set lives in the hero card.
 //
 // Desktop (≥ 1024px): two-column split modeled on PathAheadPage's layout
-//   register — sticky 360px left rail (hero + video + affinity + cross-ref)
-//   beside a wide right column (How to + Resonance + Sessions). The left rail
-//   gives the user persistent context (the video they're describing, their
-//   judgement on the move) while the right column is the writing surface.
-//
-// Forward-looking note: legacy sessions that referenced a canonical position
-// directly (`canonical_position_ids`) won't appear in the session list here
-// because the link is via `user_tag_ids` only. Acceptable per the migration
-// plan — every future session lands cleanly in the user_tag bucket once the
-// promote-on-pick flow runs.
+//   register — sticky 360px left rail (hero + video + cross-ref) beside a wide
+//   right column (How to + Resonance + Sessions). The left rail gives the user
+//   persistent context while the right column is the writing surface.
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { api } from '../lib/api.ts';
 import PageContent from '../components/PageContent.tsx';
+import ErrorBoundary from '../components/ErrorBoundary.tsx';
 import VideoPlayer from '../components/VideoPlayer.tsx';
 import SessionDetailModal from '../components/SessionDetailModal.tsx';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
@@ -167,6 +156,11 @@ export default function TechniquePage() {
 
   const lastDrilledDate = useMemo(
     () => sessions[0]?.date ?? null,
+    [sessions],
+  );
+
+  const totalMinutes = useMemo(
+    () => sessions.reduce((sum, s) => sum + (s.duration ?? 0), 0),
     [sessions],
   );
 
@@ -308,6 +302,8 @@ export default function TechniquePage() {
       tag={tag}
       lastDrilledDate={lastDrilledDate}
       sessionsCount={sessions.length}
+      totalMinutes={totalMinutes}
+      sessionsLoading={sessionsLoading}
       onAffinityClick={onAffinityClick}
     />
   );
@@ -322,12 +318,6 @@ export default function TechniquePage() {
       onRemoveVideo={onRemoveVideo}
       onRetryEncode={onRetryEncode}
     />
-  );
-
-  const affinityBlockLarge = (
-    <SectionCard kicker="◇ Affinity">
-      <AffinityRow current={tag.affinity ?? null} onPick={onAffinityClick} />
-    </SectionCard>
   );
 
   const howToBlock = (
@@ -450,6 +440,20 @@ export default function TechniquePage() {
 
   return (
     <PageContent ready={true}>
+      <ErrorBoundary fallback={
+        <div className="mx-auto max-w-2xl px-4 py-10 text-center">
+          <p style={{ color: 'rgba(255,100,100,0.8)', fontSize: 14 }}>
+            Something went wrong loading this technique.
+          </p>
+          <button
+            onClick={() => navigate('/library')}
+            className="mt-4 text-sm"
+            style={{ color: COPPER, textDecoration: 'underline' }}
+          >
+            Back to Technique Library
+          </button>
+        </div>
+      }>
       {isDesktop ? (
         // ─── Desktop: two-column grid ──────────────────────────────────────
         // Left rail (sticky, 360px): hero + video + affinity + cross-ref.
@@ -485,7 +489,6 @@ export default function TechniquePage() {
             >
               {heroBlock}
               {videoBlock}
-              {affinityBlockLarge}
               {crossRefBlock}
             </div>
 
@@ -518,7 +521,6 @@ export default function TechniquePage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             {heroBlock}
             {videoBlock}
-            {affinityBlockLarge}
             {howToBlock}
             {resonanceBlock}
             {sessionsBlock}
@@ -541,18 +543,86 @@ export default function TechniquePage() {
           }}
         />
       )}
+      </ErrorBoundary>
     </PageContent>
   );
 }
 
 // ── Sub-components ──────────────────────────────────────────────────────────
 
+function describeCadence(
+  sessionsCount: number,
+  totalMinutes: number,
+  lastDrilledDate: string | null,
+  createdAt: string | undefined,
+): string | null {
+  if (!createdAt) return null;
+  const now = Date.now();
+  const ts = new Date(createdAt).getTime();
+  if (Number.isNaN(ts)) return null;
+  const daysSinceAdded = Math.floor((now - ts) / 86_400_000);
+  const weeksAgo = Math.floor(daysSinceAdded / 7);
+  const addedLabel =
+    weeksAgo < 1 ? 'this week' :
+    weeksAgo === 1 ? '1 week ago' :
+    weeksAgo < 8 ? `${weeksAgo} weeks ago` :
+    `${Math.floor(weeksAgo / 4)} months ago`;
+
+  if (sessionsCount === 0) {
+    return `Added ${addedLabel}. Not yet drilled.`;
+  }
+
+  const hours = Math.floor(totalMinutes / 60);
+  const matTime = hours >= 1 ? `${hours}h` : `${totalMinutes}m`;
+
+  const daysSinceLast = lastDrilledDate
+    ? Math.floor((now - new Date(lastDrilledDate + 'T00:00:00').getTime()) / 86_400_000)
+    : null;
+
+  if (sessionsCount === 1) {
+    if (daysSinceLast !== null && daysSinceLast > 0) {
+      return `Drilled once, ${daysSinceLast} day${daysSinceLast === 1 ? '' : 's'} ago.`;
+    }
+    return 'Drilled once — today.';
+  }
+
+  const countLabel = `${sessionsCount} sessions · ${matTime} on the mat`;
+  if (daysSinceLast !== null && daysSinceLast <= 14) {
+    return `${countLabel}. Active.`;
+  }
+  if (daysSinceLast !== null && daysSinceLast <= 60) {
+    return `${countLabel}, but ${daysSinceLast} days since the last one.`;
+  }
+  if (daysSinceLast !== null) {
+    return `${countLabel}. Dormant for ${daysSinceLast} days.`;
+  }
+  return countLabel + '.';
+}
+
+function describeOrigin(tag: UserTag): string | null {
+  if (!tag.created_at) return null;
+  const added = new Date(tag.created_at);
+  if (Number.isNaN(added.getTime())) return null;
+  const monthLabel = added.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+  const parts: string[] = [];
+  if (tag.has_video && tag.video_status === 'ready') parts.push('video recorded');
+  if (tag.video_notes) parts.push('notes written');
+  if (tag.resonance_journal) parts.push('personal journal started');
+
+  if (parts.length === 0) return `Added ${monthLabel}. A blank slate.`;
+  if (parts.length === 3) return `Added ${monthLabel}. Fully documented.`;
+  return `Added ${monthLabel}. ${parts.join(', ').replace(/^./, c => c.toUpperCase())}.`;
+}
+
 function Hero({
-  tag, lastDrilledDate, sessionsCount, onAffinityClick,
+  tag, lastDrilledDate, sessionsCount, totalMinutes, sessionsLoading, onAffinityClick,
 }: {
   tag: UserTag;
   lastDrilledDate: string | null;
   sessionsCount: number;
+  totalMinutes: number;
+  sessionsLoading: boolean;
   onAffinityClick: (next: Affinity | null) => void;
 }) {
   return (
@@ -595,7 +665,6 @@ function Hero({
           >
             {tag.name}
           </h1>
-          {tag.affinity && <AffinityBadge value={tag.affinity} />}
         </div>
         <div
           style={{
@@ -605,26 +674,39 @@ function Hero({
             letterSpacing: '0.14em',
             textTransform: 'uppercase',
             color: 'rgba(255,255,255,0.40)',
-            display: 'flex',
-            gap: 10,
-            flexWrap: 'wrap',
-            alignItems: 'center',
           }}
         >
-          <span>{PILLAR_LABELS[tag.parent_pillar]}</span>
-          {lastDrilledDate && (
-            <>
-              <span style={{ color: 'rgba(255,255,255,0.18)' }}>·</span>
-              <span>Last drilled {formatDate(lastDrilledDate)}</span>
-            </>
-          )}
-          {sessionsCount > 0 && (
-            <>
-              <span style={{ color: 'rgba(255,255,255,0.18)' }}>·</span>
-              <span>{sessionsCount} session{sessionsCount === 1 ? '' : 's'}</span>
-            </>
-          )}
+          {PILLAR_LABELS[tag.parent_pillar]}
         </div>
+
+        {!sessionsLoading && (
+          <p
+            style={{
+              marginTop: 8,
+              fontSize: 13,
+              fontFamily: 'var(--font-editorial)',
+              fontStyle: 'italic',
+              color: 'rgba(255,255,255,0.45)',
+              lineHeight: 1.4,
+              margin: '8px 0 0',
+            }}
+          >
+            {describeCadence(sessionsCount, totalMinutes, lastDrilledDate, tag.created_at)}
+          </p>
+        )}
+        <p
+          style={{
+            marginTop: 4,
+            fontSize: 12,
+            fontFamily: 'var(--font-editorial)',
+            fontStyle: 'italic',
+            color: 'rgba(255,255,255,0.30)',
+            lineHeight: 1.4,
+            margin: '4px 0 0',
+          }}
+        >
+          {describeOrigin(tag)}
+        </p>
 
         {/* Inline affinity quick-set — sits with the hero so a "Dang, I like
             this" tap doesn't require scrolling to a section below the journal. */}
@@ -1026,13 +1108,11 @@ function SectionCard({
   return (
     <div
       style={{
-        background: CARD_BG,
-        border: '1px solid rgba(255,255,255,0.06)',
-        borderRadius: 14,
-        padding: '18px 20px',
+        paddingTop: 16,
+        borderTop: '1px solid rgba(196,145,95,0.08)',
       }}
     >
-      <div className="j2-label-copper" style={{ marginBottom: subtitle ? 6 : 12 }}>{kicker}</div>
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)', marginBottom: subtitle ? 6 : 12 }}>{kicker}</div>
       {subtitle && (
         <p
           style={{
@@ -1048,32 +1128,6 @@ function SectionCard({
       )}
       {children}
     </div>
-  );
-}
-
-// Affinity badge — the rounded pill displayed next to the title.
-function AffinityBadge({ value }: { value: Affinity }) {
-  const opt = AFFINITY_OPTIONS.find(o => o.value === value);
-  if (!opt) return null;
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        fontSize: 12,
-        fontWeight: 600,
-        padding: '4px 10px',
-        borderRadius: 999,
-        background: 'rgba(196,145,95,0.14)',
-        color: COPPER,
-        letterSpacing: '0.04em',
-        flexShrink: 0,
-      }}
-    >
-      <span aria-hidden>{opt.glyph}</span>
-      {opt.label}
-    </span>
   );
 }
 
@@ -1101,72 +1155,6 @@ function AffinityGlyph({ value }: { value: Affinity | null }) {
     >
       {glyph}
     </span>
-  );
-}
-
-// The full affinity chip row used inside the explicit "◇ Affinity" section.
-// Kept distinct from the inline quick-set in the hero — this version surfaces
-// each option's description + adds an explicit Clear action.
-function AffinityRow({
-  current,
-  onPick,
-}: {
-  current: Affinity | null;
-  onPick: (next: Affinity | null) => void;
-}) {
-  return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-      {AFFINITY_OPTIONS.map(opt => {
-        const active = current === opt.value;
-        return (
-          <button
-            key={opt.value}
-            onClick={() => onPick(opt.value)}
-            className="j2-press touch-manipulation"
-            style={{
-              height: 38,
-              padding: '0 14px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              fontSize: 13,
-              fontWeight: 600,
-              borderRadius: 10,
-              background: active ? 'rgba(196,145,95,0.18)' : 'transparent',
-              border: active ? `1px solid ${COPPER}` : '1px solid rgba(255,255,255,0.12)',
-              color: active ? PALE_YELLOW : 'rgba(255,255,255,0.65)',
-              cursor: 'pointer',
-              transition: 'all 160ms ease',
-            }}
-          >
-            <span style={{ color: active ? COPPER : 'rgba(255,255,255,0.55)' }}>{opt.glyph}</span>
-            <span>{opt.label}</span>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)', fontWeight: 500 }}>
-              {opt.description}
-            </span>
-          </button>
-        );
-      })}
-      {current && (
-        <button
-          onClick={() => onPick(null)}
-          className="j2-press touch-manipulation"
-          style={{
-            height: 38,
-            padding: '0 14px',
-            fontSize: 13,
-            fontWeight: 500,
-            borderRadius: 10,
-            background: 'transparent',
-            border: '1px solid transparent',
-            color: 'rgba(255,255,255,0.40)',
-            cursor: 'pointer',
-          }}
-        >
-          — Clear
-        </button>
-      )}
-    </div>
   );
 }
 
