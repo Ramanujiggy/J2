@@ -16,10 +16,14 @@ import { PAGE_BG, PALE_YELLOW, COPPER } from '../lib/theme.ts';
 // ─── Icons (inline SVG, matches AppShell style) ──────────────────────────────
 
 type IconProps = { active: boolean };
-const iconAttrs = (active: boolean) => ({
+// Stroke weight is uniform across resting + active states — color shift
+// (via currentColor) does the work of signalling active, so weight stays
+// constant. The active param is kept on IconProps in case a future
+// variant wants to use it, but iconAttrs no longer reads it.
+const iconAttrs = (_active: boolean) => ({
   width: 22, height: 22, viewBox: '0 0 24 24',
   fill: 'none' as const, stroke: 'currentColor',
-  strokeWidth: active ? 2 : 1.6,
+  strokeWidth: 1.6,
   strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const,
 });
 
@@ -192,8 +196,15 @@ export default function DesktopAppShell({ children }: Props) {
           </div>
         </div>
 
-        {/* Nav */}
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+        {/* Nav — editorial restyle. ◇ NAVIGATION kicker, then the items
+            read as a literary index: no background fills, no left bar.
+            Active item gets a champagne label with a copper underline;
+            inactive items italicize on hover. Color carries the active
+            state, not chrome. */}
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+          <div className="j2-label-copper" style={{ marginBottom: 8, paddingLeft: 4 }}>
+            ◇ Navigation
+          </div>
           {items.map(({ path, label, Icon }) => {
             const isActive = activeTab === path;
             return (
@@ -201,43 +212,45 @@ export default function DesktopAppShell({ children }: Props) {
                 key={path}
                 onClick={() => go(path)}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 16,
-                  padding: '14px 16px',
-                  borderRadius: 12,
-                  background: isActive ? 'rgba(242,228,168,0.06)' : 'transparent',
+                  display: 'flex', alignItems: 'center', gap: 14,
+                  padding: '10px 4px',
+                  background: 'transparent',
+                  border: 'none',
                   color: isActive ? PALE_YELLOW : 'rgba(255,255,255,0.60)',
                   fontWeight: 500, fontSize: 16,
+                  fontStyle: 'normal',
                   textAlign: 'left',
-                  transition: 'color 160ms ease, background-color 160ms ease',
-                  position: 'relative',
+                  transition: 'color 160ms ease, font-style 160ms ease',
                   cursor: 'pointer',
                 }}
                 onMouseEnter={(e) => {
                   if (!isActive) {
-                    e.currentTarget.style.color = 'rgba(255,255,255,0.90)';
-                    e.currentTarget.style.background = 'var(--j2-surface-2)';
+                    e.currentTarget.style.color = 'rgba(242,228,168,0.90)';
+                    e.currentTarget.style.fontStyle = 'italic';
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!isActive) {
                     e.currentTarget.style.color = 'rgba(255,255,255,0.60)';
-                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.fontStyle = 'normal';
                   }
                 }}
               >
-                {isActive && (
-                  <span
-                    aria-hidden
-                    style={{
-                      position: 'absolute', left: -3, top: 9, bottom: 9,
-                      width: 3, borderRadius: 2,
-                      background: COPPER,
-                      boxShadow: '0 0 8px rgba(196,145,95,0.5)',
-                    }}
-                  />
-                )}
                 <Icon active={isActive} />
-                <span>{label}</span>
+                <span
+                  style={{
+                    // Underline lives on the label so it sits beneath the
+                    // word — not under the icon. Transparent border on the
+                    // inactive state keeps the row's baseline stable.
+                    borderBottom: isActive
+                      ? `1.5px solid ${COPPER}`
+                      : '1.5px solid transparent',
+                    paddingBottom: 2,
+                    transition: 'border-color 160ms ease',
+                  }}
+                >
+                  {label}
+                </span>
               </button>
             );
           })}
@@ -252,14 +265,19 @@ export default function DesktopAppShell({ children }: Props) {
         {/* Practitioner pill — avatar + name + animated belt identity.
             The belt ties on mount (login/refresh), then sits as an ambient
             rank marker. marginTop:auto pins the whole section to the bottom
-            of the rail regardless of whether the focus card above is rendered. */}
-        <div
-          style={{
-            marginTop: 'auto',
-            paddingTop: 18,
-            borderTop: '1px solid var(--j2-border-1)',
-          }}
-        >
+            of the rail regardless of whether the focus card above is rendered.
+            The 40px copper hairline above replaces the prior full-width
+            top border — matches the editorial divider used elsewhere
+            (telemetry card, page kickers). */}
+        <div style={{ marginTop: 'auto', paddingTop: 18 }}>
+          <div
+            aria-hidden
+            style={{
+              width: 40, height: 1,
+              backgroundColor: 'rgba(196,145,95,0.25)',
+              marginBottom: 18,
+            }}
+          />
           {/* Belt ceremony — small, ambient, ties on page load */}
           <div
             style={{

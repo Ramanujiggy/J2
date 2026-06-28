@@ -63,7 +63,12 @@ export const listClassSchedules = async (req: Request, res: Response): Promise<v
         }
 
         res.setHeader('ETag', etag);
-        res.setHeader('Cache-Control', 'private, max-age=300');
+        // `no-cache` forces revalidation on every request — the ETag still
+        // gives us a cheap 304 when nothing changed, but the browser can
+        // never serve a stale cached body after a PATCH / POST / DELETE
+        // (which is what `max-age=300` here used to enable, masking writes
+        // for up to 5 minutes after they succeeded).
+        res.setHeader('Cache-Control', 'private, no-cache');
         res.json({ schedules });
     } catch (err) {
         console.error('Error listing class schedules:', err);

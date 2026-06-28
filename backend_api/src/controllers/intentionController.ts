@@ -136,7 +136,10 @@ export const getIntentions = async (req: Request, res: Response) => {
     }
 
     res.setHeader('ETag', etag);
-    res.setHeader('Cache-Control', 'private, max-age=60');
+    // `no-cache` forces revalidation; the ETag still gives us a cheap 304
+    // when nothing changed. `max-age=60` would have let the browser serve
+    // a stale body for up to a minute after the user saved an edit.
+    res.setHeader('Cache-Control', 'private, no-cache');
     res.status(200).json({ intentions });
   } catch (error) {
     console.error('❌ Error fetching intentions:', error);
