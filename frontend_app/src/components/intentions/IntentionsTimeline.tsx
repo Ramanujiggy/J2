@@ -333,6 +333,11 @@ function IntentionRow({
         }}
       >
         {stats.sessionCount} {stats.sessionCount === 1 ? 'session' : 'sessions'}
+        {(intention.user_tag_ids?.length ?? 0) > 0 && (
+          <span style={{ fontSize: 11, color: 'rgba(196,145,95,0.45)', marginLeft: 8 }}>
+            · {intention.user_tag_ids!.length} tech{intention.user_tag_ids!.length !== 1 ? 's' : ''}
+          </span>
+        )}
       </div>
 
       {/* Alignment bar — real % from statsMap */}

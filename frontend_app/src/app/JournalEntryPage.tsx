@@ -8,7 +8,8 @@ import { useProfile } from '../context/ProfileContext.tsx';
 import { CATEGORY_COLORS, SKILL_TAGS, MONTH_NAMES, REFLECTION_PROMPTS } from '../lib/constants.ts';
 import { formatDuration, INTENSITY_COLOR } from '../lib/sessionUtils.ts';
 import { vibrate } from '../lib/haptics.ts';
-import type { Intention, IntentionsResponse, SessionSummary, SessionsResponse, IntentionCompletionType } from '../types/api.ts';
+import type { Intention, IntentionsResponse, SessionSummary, SessionsResponse, IntentionCompletionType, UserTag } from '../types/api.ts';
+import { useUserTags } from '../hooks/useUserTags.ts';
 import PageContent from '../components/PageContent.tsx';
 import SessionDetailModal from '../components/SessionDetailModal.tsx';
 import SegmentedToggle from '../components/SegmentedToggle.tsx';
@@ -22,6 +23,7 @@ export default function JournalEntryPage() {
   const location = useLocation();
   const isDesktop = useIsDesktop();
   const { intentionsEnabled } = useProfile();
+  const { byId: userTagById } = useUserTags();
 
   // Origin tracking — where did the user come from?
   const origin = (location.state as { from?: string } | null)?.from ?? '/intentions';
@@ -345,6 +347,46 @@ export default function JournalEntryPage() {
                 <span style={{ color: 'rgba(255,255,255,0.15)' }}>·</span>
                 <span>{intention.duration_days}d intention</span>
               </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Technique chips — copper-tinted tags linking to /techniques/:id */}
+      {(() => {
+        const resolvedTags = (intention.user_tag_ids ?? [])
+          .map(id => userTagById.get(id))
+          .filter((t): t is UserTag => !!t);
+        if (resolvedTags.length === 0) return null;
+        return (
+          <div>
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: '0.14em',
+                textTransform: 'uppercase' as const,
+                color: 'rgba(255,255,255,0.28)',
+              }}
+            >
+              Techniques
+            </span>
+            <div className="flex flex-wrap gap-1.5" style={{ marginTop: 6 }}>
+              {resolvedTags.map(tag => (
+                <button
+                  key={tag.id}
+                  onClick={() => navigate(`/techniques/${tag.id}`)}
+                  className="px-2.5 py-1 rounded-md text-xs font-medium touch-manipulation"
+                  style={{
+                    backgroundColor: 'rgba(255,255,255,0.06)',
+                    color: 'rgba(196,145,95,0.70)',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {tag.name}
+                </button>
+              ))}
             </div>
           </div>
         );
