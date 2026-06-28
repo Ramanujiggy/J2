@@ -8,6 +8,8 @@ import {
     getUserDetail,
     getRecentLogins,
     cleanupOrphanedVideos,
+    getFileTree,
+    getRoutes,
 } from '../controllers/adminController.js';
 
 const router = Router();
@@ -21,6 +23,10 @@ router.patch('/cases/:id',    patchCase);
 router.get('/users',          getUsers);
 router.get('/users/:id',      getUserDetail);
 router.get('/recent-logins',  getRecentLogins);
+
+// App structure X-ray — file tree + API route listing.
+router.get('/structure/files',  getFileTree);
+router.get('/structure/routes', getRoutes);
 
 // One-off cleanup — walks R2 against user_tags storage keys, reports
 // orphans. ?execute=true to actually delete. Defaults to dry-run.

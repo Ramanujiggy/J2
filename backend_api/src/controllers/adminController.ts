@@ -3,9 +3,16 @@
 
 import type { Request, Response } from 'express';
 import { z } from 'zod';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { query } from '../config/db.js';
 import { listCases, updateCase } from '../models/supportCaseModel.js';
 import { listAllObjects, deleteObject } from '../lib/r2Client.js';
+import { getRouteManifest } from '../lib/routeManifest.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // ── GET /api/admin/stats ──────────────────────────────────────────────────
 // Single-row aggregate. Cheap enough to run on every dashboard load.
@@ -383,4 +390,61 @@ export const cleanupOrphanedVideos = async (req: Request, res: Response): Promis
         console.error('❌ Error in cleanupOrphanedVideos:', err);
         res.status(500).json({ message: 'Server error' });
     }
+};
+
+// ── GET /api/admin/structure/files ────────────────────────────────────────
+// Returns the project directory tree as nested JSON. Cached after first scan.
+
+interface TreeNode {
+    name: string;
+    type: 'file' | 'directory';
+    children?: TreeNode[];
+}
+
+const EXCLUDE = new Set([
+    'node_modules', '.git', 'dist', 'build', '.vite-cache',
+    'test-results', 'playwright-report', '.husky', 'coverage',
+]);
+
+function scanDir(dir: string, depth: number, maxDepth: number): TreeNode[] {
+    if (depth >= maxDepth) return [];
+    try {
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        return entries
+            .filter(e => !EXCLUDE.has(e.name) && !e.name.startsWith('.env'))
+            .sort((a, b) => {
+                if (a.isDirectory() && !b.isDirectory()) return -1;
+                if (!a.isDirectory() && b.isDirectory()) return 1;
+                return a.name.localeCompare(b.name);
+            })
+            .map(e => ({
+                name: e.name,
+                type: (e.isDirectory() ? 'directory' : 'file') as 'file' | 'directory',
+                ...(e.isDirectory() ? { children: scanDir(path.join(dir, e.name), depth + 1, maxDepth) } : {}),
+            }));
+    } catch {
+        return [];
+    }
+}
+
+let cachedTree: { root: string; tree: TreeNode[] } | null = null;
+
+export const getFileTree = async (_req: Request, res: Response) => {
+    try {
+        if (!cachedTree) {
+            const projectRoot = path.resolve(__dirname, '..', '..');
+            cachedTree = { root: path.basename(projectRoot), tree: scanDir(projectRoot, 0, 4) };
+        }
+        res.status(200).json(cachedTree);
+    } catch (err) {
+        console.error('❌ Error scanning file tree:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// ── GET /api/admin/structure/routes ───────────────────────────────────────
+// Returns all registered Express API routes.
+
+export const getRoutes = async (_req: Request, res: Response) => {
+    res.status(200).json({ routes: getRouteManifest() });
 };
