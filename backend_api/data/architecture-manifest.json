@@ -1,0 +1,2074 @@
+{
+  "generatedAt": "2026-06-28T20:22:47.474Z",
+  "apiRoutes": [
+    {
+      "method": "GET",
+      "path": "/api/admin/architecture",
+      "file": "routes/adminRoutes.ts",
+      "handler": "getArchitectureManifest",
+      "auth": "admin"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/cases",
+      "file": "routes/adminRoutes.ts",
+      "handler": "getCases",
+      "auth": "admin"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/admin/cases/:id",
+      "file": "routes/adminRoutes.ts",
+      "handler": "patchCase",
+      "auth": "admin"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/cleanup-orphaned-videos",
+      "file": "routes/adminRoutes.ts",
+      "handler": "cleanupOrphanedVideos",
+      "auth": "admin"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/recent-logins",
+      "file": "routes/adminRoutes.ts",
+      "handler": "getRecentLogins",
+      "auth": "admin"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/stats",
+      "file": "routes/adminRoutes.ts",
+      "handler": "getStats",
+      "auth": "admin"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/structure/files",
+      "file": "routes/adminRoutes.ts",
+      "handler": "getFileTree",
+      "auth": "admin"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/structure/routes",
+      "file": "routes/adminRoutes.ts",
+      "handler": "getRoutes",
+      "auth": "admin"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/users",
+      "file": "routes/adminRoutes.ts",
+      "handler": "getUsers",
+      "auth": "admin"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/users/:id",
+      "file": "routes/adminRoutes.ts",
+      "handler": "getUserDetail",
+      "auth": "admin"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/login",
+      "file": "routes/authRoutes.ts",
+      "handler": "login",
+      "auth": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/register",
+      "file": "routes/authRoutes.ts",
+      "handler": "register",
+      "auth": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/request-password-reset",
+      "file": "routes/authRoutes.ts",
+      "handler": "requestPasswordReset",
+      "auth": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/reset-password",
+      "file": "routes/authRoutes.ts",
+      "handler": "resetPassword",
+      "auth": "public"
+    },
+    {
+      "method": "GET",
+      "path": "/api/belt-history/",
+      "file": "routes/beltHistoryRoutes.ts",
+      "handler": "listBeltHistory",
+      "auth": "user"
+    },
+    {
+      "method": "POST",
+      "path": "/api/belt-history/",
+      "file": "routes/beltHistoryRoutes.ts",
+      "handler": "createBeltHistory",
+      "auth": "user"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/belt-history/:id",
+      "file": "routes/beltHistoryRoutes.ts",
+      "handler": "deleteBeltHistory",
+      "auth": "user"
+    },
+    {
+      "method": "GET",
+      "path": "/api/canonical-constraints/",
+      "file": "routes/canonicalConstraintRoutes.ts",
+      "handler": "getCanonicalConstraints",
+      "auth": "user"
+    },
+    {
+      "method": "GET",
+      "path": "/api/canonical-positions/",
+      "file": "routes/canonicalPositionRoutes.ts",
+      "handler": "getCanonicalPositions",
+      "auth": "user"
+    },
+    {
+      "method": "POST",
+      "path": "/api/cases/",
+      "file": "routes/caseRoutes.ts",
+      "handler": "submitCase",
+      "auth": "user"
+    },
+    {
+      "method": "GET",
+      "path": "/api/class-attendance/",
+      "file": "routes/classAttendanceRoutes.ts",
+      "handler": "getAttendance",
+      "auth": "user"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/class-attendance/",
+      "file": "routes/classAttendanceRoutes.ts",
+      "handler": "putAttendance",
+      "auth": "user"
+    },
+    {
+      "method": "POST",
+      "path": "/api/class-attendance/import",
+      "file": "routes/classAttendanceRoutes.ts",
+      "handler": "importAttendance",
+      "auth": "user"
+    },
+    {
+      "method": "GET",
+      "path": "/api/class-schedules/",
+      "file": "routes/classScheduleRoutes.ts",
+      "handler": "listClassSchedules",
+      "auth": "user"
+    },
+    {
+      "method": "POST",
+      "path": "/api/class-schedules/",
+      "file": "routes/classScheduleRoutes.ts",
+      "handler": "createClassSchedule",
+      "auth": "user"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/class-schedules/:id",
+      "file": "routes/classScheduleRoutes.ts",
+      "handler": "updateClassSchedule",
+      "auth": "user"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/class-schedules/:id",
+      "file": "routes/classScheduleRoutes.ts",
+      "handler": "deleteClassSchedule",
+      "auth": "user"
+    },
+    {
+      "method": "POST",
+      "path": "/api/intentions/",
+      "file": "routes/intentionRoutes.ts",
+      "handler": "createIntention",
+      "auth": "user"
+    },
+    {
+      "method": "GET",
+      "path": "/api/intentions/",
+      "file": "routes/intentionRoutes.ts",
+      "handler": "getIntentions",
+      "auth": "user"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/intentions/:id",
+      "file": "routes/intentionRoutes.ts",
+      "handler": "patchIntention",
+      "auth": "user"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/intentions/:id",
+      "file": "routes/intentionRoutes.ts",
+      "handler": "deleteIntention",
+      "auth": "user"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/intentions/:id/journal",
+      "file": "routes/intentionRoutes.ts",
+      "handler": "patchJournalEntry",
+      "auth": "user"
+    },
+    {
+      "method": "GET",
+      "path": "/api/intentions/current",
+      "file": "routes/intentionRoutes.ts",
+      "handler": "getCurrentIntention",
+      "auth": "user"
+    },
+    {
+      "method": "GET",
+      "path": "/api/profile",
+      "file": "routes/profileRoutes.ts",
+      "handler": "fetchProfile",
+      "auth": "user"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/profile",
+      "file": "routes/profileRoutes.ts",
+      "handler": "saveProfile",
+      "auth": "user"
+    },
+    {
+      "method": "POST",
+      "path": "/api/profile/onboarding-complete",
+      "file": "routes/profileRoutes.ts",
+      "handler": "completeOnboarding",
+      "auth": "user"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/profile/onboarding-step",
+      "file": "routes/profileRoutes.ts",
+      "handler": "updateOnboardingStep",
+      "auth": "user"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/profile/timezone",
+      "file": "routes/profileRoutes.ts",
+      "handler": "saveTimezone",
+      "auth": "user"
+    },
+    {
+      "method": "POST",
+      "path": "/api/push-subscriptions/",
+      "file": "routes/pushSubscriptionRoutes.ts",
+      "handler": "subscribe",
+      "auth": "user"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/push-subscriptions/",
+      "file": "routes/pushSubscriptionRoutes.ts",
+      "handler": "unsubscribe",
+      "auth": "user"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/push-subscriptions/categories",
+      "file": "routes/pushSubscriptionRoutes.ts",
+      "handler": "updateCategories",
+      "auth": "user"
+    },
+    {
+      "method": "GET",
+      "path": "/api/push-subscriptions/me",
+      "file": "routes/pushSubscriptionRoutes.ts",
+      "handler": "getMySubscriptionState",
+      "auth": "user"
+    },
+    {
+      "method": "GET",
+      "path": "/api/push-subscriptions/vapid-public-key",
+      "file": "routes/pushSubscriptionRoutes.ts",
+      "handler": "getPublicKey",
+      "auth": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/api/sessions",
+      "file": "routes/sessionRoutes.ts",
+      "handler": "logSession",
+      "auth": "user"
+    },
+    {
+      "method": "GET",
+      "path": "/api/sessions",
+      "file": "routes/sessionRoutes.ts",
+      "handler": "getSessions",
+      "auth": "user"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/sessions/:id",
+      "file": "routes/sessionRoutes.ts",
+      "handler": "updateSession",
+      "auth": "user"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/sessions/:id",
+      "file": "routes/sessionRoutes.ts",
+      "handler": "deleteSession",
+      "auth": "user"
+    },
+    {
+      "method": "POST",
+      "path": "/api/sessions/import",
+      "file": "routes/sessionRoutes.ts",
+      "handler": "importSessions",
+      "auth": "user"
+    },
+    {
+      "method": "GET",
+      "path": "/api/sessions/search",
+      "file": "routes/sessionRoutes.ts",
+      "handler": "searchSessionsHandler",
+      "auth": "user"
+    },
+    {
+      "method": "GET",
+      "path": "/api/notes/",
+      "file": "routes/trainingNoteRoutes.ts",
+      "handler": "list",
+      "auth": "user"
+    },
+    {
+      "method": "POST",
+      "path": "/api/notes/",
+      "file": "routes/trainingNoteRoutes.ts",
+      "handler": "create",
+      "auth": "user"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/notes/:id",
+      "file": "routes/trainingNoteRoutes.ts",
+      "handler": "update",
+      "auth": "user"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/notes/:id",
+      "file": "routes/trainingNoteRoutes.ts",
+      "handler": "remove",
+      "auth": "user"
+    },
+    {
+      "method": "GET",
+      "path": "/api/user-constraints/",
+      "file": "routes/userConstraintRoutes.ts",
+      "handler": "getUserConstraints",
+      "auth": "user"
+    },
+    {
+      "method": "POST",
+      "path": "/api/user-constraints/",
+      "file": "routes/userConstraintRoutes.ts",
+      "handler": "createUserConstraint",
+      "auth": "user"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/user-constraints/:id",
+      "file": "routes/userConstraintRoutes.ts",
+      "handler": "deleteUserConstraint",
+      "auth": "user"
+    },
+    {
+      "method": "GET",
+      "path": "/api/user-tags/",
+      "file": "routes/userTagRoutes.ts",
+      "handler": "getUserTags",
+      "auth": "user"
+    },
+    {
+      "method": "POST",
+      "path": "/api/user-tags/",
+      "file": "routes/userTagRoutes.ts",
+      "handler": "createUserTag",
+      "auth": "user"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/user-tags/:id",
+      "file": "routes/userTagRoutes.ts",
+      "handler": "updateUserTag",
+      "auth": "user"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/user-tags/:id",
+      "file": "routes/userTagRoutes.ts",
+      "handler": "deleteUserTag",
+      "auth": "user"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/user-tags/:id/video",
+      "file": "routes/userTagRoutes.ts",
+      "handler": "updateUserTagVideo",
+      "auth": "user"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/user-tags/:id/video",
+      "file": "routes/userTagRoutes.ts",
+      "handler": "removeVideo",
+      "auth": "user"
+    },
+    {
+      "method": "POST",
+      "path": "/api/user-tags/:id/video/retry",
+      "file": "routes/userTagRoutes.ts",
+      "handler": "retryVideoTranscode",
+      "auth": "user"
+    },
+    {
+      "method": "POST",
+      "path": "/api/user-tags/:id/video/upload-complete",
+      "file": "routes/userTagRoutes.ts",
+      "handler": "completeVideoUpload",
+      "auth": "user"
+    },
+    {
+      "method": "POST",
+      "path": "/api/user-tags/:id/video/upload-url",
+      "file": "routes/userTagRoutes.ts",
+      "handler": "mintVideoUploadUrl",
+      "auth": "user"
+    },
+    {
+      "method": "GET",
+      "path": "/api/user-tags/:id/video/url",
+      "file": "routes/userTagRoutes.ts",
+      "handler": "getVideoPlaybackUrl",
+      "auth": "user"
+    },
+    {
+      "method": "POST",
+      "path": "/api/user-tags/promote-canonical",
+      "file": "routes/userTagRoutes.ts",
+      "handler": "promoteCanonicalToUserTag",
+      "auth": "user"
+    }
+  ],
+  "migrations": [
+    {
+      "file": "000_create_core_tables.sql",
+      "title": "000: Create core tables (users + training_sessions)."
+    },
+    {
+      "file": "001_add_weekly_intentions.sql",
+      "title": "Migration 001: Weekly Intentions"
+    },
+    {
+      "file": "002_add_intention_duration.sql",
+      "title": "Migration 002: Intention Duration"
+    },
+    {
+      "file": "003_add_journal_entry.sql",
+      "title": "Migration 003: Add journal_entry column to weekly_intentions"
+    },
+    {
+      "file": "004_add_intentions_enabled.sql",
+      "title": "Migration 004: Intentions feature toggle per user"
+    },
+    {
+      "file": "005_dynamic_pillar_engine.sql",
+      "title": "Migration 005: Dynamic Pillar Engine"
+    },
+    {
+      "file": "006_indexes_and_constraints.sql",
+      "title": "006: Add missing indexes and database-level enum constraints"
+    },
+    {
+      "file": "007_intention_heading.sql",
+      "title": "007: Add heading column to weekly_intentions"
+    },
+    {
+      "file": "008_user_tags.sql",
+      "title": "008: Two-tier tag system"
+    },
+    {
+      "file": "009_pillar_distribution.sql",
+      "title": "009: Distribution-First Persistence"
+    },
+    {
+      "file": "010_user_tag_video_metadata.sql",
+      "title": "010: Move Library (Tier 1) — video metadata on user_tags"
+    },
+    {
+      "file": "011_fix_belt_rank_default.sql",
+      "title": "011: Remove the uppercase 'White' DEFAULT from users.belt_rank."
+    },
+    {
+      "file": "012_canonical_positions.sql",
+      "title": "012: Canonical position library"
+    },
+    {
+      "file": "013_add_input_telemetry.sql",
+      "title": "013: Input telemetry — adoption signal for the chip-input replacement."
+    },
+    {
+      "file": "014_deep_work_pillars.sql",
+      "title": "014: Persist which pillars carried the long-press \"deep work\" flag at log time."
+    },
+    {
+      "file": "015_constraints_library.sql",
+      "title": "015: Constraints library + CLA session type"
+    },
+    {
+      "file": "016_session_partners.sql",
+      "title": "016: Session partners (freetext)"
+    },
+    {
+      "file": "017_constraint_details.sql",
+      "title": "017: Rich game metadata on canonical_constraints"
+    },
+    {
+      "file": "018_seed_cla_games.sql",
+      "title": "018: Seed canonical_constraints from the CLA-BJJ research report"
+    },
+    {
+      "file": "019_user_timezone.sql",
+      "title": "019: User timezone"
+    },
+    {
+      "file": "020_class_schedules.sql",
+      "title": "020: Class schedules"
+    },
+    {
+      "file": "021_push_subscriptions.sql",
+      "title": "021: Push subscriptions"
+    },
+    {
+      "file": "022_onboarding_completed_at.sql",
+      "title": "022: Onboarding completion timestamp"
+    },
+    {
+      "file": "023_admin_and_support_cases.sql",
+      "title": "023: Admin flag + support cases"
+    },
+    {
+      "file": "024_fix_session_type_cla_check.sql",
+      "title": "024: Fix CLA session_type CHECK constraint"
+    },
+    {
+      "file": "024_grant_founder_admin.sql",
+      "title": "024: Grant admin to founder"
+    },
+    {
+      "file": "025_cleanup_test_users.sql",
+      "title": "025: Cleanup accumulated test users."
+    },
+    {
+      "file": "025_gi_nogi_both.sql",
+      "title": "025: Widen gi_nogi CHECK constraints to allow 'both'"
+    },
+    {
+      "file": "026_onboarding_step.sql",
+      "title": "026: Onboarding funnel step"
+    },
+    {
+      "file": "027_notification_sends.sql",
+      "title": "027: Notification send ledger"
+    },
+    {
+      "file": "027_technique_affinity_resonance.sql",
+      "title": "027: Technique Library v1 — affinity + cumulative resonance journal."
+    },
+    {
+      "file": "028_video_cloud_storage.sql",
+      "title": "028: Video cloud storage — Cloudflare R2 + server-side transcoding."
+    },
+    {
+      "file": "028_widen_enum_check_helper.sql",
+      "title": "028: widen_enum_check() helper"
+    },
+    {
+      "file": "029_class_attendance.sql",
+      "title": "029: class_attendance table"
+    },
+    {
+      "file": "030_belt_history.sql",
+      "title": "(no title)"
+    },
+    {
+      "file": "031_training_notes.sql",
+      "title": "(no title)"
+    },
+    {
+      "file": "032_note_technique_links.sql",
+      "title": "(no title)"
+    },
+    {
+      "file": "033_last_login_at.sql",
+      "title": "(no title)"
+    },
+    {
+      "file": "034_intention_completion_modes.sql",
+      "title": "Intentions currently end based purely on calendar days (duration_days)."
+    },
+    {
+      "file": "035_intention_user_tags.sql",
+      "title": "Associates techniques (user_tags) with intentions. An intention can"
+    }
+  ],
+  "models": [
+    {
+      "name": "BeltHistoryEntry",
+      "file": "models/beltHistoryModel.ts",
+      "fields": [
+        {
+          "name": "id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "user_id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "belt_rank",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "stripes",
+          "optional": false,
+          "type": "number"
+        },
+        {
+          "name": "promoted_at",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "notes",
+          "optional": false,
+          "type": "string | null"
+        },
+        {
+          "name": "created_at",
+          "optional": false,
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "CanonicalConstraint",
+      "file": "models/canonicalConstraintModel.ts",
+      "fields": [
+        {
+          "name": "id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "name",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "parent_pillar",
+          "optional": false,
+          "type": "Pillar | null"
+        },
+        {
+          "name": "aliases",
+          "optional": false,
+          "type": "string[]"
+        },
+        {
+          "name": "description",
+          "optional": false,
+          "type": "string | null"
+        },
+        {
+          "name": "details",
+          "optional": false,
+          "type": "ConstraintDetails | null"
+        },
+        {
+          "name": "created_at",
+          "optional": false,
+          "type": "Date"
+        }
+      ]
+    },
+    {
+      "name": "ConstraintDetails",
+      "file": "models/canonicalConstraintModel.ts",
+      "fields": [
+        {
+          "name": "family",
+          "optional": true,
+          "type": "string"
+        },
+        {
+          "name": "full_label",
+          "optional": true,
+          "type": "string"
+        },
+        {
+          "name": "start_position",
+          "optional": true,
+          "type": "string"
+        },
+        {
+          "name": "continuous_goals",
+          "optional": true,
+          "type": "{ top?: string"
+        },
+        {
+          "name": "bottom",
+          "optional": true,
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "CanonicalPosition",
+      "file": "models/canonicalPositionModel.ts",
+      "fields": [
+        {
+          "name": "id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "name",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "parent_pillar",
+          "optional": false,
+          "type": "Pillar"
+        },
+        {
+          "name": "aliases",
+          "optional": false,
+          "type": "string[]"
+        },
+        {
+          "name": "created_at",
+          "optional": false,
+          "type": "Date"
+        }
+      ]
+    },
+    {
+      "name": "ClassAttendance",
+      "file": "models/classAttendanceModel.ts",
+      "fields": [
+        {
+          "name": "id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "user_id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "schedule_id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "date",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "planning",
+          "optional": false,
+          "type": "'yes' | 'no' | null"
+        },
+        {
+          "name": "attended",
+          "optional": false,
+          "type": "'yes' | 'no' | null"
+        },
+        {
+          "name": "updated_at",
+          "optional": false,
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "ImportEntry",
+      "file": "models/classAttendanceModel.ts",
+      "fields": [
+        {
+          "name": "schedule_id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "date",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "planning",
+          "optional": true,
+          "type": "AttendanceValue"
+        },
+        {
+          "name": "attended",
+          "optional": true,
+          "type": "AttendanceValue"
+        }
+      ]
+    },
+    {
+      "name": "ClassSchedule",
+      "file": "models/classScheduleModel.ts",
+      "fields": [
+        {
+          "name": "id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "user_id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "name",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "day_of_week",
+          "optional": false,
+          "type": "number"
+        },
+        {
+          "name": "start_time",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "duration_min",
+          "optional": false,
+          "type": "number"
+        },
+        {
+          "name": "gi_nogi",
+          "optional": false,
+          "type": "'gi' | 'no_gi' | 'both' | null"
+        },
+        {
+          "name": "is_active",
+          "optional": false,
+          "type": "boolean"
+        },
+        {
+          "name": "created_at",
+          "optional": false,
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "ClassScheduleInput",
+      "file": "models/classScheduleModel.ts",
+      "fields": [
+        {
+          "name": "name",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "day_of_week",
+          "optional": false,
+          "type": "number"
+        },
+        {
+          "name": "start_time",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "duration_min",
+          "optional": false,
+          "type": "number"
+        },
+        {
+          "name": "gi_nogi",
+          "optional": false,
+          "type": "'gi' | 'no_gi' | 'both' | null"
+        }
+      ]
+    },
+    {
+      "name": "Intention",
+      "file": "models/intentionModel.ts",
+      "fields": [
+        {
+          "name": "id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "user_id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "week_start",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "intent_label",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "intent_category",
+          "optional": false,
+          "type": "'technical' | 'physical' | 'mental' | 'positional' | 'competitive' | null"
+        },
+        {
+          "name": "heading",
+          "optional": false,
+          "type": "string | null"
+        },
+        {
+          "name": "duration_days",
+          "optional": false,
+          "type": "number"
+        },
+        {
+          "name": "completion_type",
+          "optional": false,
+          "type": "CompletionType"
+        },
+        {
+          "name": "target_count",
+          "optional": false,
+          "type": "number | null"
+        },
+        {
+          "name": "user_tag_ids",
+          "optional": false,
+          "type": "string[] | null"
+        },
+        {
+          "name": "journal_entry",
+          "optional": false,
+          "type": "string | null"
+        },
+        {
+          "name": "created_at",
+          "optional": false,
+          "type": "Date"
+        }
+      ]
+    },
+    {
+      "name": "RecentSendsRow",
+      "file": "models/notificationSendModel.ts",
+      "fields": [
+        {
+          "name": "status",
+          "optional": false,
+          "type": "SendStatus"
+        },
+        {
+          "name": "category",
+          "optional": false,
+          "type": "NotificationKind"
+        },
+        {
+          "name": "count",
+          "optional": false,
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "RecordSendInput",
+      "file": "models/notificationSendModel.ts",
+      "fields": [
+        {
+          "name": "user_id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "subscription_id",
+          "optional": false,
+          "type": "string | null"
+        },
+        {
+          "name": "category",
+          "optional": false,
+          "type": "NotificationKind"
+        },
+        {
+          "name": "status",
+          "optional": false,
+          "type": "SendStatus"
+        },
+        {
+          "name": "status_code",
+          "optional": true,
+          "type": "number | null"
+        },
+        {
+          "name": "error_message",
+          "optional": true,
+          "type": "string | null"
+        },
+        {
+          "name": "endpoint_host",
+          "optional": true,
+          "type": "string | null"
+        },
+        {
+          "name": "schedule_id",
+          "optional": true,
+          "type": "string | null"
+        }
+      ]
+    },
+    {
+      "name": "PasswordResetToken",
+      "file": "models/passwordResetModel.ts",
+      "fields": [
+        {
+          "name": "id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "user_id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "token",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "expires_at",
+          "optional": false,
+          "type": "Date"
+        },
+        {
+          "name": "used",
+          "optional": false,
+          "type": "boolean"
+        },
+        {
+          "name": "created_at",
+          "optional": false,
+          "type": "Date"
+        }
+      ]
+    },
+    {
+      "name": "Profile",
+      "file": "models/profileModel.ts",
+      "fields": [
+        {
+          "name": "name",
+          "optional": false,
+          "type": "string | null"
+        },
+        {
+          "name": "belt_rank",
+          "optional": false,
+          "type": "string | null"
+        },
+        {
+          "name": "stripes",
+          "optional": false,
+          "type": "number"
+        },
+        {
+          "name": "home_gym_name",
+          "optional": false,
+          "type": "string | null"
+        },
+        {
+          "name": "home_gym_address",
+          "optional": false,
+          "type": "string | null"
+        },
+        {
+          "name": "home_gym_place_id",
+          "optional": false,
+          "type": "string | null"
+        },
+        {
+          "name": "intentions_enabled",
+          "optional": false,
+          "type": "boolean"
+        },
+        {
+          "name": "onboarding_completed_at",
+          "optional": false,
+          "type": "string | null"
+        },
+        {
+          "name": "is_admin",
+          "optional": false,
+          "type": "boolean"
+        },
+        {
+          "name": "onboarding_step",
+          "optional": false,
+          "type": "number"
+        }
+      ]
+    },
+    {
+      "name": "CategoryFlags",
+      "file": "models/pushSubscriptionModel.ts",
+      "fields": [
+        {
+          "name": "pre_class",
+          "optional": true,
+          "type": "boolean"
+        },
+        {
+          "name": "intention_check",
+          "optional": true,
+          "type": "boolean"
+        },
+        {
+          "name": "drive_home_log",
+          "optional": true,
+          "type": "boolean"
+        }
+      ]
+    },
+    {
+      "name": "PushSubscription",
+      "file": "models/pushSubscriptionModel.ts",
+      "fields": [
+        {
+          "name": "id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "user_id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "endpoint",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "p256dh",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "auth",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "user_agent",
+          "optional": false,
+          "type": "string | null"
+        },
+        {
+          "name": "pre_class",
+          "optional": false,
+          "type": "boolean"
+        },
+        {
+          "name": "intention_check",
+          "optional": false,
+          "type": "boolean"
+        },
+        {
+          "name": "drive_home_log",
+          "optional": false,
+          "type": "boolean"
+        },
+        {
+          "name": "last_seen",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "created_at",
+          "optional": false,
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "UpsertInput",
+      "file": "models/pushSubscriptionModel.ts",
+      "fields": [
+        {
+          "name": "user_id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "endpoint",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "p256dh",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "auth",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "user_agent",
+          "optional": false,
+          "type": "string | null"
+        }
+      ]
+    },
+    {
+      "name": "BulkSessionInput",
+      "file": "models/sessionModel.ts",
+      "fields": [
+        {
+          "name": "date",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "duration",
+          "optional": false,
+          "type": "number"
+        },
+        {
+          "name": "gi_nogi",
+          "optional": false,
+          "type": "'gi' | 'no_gi' | 'both'"
+        },
+        {
+          "name": "intensity",
+          "optional": false,
+          "type": "number"
+        },
+        {
+          "name": "session_type",
+          "optional": false,
+          "type": "'drilling' | 'class' | 'competition_training' | 'cla'"
+        },
+        {
+          "name": "tags",
+          "optional": false,
+          "type": "string[]"
+        },
+        {
+          "name": "notes",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "heading",
+          "optional": true,
+          "type": "string | null"
+        },
+        {
+          "name": "polarity",
+          "optional": true,
+          "type": "string | null"
+        },
+        {
+          "name": "sub_skill_tag",
+          "optional": true,
+          "type": "string | null"
+        },
+        {
+          "name": "script_source",
+          "optional": true,
+          "type": "string | null"
+        },
+        {
+          "name": "resonance",
+          "optional": true,
+          "type": "number | null"
+        }
+      ]
+    },
+    {
+      "name": "Session",
+      "file": "models/sessionModel.ts",
+      "fields": [
+        {
+          "name": "id",
+          "optional": true,
+          "type": "string"
+        },
+        {
+          "name": "user_id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "date",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "duration",
+          "optional": false,
+          "type": "number"
+        },
+        {
+          "name": "notes",
+          "optional": true,
+          "type": "string"
+        },
+        {
+          "name": "gi_nogi",
+          "optional": false,
+          "type": "'gi' | 'no_gi' | 'both'"
+        },
+        {
+          "name": "intensity",
+          "optional": false,
+          "type": "number"
+        },
+        {
+          "name": "session_type",
+          "optional": false,
+          "type": "'drilling' | 'class' | 'competition_training' | 'cla'"
+        },
+        {
+          "name": "tags",
+          "optional": false,
+          "type": "string[]"
+        },
+        {
+          "name": "heading",
+          "optional": true,
+          "type": "string | null"
+        },
+        {
+          "name": "polarity",
+          "optional": true,
+          "type": "'offense' | 'defense' | 'neutral' | null"
+        },
+        {
+          "name": "sub_skill_tag",
+          "optional": true,
+          "type": "string | null"
+        },
+        {
+          "name": "script_source",
+          "optional": true,
+          "type": "'directed' | 'organic' | null"
+        },
+        {
+          "name": "resonance",
+          "optional": true,
+          "type": "number | null"
+        },
+        {
+          "name": "user_tag_ids",
+          "optional": true,
+          "type": "string[] | null"
+        },
+        {
+          "name": "canonical_position_ids",
+          "optional": true,
+          "type": "string[] | null"
+        },
+        {
+          "name": "pillar_distribution",
+          "optional": true,
+          "type": "PillarDistribution | null"
+        },
+        {
+          "name": "had_primary",
+          "optional": true,
+          "type": "boolean | null"
+        },
+        {
+          "name": "had_deep_work",
+          "optional": true,
+          "type": "boolean | null"
+        },
+        {
+          "name": "selection_count",
+          "optional": true,
+          "type": "number | null"
+        },
+        {
+          "name": "deep_work_pillars",
+          "optional": true,
+          "type": "string[] | null"
+        },
+        {
+          "name": "canonical_constraint_ids",
+          "optional": true,
+          "type": "string[] | null"
+        },
+        {
+          "name": "user_constraint_ids",
+          "optional": true,
+          "type": "string[] | null"
+        },
+        {
+          "name": "partners",
+          "optional": true,
+          "type": "string[] | null"
+        },
+        {
+          "name": "created_at",
+          "optional": true,
+          "type": "Date"
+        }
+      ]
+    },
+    {
+      "name": "SessionFilter",
+      "file": "models/sessionModel.ts",
+      "fields": [
+        {
+          "name": "from",
+          "optional": true,
+          "type": "string"
+        },
+        {
+          "name": "to",
+          "optional": true,
+          "type": "string"
+        },
+        {
+          "name": "q",
+          "optional": true,
+          "type": "string"
+        },
+        {
+          "name": "gi_nogi",
+          "optional": true,
+          "type": "'gi' | 'no_gi'"
+        },
+        {
+          "name": "session_type",
+          "optional": true,
+          "type": "string"
+        },
+        {
+          "name": "heading",
+          "optional": true,
+          "type": "string"
+        },
+        {
+          "name": "polarity",
+          "optional": true,
+          "type": "string"
+        },
+        {
+          "name": "intensity_min",
+          "optional": true,
+          "type": "number"
+        },
+        {
+          "name": "intensity_max",
+          "optional": true,
+          "type": "number"
+        },
+        {
+          "name": "user_tag_id",
+          "optional": true,
+          "type": "string"
+        },
+        {
+          "name": "partner",
+          "optional": true,
+          "type": "string"
+        },
+        {
+          "name": "constraint_ids",
+          "optional": true,
+          "type": "string[]"
+        },
+        {
+          "name": "limit",
+          "optional": true,
+          "type": "number"
+        },
+        {
+          "name": "offset",
+          "optional": true,
+          "type": "number"
+        }
+      ]
+    },
+    {
+      "name": "CreateCaseInput",
+      "file": "models/supportCaseModel.ts",
+      "fields": [
+        {
+          "name": "user_id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "subject",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "description",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "page_url",
+          "optional": true,
+          "type": "string | null"
+        },
+        {
+          "name": "user_agent",
+          "optional": true,
+          "type": "string | null"
+        },
+        {
+          "name": "app_version",
+          "optional": true,
+          "type": "string | null"
+        }
+      ]
+    },
+    {
+      "name": "SupportCase",
+      "file": "models/supportCaseModel.ts",
+      "fields": [
+        {
+          "name": "id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "user_id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "status",
+          "optional": false,
+          "type": "CaseStatus"
+        },
+        {
+          "name": "severity",
+          "optional": false,
+          "type": "CaseSeverity"
+        },
+        {
+          "name": "subject",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "description",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "page_url",
+          "optional": false,
+          "type": "string | null"
+        },
+        {
+          "name": "user_agent",
+          "optional": false,
+          "type": "string | null"
+        },
+        {
+          "name": "app_version",
+          "optional": false,
+          "type": "string | null"
+        },
+        {
+          "name": "admin_notes",
+          "optional": false,
+          "type": "string | null"
+        },
+        {
+          "name": "created_at",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "updated_at",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "closed_at",
+          "optional": false,
+          "type": "string | null"
+        }
+      ]
+    },
+    {
+      "name": "UpdateCaseInput",
+      "file": "models/supportCaseModel.ts",
+      "fields": [
+        {
+          "name": "status",
+          "optional": true,
+          "type": "CaseStatus"
+        },
+        {
+          "name": "severity",
+          "optional": true,
+          "type": "CaseSeverity"
+        },
+        {
+          "name": "admin_notes",
+          "optional": true,
+          "type": "string | null"
+        }
+      ]
+    },
+    {
+      "name": "TrainingNote",
+      "file": "models/trainingNoteModel.ts",
+      "fields": [
+        {
+          "name": "id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "user_id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "text",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "tags",
+          "optional": false,
+          "type": "string[]"
+        },
+        {
+          "name": "linked_session_id",
+          "optional": false,
+          "type": "string | null"
+        },
+        {
+          "name": "linked_tag_ids",
+          "optional": false,
+          "type": "string[]"
+        },
+        {
+          "name": "pinned",
+          "optional": false,
+          "type": "boolean"
+        },
+        {
+          "name": "created_at",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "updated_at",
+          "optional": false,
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "UserConstraint",
+      "file": "models/userConstraintModel.ts",
+      "fields": [
+        {
+          "name": "id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "user_id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "name",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "parent_pillar",
+          "optional": false,
+          "type": "Pillar | null"
+        },
+        {
+          "name": "aliases",
+          "optional": false,
+          "type": "string[]"
+        },
+        {
+          "name": "created_at",
+          "optional": false,
+          "type": "Date"
+        }
+      ]
+    },
+    {
+      "name": "User",
+      "file": "models/userModel.ts",
+      "fields": [
+        {
+          "name": "id",
+          "optional": true,
+          "type": "string"
+        },
+        {
+          "name": "email",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "password_hash",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "belt_rank",
+          "optional": true,
+          "type": "string"
+        },
+        {
+          "name": "created_at",
+          "optional": true,
+          "type": "Date"
+        }
+      ]
+    },
+    {
+      "name": "UserTag",
+      "file": "models/userTagModel.ts",
+      "fields": [
+        {
+          "name": "id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "user_id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "name",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "parent_pillar",
+          "optional": false,
+          "type": "'standup' | 'passing' | 'pins' | 'submissions' | 'guard'"
+        },
+        {
+          "name": "aliases",
+          "optional": false,
+          "type": "string[]"
+        },
+        {
+          "name": "created_at",
+          "optional": false,
+          "type": "Date"
+        },
+        {
+          "name": "has_video",
+          "optional": true,
+          "type": "boolean"
+        },
+        {
+          "name": "video_thumbnail",
+          "optional": true,
+          "type": "string | null"
+        },
+        {
+          "name": "video_duration_seconds",
+          "optional": true,
+          "type": "number | null"
+        },
+        {
+          "name": "video_notes",
+          "optional": true,
+          "type": "string | null"
+        },
+        {
+          "name": "affinity",
+          "optional": true,
+          "type": "Affinity | null"
+        },
+        {
+          "name": "resonance_journal",
+          "optional": true,
+          "type": "string | null"
+        },
+        {
+          "name": "video_status",
+          "optional": true,
+          "type": "VideoStatus | null"
+        },
+        {
+          "name": "video_storage_key",
+          "optional": true,
+          "type": "string | null"
+        },
+        {
+          "name": "video_raw_storage_key",
+          "optional": true,
+          "type": "string | null"
+        },
+        {
+          "name": "video_byte_size",
+          "optional": true,
+          "type": "number | null"
+        },
+        {
+          "name": "video_status_message",
+          "optional": true,
+          "type": "string | null"
+        },
+        {
+          "name": "video_processing_started_at",
+          "optional": true,
+          "type": "Date | null"
+        }
+      ]
+    }
+  ],
+  "frontendRoutes": [
+    {
+      "path": "*",
+      "component": "→ /",
+      "file": "(App.tsx)",
+      "shell": "redirect",
+      "adminGated": false
+    },
+    {
+      "path": "/",
+      "component": "(unknown)",
+      "file": "(inline)",
+      "shell": "unauth",
+      "adminGated": false
+    },
+    {
+      "path": "/admin",
+      "component": "AdminDashboardPage",
+      "file": "src/app/AdminDashboardPage.tsx",
+      "shell": "AppShell",
+      "adminGated": true
+    },
+    {
+      "path": "/admin/prod-design",
+      "component": "AdminProdDesignPage",
+      "file": "src/app/AdminProdDesignPage.tsx",
+      "shell": "AppShell",
+      "adminGated": true
+    },
+    {
+      "path": "/admin/users/:userId",
+      "component": "AdminUserDetailPage",
+      "file": "src/app/AdminUserDetailPage.tsx",
+      "shell": "AppShell",
+      "adminGated": true
+    },
+    {
+      "path": "/analytics",
+      "component": "→ /atlas",
+      "file": "(App.tsx)",
+      "shell": "redirect",
+      "adminGated": false
+    },
+    {
+      "path": "/atlas",
+      "component": "AtlasPage",
+      "file": "src/app/AtlasPage.tsx",
+      "shell": "AppShell",
+      "adminGated": false
+    },
+    {
+      "path": "/calendar",
+      "component": "CalendarPage",
+      "file": "src/app/CalendarPage.tsx",
+      "shell": "AppShell",
+      "adminGated": false
+    },
+    {
+      "path": "/dashboard",
+      "component": "→ /home",
+      "file": "(App.tsx)",
+      "shell": "redirect",
+      "adminGated": false
+    },
+    {
+      "path": "/home",
+      "component": "PathAheadPage",
+      "file": "src/app/PathAheadPage.tsx",
+      "shell": "AppShell",
+      "adminGated": false
+    },
+    {
+      "path": "/intentions",
+      "component": "IntentionsPage",
+      "file": "src/app/IntentionsPage.tsx",
+      "shell": "AppShell",
+      "adminGated": false
+    },
+    {
+      "path": "/intentions/:id/journal",
+      "component": "JournalEntryPage",
+      "file": "src/app/JournalEntryPage.tsx",
+      "shell": "AppShell",
+      "adminGated": false
+    },
+    {
+      "path": "/journal",
+      "component": "JournalIndexPage",
+      "file": "src/app/JournalIndexPage.tsx",
+      "shell": "AppShell",
+      "adminGated": false
+    },
+    {
+      "path": "/journal/:id",
+      "component": "SessionDetailPage",
+      "file": "src/app/SessionDetailPage.tsx",
+      "shell": "AppShell",
+      "adminGated": false
+    },
+    {
+      "path": "/library",
+      "component": "MovesLibraryPage",
+      "file": "src/app/MovesLibraryPage.tsx",
+      "shell": "AppShell",
+      "adminGated": false
+    },
+    {
+      "path": "/login",
+      "component": "LoginPage",
+      "file": "src/app/LoginPage.tsx",
+      "shell": "unauth",
+      "adminGated": false
+    },
+    {
+      "path": "/notes",
+      "component": "NotesPage",
+      "file": "src/app/NotesPage.tsx",
+      "shell": "AppShell",
+      "adminGated": false
+    },
+    {
+      "path": "/onboarding/belt",
+      "component": "OnboardingBeltPage",
+      "file": "src/app/OnboardingBeltPage.tsx",
+      "shell": "OnboardingProvider",
+      "adminGated": false
+    },
+    {
+      "path": "/onboarding/done",
+      "component": "OnboardingDonePage",
+      "file": "src/app/OnboardingDonePage.tsx",
+      "shell": "OnboardingProvider",
+      "adminGated": false
+    },
+    {
+      "path": "/onboarding/first-session",
+      "component": "OnboardingFirstSessionPage",
+      "file": "src/app/OnboardingFirstSessionPage.tsx",
+      "shell": "OnboardingProvider",
+      "adminGated": false
+    },
+    {
+      "path": "/onboarding/name",
+      "component": "OnboardingNamePage",
+      "file": "src/app/OnboardingNamePage.tsx",
+      "shell": "OnboardingProvider",
+      "adminGated": false
+    },
+    {
+      "path": "/profile",
+      "component": "ProfilePage",
+      "file": "src/app/ProfilePage.tsx",
+      "shell": "AppShell",
+      "adminGated": false
+    },
+    {
+      "path": "/profile/classes",
+      "component": "ClassSchedulesPage",
+      "file": "src/app/ClassSchedulesPage.tsx",
+      "shell": "AppShell",
+      "adminGated": false
+    },
+    {
+      "path": "/reset-password",
+      "component": "ResetPasswordPage",
+      "file": "src/app/ResetPasswordPage.tsx",
+      "shell": "unauth",
+      "adminGated": false
+    },
+    {
+      "path": "/techniques/:id",
+      "component": "TechniquePage",
+      "file": "src/app/TechniquePage.tsx",
+      "shell": "AppShell",
+      "adminGated": false
+    },
+    {
+      "path": "/welcome",
+      "component": "WelcomeSplashPage",
+      "file": "src/app/WelcomeSplashPage.tsx",
+      "shell": "unauth",
+      "adminGated": false
+    }
+  ],
+  "topology": {
+    "mermaid": "graph LR\n    Browser[\"Browser (PWA)\"]\n    Vercel[\"Vercel CDN\"]\n    Railway[\"Railway API\"]\n    Postgres[\"PostgreSQL (Neon)\"]\n    R2[\"Cloudflare R2\"]\n\n    Browser -->|\"HTTPS\"| Vercel\n    Browser -->|\"API calls\"| Railway\n    Vercel -->|\"Static assets\"| Browser\n    Railway -->|\"SQL\"| Postgres\n    Railway -->|\"Video upload/stream\"| R2\n\n    subgraph Frontend\n        Vercel\n    end\n\n    subgraph Backend\n        Railway\n        Postgres\n        R2\n    end",
+    "lastEdited": "2026-06-28T20:22:39.060Z",
+    "raw": "# Architecture Topology\n\n```mermaid\ngraph LR\n    Browser[\"Browser (PWA)\"]\n    Vercel[\"Vercel CDN\"]\n    Railway[\"Railway API\"]\n    Postgres[\"PostgreSQL (Neon)\"]\n    R2[\"Cloudflare R2\"]\n\n    Browser -->|\"HTTPS\"| Vercel\n    Browser -->|\"API calls\"| Railway\n    Vercel -->|\"Static assets\"| Browser\n    Railway -->|\"SQL\"| Postgres\n    Railway -->|\"Video upload/stream\"| R2\n\n    subgraph Frontend\n        Vercel\n    end\n\n    subgraph Backend\n        Railway\n        Postgres\n        R2\n    end\n```\n\n## Services\n\n| Service | Provider | Purpose |\n|---------|----------|---------|\n| Frontend | Vercel | React SPA, static hosting |\n| API | Railway | Express server, auth, business logic |\n| Database | Neon PostgreSQL | User data, sessions, intentions, tags |\n| Object Storage | Cloudflare R2 | Technique video clips |\n| Transcoding | Railway (in-process) | ffmpeg worker for video encoding |\n| Push Notifications | Web Push (VAPID) | Class-time reminders |\n"
+  },
+  "warnings": []
+}
