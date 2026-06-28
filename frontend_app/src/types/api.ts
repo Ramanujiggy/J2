@@ -186,6 +186,7 @@ export interface Intention {
    */
   completion_type: IntentionCompletionType;
   target_count: number | null;
+  user_tag_ids?: string[] | null;
   journal_entry: string | null;
   created_at: string;
 }

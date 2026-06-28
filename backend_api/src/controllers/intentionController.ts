@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { createHash } from 'node:crypto';
 import pool from '../config/db.js';
 import * as intentionModel from '../models/intentionModel.js';
+import { getUserTagsByIds } from '../models/userTagModel.js';
 
 const VALID_CATEGORIES = new Set([
   'technical', 'physical', 'mental', 'positional', 'competitive',
@@ -10,6 +11,18 @@ const VALID_CATEGORIES = new Set([
 const VALID_HEADINGS = new Set([
   'standup', 'passing', 'pins', 'submissions', 'guard',
 ]);
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function sanitizeUserTagIds(userId: string, raw: unknown): Promise<string[] | null> {
+  if (!Array.isArray(raw)) return null;
+  const wellFormed = raw.filter((s: unknown): s is string => typeof s === 'string' && UUID_RE.test(s));
+  const deduped = [...new Set(wellFormed)];
+  if (deduped.length === 0) return [];
+  const owned = await getUserTagsByIds(userId, deduped);
+  const ownedSet = new Set(owned.map(t => t.id));
+  return deduped.filter(id => ownedSet.has(id));
+}
 
 // Returns the ISO Monday (YYYY-MM-DD) for a given Date.
 // getUTCDay(): 0=Sun, 1=Mon … 6=Sat
@@ -29,7 +42,7 @@ function getWeekStart(date: Date): string {
 export const createIntention = async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
-    const { intent_label, heading, intent_category, week_start, duration_days, completion_type, target_count } = req.body;
+    const { intent_label, heading, intent_category, week_start, duration_days, completion_type, target_count, user_tag_ids } = req.body;
 
     // Heading is the primary focus selector (Prism vertex). Label is optional flavor text.
     if (heading !== undefined && heading !== null && !VALID_HEADINGS.has(heading)) {
@@ -85,6 +98,8 @@ export const createIntention = async (req: Request, res: Response) => {
         await intentionModel.shortenIntention(userId, active.id, daysSinceStart, client);
       }
 
+      const userTagIds = await sanitizeUserTagIds(userId, user_tag_ids);
+
       const intention = await intentionModel.createIntention(
         userId,
         startDate,
@@ -94,6 +109,7 @@ export const createIntention = async (req: Request, res: Response) => {
         durationDays,
         completionType,
         targetCount,
+        userTagIds,
         client,
       );
 
@@ -126,7 +142,7 @@ export const getIntentions = async (req: Request, res: Response) => {
     // (rather than full text) keeps the hash cheap while still invalidating when
     // a user edits their journal — which is the only realistic mutation path.
     const etag = 'W/"' + createHash('sha1')
-      .update(intentions.map(i => `${i.id}:${i.week_start}:${i.journal_entry ? '1' : '0'}`).join('|'))
+      .update(intentions.map(i => `${i.id}:${i.week_start}:${i.journal_entry ? '1' : '0'}:${(i.user_tag_ids ?? []).length}`).join('|'))
       .digest('base64')
       .slice(0, 20) + '"';
 
@@ -201,7 +217,7 @@ export const patchIntention = async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
     const { id } = req.params;
-    const { intent_label, heading, intent_category, duration_days, completion_type, target_count } = req.body;
+    const { intent_label, heading, intent_category, duration_days, completion_type, target_count, user_tag_ids } = req.body;
 
     const label = (typeof intent_label === 'string' && intent_label.trim()) ? intent_label.trim() : '';
     if (label.length > 20) {
@@ -232,6 +248,8 @@ export const patchIntention = async (req: Request, res: Response) => {
       return res.status(400).json({ message: `duration_days must be an integer between 1 and ${maxDuration}.` });
     }
 
+    const userTagIds = await sanitizeUserTagIds(userId, user_tag_ids);
+
     const updated = await intentionModel.updateIntention(
       userId,
       id!,
@@ -241,6 +259,7 @@ export const patchIntention = async (req: Request, res: Response) => {
       durationDays,
       completionType,
       targetCount,
+      userTagIds,
     );
 
     if (!updated) {

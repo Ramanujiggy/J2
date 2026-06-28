@@ -31,6 +31,7 @@ export interface Intention {
   completion_type: CompletionType;
   /** Target for 'sessions' / 'training_weeks'. NULL when completion_type='days'. */
   target_count: number | null;
+  user_tag_ids: string[] | null;
   journal_entry: string | null;
   created_at: Date;
 }
@@ -44,15 +45,16 @@ export const createIntention = async (
   durationDays: number,
   completionType: CompletionType = 'days',
   targetCount: number | null = null,
+  userTagIds: string[] | null = null,
   exec: Executor | PoolClient = defaultExec,
 ): Promise<Intention> => {
   const result = await exec.query(
     `INSERT INTO weekly_intentions
        (user_id, week_start, intent_label, intent_category, heading,
-        duration_days, completion_type, target_count)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        duration_days, completion_type, target_count, user_tag_ids)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
      RETURNING *`,
-    [userId, weekStart, intentLabel, intentCategory, heading, durationDays, completionType, targetCount],
+    [userId, weekStart, intentLabel, intentCategory, heading, durationDays, completionType, targetCount, userTagIds],
   );
   return (result.rows[0] as Intention);
 };
@@ -133,14 +135,16 @@ export const updateIntention = async (
   durationDays: number,
   completionType: CompletionType = 'days',
   targetCount: number | null = null,
+  userTagIds: string[] | null = null,
 ): Promise<Intention | null> => {
   const result = await query(
     `UPDATE weekly_intentions
      SET intent_label = $1, intent_category = $2, heading = $3,
-         duration_days = $4, completion_type = $5, target_count = $6
-     WHERE id = $7 AND user_id = $8
+         duration_days = $4, completion_type = $5, target_count = $6,
+         user_tag_ids = $7
+     WHERE id = $8 AND user_id = $9
      RETURNING *`,
-    [intentLabel, intentCategory, heading, durationDays, completionType, targetCount, id, userId],
+    [intentLabel, intentCategory, heading, durationDays, completionType, targetCount, userTagIds, id, userId],
   );
   return result.rows[0] ?? null;
 };

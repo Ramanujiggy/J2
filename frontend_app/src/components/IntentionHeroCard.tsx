@@ -17,10 +17,12 @@
 //   • The yellow border + yellow-tint background
 
 import { useState } from 'react';
-import type { Intention } from '../types/api.ts';
+import { useNavigate } from 'react-router-dom';
+import type { Intention, UserTag } from '../types/api.ts';
 import { COPPER, PALE_YELLOW } from '../lib/theme.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
 import { addDays, toDateString } from '../lib/sessionUtils.ts';
+import { useUserTags } from '../hooks/useUserTags.ts';
 
 interface IntentionProgress {
   completed: number;
@@ -55,6 +57,12 @@ export default function IntentionHeroCard({
   onViewJournal,
   onDeleteIntent,
 }: Props) {
+  const navigate = useNavigate();
+  const { byId: userTagById } = useUserTags();
+  const resolvedTags = (intention?.user_tag_ids ?? [])
+    .map(id => userTagById.get(id))
+    .filter((t): t is UserTag => !!t);
+
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   const handleDelete = () => {
@@ -198,6 +206,27 @@ export default function IntentionHeroCard({
             }}
           >
             Category: {categoryLabel}
+          </div>
+        )}
+
+        {/* Technique chips — tappable copper tags linking to /techniques/:id */}
+        {resolvedTags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5" style={{ marginTop: 10 }}>
+            {resolvedTags.map(tag => (
+              <button
+                key={tag.id}
+                onClick={e => { e.stopPropagation(); navigate(`/techniques/${tag.id}`); }}
+                className="px-2.5 py-1 rounded-md text-xs font-medium touch-manipulation"
+                style={{
+                  backgroundColor: 'rgba(255,255,255,0.06)',
+                  color: 'rgba(196,145,95,0.70)',
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                {tag.name}
+              </button>
+            ))}
           </div>
         )}
 
