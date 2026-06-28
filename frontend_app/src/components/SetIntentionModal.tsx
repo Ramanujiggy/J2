@@ -7,6 +7,7 @@ import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import FocusAreaChips from './FocusAreaChips.tsx';
 import PrismShape from './PrismShape.tsx';
 import SegmentedToggle from './SegmentedToggle.tsx';
+import TagPicker from './TagPicker.tsx';
 import type { ChipSelection } from '../lib/selectionsToDistribution.ts';
 import type { Intention, IntentionCompletionType, Pillar } from '../types/api.ts';
 
@@ -84,6 +85,8 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
       ? editIntention.target_count
       : 3,
   );
+  const [userTagIds, setUserTagIds] = useState<string[]>(editIntention?.user_tag_ids ?? []);
+  const [canonicalPositionIds, setCanonicalPositionIds] = useState<string[]>([]);
   const [writeJournal, setWriteJournal] = useState(false);
   const [saving,       setSaving]       = useState(false);
   const [error,        setError]        = useState('');
@@ -114,6 +117,7 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
           duration_days:   durationDays,
           completion_type: completionType,
           target_count:    targetCount,
+          user_tag_ids:    userTagIds,
         });
         onSaved();
         onClose();
@@ -125,6 +129,7 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
           duration_days:   durationDays,
           completion_type: completionType,
           target_count:    targetCount,
+          user_tag_ids:    userTagIds,
         });
         onSaved();
         if (writeJournal && res.intention?.id) {
@@ -281,6 +286,22 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
                 </>
               )}
             </div>
+
+            {/* ── Techniques card (optional) ─────────────────── */}
+            {heading && (
+              <div className="rounded-xl px-4 py-4 space-y-3" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
+                <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                  Techniques <span style={{ color: 'rgba(255,255,255,0.15)' }}>(optional)</span>
+                </span>
+                <TagPicker
+                  selectedUserTagIds={userTagIds}
+                  selectedCanonicalIds={canonicalPositionIds}
+                  onChange={(u, c) => { setUserTagIds(u); setCanonicalPositionIds(c); }}
+                  currentPillar={heading as Pillar}
+                  maxSelected={5}
+                />
+              </div>
+            )}
 
             {/* ── Journal toggle (create only) ──────────────── */}
             {!isEdit && (

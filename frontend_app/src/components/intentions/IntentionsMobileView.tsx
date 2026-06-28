@@ -319,6 +319,12 @@ export default function IntentionsMobileView({
                       {journalSnippet}
                     </p>
                   )}
+                  {/* Technique count badge */}
+                  {(intention.user_tag_ids?.length ?? 0) > 0 && (
+                    <span style={{ fontSize: 10, color: 'rgba(196,145,95,0.45)', fontWeight: 600, letterSpacing: '0.08em', marginTop: 4, display: 'inline-block' }}>
+                      {intention.user_tag_ids!.length} tech{intention.user_tag_ids!.length !== 1 ? 's' : ''}
+                    </span>
+                  )}
                 </div>
 
                 {/* Right affordance */}
