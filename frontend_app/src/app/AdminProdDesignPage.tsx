@@ -17,6 +17,7 @@ import PageContent from '../components/PageContent.tsx';
 import { useProfile } from '../context/ProfileContext.tsx';
 import { api, ApiError } from '../lib/api.ts';
 import { CARD_BG, COPPER, PALE_YELLOW, SURFACE_2, SURFACE_2_BORDER, FONT_EDITORIAL } from '../lib/theme.ts';
+import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 
 // ── Types matching the backend manifest ────────────────────────────────────
 
@@ -59,6 +60,7 @@ export default function AdminProdDesignPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [tab, setTab] = useState<Tab>('overview');
+    const isDesktop = useIsDesktop();
 
     useEffect(() => {
         let cancelled = false;
@@ -81,8 +83,8 @@ export default function AdminProdDesignPage() {
 
     return (
         <PageContent ready={!loading} loadingMessages={['Reading the blueprints…']}>
-            <div className="j2-page-container" style={{ paddingTop: 48, paddingBottom: 96 }}>
-                <Header generatedAt={manifest?.generatedAt} />
+            <div className="j2-page-container" style={{ paddingTop: isDesktop ? 48 : 20, paddingBottom: isDesktop ? 96 : 48 }}>
+                <Header generatedAt={manifest?.generatedAt} isDesktop={isDesktop} />
 
                 {error && (
                     <p style={{ color: 'rgba(218,90,70,0.9)', fontSize: 14, marginTop: 16 }}>{error}</p>
@@ -90,14 +92,14 @@ export default function AdminProdDesignPage() {
 
                 {manifest && (
                     <>
-                        <TabBar tab={tab} onChange={setTab} />
+                        <TabBar tab={tab} onChange={setTab} isDesktop={isDesktop} />
                         {manifest.warnings.length > 0 && <WarningsBlock warnings={manifest.warnings} />}
 
                         <div style={{ marginTop: 24 }}>
-                            {tab === 'overview' && <OverviewTab manifest={manifest} />}
-                            {tab === 'api'      && <ApiTab routes={manifest.apiRoutes} />}
-                            {tab === 'db'       && <DbTab migrations={manifest.migrations} models={manifest.models} />}
-                            {tab === 'frontend' && <FrontendTab routes={manifest.frontendRoutes} />}
+                            {tab === 'overview' && <OverviewTab manifest={manifest} isDesktop={isDesktop} />}
+                            {tab === 'api'      && <ApiTab routes={manifest.apiRoutes} isDesktop={isDesktop} />}
+                            {tab === 'db'       && <DbTab migrations={manifest.migrations} models={manifest.models} isDesktop={isDesktop} />}
+                            {tab === 'frontend' && <FrontendTab routes={manifest.frontendRoutes} isDesktop={isDesktop} />}
                         </div>
                     </>
                 )}
@@ -108,17 +110,17 @@ export default function AdminProdDesignPage() {
 
 // ── Header + tabs ──────────────────────────────────────────────────────────
 
-function Header({ generatedAt }: { generatedAt?: string }) {
+function Header({ generatedAt, isDesktop }: { generatedAt?: string; isDesktop?: boolean }) {
     const stamp = generatedAt ? new Date(generatedAt).toLocaleString() : '—';
     return (
-        <div style={{ marginBottom: 32 }}>
+        <div style={{ marginBottom: isDesktop !== false ? 32 : 20 }}>
             <div className="j2-label-copper" style={{ marginBottom: 12 }}>◇ Admin / Prod Design</div>
-            <h1 className="j2-serif-display j2-heading-glow" style={{ fontSize: 56, margin: 0, lineHeight: 1 }}>
+            <h1 className="j2-serif-display j2-heading-glow" style={{ fontSize: isDesktop !== false ? 56 : 34, margin: 0, lineHeight: 1 }}>
                 Production blueprint
             </h1>
             <p
                 className="j2-serif-italic"
-                style={{ marginTop: 12, fontSize: 17, color: 'rgba(255,255,255,0.55)' }}
+                style={{ marginTop: 12, fontSize: isDesktop !== false ? 17 : 14, color: 'rgba(255,255,255,0.55)' }}
             >
                 What's actually deployed, regenerated every Railway push. Last build: {stamp}.
             </p>
@@ -126,7 +128,7 @@ function Header({ generatedAt }: { generatedAt?: string }) {
     );
 }
 
-function TabBar({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
+function TabBar({ tab, onChange, isDesktop }: { tab: Tab; onChange: (t: Tab) => void; isDesktop?: boolean }) {
     return (
         <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid rgba(196,145,95,0.18)' }}>
             {TABS.map(t => {
@@ -138,8 +140,8 @@ function TabBar({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
                         style={{
                             background: 'transparent',
                             border: 'none',
-                            padding: '12px 18px',
-                            fontSize: 14, fontWeight: 600,
+                            padding: isDesktop !== false ? '12px 18px' : '10px 10px',
+                            fontSize: isDesktop !== false ? 14 : 12, fontWeight: 600,
                             color: active ? PALE_YELLOW : 'rgba(255,255,255,0.50)',
                             borderBottom: active ? `2px solid ${COPPER}` : '2px solid transparent',
                             marginBottom: -1,
@@ -180,16 +182,16 @@ function WarningsBlock({ warnings }: { warnings: string[] }) {
 
 // ── Overview tab ───────────────────────────────────────────────────────────
 
-function OverviewTab({ manifest }: { manifest: Manifest }) {
+function OverviewTab({ manifest, isDesktop }: { manifest: Manifest; isDesktop?: boolean }) {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
-            <StatStrip manifest={manifest} />
-            <MermaidBlock source={manifest.topology.mermaid} lastEdited={manifest.topology.lastEdited} />
+            <StatStrip manifest={manifest} isDesktop={isDesktop} />
+            <MermaidBlock source={manifest.topology.mermaid} lastEdited={manifest.topology.lastEdited} isDesktop={isDesktop} />
         </div>
     );
 }
 
-function StatStrip({ manifest }: { manifest: Manifest }) {
+function StatStrip({ manifest, isDesktop }: { manifest: Manifest; isDesktop?: boolean }) {
     const items = [
         { label: 'API routes',     value: manifest.apiRoutes.length },
         { label: 'Migrations',     value: manifest.migrations.length },
@@ -197,19 +199,19 @@ function StatStrip({ manifest }: { manifest: Manifest }) {
         { label: 'Frontend routes', value: manifest.frontendRoutes.length },
     ];
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isDesktop !== false ? 'repeat(4, 1fr)' : 'repeat(2, 1fr)', gap: 12 }}>
             {items.map(i => (
                 <div
                     key={i.label}
                     style={{
-                        padding: '18px 16px',
+                        padding: isDesktop !== false ? '18px 16px' : '14px 12px',
                         background: SURFACE_2,
                         border: `1px solid ${SURFACE_2_BORDER}`,
                         borderRadius: 12,
                     }}
                 >
                     <div style={{
-                        fontFamily: FONT_EDITORIAL, fontSize: 42, lineHeight: 1,
+                        fontFamily: FONT_EDITORIAL, fontSize: isDesktop !== false ? 42 : 28, lineHeight: 1,
                         color: PALE_YELLOW, marginBottom: 6,
                     }}>
                         {i.value}
@@ -228,7 +230,7 @@ function StatStrip({ manifest }: { manifest: Manifest }) {
 
 // MermaidBlock — lazy-loads mermaid from CDN on mount. If the load or
 // render fails, we render the source as a copy-able code block.
-function MermaidBlock({ source, lastEdited }: { source: string; lastEdited: string | null }) {
+function MermaidBlock({ source, lastEdited, isDesktop }: { source: string; lastEdited: string | null; isDesktop?: boolean }) {
     const [status, setStatus] = useState<'pending' | 'ready' | 'failed' | 'empty'>('pending');
     const [svg, setSvg] = useState<string>('');
 
@@ -252,7 +254,7 @@ function MermaidBlock({ source, lastEdited }: { source: string; lastEdited: stri
 
     if (status === 'empty') {
         return (
-            <SectionCard kicker="◇ System topology">
+            <SectionCard kicker="◇ System topology" isDesktop={isDesktop}>
                 <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 14 }}>
                     No topology defined. Add a <code style={{ color: COPPER }}>```mermaid</code> block to{' '}
                     <code style={{ color: COPPER }}>Docs/architecture-topology.md</code> and redeploy.
@@ -265,6 +267,7 @@ function MermaidBlock({ source, lastEdited }: { source: string; lastEdited: stri
         <SectionCard
             kicker="◇ System topology"
             subtitle={lastEdited ? `Editorial layer — last edited ${new Date(lastEdited).toLocaleDateString()}` : undefined}
+            isDesktop={isDesktop}
         >
             {status === 'pending' && (
                 <p style={{ color: 'rgba(255,255,255,0.40)', fontSize: 13 }}>Rendering diagram…</p>
@@ -327,7 +330,7 @@ async function loadMermaid(): Promise<{ render: (id: string, src: string) => Pro
 
 // ── API tab ────────────────────────────────────────────────────────────────
 
-function ApiTab({ routes }: { routes: ApiRoute[] }) {
+function ApiTab({ routes, isDesktop }: { routes: ApiRoute[]; isDesktop?: boolean }) {
     const [filter, setFilter] = useState('');
     const grouped = useMemo(() => {
         const f = filter.trim().toLowerCase();
@@ -351,34 +354,36 @@ function ApiTab({ routes }: { routes: ApiRoute[] }) {
                 style={{
                     padding: '10px 14px', borderRadius: 10,
                     background: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}`,
-                    color: PALE_YELLOW, fontSize: 14, outline: 'none', maxWidth: 420,
+                    color: PALE_YELLOW, fontSize: 14, outline: 'none', maxWidth: isDesktop !== false ? 420 : undefined,
                 }}
             />
             {grouped.length === 0 && (
                 <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13 }}>No routes match.</p>
             )}
             {grouped.map(([file, fileRoutes]) => (
-                <SectionCard key={file} kicker={`◇ ${file}`}>
-                    <table style={tableStyle}>
-                        <thead>
-                            <tr>
-                                <th style={thStyle}>Method</th>
-                                <th style={thStyle}>Path</th>
-                                <th style={thStyle}>Handler</th>
-                                <th style={thStyle}>Auth</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {fileRoutes.map((r, i) => (
-                                <tr key={i}>
-                                    <td style={tdStyle}><MethodBadge method={r.method} /></td>
-                                    <td style={{ ...tdStyle, fontFamily: 'ui-monospace, monospace', fontSize: 12.5 }}>{r.path}</td>
-                                    <td style={{ ...tdStyle, color: 'rgba(255,255,255,0.65)' }}>{r.handler}</td>
-                                    <td style={tdStyle}><AuthBadge auth={r.auth} /></td>
+                <SectionCard key={file} kicker={`◇ ${file}`} isDesktop={isDesktop}>
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={tableStyle}>
+                            <thead>
+                                <tr>
+                                    <th style={thStyle}>Method</th>
+                                    <th style={thStyle}>Path</th>
+                                    <th style={thStyle}>Handler</th>
+                                    <th style={thStyle}>Auth</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {fileRoutes.map((r, i) => (
+                                    <tr key={i}>
+                                        <td style={tdStyle}><MethodBadge method={r.method} /></td>
+                                        <td style={{ ...tdStyle, fontFamily: 'ui-monospace, monospace', fontSize: 12.5 }}>{r.path}</td>
+                                        <td style={{ ...tdStyle, color: 'rgba(255,255,255,0.65)' }}>{r.handler}</td>
+                                        <td style={tdStyle}><AuthBadge auth={r.auth} /></td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </SectionCard>
             ))}
         </div>
@@ -413,10 +418,10 @@ function AuthBadge({ auth }: { auth: Auth }) {
 
 // ── DB tab ─────────────────────────────────────────────────────────────────
 
-function DbTab({ migrations, models }: { migrations: Migration[]; models: Model[] }) {
+function DbTab({ migrations, models, isDesktop }: { migrations: Migration[]; models: Model[]; isDesktop?: boolean }) {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
-            <SectionCard kicker={`◇ Migrations (${migrations.length})`}>
+            <SectionCard kicker={`◇ Migrations (${migrations.length})`} isDesktop={isDesktop}>
                 <ol style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {migrations.map(m => (
                         <li key={m.file} style={{ display: 'flex', gap: 12, alignItems: 'baseline' }}>
@@ -429,7 +434,7 @@ function DbTab({ migrations, models }: { migrations: Migration[]; models: Model[
                 </ol>
             </SectionCard>
 
-            <SectionCard kicker={`◇ Models (${models.length})`}>
+            <SectionCard kicker={`◇ Models (${models.length})`} isDesktop={isDesktop}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     {models.map(m => <ModelRow key={`${m.file}-${m.name}`} model={m} />)}
                 </div>
@@ -480,51 +485,53 @@ function ModelRow({ model }: { model: Model }) {
 
 // ── Frontend tab ───────────────────────────────────────────────────────────
 
-function FrontendTab({ routes }: { routes: FrontendRoute[] }) {
+function FrontendTab({ routes, isDesktop }: { routes: FrontendRoute[]; isDesktop?: boolean }) {
     return (
-        <SectionCard kicker={`◇ Frontend routes (${routes.length})`}>
-            <table style={tableStyle}>
-                <thead>
-                    <tr>
-                        <th style={thStyle}>Path</th>
-                        <th style={thStyle}>Component</th>
-                        <th style={thStyle}>File</th>
-                        <th style={thStyle}>Shell</th>
-                        <th style={thStyle}>Gated</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {routes.map((r, i) => (
-                        <tr key={i}>
-                            <td style={{ ...tdStyle, fontFamily: 'ui-monospace, monospace', fontSize: 12.5, color: COPPER }}>
-                                {r.path}
-                            </td>
-                            <td style={{ ...tdStyle, color: PALE_YELLOW }}>{r.component}</td>
-                            <td style={{ ...tdStyle, color: 'rgba(255,255,255,0.55)', fontSize: 12, fontFamily: 'ui-monospace, monospace' }}>
-                                {r.file}
-                            </td>
-                            <td style={{ ...tdStyle, color: 'rgba(255,255,255,0.60)', fontSize: 12 }}>{r.shell}</td>
-                            <td style={tdStyle}>
-                                {r.adminGated && <AuthBadge auth="admin" />}
-                            </td>
+        <SectionCard kicker={`◇ Frontend routes (${routes.length})`} isDesktop={isDesktop}>
+            <div style={{ overflowX: 'auto' }}>
+                <table style={tableStyle}>
+                    <thead>
+                        <tr>
+                            <th style={thStyle}>Path</th>
+                            <th style={thStyle}>Component</th>
+                            <th style={thStyle}>File</th>
+                            <th style={thStyle}>Shell</th>
+                            <th style={thStyle}>Gated</th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {routes.map((r, i) => (
+                            <tr key={i}>
+                                <td style={{ ...tdStyle, fontFamily: 'ui-monospace, monospace', fontSize: 12.5, color: COPPER }}>
+                                    {r.path}
+                                </td>
+                                <td style={{ ...tdStyle, color: PALE_YELLOW }}>{r.component}</td>
+                                <td style={{ ...tdStyle, color: 'rgba(255,255,255,0.55)', fontSize: 12, fontFamily: 'ui-monospace, monospace' }}>
+                                    {r.file}
+                                </td>
+                                <td style={{ ...tdStyle, color: 'rgba(255,255,255,0.60)', fontSize: 12 }}>{r.shell}</td>
+                                <td style={tdStyle}>
+                                    {r.adminGated && <AuthBadge auth="admin" />}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </SectionCard>
     );
 }
 
 // ── Reusable bits ──────────────────────────────────────────────────────────
 
-function SectionCard({ kicker, subtitle, children }: { kicker: string; subtitle?: string; children: React.ReactNode }) {
+function SectionCard({ kicker, subtitle, children, isDesktop }: { kicker: string; subtitle?: string; children: React.ReactNode; isDesktop?: boolean }) {
     return (
         <div
             style={{
                 background: CARD_BG,
                 border: '1px solid var(--j2-border-2)',
                 borderRadius: 14,
-                padding: '20px 22px',
+                padding: isDesktop !== false ? '20px 22px' : '14px 16px',
             }}
         >
             <div className="j2-label-copper" style={{ marginBottom: subtitle ? 4 : 14 }}>{kicker}</div>
