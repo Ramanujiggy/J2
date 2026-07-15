@@ -17,8 +17,12 @@ const VALID_SOURCES     = new Set(['directed', 'organic']);
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// Validates tag VALUES only (every element must be a known pillar) — does
+// NOT require non-empty. Callers that need "must have at least one tag"
+// (e.g. bulk import rows) enforce that separately before calling this.
+// Zero-tag sessions are a valid journal-first capture (owner decision, 2026-07-15).
 function isValidTagArray(v: unknown): v is string[] {
-    return Array.isArray(v) && v.length > 0 && v.every(t => VALID_TAGS.has(t as string));
+    return Array.isArray(v) && v.every(t => VALID_TAGS.has(t as string));
 }
 
 /**
@@ -238,11 +242,20 @@ export const logSession = async (req: Request, res: Response): Promise<void> => 
             return;
         }
 
-        // Derive tags: explicit array wins; fall back to [heading]; then reject
-        const finalTags = isValidTagArray(tags) ? tags : (heading ? [heading] : null);
-        if (!finalTags) {
-            res.status(400).json({ message: 'At least one valid skill tag is required.' });
-            return;
+        // Derive tags: explicit array wins (values must be valid pillars — invalid
+        // values still 400); tags omitted/null falls back to [heading]; if neither
+        // is present, finalTags is [] — a zero-chip "journal-first" capture is a
+        // valid session (owner-approved relaxation, 2026-07-15). heading stays
+        // null/whatever was sent; it is NOT inferred from tags.
+        let finalTags: string[];
+        if (tags !== undefined && tags !== null) {
+            if (!isValidTagArray(tags)) {
+                res.status(400).json({ message: 'tags must be an array of valid skill tags.' });
+                return;
+            }
+            finalTags = tags;
+        } else {
+            finalTags = heading ? [heading] : [];
         }
 
         // Sanitize user_tag_ids: validate UUID format, deduplicate, verify ownership

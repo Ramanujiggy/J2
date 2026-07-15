@@ -87,13 +87,21 @@ describe('POST /api/sessions', () => {
     expect(res.status).toBe(400);
   });
 
-  it('returns 400 when no tags are provided', async () => {
+  // Owner-approved relaxation (2026-07-15): a zero-chip "journal-first" save
+  // (no tags, no heading) is a valid session — creation no longer 400s.
+  it('accepts a session with no tags and no heading (journal-first zero-chip save)', async () => {
+    const mockSession = { id: 'session-uuid-2', user_id: TEST_USER_ID, ...VALID_SESSION_BODY, tags: [], heading: null };
+    vi.mocked(sessionModel.createSession).mockResolvedValue(mockSession as never);
     const res = await request(app)
       .post('/api/sessions')
       .set('Authorization', AUTH_HEADER)
-      .send({ ...VALID_SESSION_BODY, tags: [] });
-    expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/tag/i);
+      .send({ ...VALID_SESSION_BODY, tags: [], heading: null });
+    expect(res.status).toBe(201);
+    expect(res.body.session.id).toBe('session-uuid-2');
+    // finalTags ([]) is the 8th positional arg to createSession(); heading (9th) stays null.
+    const callArgs = vi.mocked(sessionModel.createSession).mock.calls[0]!;
+    expect(callArgs[7]).toEqual([]);
+    expect(callArgs[8]).toBeNull();
   });
 
   it('returns 400 for an invalid tag value', async () => {
