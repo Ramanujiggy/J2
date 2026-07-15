@@ -26,6 +26,7 @@ import type {
     AdminCasesResponse, AdminUsersResponse,
     SupportCaseWithUser, AdminUserSummary,
     CaseStatus,
+    FileTreeNode, FileTreeResponse, RouteEntry, RoutesResponse,
 } from '../types/api.ts';
 
 function getTimeAgo(iso: string): string {
@@ -77,6 +78,8 @@ export default function AdminDashboardPage() {
     const [statusFilt,    setStatusFilt]    = useState<StatusFilter>('all');
     const [minSessions,   setMinSessions]   = useState<number>(0);
     const [showTestUsers, setShowTestUsers] = useState<boolean>(false);
+    const [fileTree,      setFileTree]      = useState<FileTreeNode[] | null>(null);
+    const [routeList,     setRouteList]     = useState<RouteEntry[] | null>(null);
     const [loading,       setLoading]       = useState(true);
     const [error,         setError]         = useState<string | null>(null);
 
@@ -86,17 +89,21 @@ export default function AdminDashboardPage() {
             try {
                 setLoading(true);
                 setError(null);
-                const [s, c, u, l] = await Promise.all([
+                const [s, c, u, l, ft, rt] = await Promise.all([
                     api.get<AdminStatsResponse>('/api/admin/stats'),
                     api.get<AdminCasesResponse>('/api/admin/cases'),
                     api.get<AdminUsersResponse>('/api/admin/users'),
                     api.get<{ logins: Array<{ id: string; email: string; name: string | null; belt_rank: string | null; last_login_at: string }> }>('/api/admin/recent-logins'),
+                    api.get<FileTreeResponse>('/api/admin/structure/files').catch(() => null),
+                    api.get<RoutesResponse>('/api/admin/structure/routes').catch(() => null),
                 ]);
                 if (cancelled) return;
                 setStats(s.stats);
                 setCases(c.cases);
                 setUsers(u.users);
                 setRecentLogins(l.logins ?? []);
+                if (ft) setFileTree(ft.tree);
+                if (rt) setRouteList(rt.routes);
             } catch (e) {
                 if (cancelled) return;
                 if (e instanceof ApiError && e.status === 403) {
@@ -225,9 +232,9 @@ export default function AdminDashboardPage() {
                 )}
 
                 {/* ── Health strip ── */}
-                <Card>
+                <Card compact={!isDesktop}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-                        <SectionLabel>Health</SectionLabel>
+                        <SectionLabel compact={!isDesktop}>Health</SectionLabel>
                         <ShowTestUsersToggle
                             value={showTestUsers}
                             onChange={setShowTestUsers}
@@ -242,22 +249,22 @@ export default function AdminDashboardPage() {
                             marginTop: 18,
                         }}
                     >
-                        <Stat label="Total users"   value={displayedStats?.total_users} />
-                        <Stat label="Users 24h"     value={displayedStats?.users_24h} />
-                        <Stat label="Users 7d"      value={displayedStats?.users_7d} />
-                        <Stat label="Sessions"      value={displayedStats?.total_sessions} />
-                        <Stat label="Sessions 24h"  value={displayedStats?.sessions_24h} />
-                        <Stat label="Sessions 7d"   value={displayedStats?.sessions_7d} />
-                        <Stat label="Cases open"    value={displayedStats?.cases_open} accent={!!displayedStats && displayedStats.cases_open > 0 ? COPPER : undefined} />
-                        <Stat label="In progress"   value={displayedStats?.cases_in_progress} />
+                        <Stat label="Total users"   value={displayedStats?.total_users} compact={!isDesktop} />
+                        <Stat label="Users 24h"     value={displayedStats?.users_24h} compact={!isDesktop} />
+                        <Stat label="Users 7d"      value={displayedStats?.users_7d} compact={!isDesktop} />
+                        <Stat label="Sessions"      value={displayedStats?.total_sessions} compact={!isDesktop} />
+                        <Stat label="Sessions 24h"  value={displayedStats?.sessions_24h} compact={!isDesktop} />
+                        <Stat label="Sessions 7d"   value={displayedStats?.sessions_7d} compact={!isDesktop} />
+                        <Stat label="Cases open"    value={displayedStats?.cases_open} accent={!!displayedStats && displayedStats.cases_open > 0 ? COPPER : undefined} compact={!isDesktop} />
+                        <Stat label="In progress"   value={displayedStats?.cases_in_progress} compact={!isDesktop} />
                     </div>
                 </Card>
 
                 {/* ── Cases queue ── */}
-                <Card style={{ marginTop: 24 }}>
+                <Card style={{ marginTop: 24 }} compact={!isDesktop}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-                        <SectionLabel>Cases</SectionLabel>
-                        <div style={{ display: 'flex', gap: 8 }}>
+                        <SectionLabel compact={!isDesktop}>Cases</SectionLabel>
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                             {(['all','open','in_progress','closed'] as const).map(f => (
                                 <button
                                     key={f}
@@ -291,9 +298,9 @@ export default function AdminDashboardPage() {
                 </Card>
 
                 {/* ── Recent users ── */}
-                <Card style={{ marginTop: 24 }}>
+                <Card style={{ marginTop: 24 }} compact={!isDesktop}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-                        <SectionLabel>Recent users</SectionLabel>
+                        <SectionLabel compact={!isDesktop}>Recent users</SectionLabel>
                         <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                             <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
                                 <span style={{ letterSpacing: '0.06em', textTransform: 'uppercase', fontSize: 10, color: 'rgba(255,255,255,0.40)' }}>Min sessions</span>
@@ -334,8 +341,8 @@ export default function AdminDashboardPage() {
                 </Card>
 
                 {/* ── Recent logins ── */}
-                <Card style={{ marginTop: 24 }}>
-                    <SectionLabel>Recent logins</SectionLabel>
+                <Card style={{ marginTop: 24 }} compact={!isDesktop}>
+                    <SectionLabel compact={!isDesktop}>Recent logins</SectionLabel>
                     <div style={{ marginTop: 14 }}>
                         {recentLogins.length === 0 ? (
                             <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic' }}>No login data yet.</p>
@@ -352,14 +359,29 @@ export default function AdminDashboardPage() {
                                             textDecoration: 'none',
                                         }}
                                     >
-                                        <div>
-                                            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.80)' }}>
-                                                {login.name ?? login.email}
-                                            </span>
-                                            {login.name && (
-                                                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)', marginLeft: 8 }}>
-                                                    {login.email}
-                                                </span>
+                                        <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                                            {isDesktop ? (
+                                                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.80)' }}>
+                                                        {login.name ?? login.email}
+                                                    </span>
+                                                    {login.name && (
+                                                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)', marginLeft: 8 }}>
+                                                            {login.email}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.80)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                        {login.name ?? login.email}
+                                                    </div>
+                                                    {login.name && (
+                                                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                            {login.email}
+                                                        </div>
+                                                    )}
+                                                </>
                                             )}
                                         </div>
                                         <span style={{ fontSize: 11, color: COPPER, opacity: 0.6, whiteSpace: 'nowrap' }}>
@@ -373,12 +395,51 @@ export default function AdminDashboardPage() {
                 </Card>
 
                 {/* ── System info ── */}
-                <Card style={{ marginTop: 24 }}>
-                    <SectionLabel>System</SectionLabel>
+                <Card style={{ marginTop: 24 }} compact={!isDesktop}>
+                    <SectionLabel compact={!isDesktop}>System</SectionLabel>
                     <div style={{ marginTop: 14, fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.7 }}>
                         <div>App version: <span style={{ color: PALE_YELLOW }}>{(import.meta as { env?: { VITE_APP_VERSION?: string } }).env?.VITE_APP_VERSION ?? 'dev'}</span></div>
                         <div>API connected: <span style={{ color: error ? '#F87171' : '#52B56C' }}>{error ? 'failed' : 'ok'}</span></div>
                         <div>Loaded at: <span style={{ color: PALE_YELLOW }}>{new Date().toLocaleString()}</span></div>
+                    </div>
+                </Card>
+
+                {/* ── File tree ── */}
+                <Card style={{ marginTop: 24 }} compact={!isDesktop}>
+                    <SectionLabel compact={!isDesktop}>File tree</SectionLabel>
+                    <div style={{ marginTop: 14, maxHeight: 500, overflowY: 'auto' }}>
+                        {fileTree ? <FileTreeView nodes={fileTree} /> : <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic' }}>Loading…</p>}
+                    </div>
+                </Card>
+
+                {/* ── API routes ── */}
+                <Card style={{ marginTop: 24 }} compact={!isDesktop}>
+                    <SectionLabel compact={!isDesktop}>API routes</SectionLabel>
+                    <div style={{ marginTop: 14, maxHeight: 500, overflowY: 'auto', fontFamily: 'ui-monospace, SFMono-Regular, monospace', fontSize: 12 }}>
+                        {routeList ? routeList.map((r, i) => (
+                            <div
+                                key={`${r.method}-${r.path}-${i}`}
+                                style={{
+                                    display: 'flex',
+                                    gap: 12,
+                                    padding: '4px 0',
+                                    borderBottom: '1px solid rgba(255,255,255,0.04)',
+                                }}
+                            >
+                                <span style={{
+                                    width: 52,
+                                    fontWeight: 700,
+                                    flexShrink: 0,
+                                    color: r.method === 'GET' ? '#52B56C'
+                                        : r.method === 'POST' ? COPPER
+                                        : r.method === 'DELETE' ? '#F87171'
+                                        : PALE_YELLOW,
+                                }}>
+                                    {r.method}
+                                </span>
+                                <span style={{ color: 'rgba(255,255,255,0.70)', wordBreak: 'break-all' }}>{r.path}</span>
+                            </div>
+                        )) : <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic' }}>Loading…</p>}
                     </div>
                 </Card>
             </div>
@@ -390,7 +451,7 @@ export default function AdminDashboardPage() {
 // Small components
 // ─────────────────────────────────────────────────────────────────────────
 
-function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+function Card({ children, style, compact }: { children: React.ReactNode; style?: React.CSSProperties; compact?: boolean }) {
     return (
         <div
             style={{
@@ -398,7 +459,7 @@ function Card({ children, style }: { children: React.ReactNode; style?: React.CS
                 border: `1px solid ${CARD_GLOW_BORDER}`,
                 boxShadow: CARD_GLOW,
                 borderRadius: 16,
-                padding: 24,
+                padding: compact ? 16 : 24,
                 ...style,
             }}
         >
@@ -407,7 +468,7 @@ function Card({ children, style }: { children: React.ReactNode; style?: React.CS
     );
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function SectionLabel({ children, compact }: { children: React.ReactNode; compact?: boolean }) {
     // Editorial section header — small-caps copper kicker over a serif
     // display title. Same pattern the page-level header uses (◇ Admin /
     // "Dashboard"); applying it per section gives the dashboard chapter-
@@ -419,7 +480,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
             <h2
                 className="j2-serif-display j2-heading-glow"
                 style={{
-                    fontSize: 30,
+                    fontSize: compact ? 22 : 30,
                     color: PALE_YELLOW,
                     margin: 0,
                     lineHeight: 1.1,
@@ -462,13 +523,13 @@ function ShowTestUsersToggle({
     );
 }
 
-function Stat({ label, value, accent }: { label: string; value: number | undefined; accent?: string }) {
+function Stat({ label, value, accent, compact }: { label: string; value: number | undefined; accent?: string; compact?: boolean }) {
     return (
         <div>
             <div
                 style={{
                     fontFamily: FONT_EDITORIAL,
-                    fontSize: 28,
+                    fontSize: compact ? 22 : 28,
                     fontWeight: 600,
                     color: accent ?? PALE_YELLOW,
                     textShadow: GLOW_SOFT,
@@ -712,7 +773,7 @@ function UserRow({ user }: { user: AdminUserSummary }) {
                 <div style={{ color: 'rgba(255,255,255,0.92)', fontSize: 14, fontWeight: 600 }}>
                     {user.name ?? '(no name)'}
                 </div>
-                <div style={{ color: 'rgba(255,255,255,0.42)', fontSize: 12, marginTop: 2 }}>
+                <div style={{ color: 'rgba(255,255,255,0.42)', fontSize: 12, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {user.email} · {user.belt_rank ?? 'no belt'} · joined {new Date(user.created_at).toLocaleDateString()}
                 </div>
             </div>
@@ -726,5 +787,42 @@ function UserRow({ user }: { user: AdminUserSummary }) {
             </div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.30)', marginLeft: 4 }}>↗</div>
         </Link>
+    );
+}
+
+// ── File tree ────────────────────────────────────────────────────────────
+
+function FileTreeView({ nodes, depth = 0 }: { nodes: FileTreeNode[]; depth?: number }) {
+    return <>{nodes.map(node => <FileTreeItem key={node.name} node={node} depth={depth} />)}</>;
+}
+
+function FileTreeItem({ node, depth }: { node: FileTreeNode; depth: number }) {
+    const [expanded, setExpanded] = useState(depth < 1);
+    const isDir = node.type === 'directory';
+    const hasChildren = isDir && node.children && node.children.length > 0;
+    return (
+        <div>
+            <div
+                onClick={() => hasChildren && setExpanded(e => !e)}
+                style={{
+                    paddingTop: 3,
+                    paddingBottom: 3,
+                    paddingLeft: depth * 16,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    cursor: hasChildren ? 'pointer' : 'default',
+                    fontSize: 12,
+                    color: isDir ? PALE_YELLOW : 'rgba(255,255,255,0.55)',
+                    fontFamily: 'ui-monospace, SFMono-Regular, monospace',
+                }}
+            >
+                <span style={{ width: 10, textAlign: 'center', fontSize: 10, color: 'rgba(255,255,255,0.30)' }}>
+                    {hasChildren ? (expanded ? '▾' : '▸') : ''}
+                </span>
+                <span>{isDir ? `${node.name}/` : node.name}</span>
+            </div>
+            {expanded && hasChildren && <FileTreeView nodes={node.children!} depth={depth + 1} />}
+        </div>
     );
 }

@@ -3,17 +3,16 @@
 
 import type { Request, Response } from 'express';
 import { z } from 'zod';
+import fsSync from 'node:fs';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { query } from '../config/db.js';
 import { listCases, updateCase } from '../models/supportCaseModel.js';
 import { listAllObjects, deleteObject } from '../lib/r2Client.js';
+import { getRouteManifest } from '../lib/routeManifest.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// Manifest is generated at build time and lives in backend_api/data/.
-// Path is resolved relative to the compiled module location at runtime
-// (dist/controllers/adminController.js → ../../data/...).
 const ARCHITECTURE_MANIFEST_PATH = path.resolve(__dirname, '..', '..', 'data', 'architecture-manifest.json');
 
 // ── GET /api/admin/stats ──────────────────────────────────────────────────
@@ -394,16 +393,65 @@ export const cleanupOrphanedVideos = async (req: Request, res: Response): Promis
     }
 };
 
+// ── GET /api/admin/structure/files ────────────────────────────────────────
+// Returns the project directory tree as nested JSON. Cached after first scan.
+
+interface TreeNode {
+    name: string;
+    type: 'file' | 'directory';
+    children?: TreeNode[];
+}
+
+const EXCLUDE = new Set([
+    'node_modules', '.git', 'dist', 'build', '.vite-cache',
+    'test-results', 'playwright-report', '.husky', 'coverage',
+]);
+
+function scanDir(dir: string, depth: number, maxDepth: number): TreeNode[] {
+    if (depth >= maxDepth) return [];
+    try {
+        const entries = fsSync.readdirSync(dir, { withFileTypes: true });
+        return entries
+            .filter(e => !EXCLUDE.has(e.name) && !e.name.startsWith('.env'))
+            .sort((a, b) => {
+                if (a.isDirectory() && !b.isDirectory()) return -1;
+                if (!a.isDirectory() && b.isDirectory()) return 1;
+                return a.name.localeCompare(b.name);
+            })
+            .map(e => ({
+                name: e.name,
+                type: (e.isDirectory() ? 'directory' : 'file') as 'file' | 'directory',
+                ...(e.isDirectory() ? { children: scanDir(path.join(dir, e.name), depth + 1, maxDepth) } : {}),
+            }));
+    } catch {
+        return [];
+    }
+}
+
+let cachedTree: { root: string; tree: TreeNode[] } | null = null;
+
+export const getFileTree = async (_req: Request, res: Response) => {
+    try {
+        if (!cachedTree) {
+            const projectRoot = path.resolve(__dirname, '..', '..');
+            cachedTree = { root: path.basename(projectRoot), tree: scanDir(projectRoot, 0, 4) };
+        }
+        res.status(200).json(cachedTree);
+    } catch (err) {
+        console.error('❌ Error scanning file tree:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// ── GET /api/admin/structure/routes ───────────────────────────────────────
+// Returns all registered Express API routes.
+
+export const getRoutes = async (_req: Request, res: Response) => {
+    res.status(200).json({ routes: getRouteManifest() });
+};
+
 // ── GET /api/admin/architecture ──────────────────────────────────────────
-//
-// Serves the architecture manifest produced at build time by
-// `scripts/generateArchitectureManifest.ts`. The admin "Prod Design" page
-// renders it as topology + tables. `no-cache` forces revalidation so a
-// fresh deploy is immediately reflected.
-//
-// When the manifest is missing (local dev without having run
-// `npm run build:architecture` yet), we return a stub with an empty
-// shape + an explanatory warning so the admin page renders gracefully.
+// Serves the build-time architecture manifest for the Prod Design page.
 export const getArchitectureManifest = async (_req: Request, res: Response): Promise<void> => {
     try {
         let manifest: unknown;
