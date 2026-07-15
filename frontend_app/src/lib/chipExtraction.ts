@@ -3,6 +3,8 @@
 // case-insensitive whole-phrase with word boundaries. LONGEST MATCH WINS — a
 // text span already consumed by one match can never fire another chip (e.g.
 // "reverse de la riva" fires only Reverse De La Riva, never De La Riva too).
+// ALL occurrences of a phrase are considered: a candidate blocked at one
+// occurrence still fires at a later, unconsumed occurrence of the same phrase.
 // Canonical positions match on name + aliases (mig 012 lexicon); when a
 // canonical fires, its name AND all its aliases are recorded as taken, so a
 // same-named user tag never also fires — even if the canonical matched via
@@ -80,13 +82,22 @@ export function extractChips(
     if (p.length < 2) continue;
     if (cand.kind === 'user_tag' && takenNames.has(cand.userTag.name.toLowerCase())) continue;
 
-    const re = new RegExp(`(^|[^a-z0-9])(${escapeRegex(p.toLowerCase())})($|[^a-z0-9])`);
-    const m = re.exec(lower);
-    if (!m) continue;
-
-    const start = m.index + m[1]!.length;
-    const span: Span = { start, end: start + m[2]!.length };
-    if (consumed.some((s) => overlaps(s, span))) continue;
+    // Iterate ALL occurrences; fire on the first one not already consumed.
+    const re = new RegExp(`(^|[^a-z0-9])(${escapeRegex(p.toLowerCase())})($|[^a-z0-9])`, 'g');
+    let span: Span | null = null;
+    for (let m = re.exec(lower); m !== null; m = re.exec(lower)) {
+      const start = m.index + m[1]!.length;
+      const s: Span = { start, end: start + m[2]!.length };
+      // Rewind lastIndex to the phrase end: the trailing boundary char may
+      // also be the NEXT occurrence's leading boundary ("dlr dlr"). Always
+      // advances by >= phrase length, so no infinite loop.
+      re.lastIndex = s.end;
+      if (!consumed.some((c2) => overlaps(c2, s))) {
+        span = s;
+        break;
+      }
+    }
+    if (!span) continue;
     consumed.push(span);
 
     if (cand.kind === 'canonical') {

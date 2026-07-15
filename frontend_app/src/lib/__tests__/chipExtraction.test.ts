@@ -48,4 +48,13 @@ describe('extractChips', () => {
     const chips = extractChips('played DLR all night', [ut({ id: 'u9', name: 'DLR', parent_pillar: 'guard' })], [cp({})], []);
     expect(chips).toEqual([{ kind: 'canonical', id: 'c1', name: 'De La Riva', pillar: 'guard' }]);
   });
+
+  it('a phrase blocked at one occurrence still fires at a later standalone occurrence', () => {
+    const rdlr = cp({ id: 'c2', name: 'Reverse De La Riva', aliases: ['RDLR'] });
+    const chips = extractChips('started in reverse de la riva, they passed, ended in de la riva again', [], [cp({}), rdlr], []);
+    expect(chips).toEqual([
+      { kind: 'canonical', id: 'c2', name: 'Reverse De La Riva', pillar: 'guard' },
+      { kind: 'canonical', id: 'c1', name: 'De La Riva', pillar: 'guard' },
+    ]);
+  });
 });
