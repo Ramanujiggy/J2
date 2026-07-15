@@ -15,64 +15,60 @@ import { PAGE_BG, PALE_YELLOW, COPPER } from '../lib/theme.ts';
 
 // ─── Icons (inline SVG, matches AppShell style) ──────────────────────────────
 
-type IconProps = { active: boolean };
-// Stroke weight is uniform across resting + active states — color shift
-// (via currentColor) does the work of signalling active, so weight stays
-// constant. The active param is kept on IconProps in case a future
-// variant wants to use it, but iconAttrs no longer reads it.
-const iconAttrs = (_active: boolean) => ({
+// Icon stroke weight is uniform across resting + active states — color
+// (via currentColor on the nav button) does the work of signalling active.
+const ICON_ATTRS = {
   width: 22, height: 22, viewBox: '0 0 24 24',
   fill: 'none' as const, stroke: 'currentColor',
   strokeWidth: 1.6,
   strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const,
-});
+};
 
-function CompassIcon({ active }: IconProps) {
+function CompassIcon() {
   return (
-    <svg {...iconAttrs(active)}>
+    <svg {...ICON_ATTRS}>
       <circle cx="12" cy="12" r="9" />
       <polygon points="16,8 10,10 8,16 14,14" />
     </svg>
   );
 }
-function BookIcon({ active }: IconProps) {
+function BookIcon() {
   return (
-    <svg {...iconAttrs(active)}>
+    <svg {...ICON_ATTRS}>
       <path d="M4 4h7a3 3 0 013 3v13a3 3 0 00-3-3H4z" />
       <path d="M20 4h-7a3 3 0 00-3 3v13a3 3 0 013-3h7z" />
     </svg>
   );
 }
-function MapIcon({ active }: IconProps) {
+function MapIcon() {
   return (
-    <svg {...iconAttrs(active)}>
+    <svg {...ICON_ATTRS}>
       <polygon points="3,7 9,4 15,7 21,4 21,17 15,20 9,17 3,20" />
       <line x1="9" y1="4" x2="9" y2="17" />
       <line x1="15" y1="7" x2="15" y2="20" />
     </svg>
   );
 }
-function DiamondIcon({ active }: IconProps) {
+function DiamondIcon() {
   return (
-    <svg {...iconAttrs(active)}>
+    <svg {...ICON_ATTRS}>
       <polygon points="12,3 21,12 12,21 3,12" />
       <line x1="12" y1="3" x2="12" y2="21" />
       <line x1="3" y1="12" x2="21" y2="12" />
     </svg>
   );
 }
-function UserIcon({ active }: IconProps) {
+function UserIcon() {
   return (
-    <svg {...iconAttrs(active)}>
+    <svg {...ICON_ATTRS}>
       <circle cx="12" cy="8" r="4" />
       <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
     </svg>
   );
 }
-
-function ShieldIcon({ active }: IconProps) {
+function ShieldIcon() {
   return (
-    <svg {...iconAttrs(active)}>
+    <svg {...ICON_ATTRS}>
       <path d="M12 3 4 6v6c0 5 3.5 8.5 8 9 4.5-.5 8-4 8-9V6l-8-3z" />
     </svg>
   );
@@ -85,7 +81,7 @@ function ShieldIcon({ active }: IconProps) {
 type NavItem = {
   path: string;
   label: string;
-  Icon: (p: IconProps) => JSX.Element;
+  Icon: () => JSX.Element;
   gated?: 'intentions' | 'admin';
   /** Extra path prefixes that should highlight this nav item. Used for
    *  sub-surfaces that aren't themselves nav targets — e.g. the Technique
@@ -236,7 +232,7 @@ export default function DesktopAppShell({ children }: Props) {
                   }
                 }}
               >
-                <Icon active={isActive} />
+                <Icon />
                 <span
                   style={{
                     // Underline lives on the label so it sits beneath the

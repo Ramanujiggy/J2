@@ -7,7 +7,7 @@ import {
 } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import SegmentedToggle from '../components/SegmentedToggle.tsx';
-import WaveBackground from '../components/WaveBackground.tsx';
+import SeigaihaPattern from '../components/visuals/SeigaihaPattern.tsx';
 
 type Mode = 'login' | 'register' | 'forgot';
 
@@ -118,7 +118,7 @@ export default function LoginPage() {
           pointerEvents: 'none',
         }}
       >
-        <WaveBackground />
+        <SeigaihaPattern tileSize={36} driftSeconds={12.2} fillTileBackground />
       </div>
       <div
         aria-hidden="true"

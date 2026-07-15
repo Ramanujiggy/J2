@@ -8,7 +8,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '../lib/api.ts';
 import type { UserTag, UserTagsResponse, UserTagVideoUpdate, Pillar, Affinity } from '../types/api.ts';
-import { deleteVideosForTag, hasQuotaFor } from '../lib/videoStore.ts';
+import { deleteVideosForTag } from '../lib/videoStore.ts';
 import { validateVideoFile, probeVideo, extractThumbnail } from '../lib/videoUtils.ts';
 import { uploadToR2, type UploadProgressCallback } from '../lib/videoUploader.ts';
 
@@ -115,12 +115,7 @@ export function useUserTags() {
       // 2. Probe duration + dimensions
       const probe = await probeVideo(file);
 
-      // 3. Local-storage quota check (best-effort cache later; not fatal here)
-      // We still check so we don't surprise the user with a "cache write
-      // failed" warning later. If quota is tight we just skip the cache.
-      const localOk = await hasQuotaFor(file.size);
-
-      // 4. Extract thumbnail — small JPEG sent to server in upload-complete
+      // 3. Extract thumbnail — small JPEG sent to server in upload-complete
       const thumbnail = await extractThumbnail(file);
 
       // 5. Mint a signed upload URL for this specific tag.
@@ -162,8 +157,6 @@ export function useUserTags() {
       // content across re-uploads. The first playback after upload pays a
       // ~1-3s fetch cost; everything afterwards is local + correctly
       // invalidated.
-      void localOk;
-
       return completed.tag;
     } catch (err) {
       // Recognise abort silently — the user backed out, not an error.

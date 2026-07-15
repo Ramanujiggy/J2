@@ -333,6 +333,20 @@
   .j2-label-micro, .j2-label-copper { font-size: 13px; letter-spacing: 0.16em; }
 }
 
+/* Copper-focus input treatment — replaces the JS focusCopper/blurCopper
+   handlers that used to spread onFocus/onBlur across ProfilePage inputs.
+   Base + :focus states are both in CSS; the browser handles the swap. */
+.j2-copper-focus {
+  background-color: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.08);
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+.j2-copper-focus:focus {
+  outline: none;
+  border-color: rgba(196,145,95,0.55);
+  background-color: rgba(255,255,255,0.10);
+}
+
 /* Seigaiha (wave) ambient backdrop. Fixed, pointer-events:none, below
    content. Drifts slowly. Intended as a <div class="j2-seigaiha-bg" />
    sibling of page content on desktop. */

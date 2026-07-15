@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { useProfile } from '../context/ProfileContext.tsx';
-import WaveBackground from './WaveBackground.tsx';
+import SeigaihaPattern from './visuals/SeigaihaPattern.tsx';
 import BeltBar, { type BeltRank, BELT_COLORS, PATCH_COLORS } from './BeltBar.tsx';
 import { PAGE_BG, PALE_YELLOW, GLOW_TITLE, GLOW_NAV, COPPER_BORDER } from '../lib/theme.ts';
 import PageTransition from './PageTransition.tsx';
@@ -212,7 +212,7 @@ function MobileAppShell({ children }: Props) {
           WebkitBackdropFilter: 'saturate(180%) blur(20px)',
         }}
       >
-        <WaveBackground />
+        <SeigaihaPattern tileSize={36} driftSeconds={12.2} fillTileBackground />
         {/* Fade wave into page background */}
         <div
           style={{

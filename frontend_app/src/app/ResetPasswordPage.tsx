@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../lib/api.ts';
-import WaveBackground from '../components/WaveBackground.tsx';
+import SeigaihaPattern from '../components/visuals/SeigaihaPattern.tsx';
 import { CARD_BG, COPPER_BORDER, CARD_SHADOW, PALE_YELLOW, GLOW_TITLE, GLOW_NAV } from '../lib/theme.ts';
 
 export default function ResetPasswordPage() {
@@ -43,7 +43,7 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="min-h-screen min-h-dvh flex flex-col items-center justify-center bg-brand-dark px-4 relative overflow-hidden">
-      <WaveBackground />
+      <SeigaihaPattern tileSize={36} driftSeconds={12.2} fillTileBackground />
 
       <div className="mb-10 text-center relative z-10">
         <h1 className="text-5xl font-wordmark tracking-tight" style={{ color: PALE_YELLOW, textShadow: GLOW_TITLE }}>

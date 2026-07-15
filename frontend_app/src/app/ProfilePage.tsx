@@ -64,19 +64,9 @@ const inputClsMobile =
 const inputClsDesktop =
   'w-full rounded-xl px-4 py-3.5 text-[15px] text-white placeholder-white/25 outline-none transition-colors';
 
-const inputStyleDesktop: React.CSSProperties = {
-  backgroundColor: SURFACE_3,
-  border: '1px solid rgba(255,255,255,0.08)',
-};
-
-function focusCopper(el: HTMLInputElement) {
-  el.style.borderColor = 'rgba(196,145,95,0.55)';
-  el.style.backgroundColor = 'rgba(255,255,255,0.10)';
-}
-function blurCopper(el: HTMLInputElement) {
-  el.style.borderColor = 'rgba(255,255,255,0.08)';
-  el.style.backgroundColor = SURFACE_3;
-}
+// Base + focus styles for desktop inputs now live in the `.j2-copper-focus`
+// CSS class (index.css). Apply that className alongside inputClsDesktop
+// instead of the old inline onFocus/onBlur handlers.
 
 export default function ProfilePage() {
   const isDesktop = useIsDesktop();
@@ -265,14 +255,9 @@ export default function ProfilePage() {
             const labelStyle: React.CSSProperties | undefined = isDesktop
               ? { color: 'rgba(255,255,255,0.40)' }
               : undefined;
-            const inputCls = isDesktop ? inputClsDesktop : inputClsMobile;
-            const inputStyle = isDesktop ? inputStyleDesktop : undefined;
-            const inputFocusProps = isDesktop
-              ? {
-                  onFocus: (e: React.FocusEvent<HTMLInputElement>) => focusCopper(e.currentTarget),
-                  onBlur:  (e: React.FocusEvent<HTMLInputElement>) => blurCopper(e.currentTarget),
-                }
-              : {};
+            const inputCls = isDesktop
+              ? `${inputClsDesktop} j2-copper-focus`
+              : inputClsMobile;
             return (
           <form onSubmit={handleSubmit} className={`space-y-6 rounded-2xl ${isDesktop ? 'p-10' : 'p-6'}`} style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}>
 
@@ -288,8 +273,6 @@ export default function ProfilePage() {
                 onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="Your name"
                 className={inputCls}
-                style={inputStyle}
-                {...inputFocusProps}
               />
             </div>
 
@@ -307,10 +290,9 @@ export default function ProfilePage() {
                 <SelectTrigger
                   className={
                     isDesktop
-                      ? 'w-full text-[15px] text-white rounded-xl h-[52px] px-4'
+                      ? 'w-full text-[15px] text-white rounded-xl h-[52px] px-4 j2-copper-focus'
                       : 'w-full bg-white/10 border-white/10 text-white focus:ring-brand-orange'
                   }
-                  style={isDesktop ? inputStyleDesktop : undefined}
                 >
                   <SelectValue placeholder="— Select belt rank —" />
                 </SelectTrigger>
@@ -483,8 +465,6 @@ export default function ProfilePage() {
                     defaultValue={form.home_gym_name}
                     placeholder="Search for your gym…"
                     className={inputCls}
-                    style={inputStyle}
-                    {...inputFocusProps}
                   />
                   {form.home_gym_address && (
                     <p className="mt-1.5 text-xs text-white/40">{form.home_gym_address}</p>
@@ -500,8 +480,6 @@ export default function ProfilePage() {
                     onChange={e => setForm(prev => ({ ...prev, home_gym_name: e.target.value }))}
                     placeholder="Gym name"
                     className={inputCls}
-                    style={inputStyle}
-                    {...inputFocusProps}
                   />
                   {import.meta.env.DEV && (
                     <p className="mt-1 text-xs text-white/30">
