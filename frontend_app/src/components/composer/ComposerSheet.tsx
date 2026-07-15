@@ -7,6 +7,7 @@
 import { SKILL_TAGS } from '../../lib/constants.ts';
 import { CARD_BG, COPPER, PALE_YELLOW, FONT_EDITORIAL } from '../../lib/theme.ts';
 import { vibrate } from '../../lib/haptics.ts';
+import { formatTime12 } from '../../lib/timeUtils.ts';
 import type { Kernel } from '../../lib/composerKernel.ts';
 import type { Intention } from '../../types/api.ts';
 
@@ -29,7 +30,7 @@ export default function ComposerSheet({ kernel, intention, speechSupported, onSp
   const hasClass = kernel.scheduleName !== null;
   const prompt = intention ? intentionPrompt(intention) : '';
   const meta = [
-    kernel.startTime,
+    kernel.startTime ? formatTime12(kernel.startTime) : null,
     `${kernel.duration} min`,
     kernel.gi_nogi === 'no_gi' ? 'No-Gi' : kernel.gi_nogi === 'both' ? 'Gi + No-Gi' : 'Gi',
   ].filter(Boolean).join(' · ');

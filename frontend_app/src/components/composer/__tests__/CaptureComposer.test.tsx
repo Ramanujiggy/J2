@@ -16,6 +16,9 @@ vi.mock('@/hooks/useCanonicalPositions', () => ({ useCanonicalPositions: () => (
 vi.mock('@/context/SessionsContext', () => ({ useSessions: () => ({ sessions: [] }) }));
 vi.mock('@/context/ActiveIntentionContext', () => ({ useActiveIntention: () => ({ activeIntention: null }) }));
 
+const addPendingMock = vi.fn();
+vi.mock('@/lib/pendingSessions', () => ({ addPending: (...a: unknown[]) => addPendingMock(...a) }));
+
 // Stateful stub: driven by a module-level mutable holder so `start`/`stop`
 // mutate real values the next CaptureComposer render will read. Any React
 // state update elsewhere in the component (e.g. the stage change that always
@@ -41,6 +44,8 @@ vi.mock('@/hooks/useSpeechTranscript', () => ({
 describe('CaptureComposer', () => {
   beforeEach(() => {
     postMock.mockClear();
+    postMock.mockResolvedValue({ message: 'Session logged.', session_count: 12 });
+    addPendingMock.mockClear();
     speechState.supported = false;
     speechState.recording = false;
     speechState.transcript = '';
@@ -132,5 +137,48 @@ describe('CaptureComposer', () => {
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalled());
     expect(postMock).toHaveBeenCalledTimes(1);
+  });
+
+  // F4.1 — the backend now accepts tag-less create (F1); the sheet's
+  // zero-chip escape hatch must post a genuinely empty, complete session row.
+  it('zero-chip mark-attended posts an empty-tags session with kernel defaults', async () => {
+    const onSuccess = vi.fn();
+    render(<CaptureComposer onSuccess={onSuccess} />);
+
+    fireEvent.click(await screen.findByText('Just mark attended ✓'));
+
+    await waitFor(() => expect(postMock).toHaveBeenCalledTimes(1));
+    const [url, body] = postMock.mock.calls[0] as [string, Record<string, unknown>];
+    expect(url).toBe('/api/sessions');
+    expect(body.tags).toEqual([]);
+    expect(body.heading).toBeNull();
+    expect(body.user_tag_ids).toEqual([]);
+    expect(body.notes).toBe('');
+    expect(body.duration).toBe(60);   // kernel default — no schedule
+    expect(body.gi_nogi).toBe('gi');
+    expect(body.session_type).toBe('class');
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledWith(12));
+  });
+
+  // F4.2 — api.post() resolves with a synthetic `_offline` payload (never
+  // throws) when the write was queued by the offline path; the composer must
+  // treat that as a deferred success (onSuccess(undefined) + addPending), not
+  // silently drop the entry or surface an error.
+  it('offline save queues the entry and calls onSuccess(undefined) instead of erroring', async () => {
+    postMock.mockResolvedValueOnce({ message: 'Queued for sync.', _offline: true });
+    const onSuccess = vi.fn();
+    render(<CaptureComposer onSuccess={onSuccess} />);
+
+    fireEvent.click(await screen.findByText('Write your entry'));
+    const box = screen.getByPlaceholderText('What do you want to remember about tonight?');
+    fireEvent.change(box, { target: { value: 'hit the arm weave twice tonight' } });
+    fireEvent.click(screen.getByText('Continue →'));
+    fireEvent.click(screen.getByText('Seal the entry'));
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledWith(undefined));
+    expect(postMock).toHaveBeenCalledTimes(1);
+    expect(addPendingMock).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(/could not save/i)).not.toBeInTheDocument();
   });
 });

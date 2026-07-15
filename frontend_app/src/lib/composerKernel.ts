@@ -17,7 +17,7 @@ export interface Kernel {
   session_type: 'class' | 'drilling' | 'competition_training' | 'cla';
   scheduleId: string | null;
   scheduleName: string | null;
-  startTime: string | null;                      // "HH:MM" from the schedule
+  startTime: string | null;                      // "HH:MM:SS" as stored by Postgres TIME
 }
 
 const DEFAULTS = { duration: 60, gi_nogi: 'gi' as const, session_type: 'class' as const };
