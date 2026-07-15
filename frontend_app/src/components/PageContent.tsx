@@ -2,10 +2,10 @@
 // Replaces the `if (loading) return <LoadingScreen />` pattern in each page so the
 // loader fades out smoothly instead of cutting away at an arbitrary animation frame.
 //
-// When `ready` flips to true the crossfade is deferred until the belt-tying
-// animation reaches its next settle point (knot fully tied, hold complete).
-// This avoids cutting the animation mid-sequence. A 3s safety timeout ensures
-// the page is never stuck if the callback doesn't fire.
+// When `ready` flips to true the crossfade is deferred until PrismLoader's
+// next settle point (end of the arrive trace, then every sweep flare at 600ms
+// cadence). This avoids cutting the animation mid-sequence. A 3s safety
+// timeout ensures the page is never stuck if the callback doesn't fire.
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import LoadingScreen from './LoadingScreen.tsx';
@@ -35,7 +35,7 @@ export default function PageContent({ ready, children, loadingMessages }: Props)
     fadeTimer.current = setTimeout(() => setPhase('ready'), FADE_MS);
   }, []);
 
-  // Called by BeltLoader at the end of each tying cycle
+  // Called by PrismLoader at the end of ARRIVE and on each sweep flare
   const handleCycleSettle = useCallback(() => {
     setPhase(prev => {
       if (prev === 'waiting') {

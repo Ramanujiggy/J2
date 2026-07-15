@@ -6,7 +6,7 @@ import { ProfileProvider, useProfile } from './context/ProfileContext.tsx';
 import { ActiveIntentionProvider } from './context/ActiveIntentionContext.tsx';
 import { SessionsProvider } from './context/SessionsContext.tsx';
 import AppShell from './components/AppShell.tsx';
-import BeltLoader from './components/BeltLoader.tsx';
+import PrismLoader from './components/PrismLoader.tsx';
 
 // ── Eager pages — the four most-likely first-paint targets ─────────────────
 // These render on initial load, so keeping them in the main bundle avoids a
@@ -44,8 +44,11 @@ const OnboardingFirstSessionPage = lazy(() => import('./app/OnboardingFirstSessi
 const OnboardingDonePage        = lazy(() => import('./app/OnboardingDonePage.tsx'));
 
 // Brand-aligned full-screen fallback for route chunks that haven't loaded yet.
-// BeltLoader is already in the main bundle (it's also used by the auth flow's
-// loading states), so it shows up instantly while the route chunk downloads.
+// PrismLoader is in the main bundle (it's also what PageContent's mobile
+// LoadingScreen renders), so it shows up instantly while the chunk downloads —
+// and route waits now share the same loading identity as data waits. Per the
+// 2026-06-28 motion study, the Prism owns loading; the belt-tying animation is
+// reserved for promotion moments.
 function RouteFallback() {
   return (
     <div
@@ -58,7 +61,7 @@ function RouteFallback() {
         backgroundColor: 'var(--j2-page-bg, #0D1A14)',
       }}
     >
-      <BeltLoader />
+      <PrismLoader />
     </div>
   );
 }
