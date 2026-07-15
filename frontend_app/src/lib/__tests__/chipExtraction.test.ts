@@ -37,4 +37,15 @@ describe('extractChips', () => {
   it('returns [] for empty text', () => {
     expect(extractChips('', [ut({})], [cp({})], ['Marcus'])).toEqual([]);
   });
+
+  it('longest match wins — "reverse de la riva" fires only Reverse De La Riva', () => {
+    const rdlr = cp({ id: 'c2', name: 'Reverse De La Riva', aliases: ['RDLR'] });
+    const chips = extractChips('got stuck in reverse de la riva', [], [cp({}), rdlr], []);
+    expect(chips).toEqual([{ kind: 'canonical', id: 'c2', name: 'Reverse De La Riva', pillar: 'guard' }]);
+  });
+
+  it('canonical alias suppresses a same-named user tag', () => {
+    const chips = extractChips('played DLR all night', [ut({ id: 'u9', name: 'DLR', parent_pillar: 'guard' })], [cp({})], []);
+    expect(chips).toEqual([{ kind: 'canonical', id: 'c1', name: 'De La Riva', pillar: 'guard' }]);
+  });
 });
