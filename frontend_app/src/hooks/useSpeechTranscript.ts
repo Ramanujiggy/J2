@@ -37,14 +37,18 @@ export function useSpeechTranscript() {
   const baselineRef = useRef('');
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const start = () => {
+  const start = (baselineOverride?: string) => {
     const Ctor = getCtor();
     if (!Ctor || recRef.current) return;
     const rec = new Ctor();
     rec.continuous = true;
     rec.interimResults = true;
     rec.lang = 'en-US';
-    baselineRef.current = transcript;
+    baselineRef.current = baselineOverride ?? transcript;
+    // Baseline the transcript state itself, so the caller's typed edits
+    // aren't clobbered by a stale merge from the pre-baseline value before
+    // the first recognition result arrives.
+    setTranscript(baselineRef.current);
 
     rec.onresult = (event: unknown) => {
       const ev = event as { results: ArrayLike<ArrayLike<{ transcript: string }>> };

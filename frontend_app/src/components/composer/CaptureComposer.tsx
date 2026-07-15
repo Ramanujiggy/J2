@@ -8,7 +8,7 @@
 // so mount sites swap 1:1; preset launches fall through to LogSessionForm at
 // the mount site, not here.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { api, ApiError } from '../../lib/api.ts';
 import { deriveKernel, type Kernel } from '../../lib/composerKernel.ts';
 import { extractChips, type ExtractedChip } from '../../lib/chipExtraction.ts';
@@ -43,9 +43,11 @@ export default function CaptureComposer({ onSuccess, onCancel, defaultDate }: Pr
   const [kernel, setKernel] = useState<Kernel>(() => deriveKernel([], new Date()));
   const [chips, setChips] = useState<ExtractedChip[]>([]);
   const [confirmed, setConfirmed] = useState<Set<string>>(new Set());
+  const [seen, setSeen] = useState<Set<string>>(new Set()); // names ever offered as chips
   const [intensity, setIntensity] = useState(3);
   const [sealing, setSealing] = useState(false);
   const [error, setError] = useState('');
+  const savingRef = useRef(false);
 
   const speech = useSpeechTranscript();
   const { tags: userTags } = useUserTags();
@@ -98,17 +100,31 @@ export default function CaptureComposer({ onSuccess, onCancel, defaultDate }: Pr
     return `A ${label.toLowerCase()}-heavy night`;
   }, [selections]);
 
+  // Merge semantics on re-extraction (F1): a chip previously offered keeps
+  // the user's own confirm/un-confirm decision instead of being silently
+  // re-seeded; a brand-new technique chip auto-confirms; partners always
+  // require opt-in, first offer or not.
   const runExtraction = (text: string) => {
     const found = extractChips(text, userTags, canonicals, pastPartners);
     setChips(found);
-    setConfirmed(new Set(found.filter(c => c.kind !== 'partner').map(c => c.name))); // techniques pre-confirmed; partners opt-in
+    setConfirmed(prev => new Set(
+      found
+        .filter(c => seen.has(c.name) ? prev.has(c.name) : c.kind !== 'partner')
+        .map(c => c.name),
+    ));
+    setSeen(prev => new Set([...prev, ...found.map(c => c.name)]));
   };
 
   const save = async (notes: string) => {
+    if (savingRef.current) return; // F3 — guard against double-tap firing concurrent saves
+    savingRef.current = true;
     setSealing(true);
     setError('');
-    const dist = selections.length > 0 ? selectionsToDistribution(selections) : null;
+    const dist = selectionsToDistribution(selections);
     const heading = selections.find(s => s.primary)?.pillar ?? null;
+    const userTagIds = chips.filter(c => c.kind === 'user_tag' && confirmed.has(c.name)).map(c => c.id!);
+    const canonicalPositionIds = chips.filter(c => c.kind === 'canonical' && confirmed.has(c.name)).map(c => c.id!);
+    const partners = chips.filter(c => c.kind === 'partner' && confirmed.has(c.name)).map(c => c.name);
     try {
       const data = await api.post<LogResponse>('/api/sessions', {
         date: effectiveKernel.date,
@@ -122,8 +138,8 @@ export default function CaptureComposer({ onSuccess, onCancel, defaultDate }: Pr
         polarity: null,
         sub_skill_tag: '',
         script_source: null,
-        user_tag_ids: chips.filter(c => c.kind === 'user_tag' && confirmed.has(c.name)).map(c => c.id!),
-        canonical_position_ids: chips.filter(c => c.kind === 'canonical' && confirmed.has(c.name)).map(c => c.id!),
+        user_tag_ids: userTagIds,
+        canonical_position_ids: canonicalPositionIds,
         pillar_distribution: dist,
         had_primary: selections.some(s => s.primary),
         had_deep_work: false,
@@ -131,11 +147,50 @@ export default function CaptureComposer({ onSuccess, onCancel, defaultDate }: Pr
         deep_work_pillars: [],
         canonical_constraint_ids: [],
         user_constraint_ids: [],
-        partners: chips.filter(c => c.kind === 'partner' && confirmed.has(c.name)).map(c => c.name),
+        partners,
       });
+
+      // F4 — mirror LogSessionForm's offline handling: api.post() resolves
+      // with a synthetic `_offline` payload (never throws) when the request
+      // was queued by the offline write path, so a bare onSuccess() here
+      // would silently treat an unsynced entry as confirmed.
+      const dataAny = data as unknown as { _offline?: boolean; session_count?: number };
+      if (dataAny._offline) {
+        const { addPending } = await import('../../lib/pendingSessions.ts');
+        addPending({
+          id: `pending-${Date.now()}`,
+          date: effectiveKernel.date,
+          duration: effectiveKernel.duration,
+          intensity,
+          gi_nogi: effectiveKernel.gi_nogi,
+          session_type: effectiveKernel.session_type,
+          notes,
+          tags: selections.map(s => s.pillar),
+          heading,
+          polarity: null,
+          sub_skill_tag: '',
+          script_source: null,
+          user_tag_ids: userTagIds,
+          canonical_position_ids: canonicalPositionIds,
+          pillar_distribution: dist,
+          had_primary: selections.some(s => s.primary),
+          had_deep_work: false,
+          selection_count: selections.length,
+          deep_work_pillars: [],
+          canonical_constraint_ids: [],
+          user_constraint_ids: [],
+          partners,
+        });
+        const { toast } = await import('../../hooks/use-toast.ts');
+        toast({ title: 'Entry saved offline — will sync when connected.' });
+        onSuccess?.(undefined);
+        return;
+      }
+
       onSuccess?.(data.session_count);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not save your entry. Please try again.');
+      savingRef.current = false;
       setSealing(false);
     }
   };
@@ -208,7 +263,7 @@ export default function CaptureComposer({ onSuccess, onCancel, defaultDate }: Pr
           })}
           speechSupported={speech.supported}
           recording={speech.recording}
-          onMicToggle={() => (speech.recording ? speech.stop() : speech.start())}
+          onMicToggle={() => (speech.recording ? speech.stop() : speech.start(entryText))}
           onOpenDetails={() => setStage('details')}
           onContinue={() => { runExtraction(entryText); setStage('receipt'); }}
           isDesktop={isDesktop}
