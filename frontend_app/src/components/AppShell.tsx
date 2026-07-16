@@ -476,7 +476,7 @@ function MobileAppShell({ children }: Props) {
           role="dialog"
           aria-modal="true"
           aria-label="Log session"
-          className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto px-5 animate-j2-backdrop-in"
+          className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto px-5 animate-j2-backdrop-in"
           style={{
             backgroundColor: 'rgba(13, 26, 20, 1)',
             backdropFilter: 'blur(16px)',
@@ -489,6 +489,7 @@ function MobileAppShell({ children }: Props) {
           <div
             onClick={e => e.stopPropagation()}
             className="w-full sm:max-w-lg lg:max-w-5xl animate-j2-modal-in"
+            style={{ margin: 'auto 0' }}
           >
             {composerEnabled() && !logPreset ? (
               <CaptureComposer
