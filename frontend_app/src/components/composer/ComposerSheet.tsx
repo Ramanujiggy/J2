@@ -37,15 +37,15 @@ export default function ComposerSheet({ kernel, intention, speechSupported, onSp
 
   return (
     <div
-      style={{ backgroundColor: CARD_BG, border: '1px solid rgba(196,145,95,0.40)', borderRadius: 18, padding: '20px 18px', boxShadow: '0 0 26px rgba(196,145,95,0.10)' }}
+      style={{ backgroundColor: CARD_BG, border: '1px solid rgba(196,145,95,0.40)', borderRadius: 18, padding: '24px 22px', boxShadow: '0 0 26px rgba(196,145,95,0.10)' }}
     >
       <p className="j2-label-copper" style={{ marginBottom: 8 }}>
         ◇ {hasClass ? 'Tonight' : 'Today'}
       </p>
-      <h3 style={{ fontFamily: FONT_EDITORIAL, fontWeight: 500, fontSize: 26, color: PALE_YELLOW, margin: '0 0 4px', letterSpacing: '-0.01em' }}>
+      <h3 style={{ fontFamily: FONT_EDITORIAL, fontWeight: 500, fontSize: 28, color: PALE_YELLOW, margin: '0 0 4px', letterSpacing: '-0.01em' }}>
         {kernel.scheduleName ?? 'Open mat?'}
       </h3>
-      <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.34)', letterSpacing: '0.05em', textTransform: 'uppercase', margin: 0 }}>
+      <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.34)', letterSpacing: '0.05em', textTransform: 'uppercase', margin: '2px 0 0' }}>
         {meta}
       </p>
 
@@ -66,21 +66,21 @@ export default function ComposerSheet({ kernel, intention, speechSupported, onSp
         onClick={() => { vibrate(8); (speechSupported ? onSpeak : onWrite)(); }}
         className="w-full touch-manipulation"
         style={{
-          marginTop: 16, fontWeight: 700, fontSize: 14.5, color: '#fff',
-          background: '#DA7422', borderRadius: 14, padding: 14,
+          marginTop: 20, fontWeight: 700, fontSize: 14.5, color: '#fff',
+          background: '#DA7422', borderRadius: 14, padding: '15px 14px',
           boxShadow: '0 4px 22px rgba(218,116,34,0.32)',
         }}
       >
         {speechSupported ? '🎙  Speak your entry' : 'Write your entry'}
       </button>
 
-      <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+      <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
         {speechSupported && (
           <button
             type="button"
             onClick={() => { vibrate(6); onWrite(); }}
             className="touch-manipulation"
-            style={{ flex: 1, fontWeight: 600, fontSize: 12.5, color: 'rgba(242,228,168,0.62)', border: '1px solid rgba(242,228,168,0.22)', borderRadius: 12, padding: '11px 8px', background: 'transparent' }}
+            style={{ flex: 1, fontWeight: 600, fontSize: 12.5, color: 'rgba(242,228,168,0.62)', border: '1px solid rgba(242,228,168,0.22)', borderRadius: 12, padding: '12px 10px', background: 'transparent' }}
           >
             Write instead
           </button>
@@ -89,7 +89,7 @@ export default function ComposerSheet({ kernel, intention, speechSupported, onSp
           type="button"
           onClick={() => { vibrate(6); onMarkAttended(); }}
           className="touch-manipulation"
-          style={{ flex: 1, fontWeight: 600, fontSize: 12.5, color: 'rgba(242,228,168,0.62)', border: '1px solid rgba(242,228,168,0.22)', borderRadius: 12, padding: '11px 8px', background: 'transparent' }}
+          style={{ flex: 1, fontWeight: 600, fontSize: 12.5, color: 'rgba(242,228,168,0.62)', border: '1px solid rgba(242,228,168,0.22)', borderRadius: 12, padding: '12px 10px', background: 'transparent' }}
         >
           Just mark attended ✓
         </button>

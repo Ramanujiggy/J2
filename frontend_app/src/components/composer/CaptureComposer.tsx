@@ -213,7 +213,7 @@ export default function CaptureComposer({ onSuccess, onCancel, defaultDate }: Pr
   return (
     <div
       className="rounded-2xl"
-      style={{ background: '#152E22', border: '1px solid rgba(255,255,255,0.10)', padding: isDesktop ? 32 : 20 }}
+      style={{ background: '#152E22', border: '1px solid rgba(255,255,255,0.10)', padding: isDesktop ? 32 : 16 }}
     >
       {error && <p style={{ fontSize: 13, color: '#F87171', marginBottom: 10 }}>{error}</p>}
 
@@ -229,7 +229,7 @@ export default function CaptureComposer({ onSuccess, onCancel, defaultDate }: Pr
           />
           <p
             onClick={onCancel}
-            style={{ textAlign: 'center', marginTop: 14, fontFamily: 'var(--font-editorial)', fontStyle: 'italic', fontSize: 14, color: 'rgba(255,255,255,0.45)', cursor: 'pointer' }}
+            style={{ textAlign: 'center', marginTop: 18, fontFamily: 'var(--font-editorial)', fontStyle: 'italic', fontSize: 14, color: 'rgba(255,255,255,0.38)', cursor: 'pointer' }}
           >
             not now →
           </p>
