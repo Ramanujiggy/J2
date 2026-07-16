@@ -86,29 +86,24 @@ export default function LogSessionPositionalFocus({
           from closed guard"). session_type still defines the dominant
           mode — this is auxiliary, not a parallel axis. Form state lives
           at this level so values persist if the user flips session-type. */}
-      <div>
-        <p className="text-[10px] mt-0.5 mb-2 uppercase tracking-widest font-semibold" style={{ color: PALE_YELLOW, letterSpacing: '0.16em' }}>
-          Constraint
-          {sessionType !== 'cla' && (
-            <span style={{ color: 'rgba(255,255,255,0.35)', marginLeft: 8, fontWeight: 500 }}>
-              · optional
-            </span>
-          )}
-        </p>
-        <ConstraintPicker
-          selectedUserConstraintIds={userConstraintIds}
-          selectedCanonicalConstraintIds={canonicalConstraintIds}
-          onChange={onConstraintsChange}
-          currentPillar={derivedHeading}
-          maxSelected={1}
-          defaultQuery={defaultConstraintName}
-        />
-        <p className="text-xs mt-2" style={{ color: 'rgba(255,255,255,0.40)', fontStyle: 'italic', fontFamily: FONT_EDITORIAL, fontSize: 13 }}>
-          {sessionType === 'cla'
-            ? 'What rule did you train under tonight?'
-            : 'Did any portion of the session run under a constraint?'}
-        </p>
-      </div>
+      {sessionType === 'cla' && (
+        <div>
+          <p className="text-[10px] mt-0.5 mb-2 uppercase tracking-widest font-semibold" style={{ color: PALE_YELLOW, letterSpacing: '0.16em' }}>
+            Constraint
+          </p>
+          <ConstraintPicker
+            selectedUserConstraintIds={userConstraintIds}
+            selectedCanonicalConstraintIds={canonicalConstraintIds}
+            onChange={onConstraintsChange}
+            currentPillar={derivedHeading}
+            maxSelected={1}
+            defaultQuery={defaultConstraintName}
+          />
+          <p className="text-xs mt-2" style={{ color: 'rgba(255,255,255,0.40)', fontStyle: 'italic', fontFamily: FONT_EDITORIAL, fontSize: 13 }}>
+            What rule did you train under?
+          </p>
+        </div>
+      )}
 
       {/* Techniques — the technical layer of the session and the bridge
           into the Technique Library. Each chip opens a per-technique

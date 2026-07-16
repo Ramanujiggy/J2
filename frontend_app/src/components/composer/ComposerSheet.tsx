@@ -66,12 +66,12 @@ export default function ComposerSheet({ kernel, intention, speechSupported, onSp
         onClick={() => { vibrate(8); (speechSupported ? onSpeak : onWrite)(); }}
         className="w-full touch-manipulation"
         style={{
-          marginTop: 20, fontWeight: 700, fontSize: 14.5, color: '#fff',
-          background: '#DA7422', borderRadius: 14, padding: '15px 14px',
-          boxShadow: '0 4px 22px rgba(218,116,34,0.32)',
+          marginTop: 20, fontWeight: 700, fontSize: 15, color: '#fff',
+          background: '#DA7422', borderRadius: 16, padding: '16px 14px',
+          boxShadow: '0 4px 22px rgba(218,116,34,0.32), inset 0 1px 0 rgba(255,255,255,0.18)',
         }}
       >
-        {speechSupported ? '🎙  Speak your entry' : 'Write your entry'}
+        {speechSupported ? '🎙  Journal using voice' : 'Write your journal'}
       </button>
 
       <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
@@ -80,7 +80,7 @@ export default function ComposerSheet({ kernel, intention, speechSupported, onSp
             type="button"
             onClick={() => { vibrate(6); onWrite(); }}
             className="touch-manipulation"
-            style={{ flex: 1, fontWeight: 600, fontSize: 13, color: 'rgba(242,228,168,0.62)', border: '1px solid rgba(196,145,95,0.30)', borderRadius: 12, padding: '12px 10px', background: 'transparent' }}
+            style={{ flex: 1, fontWeight: 600, fontSize: 13.5, color: 'rgba(242,228,168,0.62)', border: '1px solid rgba(196,145,95,0.30)', borderRadius: 14, padding: '14px 12px', background: 'rgba(196,145,95,0.06)' }}
           >
             Write instead
           </button>
@@ -89,7 +89,7 @@ export default function ComposerSheet({ kernel, intention, speechSupported, onSp
           type="button"
           onClick={() => { vibrate(6); onMarkAttended(); }}
           className="touch-manipulation"
-          style={{ flex: 1, fontWeight: 600, fontSize: 13, color: 'rgba(242,228,168,0.62)', border: '1px solid rgba(196,145,95,0.30)', borderRadius: 12, padding: '12px 10px', background: 'transparent' }}
+          style={{ flex: 1, fontWeight: 600, fontSize: 13.5, color: 'rgba(242,228,168,0.62)', border: '1px solid rgba(196,145,95,0.30)', borderRadius: 14, padding: '14px 12px', background: 'rgba(196,145,95,0.06)' }}
         >
           Just mark attended ✓
         </button>
