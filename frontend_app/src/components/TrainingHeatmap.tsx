@@ -10,7 +10,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import SessionDetailModal from './SessionDetailModal.tsx';
-import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, HEATMAP_REST, HEATMAP_FUTURE, HEATMAP_HEADER_BG, PALE_YELLOW, GLOW_SOFT, SURFACE_2, INT_COLORS } from '../lib/theme.ts';
+import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, HEATMAP_REST, HEATMAP_FUTURE, HEATMAP_HEADER_BG, PALE_YELLOW, GLOW_SOFT, SURFACE_2, INT_COLORS, INT_LABELS } from '../lib/theme.ts';
 import { giShare, nogiShare } from '../lib/sessionUtils.ts';
 import type { SessionSummary, CalendarIntention } from '../types/api.ts';
 export type { SessionSummary };
@@ -35,12 +35,14 @@ const MONTH_ABBR = [
 // stay in sync if either gets repadded.
 const WEEKBAR_HEIGHT = 36;
 
+// Labels follow the canonical INT_LABELS ladder (theme.ts) — Rest is the
+// zero-day bucket, then the ladder compressed to the legend's four steps.
 const LEGEND = [
-  { color: HEATMAP_REST,  label: 'Rest',     range: ''    },
-  { color: INT_COLORS[1], label: 'Easy',     range: '1–2' },
-  { color: INT_COLORS[3], label: 'Moderate', range: '3'   },
-  { color: INT_COLORS[4], label: 'Hard',     range: '4'   },
-  { color: INT_COLORS[5], label: 'Max',      range: '5'   },
+  { color: HEATMAP_REST,  label: 'Rest',      range: ''    },
+  { color: INT_COLORS[1], label: 'Light',     range: '1–2' },
+  { color: INT_COLORS[3], label: 'Steady',    range: '3'   },
+  { color: INT_COLORS[4], label: 'Intense',   range: '4'   },
+  { color: INT_COLORS[5], label: 'Hard roll', range: '5'   },
 ] as const;
 
 // Particles for the intention column on the active week
@@ -486,7 +488,7 @@ function TrainingHeatmap({ sessions = [], intentions = [], loading = false, onSe
               ))}
             </div>
             <span className="text-[10px] leading-none" style={{ color: 'rgba(196,145,95,0.7)', letterSpacing: '0.08em' }}>
-              Easy → Max
+              Light → Hard roll
             </span>
           </div>
         )}
@@ -882,7 +884,7 @@ function TrainingHeatmap({ sessions = [], intentions = [], loading = false, onSe
               >
                 <p style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.7)' }}>
                   {weekSessions} session{weekSessions !== 1 ? 's' : ''} · {(weekMinutes / 60).toFixed(1)}h
-                  {weekMaxIntensity > 0 && ` · ${['', 'Easy', 'Light', 'Moderate', 'Hard', 'Max'][weekMaxIntensity]} avg`}
+                  {weekMaxIntensity > 0 && ` · ${INT_LABELS[weekMaxIntensity]} avg`}
                   {weekIntention && (
                     <span style={{ color: 'rgba(196,145,95,0.8)' }}> · ◈ {weekIntention.intent_label}</span>
                   )}

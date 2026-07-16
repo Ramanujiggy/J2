@@ -20,10 +20,9 @@ import type { SessionSummary } from './TrainingHeatmap.tsx';
 import type { Pillar } from '../types/api.ts';
 
 // ── Constants ─────────────────────────────────────────────────────────────
-
-const INTENSITY_LABEL: Record<number, string> = {
-  1: 'Light', 2: 'Easy', 3: 'Moderate', 4: 'Hard', 5: 'Max',
-};
+// Intensity labels come from the canonical INT_LABELS ladder in theme.ts
+// (Drill / Light / Steady / Intense / Hard roll) — single vocabulary across
+// view, edit, heatmaps, and Atlas per the 2026-07-15 standardization.
 
 const SESSION_TYPE_LABELS: Record<string, string> = {
   class: 'Class', drilling: 'Drilling', competition_training: 'Competition',
@@ -272,7 +271,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
       {[1, 2, 3, 4, 5].map(n => {
         const active = value === n;
         const color = INTENSITY_COLOR[n] ?? '#A8CB72';
-        const label = INTENSITY_LABEL[n] ?? '';
+        const label = INT_LABELS[n] ?? '';
         return (
           <button
             key={n}
@@ -378,7 +377,9 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
               position: 'relative', zIndex: 1,
               overflowY: 'auto',
               maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem)',
-              padding: isDesktop ? '40px 48px 32px' : '1.25rem',
+              // Mobile: extra top padding so the date title doesn't crowd the
+              // modal edge (2026-07-15 polish — "bump the title card down").
+              padding: isDesktop ? '40px 48px 32px' : '2.25rem 1.25rem 1.25rem',
             }}>
               {isDesktop ? (
                 <DesktopViewContent
@@ -725,7 +726,38 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
               {/* Date header */}
               <p style={{ fontFamily: FONT_EDITORIAL, fontWeight: 500, fontSize: 32, lineHeight: 1.1, color: intensityColor, margin: '0 0 16px' }}>{dateLabel}</p>
 
-              <div className="space-y-5">
+              {/* ── Journal paper — the entry leads (2026-07-15 journal-first
+                  redesign). Big, serif, borderless like the composer page; the
+                  structured controls become "margin notes" below (mobile) or a
+                  quiet right rail (desktop, mirroring the composer's aside). */}
+              <div style={isDesktop ? { display: 'grid', gridTemplateColumns: '1fr 320px', gap: 32, alignItems: 'start' } : undefined}>
+                <textarea
+                  rows={isDesktop ? 12 : 6}
+                  value={form.notes}
+                  onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                  placeholder="What stood out today?"
+                  className="w-full outline-none resize-none"
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    fontFamily: FONT_EDITORIAL,
+                    fontSize: isDesktop ? 19 : 17.5,
+                    lineHeight: 1.65,
+                    color: 'rgba(255,255,255,0.88)',
+                    minHeight: 140,
+                    maxWidth: isDesktop ? '58ch' : undefined,
+                    padding: 0,
+                    marginBottom: 8,
+                  }}
+                />
+
+                {/* ── Margin notes — structured data, demoted to the margin ── */}
+                <div style={isDesktop ? { background: '#0F241A', border: '1px solid rgba(196,145,95,0.14)', borderRadius: 14, padding: 16 } : undefined}>
+                  <div style={isDesktop ? { marginBottom: 14 } : { borderTop: '1px solid rgba(196,145,95,0.14)', paddingTop: 14, marginBottom: 14 }}>
+                    <span className="j2-label-copper">◇ Margin notes</span>
+                  </div>
+
+                  <div className="space-y-5">
                 {/* ── Basics ───────────────────────────── */}
                 <div className="space-y-4 pb-5" style={{ borderBottom: '1px solid rgba(196,145,95,0.08)' }}>
                   <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)' }}>
@@ -793,7 +825,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
 
                 {/* ── Focus ────────────────────────────── */}
                 <div className="space-y-4 pb-5" style={{ borderBottom: '1px solid rgba(196,145,95,0.08)' }}>
-                  <h3 style={{ fontFamily: FONT_EDITORIAL, fontWeight: 500, fontSize: 18, color: PALE_YELLOW, textShadow: GLOW_SOFT, margin: 0 }}>
+                  <h3 style={{ fontFamily: FONT_EDITORIAL, fontWeight: 500, fontSize: 15, color: PALE_YELLOW, margin: 0 }}>
                     What did you work on?
                   </h3>
 
@@ -894,20 +926,9 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                     />
                   </div>
 
-                  {/* Notes */}
-                  <div>
-                    <label className="block text-xs mb-1" style={{ color: 'rgba(255,255,255,0.40)' }}>
-                      Notes <span style={{ color: 'rgba(255,255,255,0.20)' }}>(optional)</span>
-                    </label>
-                    <textarea
-                      rows={3} value={form.notes}
-                      onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                      placeholder="What stood out today?"
-                      className="w-full rounded-xl px-4 py-2.5 text-sm text-white/90 placeholder-white/25 outline-none resize-none transition-colors"
-                      style={{ backgroundColor: SURFACE_3, border: '1px solid rgba(255,255,255,0.08)' }}
-                    />
                   </div>
                 </div>
+              </div>
               </div>
 
               {/* ── Action row ─────────────────────────────── */}
@@ -1324,7 +1345,7 @@ function DesktopViewContent({
         <StatCard label="Duration" value={fmtDuration(session.duration)} valueColor={PALE_YELLOW} />
         <StatCard
           label="Intensity"
-          value={INTENSITY_LABEL[session.intensity] ?? '—'}
+          value={INT_LABELS[session.intensity] ?? '—'}
           valueColor={intensityColor}
           accent={
             <div style={{ display: 'flex', gap: 4, marginTop: 12 }}>

@@ -54,7 +54,7 @@ export default function Last30IntensityCard({ sessions }: Props) {
           letterSpacing: '0.14em', textTransform: 'uppercase', marginTop: 8,
         }}
       >
-        <span>Light</span><span>Moderate</span><span>High</span>
+        <span>Light</span><span>Steady</span><span>Hard roll</span>
       </div>
     </div>
   );

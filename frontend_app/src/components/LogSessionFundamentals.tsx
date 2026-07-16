@@ -12,7 +12,7 @@
 
 import { vibrate } from '../lib/haptics.ts';
 import { INTENSITY_COLOR } from '../lib/sessionUtils.ts';
-import { SURFACE_2, SURFACE_3, PALE_YELLOW } from '../lib/theme.ts';
+import { SURFACE_2, SURFACE_3, PALE_YELLOW, INT_LABELS } from '../lib/theme.ts';
 import SegmentedToggle from './SegmentedToggle.tsx';
 
 export type GiNoGi = 'gi' | 'no_gi' | 'both';
@@ -27,10 +27,10 @@ const SESSION_TYPES: { value: SessionType; label: string }[] = [
   { value: 'cla',      label: 'CLA' },
 ];
 
-// BJJ-themed scale (matches `INT_LABELS` in theme.ts). Less fitness-app, more
-// dojo. Drill = no resistance / partner work; Light = relaxed flow; Steady =
-// honest pace; Intense = tournament-prep round; Hard roll = full send.
-const INTENSITY_LABELS = ['Drill', 'Light', 'Steady', 'Intense', 'Hard roll'];
+// Intensity labels come from the canonical INT_LABELS ladder in theme.ts
+// (1-indexed: Drill / Light / Steady / Intense / Hard roll). Drill = no
+// resistance; Light = relaxed flow; Steady = honest pace; Intense =
+// tournament-prep round; Hard roll = full send.
 
 const DUR_STEP = 30;
 const DUR_MIN  = 30;
@@ -160,7 +160,7 @@ export default function LogSessionFundamentals({
                 textShadow: `0 0 12px ${INTENSITY_COLOR[intensity] ?? '#A8CB72'}40`,
               }}
             >
-              {INTENSITY_LABELS[intensity - 1]}
+              {INT_LABELS[intensity]}
             </span>
             <button
               type="button"
