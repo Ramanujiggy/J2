@@ -36,7 +36,7 @@ export default function ComposerPage({
       <textarea
         value={text}
         onChange={e => onTextChange(e.target.value)}
-        placeholder="What do you want to remember about tonight?"
+        placeholder="What would you like to remember about this training session?"
         rows={isDesktop ? 12 : 8}
         autoFocus={!recording}
         style={{
