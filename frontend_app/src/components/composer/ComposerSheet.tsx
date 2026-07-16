@@ -5,7 +5,7 @@
 // No schedule match renders the quiet variant. Spec §2 state 1.
 
 import { SKILL_TAGS } from '../../lib/constants.ts';
-import { CARD_BG, COPPER, PALE_YELLOW, FONT_EDITORIAL } from '../../lib/theme.ts';
+import { CARD_BG, CARD_SHADOW, COPPER, GLOW_SOFT, PALE_YELLOW, FONT_EDITORIAL } from '../../lib/theme.ts';
 import { vibrate } from '../../lib/haptics.ts';
 import { formatTime12 } from '../../lib/timeUtils.ts';
 import type { Kernel } from '../../lib/composerKernel.ts';
@@ -37,15 +37,15 @@ export default function ComposerSheet({ kernel, intention, speechSupported, onSp
 
   return (
     <div
-      style={{ backgroundColor: CARD_BG, border: '1px solid rgba(196,145,95,0.40)', borderRadius: 18, padding: '24px 22px', boxShadow: '0 0 26px rgba(196,145,95,0.10)' }}
+      style={{ backgroundColor: CARD_BG, border: '1px solid rgba(196,145,95,0.40)', borderRadius: 18, padding: '24px 22px', boxShadow: CARD_SHADOW }}
     >
       <p className="j2-label-copper" style={{ marginBottom: 8 }}>
         ◇ {hasClass ? 'Tonight' : 'Today'}
       </p>
-      <h3 style={{ fontFamily: FONT_EDITORIAL, fontWeight: 500, fontSize: 28, color: PALE_YELLOW, margin: '0 0 4px', letterSpacing: '-0.01em' }}>
+      <h3 style={{ fontFamily: FONT_EDITORIAL, fontWeight: 500, fontSize: 28, color: PALE_YELLOW, margin: '0 0 4px', letterSpacing: '-0.01em', textShadow: GLOW_SOFT }}>
         {kernel.scheduleName ?? 'Open mat?'}
       </h3>
-      <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.34)', letterSpacing: '0.05em', textTransform: 'uppercase', margin: '2px 0 0' }}>
+      <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.40)', letterSpacing: '0.05em', textTransform: 'uppercase', margin: '2px 0 0' }}>
         {meta}
       </p>
 
@@ -80,7 +80,7 @@ export default function ComposerSheet({ kernel, intention, speechSupported, onSp
             type="button"
             onClick={() => { vibrate(6); onWrite(); }}
             className="touch-manipulation"
-            style={{ flex: 1, fontWeight: 600, fontSize: 12.5, color: 'rgba(242,228,168,0.62)', border: '1px solid rgba(242,228,168,0.22)', borderRadius: 12, padding: '12px 10px', background: 'transparent' }}
+            style={{ flex: 1, fontWeight: 600, fontSize: 13, color: 'rgba(242,228,168,0.62)', border: '1px solid rgba(196,145,95,0.30)', borderRadius: 12, padding: '12px 10px', background: 'transparent' }}
           >
             Write instead
           </button>
@@ -89,7 +89,7 @@ export default function ComposerSheet({ kernel, intention, speechSupported, onSp
           type="button"
           onClick={() => { vibrate(6); onMarkAttended(); }}
           className="touch-manipulation"
-          style={{ flex: 1, fontWeight: 600, fontSize: 12.5, color: 'rgba(242,228,168,0.62)', border: '1px solid rgba(242,228,168,0.22)', borderRadius: 12, padding: '12px 10px', background: 'transparent' }}
+          style={{ flex: 1, fontWeight: 600, fontSize: 13, color: 'rgba(242,228,168,0.62)', border: '1px solid rgba(196,145,95,0.30)', borderRadius: 12, padding: '12px 10px', background: 'transparent' }}
         >
           Just mark attended ✓
         </button>

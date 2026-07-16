@@ -213,7 +213,11 @@ export default function CaptureComposer({ onSuccess, onCancel, defaultDate }: Pr
   return (
     <div
       className="rounded-2xl"
-      style={{ background: '#152E22', border: '1px solid rgba(255,255,255,0.10)', padding: isDesktop ? 32 : 16 }}
+      style={{
+        background: isDesktop || stage !== 'sheet' ? '#152E22' : 'transparent',
+        border: isDesktop || stage !== 'sheet' ? '1px solid rgba(255,255,255,0.10)' : 'none',
+        padding: isDesktop ? 32 : 16,
+      }}
     >
       {error && <p style={{ fontSize: 13, color: '#F87171', marginBottom: 10 }}>{error}</p>}
 
