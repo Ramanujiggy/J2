@@ -95,6 +95,40 @@ export default function RepRouletteFab(props: Props) {
   return <RepRouletteFabImpl {...props} />;
 }
 
+function runTickerReel(
+  poolItems: readonly { name: string }[],
+  finalIndex: number,
+  onTick: (name: string) => void,
+  onLand: () => void,
+) {
+  const intervals = [50, 70, 100, 140, 180];
+  const finalName = poolItems[finalIndex].name;
+  const candidates: string[] = [];
+  const poolLen = poolItems.length;
+  if (poolLen <= 1) { onLand(); return; }
+  const maxAttempts = poolLen * 3;
+  let attempts = 0;
+  while (candidates.length < Math.min(5, poolLen - 1) && attempts < maxAttempts) {
+    const idx = Math.floor(Math.random() * poolLen);
+    const name = poolItems[idx].name;
+    if (name !== finalName && !candidates.includes(name)) candidates.push(name);
+    attempts++;
+  }
+  if (candidates.length === 0) { onLand(); return; }
+  let i = 0;
+  function tick() {
+    if (i < candidates.length) {
+      onTick(candidates[i]);
+      vibrate(3);
+      setTimeout(tick, intervals[i] ?? 180);
+      i++;
+    } else {
+      onLand();
+    }
+  }
+  tick();
+}
+
 function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
   const [phase, setPhase] = useState<Phase>('fab');
 
@@ -152,6 +186,10 @@ function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
   const rafRef         = useRef<number | undefined>(undefined);
   const [dragX, setDragX]           = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+
+  const [spinning, setSpinning] = useState(false);
+  const [displayName, setDisplayName] = useState<string | null>(null);
+  const [landed, setLanded] = useState(false);
 
   // Active item from the active pool.
   const drill = ROULETTE_DRILLS[drillHistory[drillHistoryIndex]];
@@ -229,15 +267,31 @@ function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
     const vel = Math.abs(dx) / Math.max(dt, 1);
     if ((Math.abs(dx) > 45 || vel > 0.35) && activePoolLength > 0) {
       if (dx < 0) {
+        if (spinning) { setDragX(0); setIsDragging(false); return; }
         const current = activeHistory[activeIndex];
         const next = (current + 1 + Math.floor(Math.random() * Math.max(1, activePoolLength - 1))) % activePoolLength;
-        if (pool === 'drill') {
-          setDrillHistory(prev => [...prev.slice(0, drillHistoryIndex + 1), next]);
-          setDrillHistoryIndex(i => i + 1);
-        } else {
-          setConstraintHistory(prev => [...prev.slice(0, constraintHistoryIndex + 1), next]);
-          setConstraintHistoryIndex(i => i + 1);
-        }
+        const currentPool = pool === 'drill' ? ROULETTE_DRILLS : rouletteConstraints;
+        setSpinning(true);
+        setLanded(false);
+        runTickerReel(
+          currentPool as readonly { name: string }[],
+          next,
+          (name) => setDisplayName(name),
+          () => {
+            if (pool === 'drill') {
+              setDrillHistory(prev => [...prev.slice(0, drillHistoryIndex + 1), next]);
+              setDrillHistoryIndex(i => i + 1);
+            } else {
+              setConstraintHistory(prev => [...prev.slice(0, constraintHistoryIndex + 1), next]);
+              setConstraintHistoryIndex(i => i + 1);
+            }
+            setDisplayName(null);
+            setSpinning(false);
+            setLanded(true);
+            vibrate(10);
+            setTimeout(() => setLanded(false), 350);
+          },
+        );
       } else {
         if (pool === 'drill') setDrillHistoryIndex(i => Math.max(0, i - 1));
         else setConstraintHistoryIndex(i => Math.max(0, i - 1));
@@ -245,21 +299,37 @@ function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
     }
     setDragX(0);
     setIsDragging(false);
-  }, [pool, activeHistory, activeIndex, activePoolLength, drillHistoryIndex, constraintHistoryIndex]);
+  }, [spinning, pool, activeHistory, activeIndex, activePoolLength, drillHistoryIndex, constraintHistoryIndex, rouletteConstraints]);
 
   const handleReroll = useCallback(() => {
+    if (spinning) return;
     vibrate(5);
     if (activePoolLength <= 0) return;
+    const currentPool = pool === 'drill' ? ROULETTE_DRILLS : rouletteConstraints;
     const current = activeHistory[activeIndex] ?? 0;
     const next = (current + 1 + Math.floor(Math.random() * Math.max(1, activePoolLength - 1))) % activePoolLength;
-    if (pool === 'drill') {
-      setDrillHistory(prev => [...prev.slice(0, drillHistoryIndex + 1), next]);
-      setDrillHistoryIndex(i => i + 1);
-    } else {
-      setConstraintHistory(prev => [...prev.slice(0, constraintHistoryIndex + 1), next]);
-      setConstraintHistoryIndex(i => i + 1);
-    }
-  }, [pool, activeHistory, activeIndex, activePoolLength, drillHistoryIndex, constraintHistoryIndex]);
+    setSpinning(true);
+    setLanded(false);
+    runTickerReel(
+      currentPool as readonly { name: string }[],
+      next,
+      (name) => setDisplayName(name),
+      () => {
+        if (pool === 'drill') {
+          setDrillHistory(prev => [...prev.slice(0, drillHistoryIndex + 1), next]);
+          setDrillHistoryIndex(i => i + 1);
+        } else {
+          setConstraintHistory(prev => [...prev.slice(0, constraintHistoryIndex + 1), next]);
+          setConstraintHistoryIndex(i => i + 1);
+        }
+        setDisplayName(null);
+        setSpinning(false);
+        setLanded(true);
+        vibrate(10);
+        setTimeout(() => setLanded(false), 350);
+      },
+    );
+  }, [spinning, pool, activeHistory, activeIndex, activePoolLength, drillHistoryIndex, constraintHistoryIndex, rouletteConstraints]);
 
   const handleLog = () => {
     if (pool === 'drill') {
@@ -409,10 +479,20 @@ function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
             {/* Technique */}
             {item ? (
               <>
-                <div style={{ fontFamily: FONT_EDITORIAL, fontSize: 20, fontWeight: 500, color: PALE_YELLOW, lineHeight: 1.15, marginBottom: 4 }}>
-                  {item.name}
+                <div style={{
+                  fontFamily: FONT_EDITORIAL, fontSize: 20, fontWeight: 500, color: PALE_YELLOW, lineHeight: 1.15, marginBottom: 4,
+                  opacity: spinning ? 0.5 : 1,
+                  transform: landed ? 'scale(1.04)' : 'scale(1)',
+                  transition: landed ? 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'transform 0.15s ease',
+                  transformOrigin: 'left center',
+                }}>
+                  {spinning && displayName ? displayName : item.name}
                 </div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', marginBottom: 14 }}>
+                <div style={{
+                  fontSize: 11, color: 'rgba(255,255,255,0.38)', marginBottom: 14,
+                  opacity: spinning ? 0 : 1,
+                  transition: 'opacity 0.2s ease 0.05s',
+                }}>
                   {item.focus}{item.suggestion ? ` · ${item.suggestion}` : ''}
                 </div>
               </>
@@ -426,6 +506,7 @@ function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
             <div style={{ display: 'flex', gap: 8 }}>
               <button
                 onClick={handleReroll}
+                disabled={spinning}
                 className="touch-manipulation j2-press"
                 style={{
                   flex: 1, fontSize: 11, fontWeight: 600,
@@ -434,6 +515,7 @@ function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
                   border: '1px solid rgba(255,255,255,0.08)',
                   backgroundColor: 'rgba(255,255,255,0.04)',
                   cursor: 'pointer',
+                  opacity: spinning ? 0.4 : 1,
                 }}
               >
                 ↻ Reroll
@@ -633,15 +715,29 @@ function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
                 }}>
                   {item ? (
                     <>
-                      <p className="text-lg font-semibold mb-0.5" style={{ color: 'rgba(242,228,168,0.85)' }}>
-                        {item.name}
+                      <p className="text-lg font-semibold mb-0.5" style={{
+                        color: 'rgba(242,228,168,0.85)',
+                        opacity: spinning ? 0.5 : 1,
+                        transform: landed ? 'scale(1.04)' : 'scale(1)',
+                        transition: landed ? 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'transform 0.15s ease',
+                        transformOrigin: 'left center',
+                      }}>
+                        {spinning && displayName ? displayName : item.name}
                       </p>
-                      <p className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                      <p className="text-xs" style={{
+                        color: 'rgba(255,255,255,0.45)',
+                        opacity: spinning ? 0 : 1,
+                        transition: 'opacity 0.2s ease 0.05s',
+                      }}>
                         {item.focus}
                         <span style={{ color: 'rgba(255,255,255,0.2)', margin: '0 6px' }}>·</span>
                         {item.suggestion}
                       </p>
-                      <p className="text-xs mt-2 leading-relaxed" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                      <p className="text-xs mt-2 leading-relaxed" style={{
+                        color: 'rgba(255,255,255,0.35)',
+                        opacity: spinning ? 0 : 1,
+                        transition: 'opacity 0.2s ease 0.05s',
+                      }}>
                         {item.description}
                       </p>
                       <div className="flex items-center justify-between mt-3">
