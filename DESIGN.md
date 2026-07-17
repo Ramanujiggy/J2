@@ -19,7 +19,7 @@ lighter green surfaces (`#152E22`).
 
 **Key characteristics:**
 - Dark-forest-native: everything lives on `#0D1A14`; cards raise to `#152E22`
-- Two typefaces: **Inter** (sans UI) and **DM Serif Display** (decorative headers only)
+- Two typefaces: **Plus Jakarta Sans** (all UI) and **Cormorant Garamond** (display + narrative voice only — see §3 role rules)
 - The only "bright" color is a champagne gold (`#F2E4A8`) reserved for titles and nav labels
 - Warm copper (`#C4915F`) handles all borders, rails, and accents — never blue or cool-toned borders
 - The active/CTA color is burnt orange (`#DA7422`) — punchy, not neon
@@ -103,31 +103,61 @@ Used on category badges (text + `20` opacity background):
 ### Font Families
 
 ```css
-font-family: 'Inter', system-ui, sans-serif;          /* all UI */
-font-family: 'DM Serif Display', serif;               /* decorative hero headings only */
+font-family: '"Plus Jakarta Sans", system-ui, sans-serif';   /* all UI — body, buttons, inputs, labels, metadata */
+font-family: '"Cormorant Garamond", Georgia, serif';         /* editorial voice — FONT_EDITORIAL in theme.ts */
 ```
 
-Inter is the workhorse for all body text, labels, buttons, and navigation.
-DM Serif Display appears only on the app name / wordmark contexts.
+Plus Jakarta Sans is the workhorse: every button, link, input, metadata line,
+duration, label, and body paragraph. Cormorant Garamond (`FONT_EDITORIAL`) is
+the editorial voice and is allowed in exactly **two roles** — see below.
+
+### The Serif Role Rules
+
+The serif exists to give the app its "night-time dojo" register. It stays
+special only if it stays scarce. Two roles, nothing else:
+
+1. **Upright serif — display only.** Hero numerals (streak number, stat
+   numbers), page titles, card titles, journal date leaves. Never body text,
+   never metadata, never values inside rows.
+2. **Italic serif — narrative voice only.** One reflective sentence per
+   screen at most: the coach-voice prompt ("Getting some rolls in?"), the
+   telemetry narrative. **Never** buttons, links, inputs, placeholders,
+   durations, relative times, or status fragments.
+
+**Hard rules:**
+- Anything tappable is sans. If it has an `onClick`, it is Plus Jakarta Sans.
+- Anything the user types is sans. Inputs and textareas never use the serif.
+- Values (durations, counts, times inside rows/meta lines) are sans. The serif
+  numeral treatment is reserved for *display* stats, not inline data.
 
 ### Hierarchy
 
-| Role | Size | Weight | Color | Notes |
-|------|------|--------|-------|-------|
-| Page title (h2) | 24px (`text-2xl`) | 700 (`font-bold`) | `PALE_YELLOW` | + `GLOW_SOFT` text-shadow |
-| Section header | 18px | 600 | `rgba(255,255,255,0.80)` | |
-| Card title | 16px | 600 | `rgba(255,255,255,0.90)` | |
-| Body / description | 14–15px | 400 | `rgba(255,255,255,0.80)` | `leading-relaxed` |
-| Label / uppercase chip | 11px | 500 | `rgba(255,255,255,0.25–0.35)` | `uppercase tracking-wide` |
-| Stat number (hero) | 32px+ | 700 | `PALE_YELLOW` | + `GLOW_SOFT` |
-| Button | 14px (`text-sm`) | 500 (`font-medium`) | white | |
-| Input | 14–16px | 400 | white | |
-| Monospace / code | 13px | 400 | `rgba(255,255,255,0.60)` | system monospace |
+| Role | Font | Size | Weight | Color | Notes |
+|------|------|------|--------|-------|-------|
+| Hero numeral | Serif upright | 30px+ | 500 | `PALE_YELLOW` | + `GLOW_SOFT`; `.j2-serif-display` |
+| Page title | Serif upright | 26–28px | 500–600 | `PALE_YELLOW` | + `GLOW_SOFT` |
+| Card title | Serif upright | 18–28px | 500–600 | `PALE_YELLOW` | compact 18, full 26–28 |
+| Narrative line | Serif italic | 15–18px | 500 | `rgba(242,228,168,0.62–0.72)` | `.j2-serif-italic`; max one per screen |
+| Body / description | Sans | 13–15px | 400 | `rgba(255,255,255,0.80)` | `leading-relaxed` |
+| Button / action link | Sans | 13–14px | 600 | white / `COPPER` | never italic, never serif |
+| Input | Sans | 15–16px | 400 | `rgba(255,255,255,0.90)` | placeholder ~0.35 opacity |
+| Row value (duration etc.) | Sans | 13–15px | 600 | `COPPER` | matches Home week-list rows |
+| Metadata line | Sans | 11–13px | 400–600 | `rgba(255,255,255,0.38–0.55)` | plain case or uppercase-tracked |
+
+### Uppercase Label Tiers — exactly two
+
+| Tier | Token / spec | Use |
+|------|--------------|-----|
+| Eyebrow / kicker | `.j2-label-micro` (11.5px · 700 · 0.18em · white 0.40) or `.j2-label-copper` (same, copper) | Section eyebrows ("Training Telemetry", "Last 30 days · pulse"), card kickers ("◇ This week"), month headers, weekday leaves |
+| Sub-stat label | 10px · 600 · 0.12em · white 0.32–0.42 | Labels under stat numbers, chart axis dates |
+
+Do not invent new size/tracking/opacity combinations. If a label doesn't fit
+one of these two tiers, it is probably not an uppercase label.
 
 ### Tracking
 
-- Page titles: `tracking-tight` (default, no extreme negative spacing)
-- Uppercase chip labels: `tracking-wide` (0.05–0.08em)
+- Serif display: slight negative (`-0.005` to `-0.025em` as size grows)
+- Uppercase labels: per the two tiers above — 0.18em (eyebrow) or 0.12em (sub-stat)
 - All other text: default tracking
 
 ---
@@ -382,7 +412,7 @@ on card surfaces.
 - Don't use `items-center` on modal backdrops — use `items-start` + `overflow-y-auto` so tall modals scroll rather than clip
 - Don't hardcode colors in component files — use theme tokens
 - Don't add `resize` to textareas — always `resize-none` with auto-grow via `scrollHeight`
-- Don't use more than two fonts (Inter + DM Serif Display)
+- Don't use more than two fonts (Plus Jakarta Sans + Cormorant Garamond), and don't let the serif escape its two roles: upright = display, italic = one narrative line. Never serif on buttons, inputs, or inline values.
 - Don't use white or light backgrounds anywhere in the app shell
 - Don't use default browser focus outline — use `focus:ring-2 focus:ring-brand-orange`
 - Don't introduce new animations outside the defined `tailwind.config.ts` keyframes without good reason
