@@ -224,10 +224,8 @@ export default function HomeHero({
             <div
               style={{
                 marginTop: 2,
-                fontFamily: FONT_EDITORIAL,
-                fontStyle: 'italic',
-                fontSize: 15,
-                letterSpacing: '0.005em',
+                fontSize: 12,
+                letterSpacing: '0.01em',
                 color: isPersonalBest && view === 'daily' ? COPPER : 'rgba(255,255,255,0.44)',
               }}
             >

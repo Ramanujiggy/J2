@@ -73,9 +73,8 @@ export default function TodayCard({ sessions, onLogSession, compact = false, qui
           <button
             onClick={() => onLogSession({ date: todayDateString() })}
             style={{
-              fontFamily: FONT_EDITORIAL,
-              fontStyle: 'italic',
-              fontSize: 14,
+              fontSize: 13,
+              fontWeight: 600,
               color: COPPER,
               background: 'none',
               border: 'none',
@@ -117,7 +116,7 @@ export default function TodayCard({ sessions, onLogSession, compact = false, qui
         <Meta>
           {timeLabel}
           {giNogiLabel && ` · ${giNogiLabel}`}
-          <Italic>{` · ${formatRelativeMinutes(today.minutesUntilStart, 'until')}`}</Italic>
+          {` · ${formatRelativeMinutes(today.minutesUntilStart, 'until')}`}
         </Meta>
         <PromptRow
           question={pickPrompt(PRE_CLASS_PROMPTS)}
@@ -139,7 +138,7 @@ export default function TodayCard({ sessions, onLogSession, compact = false, qui
         <Meta muted>
           {timeLabel}
           {giNogiLabel && ` · ${giNogiLabel}`}
-          {' · '}<Italic>not planning to attend</Italic>
+          {' · not planning to attend'}
         </Meta>
         <SecondaryAction label="Undo →" onClick={() => setPlanning(null)} />
       </Frame>
@@ -154,7 +153,7 @@ export default function TodayCard({ sessions, onLogSession, compact = false, qui
         <Meta>
           {timeLabel}
           {giNogiLabel && ` · ${giNogiLabel}`}
-          <Italic>{` · ${formatRelativeMinutes(today.minutesUntilStart, 'until')}`}</Italic>
+          {` · ${formatRelativeMinutes(today.minutesUntilStart, 'until')}`}
         </Meta>
         <Italic large style={{ marginTop: 14 }}>
           You're on for it.
@@ -171,7 +170,7 @@ export default function TodayCard({ sessions, onLogSession, compact = false, qui
         <Meta>
           {timeLabel}
           {giNogiLabel && ` · ${giNogiLabel}`}
-          <Italic>{' · in session'}</Italic>
+          {' · in session'}
         </Meta>
       </Frame>
     );
@@ -186,7 +185,7 @@ export default function TodayCard({ sessions, onLogSession, compact = false, qui
         <Meta>
           {timeLabel}
           {giNogiLabel && ` · ${giNogiLabel}`}
-          <Italic>{` · ended ${formatRelativeMinutes(since, 'since')}`}</Italic>
+          {` · ended ${formatRelativeMinutes(since, 'since')}`}
         </Meta>
         <PromptRow
           question={pickPrompt(POST_CLASS_PROMPTS)}
@@ -209,8 +208,7 @@ export default function TodayCard({ sessions, onLogSession, compact = false, qui
         <Meta muted>
           {timeLabel}
           {giNogiLabel && ` · ${giNogiLabel}`}
-          <Italic>{` · ended ${formatRelativeMinutes(sinceSkip, 'since')}`}</Italic>
-          {' · '}<Italic>didn't attend</Italic>
+          {` · ended ${formatRelativeMinutes(sinceSkip, 'since')} · didn't attend`}
         </Meta>
         <SecondaryAction label="Undo →" onClick={() => setAttended(null)} />
       </Frame>
@@ -363,8 +361,7 @@ function PromptRow({
         <button
           onClick={onYes}
           style={{
-            fontFamily: FONT_EDITORIAL, fontStyle: 'italic',
-            fontSize: 14, color: COPPER,
+            fontSize: 13, fontWeight: 600, color: COPPER,
             background: 'none', border: 'none',
             borderBottom: '1px solid rgba(196,145,95,0.3)',
             cursor: 'pointer', padding: 0,
@@ -375,8 +372,7 @@ function PromptRow({
         <button
           onClick={onNo}
           style={{
-            fontFamily: FONT_EDITORIAL, fontStyle: 'italic',
-            fontSize: 14, color: 'rgba(255,255,255,0.35)',
+            fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.35)',
             background: 'none', border: 'none',
             cursor: 'pointer', padding: 0,
           }}

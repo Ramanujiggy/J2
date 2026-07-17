@@ -90,16 +90,7 @@ export default function PulseSparklineWidget({ sessions }: PulseSparklineWidgetP
           paddingBottom: 8,
         }}
       >
-        <div
-          style={{
-            fontSize: 10,
-            fontWeight: 600,
-            color: 'rgba(255,255,255,0.30)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em',
-            marginBottom: 12,
-          }}
-        >
+        <div className="j2-label-micro" style={{ marginBottom: 12 }}>
           Last 30 days · pulse
         </div>
         <p style={{ color: 'rgba(255,255,255,0.40)', fontSize: 13.5, lineHeight: 1.5 }}>
@@ -124,15 +115,7 @@ export default function PulseSparklineWidget({ sessions }: PulseSparklineWidgetP
     >
       {/* ── Header row ───────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between" style={{ marginBottom: 18 }}>
-        <span
-          style={{
-            fontSize: 10,
-            fontWeight: 600,
-            color: 'rgba(255,255,255,0.30)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em',
-          }}
-        >
+        <span className="j2-label-micro" style={{ whiteSpace: 'nowrap' }}>
           Last 30 days · pulse
         </span>
         <span
@@ -248,9 +231,9 @@ export default function PulseSparklineWidget({ sessions }: PulseSparklineWidgetP
           display: 'flex',
           justifyContent: 'space-between',
           fontSize: 10,
-          fontWeight: 500,
+          fontWeight: 600,
           color: 'rgba(255,255,255,0.32)',
-          letterSpacing: '0.08em',
+          letterSpacing: '0.12em',
           textTransform: 'uppercase',
         }}
       >

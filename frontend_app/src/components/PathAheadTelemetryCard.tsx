@@ -75,15 +75,7 @@ export default function PathAheadTelemetryCard({ telemetry }: Props) {
 
       {/* Eyebrow label + inline copper rule */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-        <span
-          style={{
-            fontSize: 9.5,
-            fontWeight: 700,
-            letterSpacing: '0.18em',
-            textTransform: 'uppercase',
-            color: 'rgba(255,255,255,0.28)',
-          }}
-        >
+        <span className="j2-label-micro" style={{ whiteSpace: 'nowrap' }}>
           Training Telemetry
         </span>
         <span

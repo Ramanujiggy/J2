@@ -203,9 +203,7 @@ export default function JournalIndexPage() {
               border: 'none',
               padding: '12px 16px',
               color: 'rgba(255,255,255,0.90)',
-              fontSize: 16,
-              fontFamily: 'var(--font-editorial)',
-              fontStyle: 'italic',
+              fontSize: 15,
               outline: 'none',
             }}
           />
@@ -457,7 +455,7 @@ function JournalRow({ session, onOpen }: { session: SessionSummary; onOpen: () =
 
       {/* Right column — duration + style */}
       <div style={{ textAlign: 'right' }}>
-        <div style={{ fontSize: 19, fontFamily: FONT_EDITORIAL, color: 'rgba(255,255,255,0.90)' }}>
+        <div style={{ fontSize: 15, fontWeight: 600, color: COPPER }}>
           {formatDuration(session.duration ?? 0)}
         </div>
         <div
@@ -634,7 +632,7 @@ function SessionMiniRow({
         </div>
       </div>
 
-      <div style={{ fontSize: 15, fontFamily: FONT_EDITORIAL, color: 'rgba(255,255,255,0.85)' }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: COPPER }}>
         {formatDuration(session.duration ?? 0)}
       </div>
     </button>
