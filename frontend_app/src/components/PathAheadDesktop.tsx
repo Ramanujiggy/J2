@@ -25,8 +25,8 @@ import RepRouletteFab from './RepRouletteFab.tsx';
 import MostRecentSessionCard from './MostRecentSessionCard.tsx';
 import PageContent from './PageContent.tsx';
 import PathAheadWeekSection, { type WeekViewMode } from './PathAheadWeekSection.tsx';
-import { CARD_BG, FONT_EDITORIAL, PALE_YELLOW, PRESTIGE_TEAL, PRESTIGE_TEAL_GLOW } from '../lib/theme.ts';
-import { toDateString, formatDuration } from '../lib/sessionUtils.ts';
+import { CARD_BG, FONT_EDITORIAL, PALE_YELLOW } from '../lib/theme.ts';
+import { toDateString } from '../lib/sessionUtils.ts';
 import type { Intention, SessionSummary } from '../types/api.ts';
 
 interface DaySessionEntry {
@@ -169,6 +169,23 @@ export default function PathAheadDesktop({
       })[0]
     : null;
 
+  // Right rail visibility — TopPartnersCard and RecentConstraintsCard both
+  // self-hide when their 30-day window is empty. Mirror their gate cheaply
+  // here (partner strings / constraint ids present) so an empty rail
+  // collapses the grid to one column instead of leaving 440px of dead space.
+  const railHasData = useMemo(() => {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
+    const cutoffStr = cutoff.toISOString().slice(0, 10);
+    return allSessions.some(s => {
+      const d = typeof s.date === 'string' ? s.date.slice(0, 10) : toDateString(new Date(s.date));
+      if (d < cutoffStr) return false;
+      return (s.partners ?? []).some(p => p.trim())
+        || (s.canonical_constraint_ids?.length ?? 0) > 0
+        || (s.user_constraint_ids?.length ?? 0) > 0;
+    });
+  }, [allSessions]);
+
   // heroCardStyle was used by the now-retired AnnualRadial hero block.
   // Removed with the IA migration to Atlas → Prism. Re-introduce only if a
   // new hero card lands on Path Ahead.
@@ -193,22 +210,22 @@ export default function PathAheadDesktop({
 
   return (
     <PageContent ready={!loading} loadingMessages={['Shrimping down the mat...', 'Doing mat swims...', 'Pulling up gi pants...']}>
-    <div className="j2-page-container" style={{ paddingTop: 64, paddingBottom: 104 }}>
+    <div className="j2-page-container" style={{ paddingTop: 40, paddingBottom: 72 }}>
       {styleBlock}
 
       {/* ── Header ──────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 52 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 28 }}>
         <div>
-          <div className="j2-label-micro" style={{ marginBottom: 16 }}>{todayLabel}</div>
+          <div className="j2-label-micro" style={{ marginBottom: 10 }}>{todayLabel}</div>
           <h1
             className="j2-serif-display j2-heading-glow"
-            style={{ fontSize: 88, margin: 0, lineHeight: 1 }}
+            style={{ fontSize: 40, margin: 0, lineHeight: 1 }}
           >
             This week
           </h1>
           <div
             className="j2-serif-italic"
-            style={{ marginTop: 14, fontSize: 22 }}
+            style={{ marginTop: 8, fontSize: 16 }}
           >
             {streakSubtitle}
           </div>
@@ -222,12 +239,12 @@ export default function PathAheadDesktop({
             <button
               onClick={() => setSetIntentOpen(true)}
               style={{
-                height: 50, padding: '0 22px',
+                height: 42, padding: '0 18px',
                 background: 'var(--j2-surface-3)',
                 color: 'rgba(255,255,255,0.90)',
                 border: '1px solid var(--j2-border-2)',
                 borderRadius: 12,
-                fontWeight: 500, fontSize: 15,
+                fontWeight: 500, fontSize: 14,
                 display: 'inline-flex', alignItems: 'center', gap: 10,
                 cursor: 'pointer',
                 transition: 'background 180ms ease',
@@ -241,13 +258,13 @@ export default function PathAheadDesktop({
           <button
             onClick={() => openLog()}
             style={{
-              height: 54, padding: '0 28px',
+              height: 44, padding: '0 22px',
               background: '#DA7422', color: '#fff',
               fontWeight: 600, borderRadius: 12,
               boxShadow: '0 0 0 1px rgba(218,116,34,0.3), 0 10px 24px -12px rgba(218,116,34,0.6)',
               transition: 'background 180ms ease, transform 180ms ease',
               display: 'inline-flex', alignItems: 'center', gap: 10,
-              fontSize: 16,
+              fontSize: 15,
               cursor: 'pointer',
             }}
             onMouseEnter={e => { e.currentTarget.style.background = '#E8823A'; }}
@@ -265,80 +282,65 @@ export default function PathAheadDesktop({
       ) : (
       <>
 
-      {/* ── 2-stat strip (operational) ──────────────────────────────
-          Reduced from 4 stats. Alignment and Consistent-Weeks were
-          reflective metrics (multi-week comparisons) — moved to Atlas.
-          What stays: practice streak (today's relationship to habit)
-          and this week's hours (the current week's actual volume). */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 22, marginBottom: 44 }}>
+      {/* ── Stat strip (operational) ────────────────────────────────
+          Compact hairline row — serif numeral + sans unit suffix
+          (mirrors PulseSparklineWidget's Stat pattern). Value and unit
+          are split so a zero week renders serif "0" + sans "H", never
+          the serif string "0h" (which reads as the word "oh"). */}
+      <div
+        style={{
+          display: 'flex', gap: 56, padding: '16px 0', marginBottom: 32,
+          borderTop: '1px solid var(--j2-border-1)',
+          borderBottom: '1px solid var(--j2-border-1)',
+        }}
+      >
         {([
           {
             label: 'Practice streak',
-            value: streak > 0 ? `${streak}d` : '—',
-            unit: longestStreak > 0 ? `best: ${longestStreak}d` : 'build the habit',
+            value: streak > 0 ? `${streak}` : '—',
+            suffix: streak > 0 ? 'd' : undefined,
+            sub: longestStreak > 0 ? `best: ${longestStreak}d` : 'build the habit',
           },
           {
             label: 'This week',
-            value: weekStatsTotalMinutes > 0 ? formatDuration(weekStatsTotalMinutes) : '0h',
-            unit: `${weekStatsCount} session${weekStatsCount === 1 ? '' : 's'}`,
+            value: (() => {
+              const h = weekStatsTotalMinutes / 60;
+              return Number.isInteger(h) ? `${h}` : h.toFixed(1);
+            })(),
+            suffix: 'h',
+            sub: `${weekStatsCount} session${weekStatsCount === 1 ? '' : 's'}`,
           },
-        ] as { label: string; value: string; unit: string; prestige?: boolean }[]).map((s, i) => (
-          <div
-            key={i}
-            style={{
-              padding: '28px 30px',
-              background: 'var(--j2-surface-2)',
-              border: s.prestige ? `1px solid ${PRESTIGE_TEAL_GLOW}` : '1px solid var(--j2-border-1)',
-              borderRadius: 16,
-              position: 'relative',
-              overflow: 'hidden',
-              boxShadow: s.prestige ? `0 0 24px ${PRESTIGE_TEAL_GLOW}, inset 0 0 32px rgba(0,212,170,0.08)` : undefined,
-              transition: 'box-shadow 400ms ease, border-color 400ms ease',
-            }}
-          >
-            {s.prestige && (
-              <div
-                aria-hidden="true"
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  pointerEvents: 'none',
-                  background: `radial-gradient(ellipse 80% 90% at 50% 55%, ${PRESTIGE_TEAL_GLOW} 0%, rgba(0,212,170,0.14) 40%, transparent 78%)`,
-                  animation: 'j2PrestigeBreathe 4.6s ease-in-out infinite',
-                  mixBlendMode: 'screen',
-                }}
-              />
-            )}
-            <div className="j2-label-micro" style={{ marginBottom: 14, position: 'relative' }}>{s.label}</div>
-            <div
-              style={{
-                fontSize: 52, fontFamily: FONT_EDITORIAL, fontWeight: 600,
-                color: s.prestige ? PRESTIGE_TEAL : PALE_YELLOW, lineHeight: 1.05,
-                textShadow: s.prestige ? `0 0 18px ${PRESTIGE_TEAL_GLOW}` : undefined,
-                position: 'relative',
-                transition: 'color 400ms ease, text-shadow 400ms ease',
-              }}
-            >
-              {s.value}
+        ] as { label: string; value: string; suffix?: string; sub: string }[]).map((s, i) => (
+          <div key={i}>
+            <div className="j2-label-micro" style={{ marginBottom: 6 }}>{s.label}</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+              <span style={{ fontSize: 30, fontFamily: FONT_EDITORIAL, fontWeight: 500, color: PALE_YELLOW, lineHeight: 1 }}>
+                {s.value}
+              </span>
+              {s.suffix && (
+                <span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.02em' }}>
+                  {s.suffix}
+                </span>
+              )}
             </div>
             <div
               style={{
-                fontSize: 13, color: 'rgba(255,255,255,0.40)',
-                marginTop: 8, letterSpacing: '0.1em', textTransform: 'uppercase',
-                position: 'relative',
+                marginTop: 4, fontSize: 10, fontWeight: 600,
+                color: 'rgba(255,255,255,0.42)',
+                textTransform: 'uppercase', letterSpacing: '0.12em',
               }}
             >
-              {s.unit}
+              {s.sub}
             </div>
           </div>
         ))}
       </div>
 
-      {/* ── 2-col main ──────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 440px', gap: 40, alignItems: 'flex-start', marginBottom: 44 }}>
+      {/* ── 2-col main (1-col when the rail has nothing to show) ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: railHasData ? '1fr 400px' : '1fr', gap: 32, alignItems: 'flex-start', marginBottom: 32 }}>
 
         {/* LEFT column — operational spine: today → this week → pulse */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 28, minWidth: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 22, minWidth: 0 }}>
           {/* TodayCard — operational centerpiece. Time-aware dialog that
               walks the user through the day: pre-class "Planning to attend?"
               → in-session → post-class "Did you attend?" → drive-home log
@@ -352,7 +354,7 @@ export default function PathAheadDesktop({
           {/* This week — promoted from the right rail. Now the operational
               anchor for "what does the rest of the week look like." */}
           <SectionLabel>this week</SectionLabel>
-          <div style={{ ...softCardStyle, padding: 32 }}>
+          <div style={{ ...softCardStyle, padding: 22 }}>
             <PathAheadWeekSection
               weekOffset={weekOffset}
               weekLabel={weekLabel}
@@ -399,13 +401,16 @@ export default function PathAheadDesktop({
         </div>
 
         {/* RIGHT rail — pulse sidebar: who you trained with, what rules
-            you trained under. Two cards. */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 26 }}>
-          {/* Top partners — last 30 days. Self-hides when no partner data. */}
-          <TopPartnersCard sessions={allSessions} softCardStyle={softCardStyle} />
-          {/* Recent constraints — last 30 days. Self-hides when empty. */}
-          <RecentConstraintsCard sessions={allSessions} softCardStyle={softCardStyle} />
-        </div>
+            you trained under. Two cards. Omitted entirely (grid collapses
+            to one column) when neither card has 30-day data. */}
+        {railHasData && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+            {/* Top partners — last 30 days. Self-hides when no partner data. */}
+            <TopPartnersCard sessions={allSessions} softCardStyle={softCardStyle} />
+            {/* Recent constraints — last 30 days. Self-hides when empty. */}
+            <RecentConstraintsCard sessions={allSessions} softCardStyle={softCardStyle} />
+          </div>
+        )}
       </div>
 
       {/* Recent intentions row removed — they live on /intentions where
