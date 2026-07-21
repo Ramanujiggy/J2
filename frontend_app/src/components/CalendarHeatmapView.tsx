@@ -83,6 +83,7 @@ export default function CalendarHeatmapView({
 
   // Selected month for inline session list — null = show all year stats
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
+  const sessionListRef = useRef<HTMLDivElement>(null);
 
   const monthSessions = useMemo(() => {
     if (selectedMonth == null) return [];
@@ -98,6 +99,15 @@ export default function CalendarHeatmapView({
         return bk.localeCompare(ak);
       });
   }, [sessions, year, selectedMonth]);
+
+  // Scroll session list into view when a month is selected
+  useEffect(() => {
+    if (selectedMonth != null && sessionListRef.current) {
+      setTimeout(() => {
+        sessionListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 320);
+    }
+  }, [selectedMonth]);
 
   const gridRef = useRef<HTMLDivElement>(null);
   const cellsRef = useRef<HTMLDivElement[]>([]);
@@ -233,7 +243,7 @@ export default function CalendarHeatmapView({
         role="grid"
         aria-label={`Training heatmap for ${year}`}
         className="j2-heatmap-scroll"
-        style={{ position: 'relative', overflowY: 'auto', maxHeight: 'calc(100dvh - 280px)', scrollbarWidth: 'none' }}
+        style={{ position: 'relative', overflowY: 'auto', maxHeight: selectedMonth != null ? 'calc(100dvh - 520px)' : 'calc(100dvh - 280px)', scrollbarWidth: 'none', transition: 'max-height 300ms ease' }}
       >
         {/* Sticky day-of-week header */}
         <div
@@ -431,7 +441,7 @@ export default function CalendarHeatmapView({
 
       {/* Inline session list — shows when a month is tapped */}
       {selectedMonth != null && monthSessions.length > 0 && (
-        <div style={{ marginTop: 16 }}>
+        <div ref={sessionListRef} style={{ marginTop: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase' as const, color: 'rgba(255,255,255,0.35)' }}>
               {MONTH_ABBR[selectedMonth]} {year} · {monthSessions.length} session{monthSessions.length !== 1 ? 's' : ''}
