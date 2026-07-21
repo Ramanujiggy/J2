@@ -2,13 +2,14 @@
 // Replaces the `if (loading) return <LoadingScreen />` pattern in each page so the
 // loader fades out smoothly instead of cutting away at an arbitrary animation frame.
 //
-// When `ready` flips to true the crossfade is deferred until the belt-tying
-// animation reaches its next settle point (knot fully tied, hold complete).
-// This avoids cutting the animation mid-sequence. A 3s safety timeout ensures
-// the page is never stuck if the callback doesn't fire.
+// When `ready` flips to true the crossfade is deferred until PrismLoader's
+// next settle point (end of the arrive trace, then every sweep flare at 600ms
+// cadence). This avoids cutting the animation mid-sequence. A 3s safety
+// timeout ensures the page is never stuck if the callback doesn't fire.
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import LoadingScreen from './LoadingScreen.tsx';
+import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 
 type Phase = 'loading' | 'waiting' | 'fading' | 'ready';
 
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export default function PageContent({ ready, children, loadingMessages }: Props) {
+  const isDesktop = useIsDesktop();
   const [phase, setPhase] = useState<Phase>(ready ? 'ready' : 'loading');
   const safetyTimer = useRef<ReturnType<typeof setTimeout>>();
   const fadeTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -33,7 +35,7 @@ export default function PageContent({ ready, children, loadingMessages }: Props)
     fadeTimer.current = setTimeout(() => setPhase('ready'), FADE_MS);
   }, []);
 
-  // Called by BeltLoader at the end of each tying cycle
+  // Called by PrismLoader at the end of ARRIVE and on each sweep flare
   const handleCycleSettle = useCallback(() => {
     setPhase(prev => {
       if (prev === 'waiting') {
@@ -71,6 +73,13 @@ export default function PageContent({ ready, children, loadingMessages }: Props)
       clearTimeout(fadeTimer.current);
     };
   }, []);
+
+  // Desktop short-circuit — never show the full-screen loader on desktop.
+  // Modern web apps (Linear, Vercel, Stripe, Notion, GitHub, Anthropic
+  // Console) render content immediately and let data stream in via skeleton
+  // / empty states. Mobile keeps the brand-coherent Prism-trace loader
+  // because cold-start mobile networks justify a "moment of waiting."
+  if (isDesktop) return <>{children}</>;
 
   if (phase === 'ready') return <>{children}</>;
 

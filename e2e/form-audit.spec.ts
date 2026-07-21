@@ -112,7 +112,7 @@ test.describe('Log Session Form Audit', () => {
     await page.waitForTimeout(800);
 
     // Scroll to bottom
-    const submitBtn = page.locator('button:has-text("Log Session")');
+    const submitBtn = page.locator('button:has-text("Save Session")');
     await submitBtn.scrollIntoViewIfNeeded();
     await page.waitForTimeout(500);
     await snap(page, '04-form-section3-details', testInfo);

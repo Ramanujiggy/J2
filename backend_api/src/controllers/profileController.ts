@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { getProfile, updateProfile } from '../models/profileModel.js';
+import { updateUserTimezone, markOnboardingComplete, setOnboardingStep } from '../models/userModel.js';
 
 const BELT_RANKS = ['white', 'blue', 'purple', 'brown', 'black'] as const;
 
@@ -16,11 +17,7 @@ const ProfileSchema = z.object({
 
 export const fetchProfile = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
-        if (!userId) {
-            res.status(401).json({ message: 'Unauthorized.' });
-            return;
-        }
+        const userId = req.user!.id;
 
         const profile = await getProfile(userId);
         res.json({ profile });
@@ -32,11 +29,7 @@ export const fetchProfile = async (req: Request, res: Response): Promise<void> =
 
 export const saveProfile = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
-        if (!userId) {
-            res.status(401).json({ message: 'Unauthorized.' });
-            return;
-        }
+        const userId = req.user!.id;
 
         const parsed = ProfileSchema.safeParse(req.body);
         if (!parsed.success) {
@@ -59,6 +52,66 @@ export const saveProfile = async (req: Request, res: Response): Promise<void> =>
         res.json({ message: 'Profile saved.', profile: updated });
     } catch (err) {
         console.error('❌ Error saving profile:', err);
+        res.status(500).json({ message: 'Server error.' });
+    }
+};
+
+// Validates an IANA timezone string. Falls back to a length+character check if
+// `Intl.supportedValuesOf` is unavailable (older Node versions).
+function isValidTimezone(tz: string): boolean {
+    if (typeof tz !== 'string' || tz.length === 0 || tz.length > 64) return false;
+    try {
+        new Intl.DateTimeFormat(undefined, { timeZone: tz });
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+export const completeOnboarding = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const userId = req.user!.id;
+        await markOnboardingComplete(userId);
+        const profile = await getProfile(userId);
+        res.json({ profile });
+    } catch (err) {
+        console.error('❌ Error completing onboarding:', err);
+        res.status(500).json({ message: 'Server error.' });
+    }
+};
+
+// mig 026 — record onboarding funnel progress. Per-step capture so we can
+// see drop-off in the guided flow. The model layer enforces the
+// never-go-backward invariant; this just validates and forwards.
+const OnboardingStepSchema = z.object({
+    step: z.number().int().min(0).max(5),
+});
+
+export const updateOnboardingStep = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const userId = req.user!.id;
+        const parsed = OnboardingStepSchema.safeParse(req.body);
+        if (!parsed.success) {
+            res.status(400).json({ message: 'Invalid step.', errors: parsed.error.flatten() });
+            return;
+        }
+        await setOnboardingStep(userId, parsed.data.step);
+        res.json({ ok: true });
+    } catch (err) {
+        console.error('❌ Error updating onboarding step:', err);
+        res.status(500).json({ message: 'Server error.' });
+    }
+};
+
+export const saveTimezone = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const userId = req.user!.id;
+        const tz = (req.body ?? {}).timezone;
+        if (!isValidTimezone(tz)) { res.status(400).json({ message: 'Invalid timezone.' }); return; }
+        await updateUserTimezone(userId, tz);
+        res.json({ timezone: tz });
+    } catch (err) {
+        console.error('❌ Error saving timezone:', err);
         res.status(500).json({ message: 'Server error.' });
     }
 };

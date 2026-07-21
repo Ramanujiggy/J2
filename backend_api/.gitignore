@@ -4,6 +4,10 @@ node_modules/
 # Build output (The compiled JavaScript)
 dist/
 
+# Architecture manifest is now committed to git so the backend Docker
+# build can serve it without needing frontend_app/. Regenerate with:
+#   cd backend_api && npx tsx scripts/generateArchitectureManifest.ts
+
 # Environment variables (Crucial Security: Never commit passwords/secrets!)
 .env
 .env.local

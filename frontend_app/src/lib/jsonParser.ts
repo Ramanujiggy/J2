@@ -3,7 +3,7 @@ import type { ParsedRow, GiNogi, SessionType, SkillTagValue } from './csvParser.
 
 const VALID_GI_NOGI = new Set(['gi', 'no_gi']);
 const VALID_SESSION_TYPES = new Set(['class', 'drilling', 'competition_training']);
-const VALID_TAGS = new Set(SKILL_TAGS.map(t => t.value));
+const VALID_TAGS: Set<string> = new Set(SKILL_TAGS.map(t => t.value));
 const VALID_POLARITIES = new Set(['offense', 'defense', 'neutral']);
 const VALID_SOURCES = new Set(['directed', 'organic']);
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;

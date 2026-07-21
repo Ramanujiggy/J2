@@ -1,9 +1,15 @@
-import { Pool } from 'pg';
+import { Pool, types } from 'pg';
 import dotenv from 'dotenv';
 
 
-//loading variables from .env file 
-dotenv.config(); 
+//loading variables from .env file
+dotenv.config();
+
+// Return PostgreSQL DATE columns as raw YYYY-MM-DD strings instead of JS Date
+// objects. All our models type these fields as `string` and call `.slice(0,10)`
+// on them — without this override the pg driver silently parses them into Date,
+// which breaks string methods at runtime (e.g. intentionController:64).
+types.setTypeParser(types.builtins.DATE, (val: string) => val);
 
 
 // 2. configure the connection pool

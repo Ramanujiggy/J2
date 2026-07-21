@@ -3,18 +3,20 @@ import { api, ApiError } from '../lib/api.ts';
 import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import TrainingHeatmap from '../components/TrainingHeatmap.tsx';
-import CompactHeatmap from '../components/CompactHeatmap.tsx';
-import CalendarHeatmap from '../components/CalendarHeatmap.tsx';
+import CalendarHeatmapView from '../components/CalendarHeatmapView.tsx';
 import LogSessionForm from '../components/LogSessionForm.tsx';
 import ErrorBoundary from '../components/ErrorBoundary.tsx';
 import { LayoutGrid, CalendarDays, Search, X } from 'lucide-react';
 import SessionSearchPanel from '../components/SessionSearchPanel.tsx';
+import Coachmark from '../components/Coachmark.tsx';
+import { useCoachmark } from '../hooks/useCoachmark.ts';
 import { PALE_YELLOW, GLOW_SOFT, COPPER, SURFACE_2 } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import type { SessionSummary, CalendarIntention, SessionsResponse, IntentionsResponse } from '../types/api.ts';
 
 export default function CalendarPage() {
   const isDesktop = useIsDesktop();
+  const calendarCoachmark = useCoachmark('calendar');
   const [sessions,    setSessions]    = useState<SessionSummary[]>([]);
   const [intentions,  setIntentions]  = useState<CalendarIntention[]>([]);
   const [loading,     setLoading]     = useState(true);
@@ -24,10 +26,13 @@ export default function CalendarPage() {
   const [logDate,     setLogDate]     = useState<string | null>(null); // YYYY-MM-DD for log-from-calendar
   const [searchOpen,  setSearchOpen]  = useState(false);
 
-  // View toggle — compact hero vs full detailed heatmap
-  type CalendarViewMode = 'compact' | 'detailed';
+  type CalendarViewMode = 'heatmap' | 'detailed';
   const [calView, setCalView] = useState<CalendarViewMode>(
-    () => (localStorage.getItem('j2_cal_view') as CalendarViewMode) || 'detailed'
+    () => {
+      const stored = localStorage.getItem('j2_cal_view');
+      if (stored === 'heatmap' || stored === 'detailed') return stored;
+      return 'heatmap';
+    }
   );
   const handleCalViewChange = useCallback((mode: CalendarViewMode) => {
     setCalView(mode);
@@ -38,6 +43,12 @@ export default function CalendarPage() {
     setFlipDir(dir === 1 ? 'forward' : 'back');
     setDisplayYear(y => y + dir);
   };
+
+  const currentYear = new Date().getFullYear();
+  // Stable callbacks for TrainingHeatmap/CalendarHeatmap (per Tier 3 perf audit:
+  // inline arrow props defeat React.memo on the heatmap children).
+  const handleGoToToday  = useCallback(() => setDisplayYear(currentYear), [currentYear]);
+  const handleLogSession = useCallback((dateKey: string) => setLogDate(dateKey), []);
 
   const fetchAll = useCallback(async () => {
     try {
@@ -64,8 +75,6 @@ export default function CalendarPage() {
   const pendingSessions = usePendingSessions();
   const allSessions = useMemo(() => [...sessions, ...pendingSessions], [sessions, pendingSessions]);
 
-  const currentYear = new Date().getFullYear();
-
   return (
     <>
     {/* Log session modal — triggered from empty calendar cells */}
@@ -77,7 +86,7 @@ export default function CalendarPage() {
         aria-label="Log session"
         className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto px-5"
         style={{
-          backgroundColor: 'rgba(13, 26, 20, 0.97)',
+          backgroundColor: 'rgba(13, 26, 20, 1)',
           backdropFilter: 'blur(16px)',
           paddingTop: 'max(1rem, env(safe-area-inset-top))',
           paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
@@ -86,7 +95,7 @@ export default function CalendarPage() {
       >
         <div
           onClick={e => e.stopPropagation()}
-          className="w-full sm:max-w-lg animate-j2-modal-in"
+          className="w-full sm:max-w-lg lg:max-w-5xl animate-j2-modal-in"
         >
           <LogSessionForm
             onSuccess={() => { fetchAll(); setLogDate(null); }}
@@ -97,16 +106,19 @@ export default function CalendarPage() {
       </div>
     )}
 
-    <div className={`mx-auto space-y-5 ${isDesktop ? 'max-w-7xl px-8 py-5' : 'max-w-5xl px-4 sm:px-6 py-6'}`}>
+    <div className={`space-y-5 ${isDesktop ? 'j2-page-container' : 'mx-auto max-w-5xl px-4 sm:px-6'}`} style={isDesktop ? { paddingTop: 20, paddingBottom: 20 } : { paddingTop: 24, paddingBottom: 24 }}>
 
       {/* Header row */}
       <div className="flex items-center justify-between">
-        <h2
-          className="text-2xl font-bold tracking-tight"
-          style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}
-        >
-          {displayYear} Mat Time
-        </h2>
+        {calView !== 'heatmap' && (
+          <h2
+            className="text-2xl font-display font-bold tracking-tight"
+            style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}
+          >
+            {displayYear} Mat Time
+          </h2>
+        )}
+        {calView === 'heatmap' && <div />}
 
         <div className="flex items-center gap-2">
           {/* Search toggle */}
@@ -124,10 +136,10 @@ export default function CalendarPage() {
             {searchOpen ? <X size={14} /> : <Search size={14} />}
           </button>
 
-          {/* View toggle */}
-          <div className="flex gap-0.5 p-0.5 rounded-lg" style={{ backgroundColor: SURFACE_2 }}>
+          {/* View toggle — heatmap (density scan) vs detailed (book mode) */}
+          <div className="flex gap-0.5 p-0.5 rounded-lg" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.06)' }}>
             {([
-              { id: 'compact' as const, Icon: LayoutGrid },
+              { id: 'heatmap' as const, Icon: LayoutGrid },
               { id: 'detailed' as const, Icon: CalendarDays },
             ]).map(({ id, Icon }) => {
               const isActive = calView === id;
@@ -143,7 +155,7 @@ export default function CalendarPage() {
                     color: isActive ? '#fff' : 'rgba(255,255,255,0.35)',
                     transition: 'background-color 200ms ease, color 200ms ease',
                   }}
-                  aria-label={id === 'compact' ? 'Compact view' : 'Detailed view'}
+                  aria-label={id === 'heatmap' ? 'Heatmap view' : 'Detailed view'}
                 >
                   <Icon size={14} strokeWidth={isActive ? 2 : 1.5} />
                 </button>
@@ -151,10 +163,11 @@ export default function CalendarPage() {
             })}
           </div>
 
-          {/* Year navigation — same pill treatment as view toggle */}
-          <div className="flex items-center p-0.5 rounded-lg" style={{ backgroundColor: SURFACE_2 }}>
+          {/* Year navigation — hidden when heatmap renders its own */}
+          {calView !== 'heatmap' && <div className="flex items-center p-0.5 rounded-lg" style={{ backgroundColor: SURFACE_2 }}>
             <button
               onClick={() => navigateYear(-1)}
+              aria-label="Previous year"
               className="p-1.5 rounded-md hover:bg-white/5 transition-colors touch-manipulation"
               style={{ color: 'rgba(242,228,168,0.45)' }}
             >
@@ -171,6 +184,7 @@ export default function CalendarPage() {
             <button
               onClick={() => navigateYear(1)}
               disabled={displayYear >= currentYear}
+              aria-label="Next year"
               className="p-1.5 rounded-md hover:bg-white/5 transition-colors disabled:opacity-20 disabled:cursor-not-allowed touch-manipulation"
               style={{ color: 'rgba(242,228,168,0.45)' }}
             >
@@ -178,7 +192,7 @@ export default function CalendarPage() {
                 <path d="M9 18l6-6-6-6" />
               </svg>
             </button>
-          </div>
+          </div>}
         </div>
       </div>
 
@@ -187,7 +201,6 @@ export default function CalendarPage() {
       {searchOpen ? (
         <SessionSearchPanel
           cachedSessions={allSessions}
-          onClose={() => setSearchOpen(false)}
           onRefresh={fetchAll}
         />
       ) : (
@@ -199,28 +212,23 @@ export default function CalendarPage() {
               animation: `j2PageFlip${flipDir === 'forward' ? 'Forward' : 'Back'} 380ms ease-out both`,
             } : undefined}
           >
-            {calView === 'compact' ? (
-              isDesktop ? (
-                <CalendarHeatmap
-                  sessions={allSessions}
-                  year={displayYear}
-                  onLogSession={(dateKey) => setLogDate(dateKey)}
-                />
-              ) : (
-                <CompactHeatmap
-                  sessions={allSessions}
-                  year={displayYear}
-                  loading={loading}
-                />
-              )
+            {calView === 'heatmap' ? (
+              <CalendarHeatmapView
+                sessions={allSessions}
+                year={displayYear}
+                loading={loading}
+                onYearChange={setDisplayYear}
+                onLogSession={handleLogSession}
+                onSessionUpdated={fetchAll}
+              />
             ) : (
               <TrainingHeatmap
                 sessions={allSessions}
                 intentions={intentions}
                 loading={loading}
                 onSessionUpdated={fetchAll}
-                onGoToToday={() => setDisplayYear(currentYear)}
-                onLogSession={(dateKey) => setLogDate(dateKey)}
+                onGoToToday={handleGoToToday}
+                onLogSession={handleLogSession}
                 year={displayYear}
               />
             )}
@@ -228,6 +236,14 @@ export default function CalendarPage() {
         </ErrorBoundary>
       )}
     </div>
+
+    <Coachmark
+      open={calendarCoachmark.isOpen}
+      onDismiss={calendarCoachmark.dismiss}
+      eyebrow="◇ Calendar"
+      title="Every session lands here."
+      body="Tap a date to log one or open it. Swipe through months in the grid to look back."
+    />
     </>
   );
 }

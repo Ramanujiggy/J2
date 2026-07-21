@@ -5,10 +5,13 @@ type Phase = 'visible' | 'exiting' | 'entering';
 
 interface Props {
   children: React.ReactNode;
-  direction?: 'forward' | 'back' | null;
 }
 
-export default function PageTransition({ children, direction }: Props) {
+// Single non-directional transition: previous page fades out + lifts up
+// slightly + pulls in, new page rises into place. No horizontal slides
+// (those felt mobile-app-light); this reads more like a leather-bound page
+// settling. Keyframes (`j2-page-out`, `j2-page-in`) live in index.css.
+export default function PageTransition({ children }: Props) {
   const location = useLocation();
   const [phase, setPhase] = useState<Phase>('visible');
   const [displayChildren, setDisplayChildren] = useState(children);
@@ -26,32 +29,26 @@ export default function PageTransition({ children, direction }: Props) {
 
       const enterTimer = setTimeout(() => {
         setPhase('visible');
-      }, 360);
+      }, 520);
 
       return () => clearTimeout(enterTimer);
-    }, 240);
+    }, 200);
 
     return () => clearTimeout(exitTimer);
   }, [location.pathname, children]);
 
-  // Update children when not transitioning
+  // Update children when not transitioning (e.g. data refetch on the same page)
   useEffect(() => {
     if (phase === 'visible') {
       setDisplayChildren(children);
     }
   }, [children, phase]);
 
-  const enterAnim = direction === 'forward'
-    ? 'j2-page-slide-in-forward 360ms cubic-bezier(0.16, 1, 0.3, 1) both'
-    : direction === 'back'
-      ? 'j2-page-slide-in-back 360ms cubic-bezier(0.16, 1, 0.3, 1) both'
-      : 'j2-page-in 360ms cubic-bezier(0.16, 1, 0.3, 1) both';
-
   const style: React.CSSProperties =
     phase === 'exiting'
-      ? { animation: 'j2-page-out 240ms ease-out both' }
+      ? { animation: 'j2-page-out 200ms cubic-bezier(0.4, 0, 1, 1) both' }
       : phase === 'entering'
-        ? { animation: enterAnim }
+        ? { animation: 'j2-page-in 520ms cubic-bezier(0.16, 1, 0.3, 1) both' }
         : {};
 
   return (

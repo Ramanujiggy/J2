@@ -1,3 +1,5 @@
+import { useRef, useEffect } from 'react';
+import gsap from 'gsap';
 import { PALE_YELLOW, GLOW_SOFT } from '../../lib/theme.ts';
 
 export interface DonutSegment { value: number; color: string; label: string; }
@@ -23,6 +25,19 @@ export default function DonutChart({ segments, centerLabel, centerSub }: {
 }) {
   const nonZero = segments.filter(s => s.value > 0);
   const total   = nonZero.reduce((a, s) => a + s.value, 0);
+  const arcRefs = useRef<(SVGPathElement | null)[]>([]);
+
+  useEffect(() => {
+    arcRefs.current.forEach((arc, i) => {
+      if (!arc) return;
+      const len = arc.getTotalLength();
+      gsap.fromTo(arc,
+        { strokeDasharray: len, strokeDashoffset: len, fillOpacity: 0 },
+        { strokeDashoffset: 0, fillOpacity: 0.88,
+          duration: 0.85, delay: i * 0.15, ease: 'power2.inOut' },
+      );
+    });
+  }, [total, nonZero.length]);
 
   if (total === 0) {
     return (
@@ -49,7 +64,15 @@ export default function DonutChart({ segments, centerLabel, centerSub }: {
   return (
     <svg viewBox="0 0 100 100" width="100%" aria-label="Donut chart">
       {arcs.map((seg, i) => (
-        <path key={i} d={seg.path} fill={seg.color} opacity={0.88} />
+        <path
+          key={i}
+          ref={el => { arcRefs.current[i] = el; }}
+          d={seg.path}
+          fill={seg.color}
+          fillOpacity={0}
+          stroke={seg.color}
+          strokeWidth={0.5}
+        />
       ))}
       <text x={CX} y={CY - 5} textAnchor="middle" dominantBaseline="auto"
         fill={PALE_YELLOW} fontSize={14} fontWeight={700} fontFamily="sans-serif"

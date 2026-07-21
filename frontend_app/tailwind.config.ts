@@ -54,8 +54,9 @@ export default {
         sm: 'calc(var(--radius) - 4px)',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        display: ['DM Serif Display', 'serif'],
+        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+        display: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+        wordmark: ['"Cormorant Garamond"', 'Georgia', 'serif'],
       },
       transitionTimingFunction: {
         heavy:  'cubic-bezier(0.16, 1, 0.3, 1)',

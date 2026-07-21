@@ -1,8 +1,8 @@
 import { SKILL_TAGS } from './constants.ts';
-import { classifyHeader, type ParsedRow, type SkillTagValue } from './csvParser.ts';
+import { classifyHeader, type ParsedRow } from './csvParser.ts';
 import { parseTrainingLog } from './trainingLogParser.ts';
 
-const VALID_TAGS = new Set(SKILL_TAGS.map(t => t.value));
+const VALID_TAGS: Set<string> = new Set(SKILL_TAGS.map(t => t.value));
 const VALID_POLARITIES = new Set(['offense', 'defense', 'neutral']);
 const VALID_SOURCES = new Set(['directed', 'organic']);
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;

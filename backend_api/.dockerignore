@@ -1,0 +1,34 @@
+# Keep the Docker build context small. Anything in this list won't be sent
+# to the Docker daemon during `COPY . .`, which means it can't end up in
+# the final image. Smaller context = faster builds + smaller image.
+
+# Heavy / regenerable
+node_modules
+dist
+coverage
+
+# Secrets — Railway injects env vars at runtime, .env files shouldn't
+# be in the image at all
+.env
+.env.*
+
+# Tests aren't needed in production
+tests
+*.test.ts
+vitest.config.ts
+
+# VCS metadata + dev tooling artifacts
+.git
+.gitignore
+.dockerignore
+Dockerfile
+*.log
+.DS_Store
+
+# Editor / IDE config
+.vscode
+.idea
+
+# The Nixpacks config is bypassed when a Dockerfile is present — no need
+# to ship it inside the image either
+nixpacks.toml

@@ -1,5 +1,10 @@
 [build]
-buildCommand = "npm install && npm run build"
+# `npm ci` wipes node_modules and does a clean install from package-lock.json,
+# bypassing Railway's cached node_modules that may have been populated without
+# devDependencies (typescript, @types/*, etc.). `--include=dev` explicitly
+# overrides Railway's NODE_ENV=production default. This is the standard
+# CI/CD pattern — faster and more deterministic than `npm install`.
+buildCommand = "npm ci --include=dev && npm run build"
 
 [deploy]
 startCommand = "npm run start"

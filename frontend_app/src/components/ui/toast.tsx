@@ -22,14 +22,23 @@ const ToastViewport = React.forwardRef<
 ))
 ToastViewport.displayName = ToastPrimitives.Viewport.displayName
 
+// Brand-aligned toast variants. Each variant pairs a card-edge border colour
+// with a left-edge accent strip rendered via ::before on the Toast root —
+// see the global `[data-toast-variant]::before` rules in index.css.
+//
+// • default     — copper accent. Use for informational confirmations + neutral
+//                 system messages ("Saved", "Sessions exported").
+// • success     — moss accent. Use for completed actions where you specifically
+//                 want a positive register ("Profile saved", milestones).
+// • destructive — terracotta accent. Use for failures + destructive confirms.
 const toastVariants = cva(
-  "group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-xl p-5 pr-8 shadow-lg transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-bottom-full",
+  "group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-xl p-5 pr-8 pl-6 shadow-lg transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-bottom-full",
   {
     variants: {
       variant: {
-        default: "border border-[rgba(196,145,95,0.45)] bg-[#152E22] text-[#F2E4A8] shadow-[0_2px_4px_rgba(0,0,0,0.15),0_8px_24px_rgba(0,0,0,0.35)]",
-        destructive:
-          "destructive group border-[rgba(220,90,80,0.5)] bg-[#152E22] text-[#F2E4A8]",
+        default: "j2-toast-default border border-[rgba(196,145,95,0.45)] bg-[#152E22] text-[#F2E4A8] shadow-[0_2px_4px_rgba(0,0,0,0.15),0_8px_24px_rgba(0,0,0,0.35)]",
+        success: "j2-toast-success border border-[rgba(168,185,122,0.40)] bg-[#152E22] text-[#F2E4A8] shadow-[0_2px_4px_rgba(0,0,0,0.15),0_8px_24px_rgba(0,0,0,0.35)]",
+        destructive: "j2-toast-destructive destructive group border border-[rgba(224,117,96,0.45)] bg-[#152E22] text-[#F2E4A8] shadow-[0_2px_4px_rgba(0,0,0,0.15),0_8px_24px_rgba(0,0,0,0.35)]",
       },
     },
     defaultVariants: {

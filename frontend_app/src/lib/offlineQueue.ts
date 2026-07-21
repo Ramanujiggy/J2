@@ -93,7 +93,24 @@ export async function flush(): Promise<{ synced: number; failed: number }> {
         continue;
       }
 
-      // Treat any non-5xx as success (including 4xx like 409 duplicate)
+      // A 4xx means the server permanently rejected this write (bad payload,
+      // now-invalid reference, etc.) — retrying it forever is pointless, so
+      // drop it from the queue. Unlike a real success this silently destroys
+      // user data, so it's neither `synced` nor `failed` (both drive generic
+      // toasts that would misreport what happened) — surface it loudly instead:
+      // log it, and let interested UI (useOnlineSync) toast a dedicated
+      // warning via the custom event.
+      if (res.status >= 400 && res.status < 500) {
+        const text = await res.text().catch(() => '');
+        console.error(`[offlineQueue] Rejected (${res.status}) — dropping from queue: ${req.method} ${req.path}`, text);
+        window.dispatchEvent(new CustomEvent('journada:offline-sync-rejected', {
+          detail: { url: req.path, status: res.status },
+        }));
+        await db.delete(STORE, req.id);
+        continue;
+      }
+
+      // Treat any other non-5xx (2xx/3xx) as success
       if (res.status < 500) {
         await db.delete(STORE, req.id);
         synced++;

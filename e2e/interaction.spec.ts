@@ -9,29 +9,15 @@
  * Run: npm run e2e -- --project=mobile-chrome --grep interaction
  */
 import { test, expect, Page } from '@playwright/test';
-
-const TEST_EMAIL    = `interaction-${Date.now()}@journada-e2e.com`;
-const TEST_PASSWORD = 'TestPass123!';
+import { loginAsTestUser } from './test-account';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-async function registerAndLogin(page: Page) {
-  await page.goto('/');
-  // Register
-  await page.getByRole('button', { name: 'Register' }).click();
-  await page.getByPlaceholder('you@example.com').fill(TEST_EMAIL);
-  await page.getByPlaceholder('••••••••').fill(TEST_PASSWORD);
-  await page.locator('form').getByRole('button', { name: 'Create Account' }).click();
-  await page.waitForURL('**/home', { timeout: 15_000 });
-  await page.waitForLoadState('networkidle');
-}
-
+// Thin wrapper over the shared persistent test account so existing call
+// sites keep their semantic name. First run on a fresh DB registers,
+// every subsequent run logs in.
 async function loginOnly(page: Page) {
-  await page.goto('/');
-  await page.getByPlaceholder('you@example.com').fill(TEST_EMAIL);
-  await page.getByPlaceholder('••••••••').fill(TEST_PASSWORD);
-  await page.locator('form').getByRole('button', { name: 'Log In' }).click();
-  await page.waitForURL('**/home', { timeout: 15_000 });
+  await loginAsTestUser(page);
   await page.waitForLoadState('networkidle');
 }
 
@@ -54,10 +40,12 @@ async function waitForPageReady(page: Page) {
 test.describe('Mobile interactions', () => {
   test.describe.configure({ mode: 'serial' });
 
-  test('00 — register test account', async ({ page }) => {
-    await registerAndLogin(page);
-    // Just confirming we land on /home — no assertion needed beyond URL
-    await expect(page).toHaveURL(/\/home/);
+  test('00 — log in to the shared test account', async ({ page }) => {
+    // Idempotent: registers on first ever run, otherwise logs in. Reuses
+    // the e2e@journada-e2e.com account from e2e/test-account.ts so we
+    // don't accumulate a new user per run.
+    await loginAsTestUser(page);
+    await expect(page).toHaveURL(/\/home|\/onboarding/);
   });
 
   // ── PathAhead (home) page ─────────────────────────────────────────────────

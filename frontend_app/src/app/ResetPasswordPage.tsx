@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../lib/api.ts';
-import WaveBackground from '../components/WaveBackground.tsx';
+import SeigaihaPattern from '../components/visuals/SeigaihaPattern.tsx';
 import { CARD_BG, COPPER_BORDER, CARD_SHADOW, PALE_YELLOW, GLOW_TITLE, GLOW_NAV } from '../lib/theme.ts';
 
 export default function ResetPasswordPage() {
@@ -43,10 +43,10 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="min-h-screen min-h-dvh flex flex-col items-center justify-center bg-brand-dark px-4 relative overflow-hidden">
-      <WaveBackground />
+      <SeigaihaPattern tileSize={36} driftSeconds={12.2} fillTileBackground />
 
       <div className="mb-10 text-center relative z-10">
-        <h1 className="text-5xl font-bold tracking-tight" style={{ color: PALE_YELLOW, textShadow: GLOW_TITLE }}>
+        <h1 className="text-5xl font-wordmark tracking-tight" style={{ color: PALE_YELLOW, textShadow: GLOW_TITLE }}>
           Journada
         </h1>
         <p className="mt-3 text-lg" style={{ color: PALE_YELLOW, textShadow: GLOW_NAV }}>
@@ -87,6 +87,8 @@ export default function ResetPasswordPage() {
               <label className="block text-sm text-white/70 mb-1">New Password</label>
               <input
                 type="password"
+                autoComplete="new-password"
+                enterKeyHint="next"
                 required
                 value={newPassword}
                 onChange={e => setNewPassword(e.target.value)}
@@ -99,6 +101,8 @@ export default function ResetPasswordPage() {
               <label className="block text-sm text-white/70 mb-1">Confirm Password</label>
               <input
                 type="password"
+                autoComplete="new-password"
+                enterKeyHint="go"
                 required
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
