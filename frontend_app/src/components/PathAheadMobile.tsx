@@ -21,7 +21,6 @@ import PageContent from './PageContent.tsx';
 import PathAheadWeekSection, { type WeekViewMode } from './PathAheadWeekSection.tsx';
 import { toDateString } from '../lib/sessionUtils.ts';
 import type { Intention, SessionSummary } from '../types/api.ts';
-import type { ACWRResult, DecayResult, PillarACWRResult } from '../lib/analyticsModels.ts';
 
 interface DaySessionEntry {
   session: SessionSummary;
@@ -34,16 +33,11 @@ interface Props {
   intentionsEnabled: boolean;
   loading: boolean;
   streak: number;
-  longestStreak: number;
   weekSessionCount: number;
-  consistentWeeks: number;
   totalSessions: number;
   tenure: string;
   lastSession: { id: string; date: string; duration: number; focusLabel: string; endedAgo: string } | null;
   dayRailData: Array<{ dow: string; date: number; state: 'done' | 'today' | 'rest' | 'future' }>;
-  acwr?: ACWRResult | null;
-  rustiest?: DecayResult | null;
-  spikiest?: PillarACWRResult | null;
   telemetryContent: React.ReactNode;
   activeIntention: Intention | null;
   activeIntentionProgress: { completed: number; target: number; unit: 'sessions' | 'training_weeks' } | null;

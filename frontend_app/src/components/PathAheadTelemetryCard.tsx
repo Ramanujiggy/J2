@@ -1,4 +1,4 @@
-import { COPPER, FONT_EDITORIAL } from '../lib/theme.ts';
+import { FONT_EDITORIAL } from '../lib/theme.ts';
 import { formatDuration } from '../lib/sessionUtils.ts';
 import type { TelemetryResult } from '../lib/analyticsModels.ts';
 

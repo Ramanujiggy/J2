@@ -487,16 +487,11 @@ export default function PathAheadPage() {
       intentionsEnabled={intentionsEnabled}
       loading={loading}
       streak={streak}
-      longestStreak={longestStreak}
       weekSessionCount={weekStats.count}
-      consistentWeeks={consistentWeeks}
       totalSessions={totalSessions}
       tenure={tenure}
       lastSession={lastSession}
       dayRailData={dayRailData}
-      acwr={acwr}
-      rustiest={rustiestPillar}
-      spikiest={spikiest}
       telemetryContent={telemetryContent}
       activeIntention={activeIntention}
       activeIntentionProgress={activeIntentionProgress}
