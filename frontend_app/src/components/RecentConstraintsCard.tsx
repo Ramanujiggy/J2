@@ -61,8 +61,8 @@ export default function RecentConstraintsCard({ sessions, softCardStyle }: Props
   const max = rows[0].count;
 
   return (
-    <div style={{ ...softCardStyle, padding: 32 }}>
-      <div className="j2-label-copper" style={{ marginBottom: 22 }}>◈ Recent constraints · 30 days</div>
+    <div style={{ ...softCardStyle, padding: 22 }}>
+      <div className="j2-label-copper" style={{ marginBottom: 16 }}>◈ Recent constraints · 30 days</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {rows.map(r => {
           const pct = (r.count / max) * 100;
