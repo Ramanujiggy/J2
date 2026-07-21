@@ -5,7 +5,7 @@
 // Mobile: narrower list layout, same data, taps open the SessionDetailModal
 // in-place (keeps mobile feeling native, no full-page route push).
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { VariableSizeList, type ListChildComponentProps } from 'react-window';
 import { useSessions } from '../context/SessionsContext.tsx';
@@ -35,20 +35,39 @@ type MobileItem =
   | { kind: 'month';   key: string; month: string; count: number }
   | { kind: 'day';     key: string; dateStr: string; sessions: SessionSummary[] };
 
+interface MonthSummary {
+  totalMinutes: number;
+  dominantPillar: string | null;
+}
+
 type DesktopItem =
-  | { kind: 'month';   key: string; month: string; count: number }
+  | { kind: 'month'; key: string; month: string; count: number; collapsed: boolean; summary: MonthSummary }
   | { kind: 'session'; key: string; session: SessionSummary };
 
 function mobileItemHeight(item: MobileItem): number {
   if (item.kind === 'month') return 56;
-  // 14+14 padding + ~50px per session + 10px divider between stacked sessions.
   const n = item.sessions.length;
   return 28 + 50 * n + 10 * Math.max(0, n - 1);
 }
 
 function desktopItemHeight(item: DesktopItem): number {
-  if (item.kind === 'month') return 122;
-  return 118;
+  if (item.kind === 'month') return 52;
+  return 44;
+}
+
+function computeMonthSummary(sessions: SessionSummary[]): MonthSummary {
+  const totalMinutes = sessions.reduce((a, s) => a + (s.duration ?? 0), 0);
+  const tagCounts: Record<string, number> = {};
+  for (const s of sessions) {
+    const primary = s.tags?.[0];
+    if (primary) tagCounts[primary] = (tagCounts[primary] ?? 0) + 1;
+  }
+  const sorted = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]);
+  const top = sorted[0];
+  const dominantPillar = top
+    ? (SKILL_TAGS.find(t => t.value === top[0])?.label ?? top[0])
+    : null;
+  return { totalMinutes, dominantPillar };
 }
 
 export default function JournalIndexPage() {
@@ -66,6 +85,17 @@ export default function JournalIndexPage() {
   const { sessions, loading, error: fetchError, refresh: fetchAll } = useSessions();
   const [filter, setFilter] = useState<Filter>('All');
   const [query, setQuery] = useState('');
+
+  const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
+  const expandedMonthsInitialized = useRef(false);
+
+  const toggleMonth = useCallback((month: string) => {
+    setExpandedMonths(prev => {
+      const next = new Set(prev);
+      if (next.has(month)) next.delete(month); else next.add(month);
+      return next;
+    });
+  }, []);
 
   const pendingSessions = usePendingSessions();
   const allSessions = useMemo(() => [...sessions, ...pendingSessions], [sessions, pendingSessions]);
@@ -123,16 +153,27 @@ export default function JournalIndexPage() {
     return out;
   }, [groups]);
 
+  // Seed expanded months once — first 2 months start open.
+  useEffect(() => {
+    if (expandedMonthsInitialized.current || groups.length === 0) return;
+    expandedMonthsInitialized.current = true;
+    setExpandedMonths(new Set(groups.slice(0, 2).map(([m]) => m)));
+  }, [groups]);
+
   const desktopItems = useMemo<DesktopItem[]>(() => {
     const out: DesktopItem[] = [];
     for (const [month, monthSessions] of groups) {
-      out.push({ kind: 'month', key: month, month, count: monthSessions.length });
-      for (const s of monthSessions) {
-        out.push({ kind: 'session', key: String(s.id), session: s });
+      const collapsed = !expandedMonths.has(month);
+      const summary = computeMonthSummary(monthSessions);
+      out.push({ kind: 'month', key: month, month, count: monthSessions.length, collapsed, summary });
+      if (!collapsed) {
+        for (const s of monthSessions) {
+          out.push({ kind: 'session', key: String(s.id), session: s });
+        }
       }
     }
     return out;
-  }, [groups]);
+  }, [groups, expandedMonths]);
 
   // Reset the virtualized list's internal cache when items change.
   const mobileListRef  = useRef<VariableSizeList | null>(null);
@@ -372,7 +413,7 @@ export default function JournalIndexPage() {
           itemKey={(i) => desktopItems[i]!.key}
         >
           {({ index, style }: ListChildComponentProps) => (
-            <DesktopVirtRow item={desktopItems[index]!} style={style} navigate={navigate} />
+            <DesktopVirtRow item={desktopItems[index]!} style={style} navigate={navigate} onToggleMonth={toggleMonth} />
           )}
         </VariableSizeList>
       )}
@@ -673,33 +714,128 @@ function MobileVirtRow({
 }
 
 function DesktopVirtRow({
-  item, style, navigate,
+  item, style, navigate, onToggleMonth,
 }: {
   item: DesktopItem;
   style: React.CSSProperties;
   navigate: ReturnType<typeof useNavigate>;
+  onToggleMonth: (month: string) => void;
 }) {
   if (item.kind === 'month') {
+    const monthLabel = new Date(item.month + '-01T00:00:00')
+      .toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const hours = Math.round(item.summary.totalMinutes / 60);
+    const statsText = item.summary.dominantPillar
+      ? `${hours}h · mostly ${item.summary.dominantPillar}`
+      : `${hours}h`;
+
     return (
       <div style={style}>
-        <div
+        <button
+          onClick={() => onToggleMonth(item.month)}
           style={{
-            display: 'flex', alignItems: 'baseline', gap: 20,
-            marginBottom: 18, paddingBottom: 12,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            width: '100%',
+            padding: '12px 4px',
             borderBottom: '1px solid var(--j2-border-2)',
+            background: 'transparent',
+            cursor: 'pointer',
+            textAlign: 'left',
+            transition: 'background 120ms ease',
           }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.015)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
         >
-          <div className="j2-serif-display" style={{ fontSize: 38 }}>
-            {new Date(item.month + '-01T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{
+              fontSize: 10,
+              color: 'rgba(196,145,95,0.45)',
+              width: 14,
+              textAlign: 'center',
+              transition: 'transform 200ms ease',
+              transform: item.collapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
+            }}>
+              ▾
+            </span>
+            <span className="j2-serif-display" style={{ fontSize: 18 }}>
+              {monthLabel}
+            </span>
+            <span className="j2-label-micro" style={{ fontSize: 10 }}>
+              {item.count} {item.count === 1 ? 'entry' : 'entries'}
+            </span>
           </div>
-          <div className="j2-label-micro">{item.count} {item.count === 1 ? 'entry' : 'entries'}</div>
-        </div>
+          {item.collapsed && (
+            <span style={{
+              fontSize: 11,
+              color: 'rgba(255,255,255,0.25)',
+              fontVariantNumeric: 'tabular-nums',
+            }}>
+              {statsText}
+            </span>
+          )}
+        </button>
       </div>
     );
   }
+
+  const s = item.session;
+  const dateStr = typeof s.date === 'string' ? s.date.slice(0, 10) : toDateString(new Date(s.date));
+  const d = new Date(dateStr + 'T00:00:00');
+  const intensity = Math.max(1, Math.min(5, s.intensity ?? 3));
+  const intColor = INTENSITY_COLOR[intensity] ?? '#A8CB72';
+  const primary = s.tags?.[0];
+  const focusLabel = primary ? (SKILL_TAGS.find(t => t.value === primary)?.label ?? primary) : 'Free rolling';
+  const classLabel = SESSION_TYPE_LABELS[s.session_type] ?? s.session_type;
+  const secondaryTags = s.tags?.slice(1, 3) ?? [];
+  const secondaryText = secondaryTags.map(t => SKILL_TAGS.find(x => x.value === t)?.label ?? t).join(' · ');
+
   return (
     <div style={style}>
-      <JournalRow session={item.session} onOpen={() => navigate(`/journal/${item.session.id}`)} />
+      <button
+        onClick={() => navigate(`/journal/${s.id}`)}
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '58px 10px 1fr auto auto',
+          gap: 10,
+          alignItems: 'center',
+          width: '100%',
+          padding: '8px 4px 8px 20px',
+          borderBottom: '1px solid rgba(255,255,255,0.025)',
+          background: 'transparent',
+          textAlign: 'left',
+          cursor: 'pointer',
+          transition: 'background 120ms ease',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.015)'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+      >
+        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', fontVariantNumeric: 'tabular-nums' }}>
+          <strong style={{ color: 'rgba(255,255,255,0.65)', fontWeight: 600 }}>{d.getDate()}</strong>
+          {' '}{DAY_NAMES[d.getDay()]}
+        </span>
+        <span
+          aria-hidden
+          style={{
+            width: 9, height: 9, borderRadius: '50%',
+            background: intColor,
+            boxShadow: `0 0 6px ${intColor}60`,
+          }}
+        />
+        <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {focusLabel}
+          <span style={{ fontWeight: 400, color: 'rgba(255,255,255,0.30)', fontSize: 12, marginLeft: 6 }}>
+            · {classLabel}
+          </span>
+        </span>
+        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.28)', textAlign: 'right', minWidth: 80 }}>
+          {secondaryText || ' '}
+        </span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: COPPER, textAlign: 'right', minWidth: 50, fontVariantNumeric: 'tabular-nums' }}>
+          {formatDuration(s.duration ?? 0)}
+        </span>
+      </button>
     </div>
   );
 }
