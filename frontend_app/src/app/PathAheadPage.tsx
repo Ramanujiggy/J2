@@ -11,7 +11,7 @@ import { api, ApiError } from '../lib/api.ts';
 import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock.ts';
-import { MONTH_NAMES, EIGHT_GATES } from '../lib/constants.ts';
+import { MONTH_NAMES, EIGHT_GATES, SKILL_TAGS } from '../lib/constants.ts';
 import type { SessionSummary, Intention, SessionsResponse } from '../types/api.ts';
 import { toast } from '../hooks/use-toast.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
@@ -152,6 +152,47 @@ export default function PathAheadPage() {
   const allSessions = useMemo(() => [...sessions, ...pendingSessions], [sessions, pendingSessions]);
   const { streak, longestStreak, consistentWeeks } = useMemo(() => computeStats(allSessions, new Date().getFullYear()), [allSessions]);
 
+  const totalSessions = allSessions.length;
+
+  const tenure = useMemo(() => {
+    if (allSessions.length === 0) return '';
+    const dates = allSessions.map(s => typeof s.date === 'string' ? s.date.slice(0, 10) : toDateString(new Date(s.date)));
+    dates.sort();
+    const earliest = new Date(dates[0] + 'T00:00:00');
+    const now = new Date();
+    const months = (now.getFullYear() - earliest.getFullYear()) * 12 + (now.getMonth() - earliest.getMonth());
+    const years = Math.floor(months / 12);
+    const rem = months % 12;
+    const parts: string[] = [];
+    if (years > 0) parts.push(`${years} year${years > 1 ? 's' : ''}`);
+    if (rem > 0 || years === 0) parts.push(`${rem} month${rem !== 1 ? 's' : ''}`);
+    const startLabel = earliest.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    return `${parts.join(', ')} on the mats · since ${startLabel}`;
+  }, [allSessions]);
+
+  const lastSession = useMemo(() => {
+    if (allSessions.length === 0) return null;
+    const sorted = [...allSessions].sort((a, b) => {
+      const ak = typeof a.date === 'string' ? a.date.slice(0, 10) : toDateString(new Date(a.date));
+      const bk = typeof b.date === 'string' ? b.date.slice(0, 10) : toDateString(new Date(b.date));
+      return bk.localeCompare(ak);
+    });
+    const s = sorted[0];
+    const dateStr = typeof s.date === 'string' ? s.date.slice(0, 10) : toDateString(new Date(s.date));
+    const tags = s.tags ?? [];
+    const focusParts = tags.slice(0, 2).map(t => {
+      const match = SKILL_TAGS.find(x => x.value === t);
+      return match?.label ?? t;
+    });
+    const focusLabel = focusParts.join(' & ') || 'Open rolling';
+    const sessionDate = new Date(dateStr + 'T00:00:00');
+    const diffMs = Date.now() - sessionDate.getTime();
+    const diffHours = Math.round(diffMs / 3600000);
+    const diffDays = Math.round(diffMs / 86400000);
+    const endedAgo = diffDays === 0 ? 'today' : diffDays === 1 ? 'yesterday' : `${diffDays} days ago`;
+    return { id: s.id, date: dateStr, duration: s.duration, focusLabel, endedAgo };
+  }, [allSessions]);
+
   useEffect(() => {
     for (const gate of [...EIGHT_GATES].reverse()) {
       if (consistentWeeks >= gate.weeks) {
@@ -269,6 +310,23 @@ export default function PathAheadPage() {
     }
     return list;
   }, [displayWeekDays, sessionsByDate]);
+
+  // Day rail data — 7 completion rings for the v2 home layout
+  const DOW_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
+  const dayRailData = useMemo(() => {
+    const todayStr2 = toDateString(today);
+    return weekDays.map((d, i) => {
+      const ds = toDateString(d);
+      const hasSessions = (sessionsByDate.get(ds) ?? []).length > 0;
+      const isToday = ds === todayStr2;
+      const isFuture = d > today;
+      const state: 'done' | 'today' | 'rest' | 'future' =
+        hasSessions ? 'done' :
+        isToday ? 'today' :
+        isFuture ? 'future' : 'rest';
+      return { dow: DOW_LABELS[i], date: d.getDate(), state };
+    });
+  }, [weekDays, sessionsByDate, today]);
 
   // ── Telemetry — 7d acute vs 28d chronic (aligned with ACWR windows) ────
 
@@ -432,6 +490,10 @@ export default function PathAheadPage() {
       longestStreak={longestStreak}
       weekSessionCount={weekStats.count}
       consistentWeeks={consistentWeeks}
+      totalSessions={totalSessions}
+      tenure={tenure}
+      lastSession={lastSession}
+      dayRailData={dayRailData}
       acwr={acwr}
       rustiest={rustiestPillar}
       spikiest={spikiest}

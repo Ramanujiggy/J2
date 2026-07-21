@@ -1,27 +1,25 @@
-// PathAheadMobile — the mobile (single-column) layout for PathAheadPage.
+// PathAheadMobile — mobile home layout (v2: record-first, one accent).
 //
-// Structure top-to-bottom: HomeHero (greeting + stats, formerly two separate
-// components) → telemetry panel (collapsible, gated by telemetryOpen) →
-// IntentionHeroCard → main content
-// (FirstVisitCard if empty / WeekSection + CTA + heatmap otherwise) →
-// modals + RepRouletteFab.
-//
-// Pure layout shell. All state and computations live in the parent;
-// callbacks come in as props. The shell mirrors what existed inline in
-// PathAheadPage's mobile branch — no behavioural change vs that.
-//
-// Extracted from PathAheadPage.tsx during the 2026-05-09 refactor pass.
+// Vertical order per Home v2 spec:
+// 1. Masthead (greeting + streak pill + Sharpen)
+// 2. Day rail (7 completion rings)
+// 3. HERO — "Still fresh" capture card (dominant object)
+// 4. Record — sessions remembered + tenure
+// 5. This week — stats + qualitative sentence
+// 6. This week's focus — intention row
+// 7. Week strip (existing WeekSection, for nav)
+// 8. The longer arc (heatmap/sparkline)
 
 import { useNavigate } from 'react-router-dom';
 import HomeHero from './HomeHero.tsx';
-import TodayCard from './today/TodayCard.tsx';
+import DayRail from './DayRail.tsx';
+import StillFreshHero from './StillFreshHero.tsx';
 import IntentionHeroCard from './IntentionHeroCard.tsx';
 import FirstVisitCard from './FirstVisitCard.tsx';
 import RepRouletteFab from './RepRouletteFab.tsx';
 import PageContent from './PageContent.tsx';
 import PathAheadWeekSection, { type WeekViewMode } from './PathAheadWeekSection.tsx';
 import { toDateString } from '../lib/sessionUtils.ts';
-import { useTodayClass } from './today/useTodayClass.ts';
 import type { Intention, SessionSummary } from '../types/api.ts';
 import type { ACWRResult, DecayResult, PillarACWRResult } from '../lib/analyticsModels.ts';
 
@@ -32,29 +30,24 @@ interface DaySessionEntry {
 }
 
 interface Props {
-  // Profile + ambient
   name: string | null;
   intentionsEnabled: boolean;
   loading: boolean;
-  // Stats
   streak: number;
   longestStreak: number;
   weekSessionCount: number;
   consistentWeeks: number;
+  totalSessions: number;
+  tenure: string;
+  lastSession: { id: string; date: string; duration: number; focusLabel: string; endedAgo: string } | null;
+  dayRailData: Array<{ dow: string; date: number; state: 'done' | 'today' | 'rest' | 'future' }>;
   acwr?: ACWRResult | null;
   rustiest?: DecayResult | null;
   spikiest?: PillarACWRResult | null;
-  // Telemetry panel — always-visible content (the collapsible-panel
-  // open/close state was removed; telemetry now renders inline above
-  // TodayCard, so only the content node is passed in).
   telemetryContent: React.ReactNode;
-  // Intention
   activeIntention: Intention | null;
-  /** Completion progress for non-'days' intentions (mig 034). null otherwise. */
   activeIntentionProgress: { completed: number; target: number; unit: 'sessions' | 'training_weeks' } | null;
-  // Sessions
   allSessions: SessionSummary[];
-  // Week section
   weekOffset: number;
   weekLabel: string;
   weekView: WeekViewMode;
@@ -67,11 +60,9 @@ interface Props {
   onLogTap: (date?: string) => void;
   onDayTap: (day: Date, sessions: SessionSummary[]) => void;
   onSessionTap: (entry: DaySessionEntry) => void;
-  // Other shared elements
   heatmapSection: React.ReactNode;
   modals: React.ReactNode;
   styleBlock: React.ReactNode;
-  // Callbacks
   openLog: (opts?: { date?: string; preset?: { heading?: string; sessionType?: 'drilling' | 'cla'; subSkillTag?: string; constraintName?: string } | null }) => void;
   setSetIntentOpen: (v: boolean) => void;
   handleDeleteIntention: () => void;
@@ -82,12 +73,11 @@ export default function PathAheadMobile({
   intentionsEnabled,
   loading,
   streak,
-  longestStreak,
   weekSessionCount,
-  consistentWeeks,
-  acwr,
-  rustiest,
-  spikiest,
+  totalSessions,
+  tenure,
+  lastSession,
+  dayRailData,
   telemetryContent,
   activeIntention,
   activeIntentionProgress,
@@ -112,29 +102,17 @@ export default function PathAheadMobile({
   handleDeleteIntention,
 }: Props) {
   const navigate = useNavigate();
-  const todayClass = useTodayClass(allSessions);
-  const hasClassToday = !todayClass.loading && todayClass.state !== 'no_class_today' && todayClass.schedule !== null;
 
   return (
     <PageContent ready={!loading} loadingMessages={['Shrimping down the mat...', 'Doing mat swims...', 'Pulling up gi pants...']}>
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-0 pb-3 space-y-2">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-0 pb-3" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {styleBlock}
 
-      {/* ── A. Hero — greeting + streak + this-week numerals ───────
-            No card chrome. Streak number is the visual anchor in
-            Cormorant; tap cycles through views (daily / weekly /
-            sessions / readiness / rustiest / spike). Outer tap
-            expands the telemetry panel below. */}
+      {/* ── 1. Masthead — greeting + streak pill + Sharpen ──── */}
       <HomeHero
-        name={name}
-        streak={streak}
-        longestStreak={longestStreak}
-        weekSessionCount={weekSessionCount}
-        consistentWeeks={consistentWeeks}
-        acwr={acwr}
-        rustiest={rustiest}
-        spikiest={spikiest}
-        onTap={undefined}
+        totalSessions={totalSessions}
+        tenure={tenure}
+        streakDays={streak}
         rouletteSlot={
           <RepRouletteFab
             fabPosition="inline"
@@ -148,52 +126,32 @@ export default function PathAheadMobile({
         }
       />
 
-      {/* ── Training Telemetry — always visible, no card ──────── */}
+      {/* ── 2. Day rail — 7 completion rings ─────────────────── */}
+      <DayRail days={dayRailData} />
+
+      {/* ── 3. HERO — "Still fresh" capture card ──────────────── */}
+      <StillFreshHero
+        lastSession={lastSession}
+        onAddNotes={() => openLog({ date: lastSession?.date })}
+        onDismiss={() => {/* quiet dismiss — no action needed */}}
+      />
+
+      {/* ── 4 + 5. This week (telemetry) ──────────────────────── */}
       {telemetryContent}
 
-      {/* ── B + C. TodayCard + IntentionHeroCard ────────────────────
-            When no class today: quiet inline text + full-width intent card.
-            When class exists: side-by-side compact cards. */}
-      {hasClassToday ? (
-        <div style={{ display: 'grid', gridTemplateColumns: intentionsEnabled ? '1fr 1fr' : '1fr', gap: 10 }}>
-          <TodayCard
-            sessions={allSessions}
-            onLogSession={(ctx) => openLog({ date: ctx.date })}
-            compact
-          />
-          {intentionsEnabled && (
-            <IntentionHeroCard
-              intention={activeIntention}
-              weekSessionCount={weekSessionCount}
-              progress={activeIntentionProgress}
-              onSetIntent={() => setSetIntentOpen(true)}
-              onViewJournal={activeIntention ? () => navigate(`/intentions/${activeIntention.id}/journal`, { state: { from: '/home' } }) : undefined}
-              onDeleteIntent={handleDeleteIntention}
-              compact
-            />
-          )}
-        </div>
-      ) : (
-        <>
-          <TodayCard
-            sessions={allSessions}
-            onLogSession={(ctx) => openLog({ date: ctx.date })}
-            quiet
-          />
-          {intentionsEnabled && (
-            <IntentionHeroCard
-              intention={activeIntention}
-              weekSessionCount={weekSessionCount}
-              progress={activeIntentionProgress}
-              onSetIntent={() => setSetIntentOpen(true)}
-              onViewJournal={activeIntention ? () => navigate(`/intentions/${activeIntention.id}/journal`, { state: { from: '/home' } }) : undefined}
-              onDeleteIntent={handleDeleteIntention}
-            />
-          )}
-        </>
+      {/* ── 6. This week's focus ──────────────────────────────── */}
+      {intentionsEnabled && (
+        <IntentionHeroCard
+          intention={activeIntention}
+          weekSessionCount={weekSessionCount}
+          progress={activeIntentionProgress}
+          onSetIntent={() => setSetIntentOpen(true)}
+          onViewJournal={activeIntention ? () => navigate(`/intentions/${activeIntention.id}/journal`, { state: { from: '/home' } }) : undefined}
+          onDeleteIntent={handleDeleteIntention}
+        />
       )}
 
-      {/* ── D-H. Main content (conditional on sessions) ────────── */}
+      {/* ── 7 + 8. Week strip + longer arc ─────────────────── */}
       {!loading && allSessions.length === 0 ? (
         <FirstVisitCard onLogFirst={() => openLog()} />
       ) : (
