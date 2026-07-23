@@ -4,6 +4,7 @@
 
 import { COPPER, PALE_YELLOW, FONT_EDITORIAL, GLOW_SOFT, SURFACE_2, COPPER_BORDER } from '../lib/theme.ts';
 import { formatDuration } from '../lib/sessionUtils.ts';
+import PrismCanvas from './PrismCanvas.tsx';
 
 interface StillFreshHeroProps {
   lastSession: {
@@ -79,6 +80,7 @@ export default function StillFreshHero({ lastSession, onAddNotes, onDismiss }: S
         minHeight: 236,
         overflow: 'hidden',
         border: '1px solid var(--j2-border-2)',
+        boxShadow: '0 8px 40px rgba(0,0,0,0.25), 0 0 0 0.5px rgba(196,145,95,0.08)',
         position: 'relative',
         display: 'flex',
         flexDirection: 'column',
@@ -106,39 +108,18 @@ export default function StillFreshHero({ lastSession, onAddNotes, onDismiss }: S
         }}
       />
 
-      {/* Decorative prism mark — two nested rotated squares, top-right */}
+      {/* Live prism mark — WebGL canvas with refraction + ambient rotation */}
       <div
         aria-hidden
         style={{
           position: 'absolute',
-          top: 16,
-          right: 16,
-          opacity: 0.12,
+          top: -10,
+          right: -10,
           pointerEvents: 'none',
+          opacity: 0.55,
         }}
       >
-        <svg width={48} height={48} viewBox="0 0 48 48" fill="none">
-          <rect
-            x={24}
-            y={4}
-            width={20}
-            height={20}
-            transform="rotate(45 24 4)"
-            stroke="rgba(255,255,255,0.5)"
-            strokeWidth={1}
-            fill="none"
-          />
-          <rect
-            x={24}
-            y={8}
-            width={14}
-            height={14}
-            transform="rotate(45 24 8)"
-            stroke="rgba(255,255,255,0.5)"
-            strokeWidth={1}
-            fill="none"
-          />
-        </svg>
+        <PrismCanvas size={120} />
       </div>
 
       {/* Content — padded, flex column filling the min height */}

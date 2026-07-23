@@ -164,9 +164,12 @@ export default function IntentionHeroCard({
     <div
       style={{
         padding: compact ? 14 : 20,
-        border: '1px solid rgba(196,145,95,0.22)',
+        border: '1px solid rgba(196,145,95,0.18)',
         borderRadius: compact ? 12 : 14,
         background: 'rgba(196,145,95,0.04)',
+        backdropFilter: 'blur(12px) saturate(120%)',
+        WebkitBackdropFilter: 'blur(12px) saturate(120%)',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.12), inset 0 0 0 0.5px rgba(242,228,168,0.05)',
         position: 'relative',
         overflow: 'hidden',
       }}
