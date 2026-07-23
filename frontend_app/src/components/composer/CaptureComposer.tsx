@@ -20,7 +20,7 @@ import { useActiveIntention } from '../../context/ActiveIntentionContext.tsx';
 import { useIsDesktop } from '../../hooks/useIsDesktop.ts';
 import { selectionsToDistribution, type ChipSelection } from '../../lib/selectionsToDistribution.ts';
 import { SKILL_TAGS } from '../../lib/constants.ts';
-import { STATUS_ERROR } from '../../lib/theme.ts';
+import { CARD_BG, PALE_YELLOW, STATUS_ERROR } from '../../lib/theme.ts';
 import ComposerSheet from './ComposerSheet.tsx';
 import ComposerRecorder from './ComposerRecorder.tsx';
 import ComposerPage from './ComposerPage.tsx';
@@ -215,7 +215,7 @@ export default function CaptureComposer({ onSuccess, onCancel, defaultDate }: Pr
     <div
       className="rounded-2xl"
       style={{
-        background: isDesktop || stage !== 'sheet' ? '#152E22' : 'transparent',
+        background: isDesktop || stage !== 'sheet' ? CARD_BG : 'transparent',
         border: isDesktop || stage !== 'sheet' ? '1px solid rgba(255,255,255,0.10)' : 'none',
         padding: isDesktop ? 32 : 16,
       }}
@@ -285,7 +285,7 @@ export default function CaptureComposer({ onSuccess, onCancel, defaultDate }: Pr
             <aside style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ background: '#0F241A', border: '1px solid rgba(196,145,95,0.14)', borderRadius: 14, padding: 16 }}>
                 <p className="j2-label-copper" style={{ margin: '0 0 8px' }}>◇ Tonight</p>
-                <p style={{ fontFamily: 'var(--font-editorial)', fontSize: 19, color: '#F2E4A8', margin: 0 }}>
+                <p style={{ fontFamily: 'var(--font-editorial)', fontSize: 19, color: PALE_YELLOW, margin: 0 }}>
                   {effectiveKernel.scheduleName ?? 'Open mat'}
                 </p>
                 <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.34)', margin: '3px 0 0', letterSpacing: '0.04em' }}>{kernelCaption}</p>

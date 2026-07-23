@@ -8,6 +8,7 @@
 
 import { useState, useEffect } from 'react';
 import { type BeltRank, BELT_COLORS, PATCH_COLORS, ribbed } from '../lib/belt.ts';
+import { PALE_YELLOW } from '../lib/theme.ts';
 
 // Re-export so existing consumers (AppShell, ProfilePage, ProfileContext) don't break.
 export { type BeltRank, BELT_COLORS, PATCH_COLORS };
@@ -321,7 +322,7 @@ function BeltBarInner({
         {/* ── Sparks ── */}
         <span style={{
           position: 'absolute', right: 4, top: Math.round(BELT_H / 2),
-          fontSize: 10, fontWeight: 900, color: '#F2E4A8',
+          fontSize: 10, fontWeight: 900, color: PALE_YELLOW,
           opacity: 0, lineHeight: 1,
           pointerEvents: 'none', userSelect: 'none', zIndex: 5,
           animation: sparksIn ? `j2TieT ${SPARK_MS}ms ease forwards` : 'none',
@@ -329,7 +330,7 @@ function BeltBarInner({
 
         <span style={{
           position: 'absolute', right: -2, top: Math.round(BELT_H / 2),
-          fontSize: 10, fontWeight: 900, color: '#F2E4A8',
+          fontSize: 10, fontWeight: 900, color: PALE_YELLOW,
           opacity: 0, lineHeight: 1,
           pointerEvents: 'none', userSelect: 'none', zIndex: 5,
           animation: sparksIn ? `j2TieB ${SPARK_MS}ms ease forwards` : 'none',

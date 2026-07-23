@@ -775,8 +775,6 @@ const SESSION_TYPE_OPTIONS: { value: SessionType; label: string }[] = [
   { value: 'competition_training', label: 'Comp'    },
 ];
 
-const COPPER_BORDER_STR = 'rgba(196,145,95,0.45)';
-
 function ReviewRow({ row, onUpdate, onToggleTag, isDesktop = false }: ReviewRowProps) {
   const needsTag = !row.skip && row.tags.length === 0;
   const hasErrors = row.errors.length > 0;
@@ -792,7 +790,7 @@ function ReviewRow({ row, onUpdate, onToggleTag, isDesktop = false }: ReviewRowP
   const rowBorder = row.skip
     ? SURFACE_2_BORDER
     : row.isDuplicate
-      ? COPPER_BORDER_STR
+      ? COPPER_BORDER
       : hasErrors
         ? 'rgba(245,158,11,0.3)'
         : SURFACE_2_BORDER;

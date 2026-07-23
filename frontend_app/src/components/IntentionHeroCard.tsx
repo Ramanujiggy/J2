@@ -19,7 +19,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Intention, UserTag } from '../types/api.ts';
-import { COPPER, PALE_YELLOW, STATUS_ERROR } from '../lib/theme.ts';
+import { COPPER, PALE_YELLOW, STATUS_ERROR, INT_COLORS } from '../lib/theme.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
 import { addDays, toDateString } from '../lib/sessionUtils.ts';
 import { useUserTags } from '../hooks/useUserTags.ts';
@@ -262,7 +262,7 @@ export default function IntentionHeroCard({
                 height: '100%',
                 borderRadius: 999,
                 background: progressComplete
-                  ? 'linear-gradient(90deg, #5E8A5C, #C4915F 70%, #F2E4A8)'
+                  ? `linear-gradient(90deg, ${INT_COLORS[1]}, ${COPPER} 70%, ${PALE_YELLOW})`
                   : COPPER,
                 transform: `scaleX(${progressFraction})`,
                 transformOrigin: 'left center',

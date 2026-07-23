@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
-import { COPPER, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3, CARD_GLOW, CARD_GLOW_BORDER, FONT_EDITORIAL, INT_LABELS } from '../lib/theme.ts';
+import { CARD_BG, COPPER, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3, CARD_GLOW, CARD_GLOW_BORDER, FONT_EDITORIAL, INT_LABELS } from '../lib/theme.ts';
 import { INTENSITY_COLOR, formatGiNogi } from '../lib/sessionUtils.ts';
 import { vibrate } from '../lib/haptics.ts';
 import SegmentedToggle from './SegmentedToggle.tsx';
@@ -326,7 +326,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
           onClick={e => e.stopPropagation()}
           style={{
             position: 'relative',
-            backgroundColor: isDesktop ? '#152E22' : 'transparent',
+            backgroundColor: isDesktop ? CARD_BG : 'transparent',
             border: isDesktop ? `1px solid ${CARD_GLOW_BORDER}` : 'none',
             borderRadius: isDesktop ? 20 : 0,
             boxShadow: isDesktop ? CARD_GLOW : undefined,

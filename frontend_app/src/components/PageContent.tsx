@@ -10,6 +10,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import LoadingScreen from './LoadingScreen.tsx';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
+import { PAGE_BG } from '../lib/theme.ts';
 
 type Phase = 'loading' | 'waiting' | 'fading' | 'ready';
 
@@ -102,7 +103,7 @@ export default function PageContent({ ready, children, loadingMessages }: Props)
         opacity: fading ? 0 : 1,
         transition: fading ? `opacity ${FADE_MS}ms ease` : 'none',
         pointerEvents: fading ? 'none' : 'auto',
-        backgroundColor: '#0D1A14',
+        backgroundColor: PAGE_BG,
       }}>
         <LoadingScreen messages={loadingMessages} onCycleSettle={handleCycleSettle} />
       </div>

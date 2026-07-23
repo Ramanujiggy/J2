@@ -20,7 +20,7 @@ import SegmentedToggle from '../components/SegmentedToggle.tsx';
 import { SKILL_TAGS } from '../lib/constants.ts';
 import { toDateString, DAY_NAMES, SESSION_TYPE_LABELS, INTENSITY_COLOR, formatDuration, formatGiNogi } from '../lib/sessionUtils.ts';
 import {
-  PALE_YELLOW, COPPER, CARD_BG, FONT_EDITORIAL, GLOW_SOFT, STATUS_ERROR,
+  PALE_YELLOW, COPPER, COPPER_BORDER, CARD_BG, FONT_EDITORIAL, GLOW_SOFT, STATUS_ERROR,
 } from '../lib/theme.ts';
 import type { SessionSummary } from '../types/api.ts';
 
@@ -751,7 +751,7 @@ function DesktopVirtRow({
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{
               fontSize: 10,
-              color: 'rgba(196,145,95,0.45)',
+              color: COPPER_BORDER,
               width: 14,
               textAlign: 'center',
               transition: 'transform 200ms ease',

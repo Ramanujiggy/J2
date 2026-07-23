@@ -11,7 +11,7 @@ import RailAmbient from './RailAmbient.tsx';
 import OfflineBanner from './OfflineBanner.tsx';
 import PageTransition from './PageTransition.tsx';
 import { useOnlineSync } from '../hooks/useOnlineSync.ts';
-import { PAGE_BG, PALE_YELLOW, COPPER } from '../lib/theme.ts';
+import { PAGE_BG, CARD_BG, PALE_YELLOW, COPPER } from '../lib/theme.ts';
 
 // ─── Icons (inline SVG, matches AppShell style) ──────────────────────────────
 
@@ -302,7 +302,7 @@ export default function DesktopAppShell({ children }: Props) {
             <div
               style={{
                 width: 40, height: 40, borderRadius: '50%',
-                background: 'linear-gradient(135deg, #244A37, #152E22)',
+                background: `linear-gradient(135deg, #244A37, ${CARD_BG})`,
                 border: '1px solid var(--j2-border-2)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontFamily: 'var(--font-wordmark)', fontSize: 17,

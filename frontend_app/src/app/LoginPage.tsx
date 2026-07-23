@@ -3,7 +3,7 @@ import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.tsx';
 import { api, ApiError } from '../lib/api.ts';
 import {
-  CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, PALE_YELLOW, COPPER, SURFACE_3,
+  CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, PAGE_BG, PALE_YELLOW, COPPER, SURFACE_3,
   STATUS_ERROR, STATUS_ERROR_BG, STATUS_ERROR_BORDER,
 } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
@@ -103,7 +103,7 @@ export default function LoginPage() {
   return (
     <div
       className="min-h-screen min-h-dvh flex flex-col items-center justify-center px-4 relative overflow-hidden"
-      style={{ backgroundColor: '#0D1A14' }}
+      style={{ backgroundColor: PAGE_BG }}
     >
       {/* Animated seigaiha waves — denser SVG pattern with diagonal drift.
           On desktop a soft radial vignette dims the waves toward center so the

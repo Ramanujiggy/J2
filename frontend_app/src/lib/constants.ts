@@ -1,4 +1,4 @@
-import { PRESTIGE_GREEN, PRESTIGE_GREEN_GLOW } from './theme';
+import { PRESTIGE_GREEN, PRESTIGE_GREEN_GLOW, PALE_YELLOW } from './theme';
 
 // Daily reflection prompts — rotates one per day on the JournalEntryPage.
 // Index = floor(unix_ms / 86_400_000) % length, so the same day gives the
@@ -81,6 +81,6 @@ export const EIGHT_GATES = [
   { weeks: 8,  color: PRESTIGE_GREEN, glow: PRESTIGE_GREEN_GLOW,  toast: 'Eight weeks. You show up. That is the whole secret.',     burst: false },
   { weeks: 12, color: '#6FD08C', glow: 'rgba(111,208,140,0.45)', toast: 'Three months. Most stop here. You did not.',              burst: false },
   { weeks: 16, color: '#6FD08C', glow: 'rgba(111,208,140,0.50)', toast: 'Sixteen weeks. Your body knows the way now.',             burst: false },
-  { weeks: 20, color: '#F2E4A8', glow: 'rgba(242,228,168,0.50)', toast: 'Five months on the mat. The technique is in your hands.', burst: false },
-  { weeks: 26, color: '#F2E4A8', glow: 'rgba(242,228,168,0.55)', toast: 'Half a year. Every week. The mat remembers.',             burst: true  },
+  { weeks: 20, color: PALE_YELLOW, glow: 'rgba(242,228,168,0.50)', toast: 'Five months on the mat. The technique is in your hands.', burst: false },
+  { weeks: 26, color: PALE_YELLOW, glow: 'rgba(242,228,168,0.55)', toast: 'Half a year. Every week. The mat remembers.',             burst: true  },
 ] as const;

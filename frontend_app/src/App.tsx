@@ -7,6 +7,7 @@ import { ActiveIntentionProvider } from './context/ActiveIntentionContext.tsx';
 import { SessionsProvider } from './context/SessionsContext.tsx';
 import AppShell from './components/AppShell.tsx';
 import PrismLoader from './components/PrismLoader.tsx';
+import { PAGE_BG } from './lib/theme.ts';
 
 // ── Eager pages — the four most-likely first-paint targets ─────────────────
 // These render on initial load, so keeping them in the main bundle avoids a
@@ -58,7 +59,7 @@ function RouteFallback() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'var(--j2-page-bg, #0D1A14)',
+        backgroundColor: `var(--j2-page-bg, ${PAGE_BG})`,
       }}
     >
       <PrismLoader />

@@ -9,7 +9,7 @@ import type { SessionSummary } from '../types/api.ts';
 import SessionDetailModal from './SessionDetailModal.tsx';
 import { useBeltHistory } from '../hooks/useBeltHistory.ts';
 import {
-  PALE_YELLOW, GLOW_SOFT, COPPER, FONT_EDITORIAL,
+  PAGE_BG, PALE_YELLOW, GLOW_SOFT, COPPER, FONT_EDITORIAL,
   HEATMAP_HEADER_BG, INT_LABELS,
 } from '../lib/theme.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
@@ -405,7 +405,7 @@ export default function CalendarHeatmapView({
         })}
 
         {/* Bottom edge gradient — fades grid into page background */}
-        <div style={{ position: 'sticky', bottom: 0, height: 40, background: 'linear-gradient(to top, #0D1A14 0%, transparent 100%)', pointerEvents: 'none', marginTop: -40 }} />
+        <div style={{ position: 'sticky', bottom: 0, height: 40, background: `linear-gradient(to top, ${PAGE_BG} 0%, transparent 100%)`, pointerEvents: 'none', marginTop: -40 }} />
       </div>
 
       {/* Long-press tooltip */}

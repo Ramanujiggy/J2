@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { PALE_YELLOW, FONT_EDITORIAL, GLOW_SOFT } from '@/lib/theme';
+import { PALE_YELLOW, COPPER_BORDER, FONT_EDITORIAL, GLOW_SOFT } from '@/lib/theme';
 
 export function Toaster() {
   const { toasts } = useToast();
@@ -34,7 +34,7 @@ export function Toaster() {
 
   const isDestructive = active.variant === 'destructive';
   const isMilestone = active.variant === 'success';
-  const accentColor = isDestructive ? 'rgba(224,117,96,0.70)' : 'rgba(196,145,95,0.45)';
+  const accentColor = isDestructive ? 'rgba(224,117,96,0.70)' : COPPER_BORDER;
   const textColor = isDestructive ? 'rgba(224,117,96,0.90)' : PALE_YELLOW;
   const fontSize = isMilestone ? 17 : 14;
 

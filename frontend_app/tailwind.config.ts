@@ -6,12 +6,18 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Existing brand tokens — unchanged
+        // Brand tokens. Values mirror src/lib/theme.ts — keep the two in sync.
+        // These exist so class strings (which can't reference JS consts) don't
+        // have to inline arbitrary hex values.
         brand: {
           orange:        '#DA7422',
           green:         '#6FD08C',
           'light-green': '#CDDFA0',
-          dark:          '#0D1A14',
+          dark:          '#0D1A14',            // = PAGE_BG
+          card:          '#152E22',            // = CARD_BG
+          champagne:     '#F2E4A8',            // = PALE_YELLOW
+          copper:        '#C4915F',            // = COPPER
+          'copper-border': 'rgba(196,145,95,0.45)', // = COPPER_BORDER
         },
         error: '#E07560',
         // shadcn CSS variable tokens
