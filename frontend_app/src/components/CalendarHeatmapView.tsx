@@ -458,7 +458,7 @@ export default function CalendarHeatmapView({
             const dateStr = typeof s.date === 'string' ? s.date.slice(0, 10) : '';
             const d = new Date(dateStr + 'T00:00:00');
             const intensity = Math.max(1, Math.min(5, s.intensity ?? 3));
-            const intColor = INTENSITY_COLOR[intensity] ?? '#A8CB72';
+            const intColor = INTENSITY_COLOR[intensity] ?? '#5E8A5C';
             const primary = s.tags?.[0];
             const focusLabel = primary ? (SKILL_TAGS.find(t => t.value === primary)?.label ?? primary) : 'Open rolling';
             const typeLabel = SESSION_TYPE_LABELS[s.session_type] ?? s.session_type;

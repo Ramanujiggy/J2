@@ -241,7 +241,7 @@ export default function MovesLibraryPage() {
           ))}
         </div>
 
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <p className="text-sm text-error">{error}</p>}
 
         {/* Empty-library hero — only fires when the user has zero techniques
             anywhere. Once they have any, we show the accordion (some pillars

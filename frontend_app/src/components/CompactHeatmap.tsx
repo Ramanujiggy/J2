@@ -6,17 +6,17 @@ import { useCountUp } from '../hooks/useCountUp.ts';
 import { localDateKey, buildDayMap, cellColor, computeStats, EMPTY_DAY } from './TrainingHeatmap.tsx';
 import type { DayData } from './TrainingHeatmap.tsx';
 import type { SessionSummary } from '../types/api.ts';
-import { CARD_BG, COPPER_BORDER, CARD_SHADOW, HEATMAP_REST, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_2_BORDER } from '../lib/theme.ts';
+import { CARD_BG, COPPER_BORDER, CARD_SHADOW, HEATMAP_REST, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_2_BORDER, INT_COLORS } from '../lib/theme.ts';
 
 const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const DOW_LABELS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 const CELL_GAP = 4;
 
 const LEGEND = [
-  { color: HEATMAP_REST, label: 'Rest' },
-  { color: '#CDDFA0',    label: 'Easy' },
-  { color: '#6FD08C',    label: 'Moderate' },
-  { color: '#DA7422',    label: 'High' },
+  { color: HEATMAP_REST,  label: 'Rest' },
+  { color: INT_COLORS[1], label: 'Easy' },
+  { color: INT_COLORS[3], label: 'Moderate' },
+  { color: INT_COLORS[5], label: 'High' },
 ] as const;
 
 interface WeekColumn {

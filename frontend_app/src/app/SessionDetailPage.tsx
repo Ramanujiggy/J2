@@ -12,7 +12,7 @@ import MiniPrism from '../components/charts/MiniPrism.tsx';
 import { SKILL_TAGS, MONTH_NAMES } from '../lib/constants.ts';
 import { toDateString, DAY_NAMES, INTENSITY_COLOR, SESSION_TYPE_LABELS, formatDuration, formatGiNogi } from '../lib/sessionUtils.ts';
 import {
-  PALE_YELLOW, COPPER, CARD_BG, FONT_EDITORIAL, INT_LABELS,
+  PALE_YELLOW, COPPER, CARD_BG, FONT_EDITORIAL, INT_LABELS, STATUS_ERROR,
 } from '../lib/theme.ts';
 import type { SessionSummary } from '../types/api.ts';
 
@@ -78,7 +78,7 @@ export default function SessionDetailPage() {
         ← Back to journal
       </button>
 
-      {fetchError && <p style={{ fontSize: 13, color: '#F87171', marginBottom: 16 }}>{fetchError}</p>}
+      {fetchError && <p style={{ fontSize: 13, color: STATUS_ERROR, marginBottom: 16 }}>{fetchError}</p>}
 
       {!session && !loading ? (
         <NotFound onBack={() => navigate('/journal')} />
@@ -139,7 +139,7 @@ function DetailHeader({ session }: { session: SessionSummary }) {
 
 function StatsRow({ session }: { session: SessionSummary }) {
   const intensity = Math.max(1, Math.min(5, session.intensity ?? 3));
-  const intColor = INTENSITY_COLOR[intensity] ?? '#A8CB72';
+  const intColor = INTENSITY_COLOR[intensity] ?? '#5E8A5C';
   const intLabel = INT_LABELS[intensity] || 'Steady';
   const giLabel = formatGiNogi(session.gi_nogi);
   const typeLabel = SESSION_TYPE_LABELS[session.session_type] ?? session.session_type;

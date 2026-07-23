@@ -4,7 +4,7 @@ import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 
 import { api } from '../lib/api.ts';
 import { useAuth } from '../context/AuthContext.tsx';
-import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, SURFACE_2, SURFACE_2_BORDER, SURFACE_3, COPPER } from '../lib/theme.ts';
+import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, SURFACE_2, SURFACE_2_BORDER, SURFACE_3, COPPER, STATUS_ERROR, STATUS_ERROR_BG, STATUS_ERROR_BORDER } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import CsvImportModal from '../components/CsvImportModal.tsx';
 import ReportProblemModal from '../components/ReportProblemModal.tsx';
@@ -526,7 +526,7 @@ export default function ProfilePage() {
               </label>
             </div>
 
-            {error && <p className="text-red-400 text-sm">{error}</p>}
+            {error && <p className="text-error text-sm">{error}</p>}
 
             {isDesktop ? (
               <button
@@ -829,19 +829,19 @@ export default function ProfilePage() {
               className="text-sm font-semibold uppercase tracking-[0.14em] rounded-xl transition-all"
               style={{
                 padding: '14px 32px',
-                color: 'rgba(248,113,113,0.85)',
-                backgroundColor: 'rgba(248,113,113,0.06)',
-                border: '1px solid rgba(248,113,113,0.25)',
+                color: STATUS_ERROR,
+                backgroundColor: STATUS_ERROR_BG,
+                border: `1px solid ${STATUS_ERROR_BORDER}`,
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.backgroundColor = 'rgba(248,113,113,0.12)';
-                e.currentTarget.style.borderColor = 'rgba(248,113,113,0.45)';
-                e.currentTarget.style.color = 'rgba(248,113,113,1)';
+                e.currentTarget.style.backgroundColor = STATUS_ERROR_BG;
+                e.currentTarget.style.borderColor = STATUS_ERROR_BORDER;
+                e.currentTarget.style.color = STATUS_ERROR;
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.backgroundColor = 'rgba(248,113,113,0.06)';
-                e.currentTarget.style.borderColor = 'rgba(248,113,113,0.25)';
-                e.currentTarget.style.color = 'rgba(248,113,113,0.85)';
+                e.currentTarget.style.backgroundColor = STATUS_ERROR_BG;
+                e.currentTarget.style.borderColor = STATUS_ERROR_BORDER;
+                e.currentTarget.style.color = STATUS_ERROR;
               }}
             >
               Log out
@@ -852,9 +852,9 @@ export default function ProfilePage() {
               className="w-full text-sm font-semibold rounded-xl transition-all touch-manipulation j2-press"
               style={{
                 height: 48,
-                color: 'rgba(248,113,113,0.95)',
-                backgroundColor: 'rgba(248,113,113,0.10)',
-                border: '1px solid rgba(248,113,113,0.30)',
+                color: STATUS_ERROR,
+                backgroundColor: STATUS_ERROR_BG,
+                border: `1px solid ${STATUS_ERROR_BORDER}`,
               }}
             >
               Log out

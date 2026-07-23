@@ -187,7 +187,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
       .catch(() => {});
   }, [isEditing]);
 
-  const intensityColor = INTENSITY_COLOR[session.intensity] ?? '#A8CB72';
+  const intensityColor = INTENSITY_COLOR[session.intensity] ?? '#5E8A5C';
 
   const dateLabel = date.toLocaleDateString('en-US', {
     weekday: 'long', month: 'long', day: 'numeric',
@@ -273,7 +273,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
     <div className="flex items-center gap-1.5">
       {[1, 2, 3, 4, 5].map(n => {
         const active = value === n;
-        const color = INTENSITY_COLOR[n] ?? '#A8CB72';
+        const color = INTENSITY_COLOR[n] ?? '#5E8A5C';
         const label = INT_LABELS[n] ?? '';
         return (
           <button
@@ -977,7 +977,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
               </div>
 
               {/* ── Action row ─────────────────────────────── */}
-              {saveError && <p className="text-red-400 text-xs mt-3">Save failed — please try again.</p>}
+              {saveError && <p className="text-error text-xs mt-3">Save failed — please try again.</p>}
 
               <div className="flex items-center justify-between mt-6 pt-4" style={{ borderTop: '1px solid rgba(196,145,95,0.08)' }}>
                 <button

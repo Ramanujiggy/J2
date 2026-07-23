@@ -20,6 +20,7 @@ import { useActiveIntention } from '../../context/ActiveIntentionContext.tsx';
 import { useIsDesktop } from '../../hooks/useIsDesktop.ts';
 import { selectionsToDistribution, type ChipSelection } from '../../lib/selectionsToDistribution.ts';
 import { SKILL_TAGS } from '../../lib/constants.ts';
+import { STATUS_ERROR } from '../../lib/theme.ts';
 import ComposerSheet from './ComposerSheet.tsx';
 import ComposerRecorder from './ComposerRecorder.tsx';
 import ComposerPage from './ComposerPage.tsx';
@@ -219,7 +220,7 @@ export default function CaptureComposer({ onSuccess, onCancel, defaultDate }: Pr
         padding: isDesktop ? 32 : 16,
       }}
     >
-      {error && <p style={{ fontSize: 13, color: '#F87171', marginBottom: 10 }}>{error}</p>}
+      {error && <p style={{ fontSize: 13, color: STATUS_ERROR, marginBottom: 10 }}>{error}</p>}
 
       {stage === 'sheet' && (
         <>

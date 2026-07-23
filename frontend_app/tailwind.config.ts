@@ -13,6 +13,7 @@ export default {
           'light-green': '#CDDFA0',
           dark:          '#0D1A14',
         },
+        error: '#E07560',
         // shadcn CSS variable tokens
         background:  'hsl(var(--background))',
         foreground:  'hsl(var(--foreground))',

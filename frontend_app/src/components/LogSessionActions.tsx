@@ -24,7 +24,7 @@ export default function LogSessionActions({
     <>
       {error && (
         <p
-          className="text-red-400 text-sm"
+          className="text-error text-sm"
           style={isDesktop ? { gridColumn: '1 / -1', margin: 0 } : undefined}
         >
           {error}

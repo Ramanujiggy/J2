@@ -196,7 +196,7 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {fetchError && <p className="text-sm text-red-400">{fetchError}</p>}
+      {fetchError && <p className="text-sm text-error">{fetchError}</p>}
 
       {searchOpen ? (
         <SessionSearchPanel

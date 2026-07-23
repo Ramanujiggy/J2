@@ -78,12 +78,12 @@
     --copper-deep:   #8E6741;
     --champagne:     #F2E4A8;
 
-    /* Intensity scale — 5 levels, used by session density + calendar cells */
-    --int-1: #A8CB72;   /* Drill */
-    --int-2: #7AC374;   /* Light */
-    --int-3: #52B56C;   /* Steady */
-    --int-4: #D4A040;   /* Intense */
-    --int-5: #DA7422;   /* Hard roll */
+    /* Intensity scale — 5 levels, must match INT_COLORS in theme.ts */
+    --int-1: #5E8A5C;   /* Drill: muted moss */
+    --int-2: #7BA177;   /* Light: warmer moss */
+    --int-3: #A8B97A;   /* Steady: champagne-touched green */
+    --int-4: #D4B86A;   /* Intense: champagne gold */
+    --int-5: #C4915F;   /* Hard roll: copper */
 
     /* Glow shadows — applied via text-shadow on champagne headings */
     --glow-title:  0 0 14px rgba(242,228,168,0.45), 0 0 32px rgba(242,228,168,0.20);

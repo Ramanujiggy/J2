@@ -224,7 +224,7 @@ export default function JournalEntryPage() {
     <PageContent ready={!loading} loadingMessages={['Loading your intentions...']}>
     {!intention ? (
       <div className={`mx-auto py-6 ${isDesktop ? 'max-w-3xl px-8' : 'max-w-2xl px-4 sm:px-6'}`}>
-        <p className="text-sm text-red-400">Intention not found.</p>
+        <p className="text-sm text-error">Intention not found.</p>
         <button
           onClick={() => navigate(origin)}
           className="mt-4 text-sm transition-colors"
@@ -572,7 +572,7 @@ export default function JournalEntryPage() {
             {saving ? 'Saving...' : saved ? 'Saved' : ''}
           </span>
           <div className="flex items-center gap-3">
-            {error && <span className="text-xs text-red-400">{error}</span>}
+            {error && <span className="text-xs text-error">{error}</span>}
             <button
               onClick={handleSave}
               disabled={saving}

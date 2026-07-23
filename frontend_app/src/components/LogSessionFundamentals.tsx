@@ -157,7 +157,7 @@ export default function LogSessionFundamentals({
                 color: INTENSITY_COLOR[intensity] ?? PALE_YELLOW,
                 fontSize: 14,
                 letterSpacing: '0.02em',
-                textShadow: `0 0 12px ${INTENSITY_COLOR[intensity] ?? '#A8CB72'}40`,
+                textShadow: `0 0 12px ${INTENSITY_COLOR[intensity] ?? '#5E8A5C'}40`,
               }}
             >
               {INT_LABELS[intensity]}

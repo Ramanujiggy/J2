@@ -18,7 +18,7 @@ import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import { useActiveIntention } from '../context/ActiveIntentionContext.tsx';
 import { useSessions } from '../context/SessionsContext.tsx';
 import PageContent from '../components/PageContent.tsx';
-import { PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, STATUS_ERROR } from '../lib/theme.ts';
 import { type TimeWindow } from '../lib/analyticsUtils.ts';
 import AtlasEmptyHero from '../components/empty/AtlasEmptyHero.tsx';
 import AtlasSegmentedToggle from '../components/atlas/AtlasSegmentedToggle.tsx';
@@ -107,7 +107,7 @@ export default function AtlasPage() {
               The patterns in your training
             </p>
           </div>
-          {fetchError && <p className="text-sm text-red-400">{fetchError}</p>}
+          {fetchError && <p className="text-sm text-error">{fetchError}</p>}
           {!loading && allSessions.length === 0 ? (
             <AtlasEmptyHero />
           ) : (
@@ -177,7 +177,7 @@ export default function AtlasPage() {
         />
       </div>
 
-      {fetchError && <p style={{ fontSize: 13, color: '#F87171', marginBottom: 16 }}>{fetchError}</p>}
+      {fetchError && <p style={{ fontSize: 13, color: STATUS_ERROR, marginBottom: 16 }}>{fetchError}</p>}
 
       {/* ── Panels ──────────────────────────────────────────────── */}
       {tab === 'timeline' && (

@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext.tsx';
 import { api, ApiError } from '../lib/api.ts';
 import {
   CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, PALE_YELLOW, COPPER, SURFACE_3,
+  STATUS_ERROR, STATUS_ERROR_BG, STATUS_ERROR_BORDER,
 } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import SegmentedToggle from '../components/SegmentedToggle.tsx';
@@ -308,9 +309,9 @@ export default function LoginPage() {
                 <p
                   className="text-sm px-3 py-2 rounded-lg"
                   style={{
-                    color: 'rgba(248,113,113,0.9)',
-                    backgroundColor: 'rgba(248,113,113,0.08)',
-                    border: '1px solid rgba(248,113,113,0.2)',
+                    color: STATUS_ERROR,
+                    backgroundColor: STATUS_ERROR_BG,
+                    border: `1px solid ${STATUS_ERROR_BORDER}`,
                   }}
                 >
                   {error}

@@ -303,7 +303,7 @@ export default function AnalyticsPage() {
         Analytics
       </h2>
 
-      {fetchError && <p className="text-sm text-red-400">{fetchError}</p>}
+      {fetchError && <p className="text-sm text-error">{fetchError}</p>}
 
       {/* ── Hero Stats Strip ─────────────────────────────────── */}
       <div

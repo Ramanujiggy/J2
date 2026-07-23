@@ -20,7 +20,7 @@ import SegmentedToggle from '../components/SegmentedToggle.tsx';
 import { SKILL_TAGS } from '../lib/constants.ts';
 import { toDateString, DAY_NAMES, SESSION_TYPE_LABELS, INTENSITY_COLOR, formatDuration, formatGiNogi } from '../lib/sessionUtils.ts';
 import {
-  PALE_YELLOW, COPPER, CARD_BG, FONT_EDITORIAL, GLOW_SOFT,
+  PALE_YELLOW, COPPER, CARD_BG, FONT_EDITORIAL, GLOW_SOFT, STATUS_ERROR,
 } from '../lib/theme.ts';
 import type { SessionSummary } from '../types/api.ts';
 
@@ -225,7 +225,7 @@ export default function JournalIndexPage() {
           </p>
 
           {fetchError && (
-            <p style={{ fontSize: 13, color: '#F87171', marginBottom: 12 }}>{fetchError}</p>
+            <p style={{ fontSize: 13, color: STATUS_ERROR, marginBottom: 12 }}>{fetchError}</p>
           )}
 
           {/* Search */}
@@ -343,7 +343,7 @@ export default function JournalIndexPage() {
         </div>
       </div>
 
-      {fetchError && <p style={{ fontSize: 15, color: '#F87171', marginBottom: 20 }}>{fetchError}</p>}
+      {fetchError && <p style={{ fontSize: 15, color: STATUS_ERROR, marginBottom: 20 }}>{fetchError}</p>}
 
       {/* ── Search + filter chips ──────────────────────────── */}
       <div style={{ display: 'flex', gap: 14, marginBottom: 40, alignItems: 'center' }}>
@@ -427,7 +427,7 @@ function JournalRow({ session, onOpen }: { session: SessionSummary; onOpen: () =
   const dateStr = typeof session.date === 'string' ? session.date.slice(0, 10) : toDateString(new Date(session.date));
   const d = new Date(dateStr + 'T00:00:00');
   const intensity = Math.max(1, Math.min(5, session.intensity ?? 3));
-  const intColor = INTENSITY_COLOR[intensity] ?? '#A8CB72';
+  const intColor = INTENSITY_COLOR[intensity] ?? '#5E8A5C';
   const primary = session.tags?.[0];
   const focusLabel = primary ? (SKILL_TAGS.find(t => t.value === primary)?.label ?? primary) : 'Free rolling';
   const classLabel = SESSION_TYPE_LABELS[session.session_type] ?? session.session_type;
@@ -611,7 +611,7 @@ function SessionMiniRow({
   canonicalPositionById: Map<string, { name: string }>;
 }) {
   const intensity = Math.max(1, Math.min(5, session.intensity ?? 3));
-  const intColor = INTENSITY_COLOR[intensity] ?? '#A8CB72';
+  const intColor = INTENSITY_COLOR[intensity] ?? '#5E8A5C';
   const primary = session.tags?.[0];
   const focusLabel = primary ? (SKILL_TAGS.find(t => t.value === primary)?.label ?? primary) : 'Free rolling';
   const classLabel = SESSION_TYPE_LABELS[session.session_type] ?? session.session_type;
@@ -784,7 +784,7 @@ function DesktopVirtRow({
   const dateStr = typeof s.date === 'string' ? s.date.slice(0, 10) : toDateString(new Date(s.date));
   const d = new Date(dateStr + 'T00:00:00');
   const intensity = Math.max(1, Math.min(5, s.intensity ?? 3));
-  const intColor = INTENSITY_COLOR[intensity] ?? '#A8CB72';
+  const intColor = INTENSITY_COLOR[intensity] ?? '#5E8A5C';
   const primary = s.tags?.[0];
   const focusLabel = primary ? (SKILL_TAGS.find(t => t.value === primary)?.label ?? primary) : 'Free rolling';
   const classLabel = SESSION_TYPE_LABELS[s.session_type] ?? s.session_type;

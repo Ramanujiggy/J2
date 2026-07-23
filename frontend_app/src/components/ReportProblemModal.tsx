@@ -13,6 +13,7 @@ import { api, ApiError } from '../lib/api.ts';
 import {
     PALE_YELLOW, COPPER, CARD_BG, CARD_GLOW, CARD_GLOW_BORDER,
     SURFACE_3, SURFACE_3_BORDER,
+    STATUS_ERROR, STATUS_ERROR_BG, STATUS_ERROR_BORDER,
 } from '../lib/theme.ts';
 
 interface Props {
@@ -199,10 +200,10 @@ export default function ReportProblemModal({ onClose }: Props) {
                                 style={{
                                     fontSize: 13,
                                     padding: '10px 14px',
-                                    backgroundColor: 'rgba(248,113,113,0.10)',
-                                    border: '1px solid rgba(248,113,113,0.25)',
+                                    backgroundColor: STATUS_ERROR_BG,
+                                    border: `1px solid ${STATUS_ERROR_BORDER}`,
                                     borderRadius: 10,
-                                    color: 'rgba(248,113,113,0.95)',
+                                    color: STATUS_ERROR,
                                 }}
                             >
                                 {error}

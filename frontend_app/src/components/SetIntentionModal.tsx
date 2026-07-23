@@ -353,7 +353,7 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
               </button>
             )}
 
-            {error && <p className="text-xs text-red-400">{error}</p>}
+            {error && <p className="text-xs text-error">{error}</p>}
 
             {/* ── Action row ────────────────────────────────── */}
             <div

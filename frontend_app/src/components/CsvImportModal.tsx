@@ -394,7 +394,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
             </div>
 
             {parseError && (
-              <p className="mt-3 text-sm text-red-400">{parseError}</p>
+              <p className="mt-3 text-sm text-error">{parseError}</p>
             )}
           </div>
         )}
@@ -623,7 +623,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
             )}
 
             {importError && (
-              <p className="mt-3 text-sm text-red-400">{importError}</p>
+              <p className="mt-3 text-sm text-error">{importError}</p>
             )}
 
             {/* Footer */}
