@@ -226,15 +226,17 @@
 .j2-streak-cell {
   position: relative;
   overflow: hidden;
+  outline: 1px solid rgba(0, 180, 255, 0.28);
+  outline-offset: -1px;
 }
 
-/* Dark overlay: uniformly darkens the cell background so the champagne
+/* Dark overlay: uniformly darkens the cell background so the blue
    sheen has consistent contrast regardless of intensity color */
 .j2-streak-cell::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.22);
+  background: rgba(0, 0, 0, 0.18);
   pointer-events: none;
   z-index: 0;
 }
@@ -249,7 +251,7 @@
   background: linear-gradient(
     to right,
     transparent,
-    rgba(242, 228, 168, 0.35) 50%,
+    rgba(0, 180, 255, 0.45) 50%,
     transparent
   );
   animation: j2-streak-sheen 5s ease-in-out infinite;

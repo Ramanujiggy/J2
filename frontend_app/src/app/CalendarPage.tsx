@@ -45,7 +45,7 @@ export default function CalendarPage() {
   };
 
   const currentYear = new Date().getFullYear();
-  // Stable callbacks for TrainingHeatmap/CalendarHeatmap (per Tier 3 perf audit:
+  // Stable callbacks for CalendarHeatmapView (per Tier 3 perf audit:
   // inline arrow props defeat React.memo on the heatmap children).
   const handleGoToToday  = useCallback(() => setDisplayYear(currentYear), [currentYear]);
   const handleLogSession = useCallback((dateKey: string) => setLogDate(dateKey), []);

@@ -115,13 +115,17 @@ users (1) ──── (many) weekly_intentions
 
 ## Migrations
 
-### Auto-applied on startup
+All migrations are **auto-applied on startup** by `runMigrations()` in `src/app.ts`,
+which runs the numbered SQL files in `backend_api/migrations/` in order and records
+each applied file in a `schema_migrations` tracking table (so each runs exactly once).
+No manual step in the Supabase SQL Editor is required.
 
-`password_reset_tokens` — created automatically by `runMigrations()` in `src/app.ts` every time the backend starts (idempotent — uses `CREATE TABLE IF NOT EXISTS`).
+On first run against a database that already has the 001–005 columns (from the old
+manual process), those five files are seeded into `schema_migrations` as already-applied
+so they don't re-run. `password_reset_tokens` is also ensured inline (legacy shim, kept
+for backward compatibility) via `CREATE TABLE IF NOT EXISTS`.
 
-### Manual (run once in Supabase SQL Editor)
-
-Five numbered SQL files in `backend_api/migrations/`, applied in order:
+### The numbered files, in order:
 
 ```sql
 -- 001_add_weekly_intentions.sql
