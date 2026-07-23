@@ -4,7 +4,6 @@ import type { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import pool from '../config/db.js';
 import * as userModel from '../models/userModel.js';
 import * as passwordResetModel from '../models/passwordResetModel.js';
 import { sendPasswordResetEmail } from '../services/emailService.js';
@@ -105,9 +104,6 @@ export const login = async (req: Request, res: Response) => {
 
         console.log('✅ User logged in:', user.email);
 
-        // Record login timestamp for admin dashboard
-        try { await pool.query('UPDATE users SET last_login_at = NOW() WHERE id = $1', [user.id]); } catch {}
-
         res.status(200).json({
             message: 'Login successful',
             token,
@@ -161,55 +157,33 @@ export const requestPasswordReset = async (req: Request, res: Response) => {
 // ---- Reset Password ---------------------------------------------------------
 
 export const resetPassword = async (req: Request, res: Response) => {
-    const { token, newPassword } = req.body;
-
-    if (!token || !newPassword) {
-        return res.status(400).json({ message: 'Token and new password are required.' });
-    }
-
-    if (newPassword.length < 8) {
-        return res.status(400).json({ message: 'Password must be at least 8 characters.' });
-    }
-
-    // Hash the incoming plaintext token for DB lookup (tokens are stored as SHA-256 hashes).
-    const tokenHash = hashToken(token);
-
-    // Bcrypt is expensive (~250ms at 12 rounds) — run it BEFORE the transaction so we
-    // don't hold a DB connection / row lock for longer than necessary.
-    const saltRounds = 12;
-    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
-
-    // Transaction: SELECT ... FOR UPDATE locks the token row so concurrent reset
-    // attempts with the same token serialise. The first one marks it used inside
-    // the same transaction; the second sees it already used and fails cleanly.
-    const client = await pool.connect();
     try {
-        await client.query('BEGIN');
+        const { token, newPassword } = req.body;
 
-        const tokenResult = await client.query(
-            `SELECT id, user_id FROM password_reset_tokens
-             WHERE token = $1 AND used = false AND expires_at > NOW()
-             FOR UPDATE`,
-            [tokenHash],
-        );
-        const resetToken = tokenResult.rows[0] as { id: string; user_id: string } | undefined;
+        if (!token || !newPassword) {
+            return res.status(400).json({ message: 'Token and new password are required.' });
+        }
 
+        if (newPassword.length < 8) {
+            return res.status(400).json({ message: 'Password must be at least 8 characters.' });
+        }
+
+        const resetToken = await passwordResetModel.findValidToken(hashToken(token));
         if (!resetToken) {
-            await client.query('ROLLBACK');
             return res.status(400).json({ message: 'This reset link is invalid or has expired.' });
         }
 
-        await userModel.updatePasswordHash(resetToken.user_id, hashedPassword, client);
-        await passwordResetModel.markTokenUsed(resetToken.id, client);
+        const saltRounds = 12;
+        const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
 
-        await client.query('COMMIT');
+        await userModel.updatePasswordHash(resetToken.user_id, hashedPassword);
+        await passwordResetModel.markTokenUsed(resetToken.id);
+
         console.log('✅ Password reset successfully for user:', resetToken.user_id);
         return res.status(200).json({ message: 'Password updated successfully.' });
+
     } catch (error) {
-        await client.query('ROLLBACK').catch(() => {});
         console.error('❌ Error during password reset:', error);
         return res.status(500).json({ message: 'Server error' });
-    } finally {
-        client.release();
     }
 };
