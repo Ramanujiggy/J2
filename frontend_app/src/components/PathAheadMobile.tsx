@@ -31,7 +31,7 @@ interface Props {
   weekSessionCount: number;
   totalSessions: number;
   tenure: string;
-  lastSession: { id: string; date: string; duration: number; focusLabel: string; endedAgo: string } | null;
+  lastSession: { id: string; date: string; duration: number; focusLabel: string; endedAgo: string; hasNotes?: boolean } | null;
   dayRailData: Array<{ dow: string; date: number; state: 'done' | 'today' | 'rest' | 'future' }>;
   weekDays: Date[];
   sessionsByDate: Map<string, SessionSummary[]>;
