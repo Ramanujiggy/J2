@@ -281,7 +281,7 @@ export const updateSession = async (
 ): Promise<Session | null> => {
     const result = await query(
         `UPDATE training_sessions
-         SET date = COALESCE($3, date), duration = $4, gi_nogi = $5, intensity = $6, session_type = $7, notes = $8, tags = $9,
+         SET date = $3, duration = $4, gi_nogi = $5, intensity = $6, session_type = $7, notes = $8, tags = $9,
              heading = $10, polarity = $11, sub_skill_tag = $12, script_source = $13, resonance = $14,
              user_tag_ids = $15, pillar_distribution = $16, canonical_position_ids = $17,
              had_primary = $18, had_deep_work = $19, selection_count = $20, deep_work_pillars = $21,
