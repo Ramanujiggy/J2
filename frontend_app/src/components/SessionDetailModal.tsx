@@ -86,7 +86,9 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
   const isDesktop = useIsDesktop();
 
   // ── Form state (includes Pillar Engine fields) ──────────────────────────
+  const sessionDateStr = typeof session.date === 'string' ? session.date.slice(0, 10) : '';
   const [form, setForm] = useState({
+    date:          sessionDateStr,
     duration:      session.duration,
     gi_nogi:       session.gi_nogi as GiNoGi,
     intensity:     session.intensity,
@@ -238,6 +240,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
       // be rehydrated with halo rings when the user reopens this session.
       const deep_work_pillars = selections.filter(s => s.deep_work).map(s => s.pillar);
       await api.put(`/api/sessions/${session.id}`, {
+        date:          form.date !== sessionDateStr ? form.date : undefined,
         duration:      form.duration,
         gi_nogi:       form.gi_nogi,
         intensity:     form.intensity,
@@ -723,8 +726,33 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
               maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem)',
               padding: '1.25rem',
             }}>
-              {/* Date header */}
-              <p style={{ fontFamily: FONT_EDITORIAL, fontWeight: 500, fontSize: 32, lineHeight: 1.1, color: intensityColor, margin: '0 0 16px' }}>{dateLabel}</p>
+              {/* Date — editable */}
+              <div style={{ marginBottom: 16 }}>
+                <input
+                  type="date"
+                  value={form.date}
+                  onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
+                  style={{
+                    fontFamily: FONT_EDITORIAL,
+                    fontWeight: 500,
+                    fontSize: 28,
+                    lineHeight: 1.1,
+                    color: form.date !== sessionDateStr ? '#DA7422' : intensityColor,
+                    background: 'transparent',
+                    border: 'none',
+                    borderBottom: '1px solid rgba(196,145,95,0.25)',
+                    paddingBottom: 4,
+                    outline: 'none',
+                    colorScheme: 'dark',
+                    width: '100%',
+                  }}
+                />
+                {form.date !== sessionDateStr && (
+                  <div style={{ fontSize: 11, color: '#DA7422', marginTop: 4, fontWeight: 600 }}>
+                    Date changed
+                  </div>
+                )}
+              </div>
 
               {/* ── Journal paper — the entry leads (2026-07-15 journal-first
                   redesign). Big, serif, borderless like the composer page; the
