@@ -700,6 +700,9 @@ function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
                 touchAction: 'pan-y',
                 backgroundColor: 'rgba(242,228,168,0.035)',
                 border: '1px solid rgba(242,228,168,0.12)',
+                height: 200,
+                display: 'flex',
+                flexDirection: 'column' as const,
               }}
               data-no-page-swipe=""
               onTouchStart={handleTouchStart}
@@ -737,6 +740,10 @@ function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
                         color: 'rgba(255,255,255,0.35)',
                         opacity: spinning ? 0 : 1,
                         transition: 'opacity 0.2s ease 0.05s',
+                        overflow: 'hidden',
+                        display: '-webkit-box',
+                        WebkitBoxOrient: 'vertical' as const,
+                        WebkitLineClamp: 3,
                       }}>
                         {item.description}
                       </p>
