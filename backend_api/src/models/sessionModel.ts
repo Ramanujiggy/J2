@@ -256,6 +256,7 @@ export const bulkInsertSessions = async (userId: string, sessions: BulkSessionIn
 export const updateSession = async (
     id: string,
     userId: string,
+    date: string | null,
     duration: number,
     gi_nogi: 'gi' | 'no_gi' | 'both',
     intensity: number,
@@ -280,14 +281,14 @@ export const updateSession = async (
 ): Promise<Session | null> => {
     const result = await query(
         `UPDATE training_sessions
-         SET duration = $3, gi_nogi = $4, intensity = $5, session_type = $6, notes = $7, tags = $8,
-             heading = $9, polarity = $10, sub_skill_tag = $11, script_source = $12, resonance = $13,
-             user_tag_ids = $14, pillar_distribution = $15, canonical_position_ids = $16,
-             had_primary = $17, had_deep_work = $18, selection_count = $19, deep_work_pillars = $20,
-             canonical_constraint_ids = $21, user_constraint_ids = $22, partners = $23
+         SET date = COALESCE($3, date), duration = $4, gi_nogi = $5, intensity = $6, session_type = $7, notes = $8, tags = $9,
+             heading = $10, polarity = $11, sub_skill_tag = $12, script_source = $13, resonance = $14,
+             user_tag_ids = $15, pillar_distribution = $16, canonical_position_ids = $17,
+             had_primary = $18, had_deep_work = $19, selection_count = $20, deep_work_pillars = $21,
+             canonical_constraint_ids = $22, user_constraint_ids = $23, partners = $24
          WHERE id = $1 AND user_id = $2
          RETURNING *`,
-        [id, userId, duration, gi_nogi, intensity, session_type, notes || null, tags,
+        [id, userId, date, duration, gi_nogi, intensity, session_type, notes || null, tags,
          heading, polarity, sub_skill_tag, script_source, resonance, user_tag_ids, pillar_distribution,
          canonical_position_ids, had_primary, had_deep_work, selection_count, deep_work_pillars,
          canonical_constraint_ids, user_constraint_ids, partners],

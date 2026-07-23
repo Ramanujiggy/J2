@@ -521,10 +521,15 @@ export const updateSession = async (req: Request, res: Response): Promise<void> 
         const userId = req.user!.id;
 
         const { id } = req.params;
-        const { duration, gi_nogi, intensity, session_type, notes, tags,
+        const { date, duration, gi_nogi, intensity, session_type, notes, tags,
                 heading, polarity, sub_skill_tag, script_source, resonance, user_tag_ids, pillar_distribution,
                 canonical_position_ids, had_primary, had_deep_work, selection_count, deep_work_pillars,
                 canonical_constraint_ids, user_constraint_ids, partners } = req.body;
+
+        if (date !== undefined && date !== null && (!DATE_RE.test(date) || isNaN(Date.parse(date)))) {
+            res.status(400).json({ message: 'date must be a valid YYYY-MM-DD string.' });
+            return;
+        }
 
         if (duration === undefined || !gi_nogi || intensity === undefined || !session_type) {
             res.status(400).json({ message: 'Duration, gi/no-gi, intensity, and session type are required.' });
@@ -589,7 +594,7 @@ export const updateSession = async (req: Request, res: Response): Promise<void> 
 
         const session = await updateSessionModel(
             id as string, userId,
-            durationNum, gi_nogi, intensityNum, session_type, notes ?? '',
+            date ?? null, durationNum, gi_nogi, intensityNum, session_type, notes ?? '',
             finalTags,
             heading ?? null, polarity ?? null, sub_skill_tag ?? null, script_source ?? null, resonanceNum,
             userTagIds, dist, canonicalIds,
