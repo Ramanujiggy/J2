@@ -263,6 +263,7 @@ export default function RepRouletteFab({ onLogDrill }: Props) {
                 touchAction: 'pan-y',
                 backgroundColor: 'rgba(242,228,168,0.035)',
                 border: '1px solid rgba(242,228,168,0.12)',
+                minHeight: 175,
               }}
               data-no-page-swipe=""
               onTouchStart={handleTouchStart}
@@ -284,7 +285,13 @@ export default function RepRouletteFab({ onLogDrill }: Props) {
                     <span style={{ color: 'rgba(255,255,255,0.2)', margin: '0 6px' }}>·</span>
                     {drill.suggestion}
                   </p>
-                  <p className="text-xs mt-2 leading-relaxed" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  <p className="text-xs mt-2 leading-relaxed" style={{
+                    color: 'rgba(255,255,255,0.35)',
+                    overflow: 'hidden',
+                    display: '-webkit-box',
+                    WebkitBoxOrient: 'vertical',
+                    WebkitLineClamp: 4,
+                  }}>
                     {drill.description}
                   </p>
                   <div className="flex items-center justify-between mt-3">

@@ -55,6 +55,12 @@ export const PRESTIGE_TEAL = '#00D4AA' as const;
 /** Prestige teal glow — box-shadow for teal accent. */
 export const PRESTIGE_TEAL_GLOW = 'rgba(0,212,170,0.45)' as const;
 
+/** Prestige blue — streak sheen and consecutive-day glow. Electric sky, fully saturated. */
+export const PRESTIGE_BLUE = '#00B4FF' as const;
+
+/** Prestige blue glow — box-shadow / ring for streak indicators. */
+export const PRESTIGE_BLUE_GLOW = 'rgba(0,180,255,0.50)' as const;
+
 // ─── Derived composites ───────────────────────────────────────────────────────
 
 /** Standard card border (caramel at 45% opacity). */
