@@ -18,7 +18,7 @@
 import { useState, useEffect } from 'react';
 import { api, ApiError } from '../lib/api.ts';
 import { toast } from '../hooks/use-toast.ts';
-import { CARD_BG, PALE_YELLOW, FONT_EDITORIAL, COPPER } from '../lib/theme.ts';
+import { CARD_BG, PALE_YELLOW, COPPER } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import BeltDateBanner from './BeltDateBanner.tsx';
 import PrismReceipt from './PrismReceipt.tsx';

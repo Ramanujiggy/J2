@@ -318,7 +318,6 @@ export default function CalendarHeatmapView({
                         fontSize: monthHasData ? 15 : 11,
                         color: isSelected ? COPPER : monthHasData ? 'rgba(242,228,168,0.55)' : 'rgba(242,228,168,0.18)',
                         textAlign: 'right' as const,
-                        paddingRight: 6,
                         background: 'none',
                         border: 'none',
                         cursor: monthHasData ? 'pointer' : 'default',

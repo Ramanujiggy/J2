@@ -327,7 +327,9 @@ Each fix can be validated independently:
 
 ### Problem
 
-Debugging production issues currently requires opening Railway logs + the Supabase SQL editor to answer questions like "did that migration run?" or "what was the real error?" The catch-all error handler in `app.ts` discards the actual DB error and returns a generic "Server error" to the client, which makes issues very hard to diagnose from the browser alone.
+Debugging production issues currently requires opening Railway logs + the Supabase SQL editor to answer questions like "did that migration run?" or "what was the real error?"
+
+*Partially addressed 2026-07-23:* the catch-all handler in `app.ts` no longer returns a bare "Server error". Each failure now gets a short `errorId` that is both logged (alongside the method, URL, and stack) and returned in the response body, so a user-reported failure can be grepped straight out of the Railway logs. Outside production the response also carries the underlying `detail`. What's still missing — and what this view is for — is answering those questions *from the browser* without shell access.
 
 ### Approach: In-App View (not an external monitoring service)
 

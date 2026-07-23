@@ -5,6 +5,7 @@ import cors from 'cors';
 import compression from 'compression';
 import fs from 'node:fs';
 import path from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import authRoutes from './routes/authRoutes.js';
 import sessionRoutes from './routes/sessionRoutes.js';
@@ -192,9 +193,26 @@ app.use('/api/notes', trainingNoteRoutes);
 // Catch-all JSON error handler — must be registered after all routes.
 // Express 5 forwards async throws to error-handling middleware; without this
 // the default handler sends an HTML page, which the frontend can't parse as JSON.
-app.use((_err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    console.error('❌ Unhandled error:', _err);
-    res.status(500).json({ message: 'Server error' });
+//
+// Every failure gets a short correlation id that is BOTH logged and returned.
+// Previously the response was a bare "Server error" with no way to tie a user's
+// report back to a log line, which is what made production issues hard to
+// diagnose. The id is safe to expose; the underlying message is only included
+// outside production so internals never go over the wire to real users.
+// `_next` is unused but must stay — Express only treats a 4-arity middleware
+// as an error handler.
+app.use((err: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    const errorId = randomUUID().slice(0, 8);
+    const detail = err instanceof Error ? (err.stack ?? err.message) : String(err);
+    console.error(`❌ Unhandled error [${errorId}] ${req.method} ${req.originalUrl}:`, detail);
+
+    res.status(500).json({
+        message: 'Server error',
+        errorId,
+        ...(process.env.NODE_ENV === 'production'
+            ? {}
+            : { detail: err instanceof Error ? err.message : String(err) }),
+    });
 });
 
 export { runMigrations };

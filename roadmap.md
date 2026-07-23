@@ -112,7 +112,7 @@ Full diagnostic rationale and implementation detail for each item lives in `impl
 | `[x]` | **Intention always anchors to Monday** | `SetIntentionModal` now initializes `startDate` to today and exposes a date picker in create mode. `activeIntention` lookup in `PathAheadPage` uses a window-range check (`todayStr >= start && todayStr <= end`) rather than Monday matching. |
 | `[ ]` | **No future-week intention setting** | The modal always targets the current ISO week. No flow for setting next week's intention in advance — a common need for competition prep. |
 | `[ ]` | **Single active intention per week** | `activeIntention` is a `find()` against current-week start — only one intention surfaces on the home page even if multiple exist for the same week in the DB. |
-| `[ ]` | **Journal autosave not offline-safe** | `JournalEntryPage` calls `api.patch` directly, bypassing the offline write queue. Entries typed while offline are silently lost. Route through the existing offline queue or at minimum warn the user when offline. |
+| `[x]` | **Journal autosave not offline-safe** | Re-verified 2026-07-23: entries are **not** lost. `api.patch` routes through `request()` in `lib/api.ts`, which catches the failed fetch and parks the write in the IndexedDB queue (`offlineQueue.ts` even dedups repeat PATCHes to the same path specifically for journal autosave); `useOnlineSync` flushes on reconnect. The real defect was reporting: `JournalEntryPage` ignored the synthetic `_offline` payload and displayed a flat "Saved", so a queued-but-unsynced entry looked server-confirmed. Now distinguishes "Saved on this device — will sync when online", matching `LogSessionForm` / `CaptureComposer`. |
 
 ---
 

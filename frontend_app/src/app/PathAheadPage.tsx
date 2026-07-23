@@ -17,7 +17,7 @@ import { toast } from '../hooks/use-toast.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import { useActiveIntention } from '../context/ActiveIntentionContext.tsx';
 import PulseSparklineWidget from '../components/PulseSparklineWidget.tsx';
-import { computeACWR, computeDecay, rustiest, computeACWRByPillar, spikiestPillar, computeTelemetry } from '../lib/analyticsModels.ts';
+import { computeTelemetry } from '../lib/analyticsModels.ts';
 import { isIntentionComplete, computeIntentionProgress } from '../lib/analyticsUtils.ts';
 import PathAheadTelemetryCard from '../components/PathAheadTelemetryCard.tsx';
 import PathAheadModals from '../components/PathAheadModals.tsx';
@@ -187,7 +187,6 @@ export default function PathAheadPage() {
     const focusLabel = focusParts.join(' & ') || 'Open rolling';
     const sessionDate = new Date(dateStr + 'T00:00:00');
     const diffMs = Date.now() - sessionDate.getTime();
-    const diffHours = Math.round(diffMs / 3600000);
     const diffDays = Math.round(diffMs / 86400000);
     const endedAgo = diffDays === 0 ? 'today' : diffDays === 1 ? 'yesterday' : `${diffDays} days ago`;
     const hasNotes = !!(s.notes && s.notes.trim().length > 0);
@@ -343,13 +342,6 @@ export default function PathAheadPage() {
     const totalMinutes = weekSessions.reduce((acc, s) => acc + s.duration, 0);
     return { count: weekSessions.length, totalMinutes };
   }, [allSessions, weekDays]);
-
-  // ── Advanced models ────────────────────────────────────────────────────
-  const acwr = useMemo(() => computeACWR(allSessions), [allSessions]);
-  const decay = useMemo(() => computeDecay(allSessions), [allSessions]);
-  const rustiestPillar = useMemo(() => rustiest(decay), [decay]);
-  const acwrByPillar = useMemo(() => computeACWRByPillar(allSessions), [allSessions]);
-  const spikiest = useMemo(() => spikiestPillar(acwrByPillar), [acwrByPillar]);
 
   // ── Intent delete ──────────────────────────────────────────────────────
 

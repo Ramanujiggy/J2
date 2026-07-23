@@ -35,6 +35,9 @@ export default function JournalEntryPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  // True when the last save was queued offline rather than confirmed by the
+  // server. Drives the distinct "Saved on this device" status copy.
+  const [savedOffline, setSavedOffline] = useState(false);
   const [error, setError] = useState('');
 
   // Inline edit state
@@ -164,7 +167,15 @@ export default function JournalEntryPage() {
     setSaving(true);
     setError('');
     try {
-      await api.patch(`/api/intentions/${id}/journal`, { journal_entry: entry });
+      const data = await api.patch(`/api/intentions/${id}/journal`, { journal_entry: entry });
+      // Mirror LogSessionForm / CaptureComposer: api.patch() resolves with a
+      // synthetic `_offline` payload (it never throws) when the write was
+      // parked in the IndexedDB queue instead of reaching the server. Reporting
+      // a bare "Saved" there tells the user their entry is safe on the server
+      // when it is still only on this device — surface the distinction so they
+      // know to stay signed in until it syncs.
+      const queuedOffline = (data as unknown as { _offline?: boolean })?._offline === true;
+      setSavedOffline(queuedOffline);
       setSaved(true);
     } catch {
       setError('Failed to save. Please try again.');
@@ -568,8 +579,15 @@ export default function JournalEntryPage() {
       {/* Save area */}
       {intentionsEnabled && (
         <div className="flex items-center justify-between">
-          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>
-            {saving ? 'Saving...' : saved ? 'Saved' : ''}
+          <span
+            className="text-xs"
+            style={{ color: savedOffline && !saving ? COPPER : 'rgba(255,255,255,0.25)' }}
+          >
+            {saving
+              ? 'Saving...'
+              : saved
+                ? (savedOffline ? 'Saved on this device — will sync when online' : 'Saved')
+                : ''}
           </span>
           <div className="flex items-center gap-3">
             {error && <span className="text-xs text-error">{error}</span>}

@@ -50,7 +50,6 @@ interface Props {
 }
 
 export default function PathAheadMobile({
-  name,
   intentionsEnabled,
   loading,
   streak,

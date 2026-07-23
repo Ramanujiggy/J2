@@ -132,7 +132,6 @@ export default function StillFreshHero({ lastSession, onAddNotes, onDismiss }: P
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
     const dx = e.changedTouches[0].clientX - touchStartX.current;
-    const dt = Date.now();
     if (isHorizontal.current && (Math.abs(dx) > 50)) {
       if (dx < 0) goNext();
       else goPrev();

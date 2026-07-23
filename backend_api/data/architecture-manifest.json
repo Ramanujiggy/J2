@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-28T20:22:47.474Z",
+  "generatedAt": "2026-07-23T23:52:17.174Z",
   "apiRoutes": [
     {
       "method": "GET",
@@ -2066,9 +2066,9 @@
     }
   ],
   "topology": {
-    "mermaid": "graph LR\n    Browser[\"Browser (PWA)\"]\n    Vercel[\"Vercel CDN\"]\n    Railway[\"Railway API\"]\n    Postgres[\"PostgreSQL (Neon)\"]\n    R2[\"Cloudflare R2\"]\n\n    Browser -->|\"HTTPS\"| Vercel\n    Browser -->|\"API calls\"| Railway\n    Vercel -->|\"Static assets\"| Browser\n    Railway -->|\"SQL\"| Postgres\n    Railway -->|\"Video upload/stream\"| R2\n\n    subgraph Frontend\n        Vercel\n    end\n\n    subgraph Backend\n        Railway\n        Postgres\n        R2\n    end",
-    "lastEdited": "2026-06-28T20:22:39.060Z",
-    "raw": "# Architecture Topology\n\n```mermaid\ngraph LR\n    Browser[\"Browser (PWA)\"]\n    Vercel[\"Vercel CDN\"]\n    Railway[\"Railway API\"]\n    Postgres[\"PostgreSQL (Neon)\"]\n    R2[\"Cloudflare R2\"]\n\n    Browser -->|\"HTTPS\"| Vercel\n    Browser -->|\"API calls\"| Railway\n    Vercel -->|\"Static assets\"| Browser\n    Railway -->|\"SQL\"| Postgres\n    Railway -->|\"Video upload/stream\"| R2\n\n    subgraph Frontend\n        Vercel\n    end\n\n    subgraph Backend\n        Railway\n        Postgres\n        R2\n    end\n```\n\n## Services\n\n| Service | Provider | Purpose |\n|---------|----------|---------|\n| Frontend | Vercel | React SPA, static hosting |\n| API | Railway | Express server, auth, business logic |\n| Database | Neon PostgreSQL | User data, sessions, intentions, tags |\n| Object Storage | Cloudflare R2 | Technique video clips |\n| Transcoding | Railway (in-process) | ffmpeg worker for video encoding |\n| Push Notifications | Web Push (VAPID) | Class-time reminders |\n"
+    "mermaid": "graph LR\r\n    Browser[\"Browser (PWA)\"]\r\n    Vercel[\"Vercel CDN\"]\r\n    Railway[\"Railway API\"]\r\n    Postgres[\"PostgreSQL (Neon)\"]\r\n    R2[\"Cloudflare R2\"]\r\n\r\n    Browser -->|\"HTTPS\"| Vercel\r\n    Browser -->|\"API calls\"| Railway\r\n    Vercel -->|\"Static assets\"| Browser\r\n    Railway -->|\"SQL\"| Postgres\r\n    Railway -->|\"Video upload/stream\"| R2\r\n\r\n    subgraph Frontend\r\n        Vercel\r\n    end\r\n\r\n    subgraph Backend\r\n        Railway\r\n        Postgres\r\n        R2\r\n    end",
+    "lastEdited": "2026-07-15T11:39:31.407Z",
+    "raw": "# Architecture Topology\r\n\r\n```mermaid\r\ngraph LR\r\n    Browser[\"Browser (PWA)\"]\r\n    Vercel[\"Vercel CDN\"]\r\n    Railway[\"Railway API\"]\r\n    Postgres[\"PostgreSQL (Neon)\"]\r\n    R2[\"Cloudflare R2\"]\r\n\r\n    Browser -->|\"HTTPS\"| Vercel\r\n    Browser -->|\"API calls\"| Railway\r\n    Vercel -->|\"Static assets\"| Browser\r\n    Railway -->|\"SQL\"| Postgres\r\n    Railway -->|\"Video upload/stream\"| R2\r\n\r\n    subgraph Frontend\r\n        Vercel\r\n    end\r\n\r\n    subgraph Backend\r\n        Railway\r\n        Postgres\r\n        R2\r\n    end\r\n```\r\n\r\n## Services\r\n\r\n| Service | Provider | Purpose |\r\n|---------|----------|---------|\r\n| Frontend | Vercel | React SPA, static hosting |\r\n| API | Railway | Express server, auth, business logic |\r\n| Database | Neon PostgreSQL | User data, sessions, intentions, tags |\r\n| Object Storage | Cloudflare R2 | Technique video clips |\r\n| Transcoding | Railway (in-process) | ffmpeg worker for video encoding |\r\n| Push Notifications | Web Push (VAPID) | Class-time reminders |\r\n"
   },
   "warnings": []
 }
