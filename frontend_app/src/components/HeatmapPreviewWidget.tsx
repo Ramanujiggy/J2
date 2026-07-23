@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { localDateKey, buildDayMap, cellColor, EMPTY_DAY, computeStats } from './TrainingHeatmap.tsx';
 import type { DayData } from './TrainingHeatmap.tsx';
 import type { SessionSummary } from '../types/api.ts';
-import { CARD_BG, COPPER, COPPER_BORDER, CARD_SHADOW } from '../lib/theme.ts';
+import { CARD_BG, COPPER, CARD_GLOW, CARD_GLOW_BORDER } from '../lib/theme.ts';
 
 const WEEKS     = 24;   // 6 months of rolling history
 const CELL_SIZE = 14;   // px — ~20% smaller than the old 18px compact heatmap
@@ -77,8 +77,8 @@ export default function HeatmapPreviewWidget({ sessions }: HeatmapPreviewWidgetP
       className="rounded-2xl p-5 sm:p-6"
       style={{
         backgroundColor: CARD_BG,
-        border: `1px solid ${COPPER_BORDER}`,
-        boxShadow: CARD_SHADOW,
+        border: `1px solid ${CARD_GLOW_BORDER}`,
+        boxShadow: CARD_GLOW,
         cursor: 'pointer',
       }}
       onClick={() => navigate('/calendar')}
