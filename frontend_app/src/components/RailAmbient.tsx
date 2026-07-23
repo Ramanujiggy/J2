@@ -5,9 +5,6 @@
 // (extracted to PrismMotif.tsx) and the constellation now gone too, the
 // rail's only ambient layer is the seigaiha texture — slow drift, very low
 // alpha, parchment grain. Reads as material, not motion.
-//
-// The MiniPrismField.tsx + RAIL_MINIS / RAIL_CRYST data live as dead code
-// in case we want to bring the constellation back somewhere else.
 
 import SeigaihaPattern from './visuals/SeigaihaPattern.tsx';
 
