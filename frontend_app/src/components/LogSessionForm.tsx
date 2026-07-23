@@ -18,7 +18,7 @@
 import { useState, useEffect } from 'react';
 import { api, ApiError } from '../lib/api.ts';
 import { toast } from '../hooks/use-toast.ts';
-import { CARD_BG, PALE_YELLOW } from '../lib/theme.ts';
+import { CARD_BG, PALE_YELLOW, FONT_EDITORIAL, COPPER } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import BeltDateBanner from './BeltDateBanner.tsx';
 import PrismReceipt from './PrismReceipt.tsx';
@@ -322,6 +322,32 @@ export default function LogSessionForm({
           />
         )}
 
+        {/* ── Journal-first: freeform notes lead the form ────────────────
+            Matches the edit modal's layout — the entry text is the primary
+            content, structured controls are "margin notes" below. */}
+        {!isDesktop && (
+          <div className="px-5 pt-2 pb-0">
+            <textarea
+              value={form.notes}
+              onChange={e => setForm(prev => ({ ...prev, notes: e.target.value }))}
+              placeholder="What happened on the mat today?"
+              rows={4}
+              style={{
+                width: '100%',
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+                resize: 'none',
+                fontSize: 17,
+                lineHeight: 1.55,
+                color: 'rgba(255,255,255,0.88)',
+                padding: 0,
+              }}
+            />
+            <div style={{ height: 1, backgroundColor: 'rgba(196,145,95,0.20)', marginTop: 12 }} />
+          </div>
+        )}
+
         <div
           className={isDesktop ? 'px-8 pb-8 pt-6' : 'px-5 pb-5 pt-4'}
           style={isDesktop ? {
@@ -342,6 +368,16 @@ export default function LogSessionForm({
           >
             Log a Training Session
           </h2>
+        )}
+
+        {/* Mobile margin notes label — mirrors the edit modal's "MARGIN NOTES" section */}
+        {!isDesktop && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <span style={{ fontSize: 11, color: 'rgba(196,145,95,0.5)' }}>◇</span>
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase' as const, color: COPPER }}>
+              Margin Notes
+            </span>
+          </div>
         )}
 
         {/* ── Section 1: Fundamentals ─────────────────────────────────────
