@@ -20,6 +20,22 @@ declare const self: ServiceWorkerGlobalScope & {
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST ?? []);
 
+// Auto-activate new SW immediately — don't wait for all tabs to close.
+// The client-side registerSW({ onNeedRefresh }) sends a SKIP_WAITING
+// message; this listener picks it up and takes control of all clients
+// so the new code is live on the next navigation without a manual refresh.
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
+// Claim all open clients immediately after activation so the new SW
+// controls existing tabs without requiring a reload.
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
 // Google Fonts CSS
 registerRoute(
   ({ url }) => url.origin === 'https://fonts.googleapis.com',
