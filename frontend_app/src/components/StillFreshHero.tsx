@@ -4,7 +4,7 @@
 // 1. "capture" — recent session exists, invite user to add notes
 // 2. "technique" — no fresh session, showcase a technique from the library
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { COPPER, PALE_YELLOW, FONT_EDITORIAL, GLOW_SOFT, SURFACE_2, COPPER_BORDER } from '../lib/theme.ts';
 import { formatDuration } from '../lib/sessionUtils.ts';
@@ -61,25 +61,104 @@ export default function StillFreshHero({ lastSession, onAddNotes, onDismiss }: P
   // Determine mode: capture if session is fresh + unannotated, else technique
   const showCapture = lastSession && isFresh(lastSession.endedAgo) && !lastSession.hasNotes;
 
-  // Technique cycling — pick a random technique, rotate every 20s
+  // Technique cycling — pick a random start, auto-rotate every 20s, swipeable
   const [techIndex, setTechIndex] = useState(() => tags.length > 0 ? Math.floor(Math.random() * tags.length) : 0);
+  const [dragX, setDragX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [slideDir, setSlideDir] = useState<'left' | 'right' | null>(null);
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const isHorizontal = useRef<boolean | null>(null);
+  const autoTimerRef = useRef<ReturnType<typeof setInterval>>();
+
+  const resetAutoTimer = useCallback(() => {
+    if (autoTimerRef.current) clearInterval(autoTimerRef.current);
+    if (!showCapture && tags.length > 1) {
+      autoTimerRef.current = setInterval(() => {
+        setSlideDir('left');
+        setTimeout(() => {
+          setTechIndex(prev => (prev + 1) % tags.length);
+          setSlideDir(null);
+        }, 200);
+      }, 20000);
+    }
+  }, [showCapture, tags.length]);
 
   useEffect(() => {
     if (showCapture || tags.length === 0) return;
-    setTechIndex(Math.floor(Math.random() * tags.length));
-    const interval = setInterval(() => {
+    resetAutoTimer();
+    return () => { if (autoTimerRef.current) clearInterval(autoTimerRef.current); };
+  }, [showCapture, tags.length, resetAutoTimer]);
+
+  const goNext = useCallback(() => {
+    if (tags.length <= 1) return;
+    setSlideDir('left');
+    setTimeout(() => {
       setTechIndex(prev => (prev + 1) % tags.length);
-    }, 20000);
-    return () => clearInterval(interval);
-  }, [showCapture, tags.length]);
+      setSlideDir(null);
+    }, 180);
+    resetAutoTimer();
+  }, [tags.length, resetAutoTimer]);
+
+  const goPrev = useCallback(() => {
+    if (tags.length <= 1) return;
+    setSlideDir('right');
+    setTimeout(() => {
+      setTechIndex(prev => (prev - 1 + tags.length) % tags.length);
+      setSlideDir(null);
+    }, 180);
+    resetAutoTimer();
+  }, [tags.length, resetAutoTimer]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    isHorizontal.current = null;
+    setIsDragging(true);
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    const dx = e.touches[0].clientX - touchStartX.current;
+    const dy = e.touches[0].clientY - touchStartY.current;
+    if (isHorizontal.current === null) {
+      if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+        isHorizontal.current = Math.abs(dx) > Math.abs(dy);
+      }
+      return;
+    }
+    if (!isHorizontal.current) return;
+    setDragX(dx);
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dt = Date.now();
+    if (isHorizontal.current && (Math.abs(dx) > 50)) {
+      if (dx < 0) goNext();
+      else goPrev();
+    }
+    setDragX(0);
+    setIsDragging(false);
+  }, [goNext, goPrev]);
 
   const technique = tags.length > 0 ? tags[techIndex % tags.length] : null;
   const pillarLabel = technique
     ? (SKILL_TAGS.find(s => s.value === technique.parent_pillar)?.label ?? technique.parent_pillar)
     : null;
 
-  // If no session AND no techniques, don't render
   if (!lastSession && !technique) return null;
+
+  const techContentTransform = isDragging
+    ? `translateX(${dragX}px)`
+    : slideDir === 'left'
+      ? 'translateX(-30px)'
+      : slideDir === 'right'
+        ? 'translateX(30px)'
+        : 'translateX(0)';
+  const techContentOpacity = slideDir ? 0 : 1;
+  const techContentTransition = isDragging
+    ? 'none'
+    : 'transform 0.2s ease, opacity 0.18s ease';
 
   return (
     <div
@@ -148,8 +227,14 @@ export default function StillFreshHero({ lastSession, onAddNotes, onDismiss }: P
             </div>
           </>
         ) : technique ? (
-          /* ── TECHNIQUE SHOWCASE MODE ── */
-          <>
+          /* ── TECHNIQUE SHOWCASE MODE — swipeable ── */
+          <div
+            data-no-page-swipe=""
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            style={{ touchAction: 'pan-y', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1 }}
+          >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.50)', backgroundColor: SURFACE_2, padding: '5px 10px', borderRadius: 8 }}>
                 From your library
@@ -158,7 +243,7 @@ export default function StillFreshHero({ lastSession, onAddNotes, onDismiss }: P
                 {pillarLabel}
               </span>
             </div>
-            <div>
+            <div style={{ transform: techContentTransform, opacity: techContentOpacity, transition: techContentTransition }}>
               <div style={{ fontFamily: FONT_EDITORIAL, fontSize: 38, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.05, color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
                 {technique.name}
               </div>
@@ -167,7 +252,7 @@ export default function StillFreshHero({ lastSession, onAddNotes, onDismiss }: P
                   {technique.resonance_journal}
                 </div>
               )}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 }}>
                 <button
                   type="button"
                   onClick={() => navigate(`/library/${technique.id}`)}
@@ -176,9 +261,25 @@ export default function StillFreshHero({ lastSession, onAddNotes, onDismiss }: P
                 >
                   View technique →
                 </button>
+                {tags.length > 1 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    {tags.map((_, i) => (
+                      <span
+                        key={i}
+                        style={{
+                          width: i === (techIndex % tags.length) ? 12 : 4,
+                          height: 4,
+                          borderRadius: 2,
+                          backgroundColor: i === (techIndex % tags.length) ? COPPER : 'rgba(255,255,255,0.15)',
+                          transition: 'width 0.2s ease, background-color 0.2s ease',
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
-          </>
+          </div>
         ) : lastSession ? (
           /* ── FALLBACK: show session without "still fresh" framing ── */
           <>
