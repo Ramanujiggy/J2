@@ -1,225 +1,128 @@
-import { useState, useEffect, useCallback } from 'react';
+// IntentionsPage — orchestrator only. State, data fetching, and the
+// shared statsMap memo live here; layout-specific JSX lives in
+// IntentionsDesktopView and IntentionsMobileView.
+//
+// Refactored 2026-05-09 — see git history for the prior 1,816-line
+// monolithic version.
+
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Pencil } from 'lucide-react';
-import { api } from '../lib/api.ts';
-import { PALE_YELLOW, GLOW_SOFT, COPPER, SURFACE_2, SURFACE_3 } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
-import { SKILL_TAGS, CATEGORY_COLORS } from '../lib/constants.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
-import type { Intention, SessionSummary, IntentionsResponse, SessionsResponse } from '../types/api.ts';
-import PageContent from '../components/PageContent.tsx';
-import SetIntentionModal from '../components/SetIntentionModal.tsx';
-import { formatWeekShort, topTagInRange, computeAlignment } from '../lib/analyticsUtils.ts';
+import { useActiveIntention } from '../context/ActiveIntentionContext.tsx';
+import { useSessions } from '../context/SessionsContext.tsx';
+import { useCoachmark } from '../hooks/useCoachmark.ts';
+import { toDateString, addDays } from '../lib/sessionUtils.ts';
+import { topTagInRange, computeAlignment, tagHoursInRange } from '../lib/analyticsUtils.ts';
+import type { Intention } from '../types/api.ts';
+import {
+  type IntentionsLayout, type IntentionStats,
+} from '../components/intentions/intentionsTypes.ts';
+import IntentionsDesktopView from '../components/intentions/IntentionsDesktopView.tsx';
+import IntentionsMobileView from '../components/intentions/IntentionsMobileView.tsx';
+
+const LAYOUT_STORAGE_KEY = 'j2_intentions_layout';
 
 export default function IntentionsPage() {
   const navigate = useNavigate();
   const isDesktop = useIsDesktop();
   const { intentionsEnabled } = useProfile();
-  const [intentions,  setIntentions]  = useState<Intention[]>([]);
-  const [sessions,    setSessions]    = useState<SessionSummary[]>([]);
-  const [loading,     setLoading]     = useState(true);
+  const intentionsCoachmark = useCoachmark('intentions');
+  // Intentions live in ActiveIntentionContext — single fetch shared with the
+  // rail + every other page. Per the 2026-05-09 perf audit Tier 2.
+  const { intentions, loading: intentionsLoading, refresh: refreshRailIntention } = useActiveIntention();
+  // Sessions come from SessionsContext now (perf Tier 3 #8) — was an
+  // independent /api/sessions fetch on this page.
+  const { sessions, loading: sessionsLoading, refresh: fetchSessions } = useSessions();
   const [editTarget,  setEditTarget]  = useState<Intention | null>(null);
+  const [createOpen,  setCreateOpen]  = useState(false);
+  const loading = intentionsLoading || sessionsLoading;
 
-  const fetchAll = useCallback(async () => {
-    try {
-      const [intRes, sesRes] = await Promise.all([
-        api.get<IntentionsResponse>('/api/intentions'),
-        api.get<SessionsResponse>('/api/sessions'),
-      ]);
-      setIntentions(intRes.intentions ?? []);
-      setSessions(sesRes.sessions ?? []);
-    } catch {
-      // silent
-    } finally {
-      setLoading(false);
+  // Layout choice — shared between desktop and mobile so the user's preference
+  // sticks if they resize across the breakpoint mid-session.
+  const [layout, setLayout] = useState<IntentionsLayout>(() => {
+    if (typeof window === 'undefined') return 'timeline';
+    const stored = window.localStorage.getItem(LAYOUT_STORAGE_KEY);
+    return stored === 'eras' ? 'eras' : 'timeline';
+  });
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(LAYOUT_STORAGE_KEY, layout);
     }
-  }, []);
+  }, [layout]);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  // Per-intention stats — sessionCount, alignment %, and the hours fields that
+  // back the era-level hours-weighted alignment. Computed once at the page
+  // level so the timeline rows, era card stats + bar chart, and the mobile
+  // branch all read from the same source.
+  const statsMap = useMemo<Map<string, IntentionStats>>(() => {
+    const m = new Map<string, IntentionStats>();
+    for (const i of intentions) {
+      const start = i.week_start.slice(0, 10);
+      const endStr = addDays(start, (i.duration_days ?? 7) - 1);
+      const inWindow = sessions.filter(s => {
+        const d = (typeof s.date === 'string' ? s.date : toDateString(new Date(s.date))).slice(0, 10);
+        return d >= start && d <= endStr;
+      });
+      const tagHours = tagHoursInRange(sessions, i.week_start, i.duration_days);
+      const topTag = topTagInRange(sessions, i.week_start, i.duration_days);
+      const alignment = computeAlignment(i, topTag, tagHours).score ?? 0;
+      const totalHours = Object.values(tagHours).reduce((a, b) => a + b, 0);
+      const matchHours = i.heading ? (tagHours[i.heading] ?? 0) : 0;
+      m.set(i.id, { sessionCount: inWindow.length, alignment, matchHours, totalHours });
+    }
+    return m;
+  }, [intentions, sessions]);
+
+  const onOpenCreate    = useCallback(() => setCreateOpen(true), []);
+  const onOpenEdit      = useCallback((i: Intention) => setEditTarget(i), []);
+  const onCloseModal    = useCallback(() => { setCreateOpen(false); setEditTarget(null); }, []);
+  // After a save: refresh intentions via context (which propagates to the
+  // rail + this page), and refetch sessions to pick up any new ones.
+  const onSaved         = useCallback(() => { void refreshRailIntention(); fetchSessions(); }, [fetchSessions, refreshRailIntention]);
+  const onNavigate      = useCallback((path: string, opts?: { replace?: boolean }) => {
+    navigate(path, opts);
+  }, [navigate]);
+
+  if (isDesktop) {
+    return (
+      <IntentionsDesktopView
+        intentions={intentions}
+        sessions={sessions}
+        loading={loading}
+        intentionsEnabled={intentionsEnabled}
+        editTarget={editTarget}
+        createOpen={createOpen}
+        layout={layout}
+        onLayoutChange={setLayout}
+        statsMap={statsMap}
+        onOpenCreate={onOpenCreate}
+        onOpenEdit={onOpenEdit}
+        onCloseModal={onCloseModal}
+        onSaved={onSaved}
+        onNavigate={onNavigate}
+        intentionsCoachmark={intentionsCoachmark}
+      />
+    );
+  }
 
   return (
-    <PageContent ready={!loading} loadingMessages={['Loading your intentions...']}>
-    <div className={`mx-auto space-y-5 ${isDesktop ? 'max-w-6xl px-8 py-5' : 'max-w-5xl px-4 sm:px-6 py-6'}`}>
-
-      {/* Header */}
-      <div>
-        <h2
-          className="text-2xl font-bold tracking-tight"
-          style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}
-        >
-          Intentions
-        </h2>
-        <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.30)' }}>
-          Your training focus over time
-        </p>
-      </div>
-
-      {!intentionsEnabled && (
-        <div
-          className="rounded-xl px-4 py-2.5 text-sm"
-          style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.35)' }}
-        >
-          Intentions are currently disabled — viewing history only.
-        </div>
-      )}
-
-      {intentions.length === 0 ? (
-        /* ── Empty state ────────────────────────────────────── */
-        <div
-          className="rounded-xl px-6 py-10 text-center"
-          style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.06)' }}
-        >
-          <p className="text-sm mb-1" style={{ color: 'rgba(255,255,255,0.40)' }}>No intentions set yet.</p>
-          <p className="text-xs mb-5" style={{ color: 'rgba(255,255,255,0.22)' }}>
-            Declare what you're working on to track alignment.
-          </p>
-          <button
-            onClick={() => navigate('/home')}
-            className="w-full max-w-xs mx-auto text-white font-semibold rounded-xl transition-all touch-manipulation"
-            style={{
-              height: 52,
-              backgroundColor: '#DA7422',
-              boxShadow: '0 2px 12px rgba(218,116,34,0.25)',
-              fontSize: 16,
-            }}
-          >
-            Set Your First Intention
-          </button>
-        </div>
-      ) : (
-        /* ── Intention cards ────────────────────────────────── */
-        <div className={isDesktop ? 'grid grid-cols-2 gap-5' : 'space-y-3'}>
-          {intentions.map(intention => {
-            const headingLabel = intention.heading
-              ? (SKILL_TAGS.find(s => s.value === intention.heading)?.label ?? intention.heading)
-              : null;
-            const topTag        = topTagInRange(sessions, intention.week_start, intention.duration_days);
-            const ambient       = topTag?.label ?? null;
-            const alignment     = computeAlignment(intention, topTag);
-            const categoryColor = intention.intent_category
-              ? (CATEGORY_COLORS[intention.intent_category] ?? 'rgba(255,255,255,0.4)')
-              : null;
-            const hasJournal    = !!intention.journal_entry;
-            const journalSnippet = hasJournal
-              ? intention.journal_entry!.slice(0, 40) + (intention.journal_entry!.length > 40 ? '...' : '')
-              : null;
-
-            return (
-              <div
-                key={intention.id}
-                className="rounded-xl px-4 py-4 space-y-3"
-                style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}
-              >
-                {/* Top row — week date + duration + edit */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.40)' }}>
-                      {formatWeekShort(intention.week_start)}
-                    </span>
-                    <span
-                      className="text-[10px] px-2 py-0.5 rounded-lg font-medium"
-                      style={{ backgroundColor: SURFACE_3, color: COPPER }}
-                    >
-                      {intention.duration_days}d
-                    </span>
-                    {categoryColor && (
-                      <span
-                        className="text-[10px] px-2 py-0.5 rounded-lg font-medium capitalize"
-                        style={{ backgroundColor: `${categoryColor}20`, color: categoryColor }}
-                      >
-                        {intention.intent_category}
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => setEditTarget(intention)}
-                    className="p-1.5 rounded-lg transition-colors touch-manipulation"
-                    style={{ color: 'rgba(255,255,255,0.25)' }}
-                    title="Edit intention"
-                  >
-                    <Pencil size={13} />
-                  </button>
-                </div>
-
-                {/* Heading + label */}
-                <div>
-                  <p className="text-base font-semibold" style={{ color: 'rgba(255,255,255,0.90)' }}>
-                    {headingLabel ?? intention.intent_label}
-                  </p>
-                  {headingLabel && intention.intent_label && intention.intent_label.toLowerCase() !== (headingLabel ?? '').toLowerCase() && (
-                    <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.40)' }}>
-                      {intention.intent_label}
-                    </p>
-                  )}
-                </div>
-
-                {/* Alignment row */}
-                <div className="flex items-center gap-2">
-                  {/* Alignment indicator bar */}
-                  <div
-                    className="rounded-full"
-                    style={{
-                      width: 32,
-                      height: 4,
-                      backgroundColor: alignment === 'aligned'  ? 'rgba(82,181,108,0.70)'
-                                     : alignment === 'diverged' ? 'rgba(218,116,34,0.50)'
-                                     : 'rgba(255,255,255,0.06)',
-                    }}
-                  />
-                  {ambient ? (
-                    <span className="text-xs font-medium" style={{ color: COPPER }}>
-                      Trained: {ambient}
-                    </span>
-                  ) : (
-                    <span className="text-xs italic" style={{ color: 'rgba(255,255,255,0.20)' }}>
-                      No sessions logged
-                    </span>
-                  )}
-                  {alignment !== 'no-data' && (
-                    <span
-                      className="text-[10px]"
-                      style={{
-                        color: alignment === 'aligned'
-                          ? 'rgba(82,181,108,0.65)'
-                          : 'rgba(218,116,34,0.50)',
-                      }}
-                    >
-                      {alignment === 'aligned' ? 'Aligned' : 'Diverged'}
-                    </span>
-                  )}
-                </div>
-
-                {/* Journal row */}
-                <button
-                  onClick={() => navigate(`/intentions/${intention.id}/journal`)}
-                  className="w-full flex items-center gap-2 pt-2 transition-colors touch-manipulation"
-                  style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}
-                >
-                  {hasJournal ? (
-                    <span className="text-xs truncate" style={{ color: 'rgba(242,228,168,0.45)' }}>
-                      {journalSnippet}
-                    </span>
-                  ) : (
-                    <span className="text-xs font-medium" style={{ color: COPPER }}>
-                      + Write
-                    </span>
-                  )}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Edit modal */}
-      {editTarget && (
-        <SetIntentionModal
-          editIntention={editTarget}
-          onSaved={fetchAll}
-          onClose={() => setEditTarget(null)}
-        />
-      )}
-    </div>
-    </PageContent>
+    <IntentionsMobileView
+      intentions={intentions}
+      sessions={sessions}
+      loading={loading}
+      intentionsEnabled={intentionsEnabled}
+      editTarget={editTarget}
+      createOpen={createOpen}
+      layout={layout}
+      onLayoutChange={setLayout}
+      statsMap={statsMap}
+      onOpenCreate={onOpenCreate}
+      onOpenEdit={onOpenEdit}
+      onCloseModal={onCloseModal}
+      onSaved={onSaved}
+      onNavigate={onNavigate}
+      intentionsCoachmark={intentionsCoachmark}
+    />
   );
 }

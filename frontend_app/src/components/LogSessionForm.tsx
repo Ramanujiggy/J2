@@ -1,23 +1,39 @@
+// LogSessionForm — the compose form for new training sessions.
+//
+// Orchestrator only. The render is split into five extracted sub-components
+// (see the 2026-05-08 refactor for context):
+//   • LogSessionMobileHeader — mobile editorial header (desktop uses the
+//     pre-existing BeltDateBanner)
+//   • LogSessionFundamentals — gi/no-gi, session-type, duration, intensity
+//   • LogSessionPositionalFocus — focus chips, constraint, techniques,
+//     polarity (conditional), source (conditional)
+//   • LogSessionResonance — voice notes + partner chips
+//   • LogSessionActions — error + Cancel/Save buttons
+//
+// What stays here: every piece of state, the handleSubmit payload assembly,
+// the two useEffects (polarity-reset + current-intention fetch), the
+// derivedHeading IIFE, the resetForm helper, and the desktop/mobile grid
+// layout that places each sub-section into its slot.
+
 import { useState, useEffect } from 'react';
 import { api, ApiError } from '../lib/api.ts';
 import { toast } from '../hooks/use-toast.ts';
-import { CARD_BG, COPPER, SURFACE_2, SURFACE_3, PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
-import { vibrate } from '../lib/haptics.ts';
-import { INTENSITY_COLOR } from '../lib/sessionUtils.ts';
+import { CARD_BG, PALE_YELLOW } from '../lib/theme.ts';
+import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import BeltDateBanner from './BeltDateBanner.tsx';
-import PillarPrism from './PillarPrism.tsx';
-import SegmentedToggle from './SegmentedToggle.tsx';
-import type { Intention, SessionSummary } from '../types/api.ts';
+import PrismReceipt from './PrismReceipt.tsx';
+import LogSessionMobileHeader from './LogSessionMobileHeader.tsx';
+import LogSessionFundamentals, { type GiNoGi, type SessionType } from './LogSessionFundamentals.tsx';
+import LogSessionPositionalFocus, { type Polarity, type ScriptSource } from './LogSessionPositionalFocus.tsx';
+import LogSessionResonance from './LogSessionResonance.tsx';
+import LogSessionActions from './LogSessionActions.tsx';
+import { selectionsToDistribution, type ChipSelection } from '../lib/selectionsToDistribution.ts';
+import type { Intention, Pillar } from '../types/api.ts';
 
 interface LogSessionResponse {
   message: string;
   session_count?: number;
 }
-
-type GiNoGi = 'gi' | 'no_gi';
-type SessionType = 'drilling' | 'class' | 'competition_training';
-type Polarity = 'offense' | 'defense' | 'neutral';
-type ScriptSource = 'directed' | 'organic';
 
 interface SessionFormData {
   date: string;
@@ -31,17 +47,29 @@ interface SessionFormData {
 const _d = new Date();
 const today = `${_d.getFullYear()}-${String(_d.getMonth() + 1).padStart(2, '0')}-${String(_d.getDate()).padStart(2, '0')}`;
 
-const SESSION_TYPES: { value: SessionType; label: string }[] = [
-  { value: 'class',                label: 'Class' },
-  { value: 'drilling',             label: 'Drilling' },
-  { value: 'competition_training', label: 'Competition' },
-];
+// Duration constants — also enforced inside LogSessionFundamentals' stepper.
+// Kept here as defense-in-depth for the submit-time sanity check.
+const DUR_MIN = 30;
+const DUR_MAX = 240;
 
-// ── Intensity labels & duration presets ────────────────────────────────────
-const INTENSITY_LABELS = ['Light', 'Easy', 'Moderate', 'Hard', 'Max'];
-const DURATION_PRESETS = [30, 60, 90, 120];
-
-export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defaultHeading, defaultSessionType, defaultSubSkillTag }: { onSuccess?: (sessionCount?: number) => void; onCancel?: () => void; defaultDate?: string; defaultHeading?: string; defaultSessionType?: SessionType; defaultSubSkillTag?: string }) {
+export default function LogSessionForm({
+  onSuccess,
+  onCancel,
+  defaultDate,
+  defaultHeading,
+  defaultSessionType,
+  defaultSubSkillTag,
+  defaultConstraintName,
+}: {
+  onSuccess?: (sessionCount?: number) => void;
+  onCancel?: () => void;
+  defaultDate?: string;
+  defaultHeading?: string;
+  defaultSessionType?: SessionType;
+  defaultSubSkillTag?: string;
+  defaultConstraintName?: string;
+}) {
+  const isDesktop = useIsDesktop();
   const [form, setForm] = useState<SessionFormData>({
     date:         defaultDate ?? today,
     notes:        '',
@@ -50,30 +78,61 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
     session_type: defaultSessionType ?? 'class',
   });
 
-  // Duration stepper — 30-min increments, null = not yet selected
-  const [durationMinutes, setDurationMinutes] = useState<number | null>(null);
-  const DUR_STEP = 30;
-  const DUR_MIN  = 30;
-  const DUR_MAX  = 240;
+  // Duration stepper — 30-min increments. Defaults to 60 (typical class
+  // length). The user adjusts via +/- buttons; no null state because the
+  // form opens "70% complete" per the editorial-form research.
+  const [durationMinutes, setDurationMinutes] = useState<number>(60);
 
-  function fmtDuration(m: number) {
-    const h   = Math.floor(m / 60);
-    const min = m % 60;
-    return h > 0 && min > 0 ? `${h} h  ${min} m`
-         : h > 0             ? `${h} h`
-         :                     `${min} m`;
-  }
-
-  // Dynamic Pillar Engine fields
-  const [heading,      setHeading]      = useState<string | null>(defaultHeading ?? null);
+  // Chip-input state — selections drive heading/tags/distribution at submit time.
+  const initialSelections: ChipSelection[] = defaultHeading
+    ? [{ pillar: defaultHeading as Pillar, primary: true, deep_work: false }]
+    : [];
+  const [selections, setSelections] = useState<ChipSelection[]>(initialSelections);
   const [polarity,     setPolarity]     = useState<Polarity | null>(null);
   const [subSkillTag,  setSubSkillTag]  = useState(defaultSubSkillTag ?? '');
-  // resonance initialized to max when pre-filled from roulette (dot sits at the vertex)
+  const [userTagIds,           setUserTagIds]           = useState<string[]>([]);
+  const [canonicalPositionIds, setCanonicalPositionIds] = useState<string[]>([]);
   const [scriptSource, setScriptSource] = useState<ScriptSource | null>(null);
-  const [resonance,    setResonance]    = useState<number | null>(defaultHeading ? 10 : null);
-  // Phase 1: weights computed and displayed by PillarPrism but not sent to API yet (Phase 2)
-  const [_pillarWeights, setPillarWeights] = useState<Record<string, number> | null>(null);
-  void _pillarWeights; // suppress unused warning — will be sent to API in Phase 2
+
+  // Constraints — only collected for CLA sessions, but state lives at the form
+  // level so values are preserved if the user flips session-type away and back
+  // (per the Wise / PayPal pattern from the Refero research). Empty arrays are
+  // sent on save when session_type !== 'cla'.
+  const [userConstraintIds, setUserConstraintIds] = useState<string[]>([]);
+  const [canonicalConstraintIds, setCanonicalConstraintIds] = useState<string[]>([]);
+
+  // Partners — freetext names of who the user trained with. Lives in the
+  // Resonance section as the social-as-data layer. Migration 016. Caps at 5
+  // server-side; client mirrors the cap via PartnerInput.
+  const [partners, setPartners] = useState<string[]>([]);
+
+  // Post-save receipt — shows the resulting Prism shape and auto-dismisses.
+  const [receiptSelections, setReceiptSelections] = useState<ChipSelection[] | null>(null);
+  const [pendingSuccessCount, setPendingSuccessCount] = useState<number | undefined>(undefined);
+
+  // Derive heading at render-time so polarity gating + submit payload stay in sync.
+  // Primary chip wins; otherwise highest-weight pillar (ties broken by selection order).
+  const derivedHeading: Pillar | null = (() => {
+    if (selections.length === 0) return null;
+    const primary = selections.find(s => s.primary);
+    if (primary) return primary.pillar;
+    const dist = selectionsToDistribution(selections);
+    if (!dist) return null;
+    let best: Pillar | null = null;
+    let bestW = -1;
+    for (const s of selections) {
+      const w = dist[s.pillar] ?? 0;
+      if (w > bestW) { bestW = w; best = s.pillar; }
+    }
+    return best;
+  })();
+
+  // Wipe polarity when the derived heading leaves guard/pins (where it's relevant).
+  useEffect(() => {
+    if (derivedHeading !== 'guard' && derivedHeading !== 'pins' && polarity !== null) {
+      setPolarity(null);
+    }
+  }, [derivedHeading, polarity]);
 
   // Current intention hint
   const [currentIntention, setCurrentIntention] = useState<Intention | null>(null);
@@ -90,68 +149,84 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
       .catch(() => {});
   }, []);
 
-  // Recent sub-skill tags for chip suggestions
-  const [recentTags, setRecentTags] = useState<string[]>([]);
-  useEffect(() => {
-    const from = new Date(Date.now() - 90 * 86_400_000).toISOString().slice(0, 10);
-    api.get<{ sessions: SessionSummary[] }>(`/api/sessions?from=${from}`)
-      .then(r => {
-        const tags = (r.sessions ?? [])
-          .map(s => s.sub_skill_tag)
-          .filter((t): t is string => !!t && t.trim().length > 0);
-        const unique = [...new Set(tags)].slice(0, 6);
-        setRecentTags(unique);
-      })
-      .catch(() => {});
-  }, []);
-
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-
   const resetForm = () => {
     setForm({ date: today, notes: '', gi_nogi: 'gi', intensity: 3, session_type: 'class' });
-    setDurationMinutes(null);
-    setHeading(null);
+    setDurationMinutes(60);
+    setSelections([]);
     setPolarity(null);
     setSubSkillTag('');
+    setUserTagIds([]);
+    setCanonicalPositionIds([]);
     setScriptSource(null);
-    setResonance(null);
-    setPillarWeights(null);
+    setUserConstraintIds([]);
+    setCanonicalConstraintIds([]);
+    setPartners([]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!durationMinutes || durationMinutes < DUR_MIN) {
-      setError('Please select a duration.');
+    // Duration is always set (default 60, clamped between DUR_MIN and DUR_MAX
+    // by the +/- stepper); this is a defense-in-depth sanity check.
+    if (durationMinutes < DUR_MIN || durationMinutes > DUR_MAX) {
+      setError('Duration must be between 30 and 240 minutes.');
       return;
     }
 
-    if (!heading) {
-      setError('Please select a pillar focus.');
+    if (selections.length === 0 || !derivedHeading) {
+      setError('Tap at least one focus area.');
       return;
     }
 
     setLoading(true);
     try {
+      const distribution = selectionsToDistribution(selections);
+      const tags = Array.from(new Set(selections.map(s => s.pillar)));
+
+      // Migration 013 telemetry — adoption signal for primary + deep-work mechanics.
+      const had_primary     = selections.some(s => s.primary);
+      const had_deep_work   = selections.some(s => s.deep_work);
+      const selection_count = selections.length;
+      // Migration 014 — per-pillar deep_work set so the saved Prism shape can
+      // be rehydrated with halo rings when the user reopens this session.
+      const deep_work_pillars = selections.filter(s => s.deep_work).map(s => s.pillar);
+
+      // Constraint linkage is only sent for CLA sessions; held form-state
+      // is preserved if the user flips back, but never persisted to a non-CLA
+      // session record (the picker was hidden, so the user never confirmed).
+      // Constraints are now auxiliary metadata that attaches to any session
+      // type — a traditional class with constraint-game segments, a drilling
+      // block under no-grips, etc. session_type still defines the dominant
+      // mode; constraints just record what rules were in play.
+      const sentCanonicalConstraintIds = canonicalConstraintIds.length > 0 ? canonicalConstraintIds : undefined;
+      const sentUserConstraintIds = userConstraintIds.length > 0 ? userConstraintIds : undefined;
+
       const sessionSnapshot = {
         date:         form.date,
-        duration:     durationMinutes!,
+        duration:     durationMinutes,
         intensity:    form.intensity,
         gi_nogi:      form.gi_nogi,
         session_type: form.session_type,
         notes:        form.notes || undefined,
-        tags:         [heading],
-        heading,
+        tags,
+        heading:      derivedHeading,
         polarity:      polarity      ?? undefined,
         sub_skill_tag: subSkillTag   || undefined,
         script_source: scriptSource  ?? undefined,
-        resonance:     resonance     ?? undefined,
+        user_tag_ids:  userTagIds.length > 0 ? userTagIds : undefined,
+        canonical_position_ids: canonicalPositionIds.length > 0 ? canonicalPositionIds : undefined,
+        pillar_distribution: distribution ?? undefined,
+        had_primary,
+        had_deep_work,
+        selection_count,
+        deep_work_pillars,
+        canonical_constraint_ids: sentCanonicalConstraintIds,
+        user_constraint_ids: sentUserConstraintIds,
+        partners: partners.length > 0 ? partners : undefined,
       };
 
       const data = await api.post<LogSessionResponse>('/api/sessions', {
@@ -166,7 +241,16 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
         polarity:     sessionSnapshot.polarity,
         sub_skill_tag: sessionSnapshot.sub_skill_tag,
         script_source: sessionSnapshot.script_source,
-        resonance:    sessionSnapshot.resonance,
+        user_tag_ids: sessionSnapshot.user_tag_ids,
+        canonical_position_ids: sessionSnapshot.canonical_position_ids,
+        pillar_distribution: sessionSnapshot.pillar_distribution,
+        had_primary:     sessionSnapshot.had_primary,
+        had_deep_work:   sessionSnapshot.had_deep_work,
+        selection_count: sessionSnapshot.selection_count,
+        deep_work_pillars: sessionSnapshot.deep_work_pillars,
+        canonical_constraint_ids: sessionSnapshot.canonical_constraint_ids,
+        user_constraint_ids: sessionSnapshot.user_constraint_ids,
+        partners: sessionSnapshot.partners,
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -181,13 +265,14 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
         addPending({ id: `pending-${Date.now()}`, ...sessionSnapshot });
       }
 
+      // Capture selections for the receipt before reset clears them.
+      setReceiptSelections(selections);
+      setPendingSuccessCount(dataAny._offline ? undefined : data.session_count);
       resetForm();
-      toast({
-        title: dataAny._offline
-          ? 'Session saved offline — will sync when connected.'
-          : 'Session logged!',
-      });
-      onSuccess?.(dataAny._offline ? undefined : data.session_count);
+
+      if (dataAny._offline) {
+        toast({ title: 'Session saved offline — will sync when connected.' });
+      }
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.status === 0) {
@@ -206,304 +291,154 @@ export default function LogSessionForm({ onSuccess, onCancel, defaultDate, defau
   };
 
   return (
+    <>
+    {receiptSelections && (
+      <PrismReceipt
+        selections={receiptSelections}
+        onDismiss={() => {
+          const count = pendingSuccessCount;
+          setReceiptSelections(null);
+          setPendingSuccessCount(undefined);
+          onSuccess?.(count);
+        }}
+      />
+    )}
     <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: CARD_BG, border: '1px solid rgba(255,255,255,0.10)', isolation: 'isolate' }}>
       <form onSubmit={handleSubmit}>
-        {/* Belt date banner — full-bleed, animates in from the right on mount */}
-        <BeltDateBanner
-          value={form.date}
-          required
-          onChange={date => setForm(prev => ({ ...prev, date }))}
-        />
-
-        <div className="px-5 pb-5 pt-4 space-y-4">
-        <h2 className="text-lg font-semibold" style={{ color: PALE_YELLOW }}>Log a Training Session</h2>
-
-        {/* ══════════════════════════════════════════════════════════════
-            SECTION 1: The Basics
-            ══════════════════════════════════════════════════════════════ */}
-        <div className="rounded-xl px-4 py-4 space-y-4" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
-          <span className="text-xs font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.40)' }}>
-            The Basics
-          </span>
-
-          {/* Gi / No-Gi */}
-          <SegmentedToggle
-            options={[{ value: 'gi' as GiNoGi, label: 'Gi' }, { value: 'no_gi' as GiNoGi, label: 'No-Gi' }]}
-            value={form.gi_nogi}
-            onChange={v => v && setForm(prev => ({ ...prev, gi_nogi: v }))}
+        {/* Header — animated belt banner on desktop, editorial header on mobile.
+            The mobile variant collapses the banner to a 4pt belt-color hairline
+            and surfaces the date as a copper eyebrow + Cormorant title, freeing
+            ~150pt of vertical real estate the banner was eating on phone. */}
+        {isDesktop ? (
+          <BeltDateBanner
+            value={form.date}
+            required
+            onChange={date => setForm(prev => ({ ...prev, date }))}
           />
-
-          {/* Session Type */}
-          <SegmentedToggle
-            options={SESSION_TYPES}
-            value={form.session_type}
-            onChange={v => v && setForm(prev => ({ ...prev, session_type: v }))}
+        ) : (
+          <LogSessionMobileHeader
+            date={form.date}
+            onChange={date => setForm(prev => ({ ...prev, date }))}
           />
-
-          {/* Duration — preset pills + stepper */}
-          <div className="space-y-2">
-            <div className="flex gap-2">
-              {DURATION_PRESETS.map(m => {
-                const active = durationMinutes === m;
-                return (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => { vibrate(8); setDurationMinutes(m); }}
-                    className="flex-1 h-9 rounded-[10px] text-xs font-medium transition-all touch-manipulation"
-                    style={{
-                      backgroundColor: active ? COPPER : SURFACE_3,
-                      color: active ? '#fff' : 'rgba(255,255,255,0.45)',
-                      transition: 'background-color 200ms ease, color 200ms ease',
-                    }}
-                  >
-                    {fmtDuration(m)}
-                  </button>
-                );
-              })}
-            </div>
-            <div
-              className="flex items-center justify-center gap-3 rounded-xl py-2"
-              style={{ backgroundColor: SURFACE_3 }}
-            >
-              <button
-                type="button"
-                onClick={() => { vibrate(8); setDurationMinutes(m => Math.max(DUR_MIN, (m ?? 60) - DUR_STEP)); }}
-                className="w-11 h-11 rounded-lg text-lg font-semibold transition-colors touch-manipulation"
-                style={{ backgroundColor: SURFACE_2, color: 'rgba(255,255,255,0.55)' }}
-                disabled={!!durationMinutes && durationMinutes <= DUR_MIN}
-              >
-                −
-              </button>
-              <span
-                className="text-xl font-bold w-28 text-center"
-                style={{ color: durationMinutes ? PALE_YELLOW : 'rgba(255,255,255,0.22)' }}
-              >
-                {durationMinutes ? fmtDuration(durationMinutes) : 'tap above'}
-              </span>
-              <button
-                type="button"
-                onClick={() => { vibrate(8); setDurationMinutes(m => Math.min(DUR_MAX, (m ?? 0) + DUR_STEP)); }}
-                className="w-11 h-11 rounded-lg text-lg font-semibold transition-colors touch-manipulation"
-                style={{ backgroundColor: SURFACE_2, color: 'rgba(255,255,255,0.55)' }}
-                disabled={!!durationMinutes && durationMinutes >= DUR_MAX}
-              >
-                +
-              </button>
-            </div>
-          </div>
-
-          {/* Intensity — color-gradient segmented bar */}
-          <div className="space-y-1.5">
-            <div className="flex rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.05)' }}>
-              {[1, 2, 3, 4, 5].map(n => {
-                const active = form.intensity === n;
-                const color = INTENSITY_COLOR[n] ?? '#A8CB72';
-                return (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => { vibrate(10); setForm(prev => ({ ...prev, intensity: n })); }}
-                    className="flex-1 flex items-center justify-center font-semibold transition-all touch-manipulation"
-                    style={{
-                      height: active ? 44 : 40,
-                      backgroundColor: active ? color : `${color}33`,
-                      color: active ? '#152E22' : `${color}88`,
-                      fontSize: active ? 16 : 14,
-                      transition: 'height 200ms ease, background-color 200ms ease, color 200ms ease, font-size 200ms ease',
-                    }}
-                  >
-                    {n}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="flex">
-              {INTENSITY_LABELS.map((label, i) => (
-                <span
-                  key={label}
-                  className="flex-1 text-center"
-                  style={{
-                    fontSize: 11,
-                    color: form.intensity === i + 1 ? 'rgba(255,255,255,0.50)' : 'rgba(255,255,255,0.22)',
-                    fontWeight: form.intensity === i + 1 ? 600 : 400,
-                    transition: 'color 200ms ease',
-                  }}
-                >
-                  {label}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* ══════════════════════════════════════════════════════════════
-            SECTION 2: Your Focus
-            ══════════════════════════════════════════════════════════════ */}
-        <div className="rounded-xl px-4 py-4 space-y-4" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
-          <div>
-            <h3 className="text-sm font-semibold" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
-              What did you work on?
-            </h3>
-            {currentIntention && (
-              <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.30)' }}>
-                This week's focus: <span style={{ color: COPPER }}>{currentIntention.intent_label}</span>
-              </p>
-            )}
-          </div>
-
-          {/* Pillar Prism — tap/drag to mark focus and alignment */}
-          <PillarPrism
-            heading={heading}
-            resonance={resonance}
-            defaultHeading={defaultHeading}
-            onSelect={(h, r, w) => { setHeading(h); setResonance(r); setPillarWeights(w); setPolarity(null); }}
-          />
-
-          {/* Polarity — only for guard and pins */}
-          {(heading === 'guard' || heading === 'pins') && (
-            <div>
-              <SegmentedToggle
-                options={[
-                  { value: 'defense' as Polarity, label: 'Defense' },
-                  { value: 'neutral' as Polarity, label: 'Neutral' },
-                  { value: 'offense' as Polarity, label: 'Offense' },
-                ]}
-                value={polarity}
-                onChange={setPolarity}
-                deselectable
-              />
-              <p className="text-[10px] mt-1.5 text-center" style={{ color: 'rgba(255,255,255,0.22)' }}>
-                What side of the exchange were you primarily on?
-              </p>
-            </div>
-          )}
-
-          {/* Source */}
-          <div>
-            <SegmentedToggle
-              options={[
-                { value: 'directed' as ScriptSource, label: 'Coach-led' },
-                { value: 'organic' as ScriptSource, label: 'Open Mat' },
-              ]}
-              value={scriptSource}
-              onChange={setScriptSource}
-              deselectable
-            />
-            <p className="text-[10px] mt-1.5 text-center" style={{ color: 'rgba(255,255,255,0.22)' }}>
-              Was this instructor-led or self-directed?
-            </p>
-          </div>
-        </div>
-
-        {/* ══════════════════════════════════════════════════════════════
-            SECTION 3: Details (optional)
-            ══════════════════════════════════════════════════════════════ */}
-        <div className="rounded-xl px-4 py-4 space-y-3" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
-          <span className="text-xs font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.40)' }}>
-            Details
-          </span>
-
-          {/* Sub-skill tag */}
-          <div>
-            <label className="block text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.40)' }}>
-              Sub-skill <span style={{ color: 'rgba(255,255,255,0.20)' }}>(optional)</span>
-            </label>
-            <input
-              type="text"
-              maxLength={50}
-              value={subSkillTag}
-              onChange={e => setSubSkillTag(e.target.value)}
-              placeholder="e.g. K-Guard, Single Leg, Guillotine"
-              className="w-full border rounded-xl px-4 py-2.5 text-white text-sm outline-none transition-colors"
-              style={{
-                backgroundColor: SURFACE_3,
-                borderColor: 'rgba(255,255,255,0.08)',
-                ...(subSkillTag ? {} : {}),
-              }}
-            />
-            {/* Recent tag chips */}
-            {recentTags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {recentTags.map(tag => {
-                  const active = subSkillTag === tag;
-                  return (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => {
-                        vibrate(6);
-                        setSubSkillTag(prev => prev === tag ? '' : tag);
-                      }}
-                      className="rounded-lg px-3 py-2 text-xs font-medium transition-all touch-manipulation j2-press"
-                      style={{
-                        backgroundColor: active ? COPPER : SURFACE_3,
-                        color: active ? '#fff' : 'rgba(255,255,255,0.40)',
-                        transition: 'background-color 200ms ease, color 200ms ease',
-                      }}
-                    >
-                      {tag}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Notes */}
-          <div>
-            <label className="block text-xs mb-1" style={{ color: 'rgba(255,255,255,0.40)' }}>
-              Notes <span style={{ color: 'rgba(255,255,255,0.20)' }}>(optional)</span>
-            </label>
-            <textarea
-              name="notes"
-              rows={2}
-              value={form.notes}
-              onChange={handleChange}
-              placeholder="What stood out today?"
-              className="w-full rounded-xl px-4 py-2.5 text-sm text-white/90 placeholder-white/25 outline-none resize-none transition-colors"
-              style={{
-                backgroundColor: SURFACE_3,
-                border: '1px solid rgba(255,255,255,0.08)',
-              }}
-            />
-          </div>
-        </div>
-
-        {/* ── Error + CTA ─────────────────────────────────────────── */}
-        {error && <p className="text-red-400 text-sm">{error}</p>}
+        )}
 
         <div
-          className="flex items-center gap-3 pt-2"
-          style={{ borderTop: '1px solid rgba(196,145,95,0.12)' }}
+          className={isDesktop ? 'px-8 pb-8 pt-6' : 'px-5 pb-5 pt-4'}
+          style={isDesktop ? {
+            display: 'grid',
+            gridTemplateColumns: '1fr 420px',
+            gridTemplateRows: 'auto auto auto',
+            columnGap: 32,
+            rowGap: 32,
+            alignItems: 'start',
+          } : undefined}
         >
-          {onCancel && (
-            <button
-              type="button"
-              onClick={onCancel}
-              className="px-4 py-3 text-sm font-medium transition-colors touch-manipulation"
-              style={{ color: 'rgba(255,255,255,0.40)' }}
-            >
-              Cancel
-            </button>
-          )}
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex-1 text-white font-semibold rounded-xl transition-all touch-manipulation disabled:opacity-50"
-            style={{
-              height: 52,
-              backgroundColor: '#DA7422',
-              boxShadow: '0 2px 12px rgba(218,116,34,0.25)',
-              fontSize: 16,
-            }}
+        {/* H2 stays on desktop only — on mobile the LogSessionMobileHeader's
+            serif title above is the page's primary heading. */}
+        {isDesktop && (
+          <h2
+            className="text-2xl font-display font-semibold"
+            style={{ color: PALE_YELLOW, gridColumn: '1 / -1', marginBottom: 0 }}
           >
-            {loading ? 'Saving...' : 'Log Session'}
-          </button>
+            Log a Training Session
+          </h2>
+        )}
+
+        {/* ── Section 1: Fundamentals ─────────────────────────────────────
+            Desktop keeps its boxed SURFACE_2 card; mobile lives directly on
+            the canvas — implicit containment via eyebrow + whitespace, per
+            the editorial-register research (Day One / Bear / Apple Notes
+            pattern). The visual weight drops without losing the structure.
+            ────────────────────────────────────────────────────────────── */}
+        <div
+          className="space-y-4"
+          style={isDesktop ? { gridColumn: '1', gridRow: '2' } : undefined}
+        >
+          <LogSessionFundamentals
+            giNogi={form.gi_nogi}
+            onGiNogiChange={v => setForm(prev => ({ ...prev, gi_nogi: v }))}
+            sessionType={form.session_type}
+            onSessionTypeChange={v => setForm(prev => ({ ...prev, session_type: v }))}
+            durationMinutes={durationMinutes}
+            onDurationChange={setDurationMinutes}
+            intensity={form.intensity}
+            onIntensityChange={i => setForm(prev => ({ ...prev, intensity: i }))}
+          />
         </div>
+
+        {/* Hairline divider between sections — mobile only. The hairline +
+            its surrounding 28px margins replace the visual weight of the
+            old card borders without re-introducing chrome. */}
+        {!isDesktop && (
+          <div style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginTop: 28, marginBottom: 28 }} />
+        )}
+
+        {/* ── Section 2: Your Focus ───────────────────────────────────────
+            On desktop this sits in the right column, spanning rows 2-3 so
+            it stays alongside both Basics and Details. On mobile the
+            section eyebrow flattens the H3 into the same "FOCUS" rhythm
+            as the other sections — consistency over emphasis.
+            ────────────────────────────────────────────────────────────── */}
+        <div
+          className="space-y-4"
+          style={isDesktop ? { gridColumn: '2', gridRow: '2 / span 2' } : undefined}
+        >
+          <LogSessionPositionalFocus
+            selections={selections}
+            onSelectionsChange={setSelections}
+            defaultPrimaryPillar={defaultHeading as Pillar | undefined}
+            derivedHeading={derivedHeading}
+            currentIntention={currentIntention}
+            sessionType={form.session_type}
+            userTagIds={userTagIds}
+            canonicalPositionIds={canonicalPositionIds}
+            onTagsChange={(u, c) => { setUserTagIds(u); setCanonicalPositionIds(c); }}
+            userConstraintIds={userConstraintIds}
+            canonicalConstraintIds={canonicalConstraintIds}
+            onConstraintsChange={(u, c) => { setUserConstraintIds(u); setCanonicalConstraintIds(c); }}
+            defaultConstraintName={defaultConstraintName}
+            polarity={polarity}
+            onPolarityChange={setPolarity}
+            scriptSource={scriptSource}
+            onScriptSourceChange={setScriptSource}
+          />
+        </div>
+
+        {/* Hairline divider — mobile only, between Positional Focus and Resonance. */}
+        {!isDesktop && (
+          <div style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginTop: 28, marginBottom: 28 }} />
+        )}
+
+        {/* ── Section 3: Resonance ──────────────────────────────────────── */}
+        <div
+          className="space-y-3"
+          style={isDesktop ? { gridColumn: '1', gridRow: '3' } : undefined}
+        >
+          <LogSessionResonance
+            notes={form.notes}
+            onNotesChange={next => setForm(prev => ({ ...prev, notes: next }))}
+            sessionType={form.session_type}
+            partners={partners}
+            onPartnersChange={setPartners}
+          />
+        </div>
+
+        {/* Hairline divider — mobile only, before the CTA. Desktop uses
+            the action row's own borderTop instead. */}
+        {!isDesktop && (
+          <div style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginTop: 28, marginBottom: 16 }} />
+        )}
+
+        <LogSessionActions
+          loading={loading}
+          error={error}
+          onCancel={onCancel}
+          isDesktop={isDesktop}
+        />
 
         </div>{/* end content wrapper */}
       </form>
     </div>
+    </>
   );
 }

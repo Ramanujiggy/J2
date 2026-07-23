@@ -9,6 +9,11 @@ export interface SearchFilters {
   intensity_max: number;
   from: string | null;
   to: string | null;
+  /** Freetext partner name. Matches case-insensitively against any element of `partners`. */
+  partner: string;
+  /** Constraint IDs (canonical or user-scoped). A session matches if its
+   *  canonical_constraint_ids OR user_constraint_ids contains any of these. */
+  constraint_ids: string[];
 }
 
 export const DEFAULT_FILTERS: SearchFilters = {
@@ -20,6 +25,8 @@ export const DEFAULT_FILTERS: SearchFilters = {
   intensity_max: 5,
   from: null,
   to: null,
+  partner: '',
+  constraint_ids: [],
 };
 
 export function hasActiveFilters(f: SearchFilters): boolean {
@@ -31,7 +38,9 @@ export function hasActiveFilters(f: SearchFilters): boolean {
     f.intensity_min > 1 ||
     f.intensity_max < 5 ||
     f.from !== null ||
-    f.to !== null
+    f.to !== null ||
+    f.partner !== '' ||
+    f.constraint_ids.length > 0
   );
 }
 
@@ -53,6 +62,15 @@ export function filterSessionsLocal(
     if (s.intensity < filters.intensity_min || s.intensity > filters.intensity_max) return false;
     if (filters.from && s.date < filters.from) return false;
     if (filters.to && s.date > filters.to) return false;
+    if (filters.partner) {
+      const needle = filters.partner.toLowerCase();
+      const partners = s.partners ?? [];
+      if (!partners.some(p => p.toLowerCase().includes(needle))) return false;
+    }
+    if (filters.constraint_ids.length > 0) {
+      const ids = new Set([...(s.canonical_constraint_ids ?? []), ...(s.user_constraint_ids ?? [])]);
+      if (!filters.constraint_ids.some(id => ids.has(id))) return false;
+    }
     return true;
   });
 }

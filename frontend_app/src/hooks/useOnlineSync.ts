@@ -11,6 +11,19 @@ export function useOnlineSync() {
   const isFlushing = useRef(false);
 
   useEffect(() => {
+    // A queued write was replayed and permanently rejected (4xx) by the
+    // server — offlineQueue.flush() already dropped it from the queue
+    // (retrying a permanent failure forever is wrong); this just tells the
+    // user their entry didn't make it, instead of it vanishing silently.
+    const handleRejected = (e: Event) => {
+      const detail = (e as CustomEvent<{ url: string; status: number }>).detail;
+      toast({
+        title: "One offline entry couldn't sync and was rejected by the server.",
+        description: detail ? `${detail.url} (${detail.status})` : undefined,
+        variant: 'destructive',
+      });
+    };
+
     const handleOnline = async () => {
       if (isFlushing.current) return;
       isFlushing.current = true;
@@ -23,7 +36,7 @@ export function useOnlineSync() {
           const { synced, failed } = await flush();
 
           if (synced > 0) {
-            toast({ title: `${synced} action${synced > 1 ? 's' : ''} synced.` });
+            toast({ variant: 'success', title: `${synced} action${synced > 1 ? 's' : ''} synced.` });
           }
           if (failed > 0) {
             toast({
@@ -41,8 +54,12 @@ export function useOnlineSync() {
     };
 
     window.addEventListener('online', handleOnline);
+    window.addEventListener('journada:offline-sync-rejected', handleRejected);
     // Also flush on mount in case we're already online with pending items
     handleOnline();
-    return () => window.removeEventListener('online', handleOnline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('journada:offline-sync-rejected', handleRejected);
+    };
   }, []);
 }

@@ -1,6 +1,14 @@
-// BeltLoader — looping belt-tying animation used as the app's loading indicator.
-// Renders a larger version of the BeltBar tying sequence that loops continuously:
-// slide in → knot forms → tails drop → sparks → hold → fade out → repeat.
+// BeltLoader — looping belt-tying animation.
+//
+// RETIRED FROM LOADING DUTY (2026-06-28 motion study): PrismLoader now owns
+// every waiting moment (route chunks + page data) so the app has one loading
+// identity. This component is deliberately kept — the belt is identity and
+// celebration, not waiting — RESERVED for the belt-promotion flow: when the
+// user logs a promotion (ProfilePage belt history), the tying sequence plays
+// once in their new belt color as the payoff moment. Wire it there; do not
+// re-attach it to loading states.
+//
+// Sequence: slide in → knot forms → tails drop → sparks → hold → fade → repeat.
 
 import { useState, useEffect } from 'react';
 import { type BeltRank, BELT_COLORS, PATCH_COLORS, ribbed } from '../lib/belt.ts';

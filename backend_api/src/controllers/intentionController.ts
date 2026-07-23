@@ -1,5 +1,8 @@
 import type { Request, Response } from 'express';
+import { createHash } from 'node:crypto';
+import pool from '../config/db.js';
 import * as intentionModel from '../models/intentionModel.js';
+import { getUserTagsByIds } from '../models/userTagModel.js';
 
 const VALID_CATEGORIES = new Set([
   'technical', 'physical', 'mental', 'positional', 'competitive',
@@ -8,6 +11,18 @@ const VALID_CATEGORIES = new Set([
 const VALID_HEADINGS = new Set([
   'standup', 'passing', 'pins', 'submissions', 'guard',
 ]);
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function sanitizeUserTagIds(userId: string, raw: unknown): Promise<string[] | null> {
+  if (!Array.isArray(raw)) return null;
+  const wellFormed = raw.filter((s: unknown): s is string => typeof s === 'string' && UUID_RE.test(s));
+  const deduped = [...new Set(wellFormed)];
+  if (deduped.length === 0) return [];
+  const owned = await getUserTagsByIds(userId, deduped);
+  const ownedSet = new Set(owned.map(t => t.id));
+  return deduped.filter(id => ownedSet.has(id));
+}
 
 // Returns the ISO Monday (YYYY-MM-DD) for a given Date.
 // getUTCDay(): 0=Sun, 1=Mon … 6=Sat
@@ -27,7 +42,7 @@ function getWeekStart(date: Date): string {
 export const createIntention = async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
-    const { intent_label, heading, intent_category, week_start, duration_days } = req.body;
+    const { intent_label, heading, intent_category, week_start, duration_days, completion_type, target_count, user_tag_ids } = req.body;
 
     // Heading is the primary focus selector (Prism vertex). Label is optional flavor text.
     if (heading !== undefined && heading !== null && !VALID_HEADINGS.has(heading)) {
@@ -42,34 +57,70 @@ export const createIntention = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Invalid intent_category.' });
     }
 
-    const durationDays = duration_days !== undefined ? Math.round(Number(duration_days)) : 7;
-    if (!Number.isFinite(durationDays) || durationDays < 1 || durationDays > 30) {
-      return res.status(400).json({ message: 'duration_days must be an integer between 1 and 30.' });
+    // Completion mode (mig 034). For non-'days' modes, duration_days serves
+    // as a soft calendar ceiling (default 90d) so an unmet target doesn't
+    // keep the intention "active" forever.
+    const completionType: 'days' | 'sessions' | 'training_weeks' =
+      completion_type === 'sessions' || completion_type === 'training_weeks' ? completion_type : 'days';
+    let targetCount: number | null = null;
+    if (completionType !== 'days') {
+      const t = Math.round(Number(target_count));
+      if (!Number.isFinite(t) || t < 1 || t > 99) {
+        return res.status(400).json({ message: 'target_count must be an integer between 1 and 99 for sessions / training_weeks modes.' });
+      }
+      targetCount = t;
+    }
+
+    const defaultDuration = completionType === 'days' ? 7 : 90;
+    const maxDuration     = completionType === 'days' ? 30 : 180;
+    const durationDays = duration_days !== undefined ? Math.round(Number(duration_days)) : defaultDuration;
+    if (!Number.isFinite(durationDays) || durationDays < 1 || durationDays > maxDuration) {
+      return res.status(400).json({ message: `duration_days must be an integer between 1 and ${maxDuration}.` });
     }
 
     // Use client-supplied start date or today
     const todayStr = new Date().toISOString().slice(0, 10);
     const startDate = week_start ?? todayStr;
 
-    // Mid-week pivot: if an active intention exists, shorten it to end yesterday
-    const active = await intentionModel.getActiveIntention(userId, todayStr);
-    if (active && active.week_start.slice(0, 10) !== startDate) {
-      const activeStart = new Date(active.week_start.slice(0, 10) + 'T00:00:00');
-      const today = new Date(todayStr + 'T00:00:00');
-      const daysSinceStart = Math.max(1, Math.round((today.getTime() - activeStart.getTime()) / 86_400_000));
-      await intentionModel.shortenIntention(userId, active.id, daysSinceStart);
+    // Transaction: locks the active intention row (if any) with FOR UPDATE so that
+    // concurrent POSTs serialise. Without this, two requests could both see the same
+    // active intention, both try to shorten it, and both insert new rows — leaving
+    // overlapping intentions in the database.
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const active = await intentionModel.getActiveIntention(userId, todayStr, client, true);
+      if (active && active.week_start.slice(0, 10) !== startDate) {
+        const activeStart = new Date(active.week_start.slice(0, 10) + 'T00:00:00');
+        const today = new Date(todayStr + 'T00:00:00');
+        const daysSinceStart = Math.max(1, Math.round((today.getTime() - activeStart.getTime()) / 86_400_000));
+        await intentionModel.shortenIntention(userId, active.id, daysSinceStart, client);
+      }
+
+      const userTagIds = await sanitizeUserTagIds(userId, user_tag_ids);
+
+      const intention = await intentionModel.createIntention(
+        userId,
+        startDate,
+        label || (heading ?? 'Focus'),
+        intent_category ?? null,
+        heading ?? null,
+        durationDays,
+        completionType,
+        targetCount,
+        userTagIds,
+        client,
+      );
+
+      await client.query('COMMIT');
+      res.status(201).json({ message: 'Intention set.', intention });
+    } catch (txErr) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw txErr;
+    } finally {
+      client.release();
     }
-
-    const intention = await intentionModel.createIntention(
-      userId,
-      startDate,
-      label || (heading ?? 'Focus'),
-      intent_category ?? null,
-      heading ?? null,
-      durationDays,
-    );
-
-    res.status(201).json({ message: 'Intention set.', intention });
   } catch (error) {
     console.error('❌ Error creating intention:', error);
     res.status(500).json({ message: 'Server error' });
@@ -84,6 +135,27 @@ export const getIntentions = async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
     const intentions = await intentionModel.getAllIntentions(userId);
+
+    // Weak ETag over (id, week_start, journal_entry-presence). The journal_entry
+    // is the most-mutated field; intent_label / heading / duration are write-once
+    // for the lifetime of an intention. Hashing the journal-entry presence flag
+    // (rather than full text) keeps the hash cheap while still invalidating when
+    // a user edits their journal — which is the only realistic mutation path.
+    const etag = 'W/"' + createHash('sha1')
+      .update(intentions.map(i => `${i.id}:${i.week_start}:${i.journal_entry ? '1' : '0'}:${(i.user_tag_ids ?? []).length}`).join('|'))
+      .digest('base64')
+      .slice(0, 20) + '"';
+
+    if (req.headers['if-none-match'] === etag) {
+      res.status(304).end();
+      return;
+    }
+
+    res.setHeader('ETag', etag);
+    // `no-cache` forces revalidation; the ETag still gives us a cheap 304
+    // when nothing changed. `max-age=60` would have let the browser serve
+    // a stale body for up to a minute after the user saved an edit.
+    res.setHeader('Cache-Control', 'private, no-cache');
     res.status(200).json({ intentions });
   } catch (error) {
     console.error('❌ Error fetching intentions:', error);
@@ -145,7 +217,7 @@ export const patchIntention = async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
     const { id } = req.params;
-    const { intent_label, heading, intent_category, duration_days } = req.body;
+    const { intent_label, heading, intent_category, duration_days, completion_type, target_count, user_tag_ids } = req.body;
 
     const label = (typeof intent_label === 'string' && intent_label.trim()) ? intent_label.trim() : '';
     if (label.length > 20) {
@@ -158,10 +230,25 @@ export const patchIntention = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Invalid intent_category.' });
     }
 
-    const durationDays = duration_days !== undefined ? Math.round(Number(duration_days)) : 7;
-    if (!Number.isFinite(durationDays) || durationDays < 1 || durationDays > 30) {
-      return res.status(400).json({ message: 'duration_days must be an integer between 1 and 30.' });
+    const completionType: 'days' | 'sessions' | 'training_weeks' =
+      completion_type === 'sessions' || completion_type === 'training_weeks' ? completion_type : 'days';
+    let targetCount: number | null = null;
+    if (completionType !== 'days') {
+      const t = Math.round(Number(target_count));
+      if (!Number.isFinite(t) || t < 1 || t > 99) {
+        return res.status(400).json({ message: 'target_count must be an integer between 1 and 99 for sessions / training_weeks modes.' });
+      }
+      targetCount = t;
     }
+
+    const defaultDuration = completionType === 'days' ? 7 : 90;
+    const maxDuration     = completionType === 'days' ? 30 : 180;
+    const durationDays = duration_days !== undefined ? Math.round(Number(duration_days)) : defaultDuration;
+    if (!Number.isFinite(durationDays) || durationDays < 1 || durationDays > maxDuration) {
+      return res.status(400).json({ message: `duration_days must be an integer between 1 and ${maxDuration}.` });
+    }
+
+    const userTagIds = await sanitizeUserTagIds(userId, user_tag_ids);
 
     const updated = await intentionModel.updateIntention(
       userId,
@@ -170,6 +257,9 @@ export const patchIntention = async (req: Request, res: Response) => {
       intent_category ?? null,
       heading ?? null,
       durationDays,
+      completionType,
+      targetCount,
+      userTagIds,
     );
 
     if (!updated) {

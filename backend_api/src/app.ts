@@ -2,6 +2,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import helmet from 'helmet';
 import cors from 'cors';
+import compression from 'compression';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,6 +10,17 @@ import authRoutes from './routes/authRoutes.js';
 import sessionRoutes from './routes/sessionRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 import intentionRoutes from './routes/intentionRoutes.js';
+import userTagRoutes from './routes/userTagRoutes.js';
+import canonicalPositionRoutes from './routes/canonicalPositionRoutes.js';
+import canonicalConstraintRoutes from './routes/canonicalConstraintRoutes.js';
+import userConstraintRoutes from './routes/userConstraintRoutes.js';
+import classScheduleRoutes from './routes/classScheduleRoutes.js';
+import classAttendanceRoutes from './routes/classAttendanceRoutes.js';
+import pushSubscriptionRoutes from './routes/pushSubscriptionRoutes.js';
+import caseRoutes from './routes/caseRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
+import beltHistoryRoutes from './routes/beltHistoryRoutes.js';
+import trainingNoteRoutes from './routes/trainingNoteRoutes.js';
 // db import triggers pool connection test on startup
 import { query } from './config/db.js';
 
@@ -114,8 +126,23 @@ async function runMigrations() {
 
 const app = express();
 
+// Railway (and any hosted Node platform) sits behind a reverse proxy that
+// adds an X-Forwarded-For header. Without `trust proxy`, Express uses the
+// proxy's loopback IP as the client IP, and `express-rate-limit` rejects
+// the request with ERR_ERL_UNEXPECTED_X_FORWARDED_FOR. `1` trusts exactly
+// one hop (the Railway edge) — safer than `true` which trusts an arbitrary
+// chain.
+app.set('trust proxy', 1);
+
 
 //security middleware
+// Response compression — gzip/brotli on JSON responses. Single-line win:
+// per the 2026-05-09 perf audit, the hot endpoints (/api/sessions,
+// /api/intentions, /api/user-tags) ship 100s of KB uncompressed for
+// power users. Default `compression()` settings handle threshold
+// (1KB minimum) + content-type negotiation; no per-route opt-in needed.
+app.use(compression());
+
 app.use(helmet());
 const corsOptions: cors.CorsOptions = {
   origin: process.env.ALLOWED_ORIGIN ?? '*',
@@ -149,6 +176,17 @@ app.use('/api', profileRoutes);
 
 // intention routes: POST/GET /api/intentions, GET /api/intentions/current, DELETE /api/intentions/:id
 app.use('/api/intentions', intentionRoutes);
+app.use('/api/user-tags', userTagRoutes);
+app.use('/api/canonical-positions', canonicalPositionRoutes);
+app.use('/api/canonical-constraints', canonicalConstraintRoutes);
+app.use('/api/user-constraints', userConstraintRoutes);
+app.use('/api/class-schedules', classScheduleRoutes);
+app.use('/api/class-attendance', classAttendanceRoutes);
+app.use('/api/push-subscriptions', pushSubscriptionRoutes);
+app.use('/api/cases', caseRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/belt-history', beltHistoryRoutes);
+app.use('/api/notes', trainingNoteRoutes);
 
 
 // Catch-all JSON error handler — must be registered after all routes.

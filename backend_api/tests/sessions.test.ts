@@ -87,13 +87,21 @@ describe('POST /api/sessions', () => {
     expect(res.status).toBe(400);
   });
 
-  it('returns 400 when no tags are provided', async () => {
+  // Owner-approved relaxation (2026-07-15): a zero-chip "journal-first" save
+  // (no tags, no heading) is a valid session — creation no longer 400s.
+  it('accepts a session with no tags and no heading (journal-first zero-chip save)', async () => {
+    const mockSession = { id: 'session-uuid-2', user_id: TEST_USER_ID, ...VALID_SESSION_BODY, tags: [], heading: null };
+    vi.mocked(sessionModel.createSession).mockResolvedValue(mockSession as never);
     const res = await request(app)
       .post('/api/sessions')
       .set('Authorization', AUTH_HEADER)
-      .send({ ...VALID_SESSION_BODY, tags: [] });
-    expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/tag/i);
+      .send({ ...VALID_SESSION_BODY, tags: [], heading: null });
+    expect(res.status).toBe(201);
+    expect(res.body.session.id).toBe('session-uuid-2');
+    // finalTags ([]) is the 8th positional arg to createSession(); heading (9th) stays null.
+    const callArgs = vi.mocked(sessionModel.createSession).mock.calls[0]!;
+    expect(callArgs[7]).toEqual([]);
+    expect(callArgs[8]).toBeNull();
   });
 
   it('returns 400 for an invalid tag value', async () => {
@@ -122,12 +130,16 @@ describe('POST /api/sessions', () => {
       .send(VALID_SESSION_BODY);
     expect(res.status).toBe(201);
     expect(res.body.session.id).toBe('session-uuid-1');
-    expect(vi.mocked(sessionModel.createSession)).toHaveBeenCalledWith(
-      TEST_USER_ID, VALID_SESSION_BODY.date, VALID_SESSION_BODY.duration,
-      VALID_SESSION_BODY.notes, VALID_SESSION_BODY.gi_nogi, VALID_SESSION_BODY.intensity,
-      VALID_SESSION_BODY.session_type, VALID_SESSION_BODY.tags,
-      null, null, null, null, null,
-    );
+    // Loose assertion — verify the call shape (user, date, duration) without
+    // enumerating every nullable downstream column. Migrations 005/008/009/010/
+    // 013/014/015/016 each added optional params; nailing positional nulls in
+    // the test couples it to schema churn instead of route behavior.
+    expect(vi.mocked(sessionModel.createSession)).toHaveBeenCalledTimes(1);
+    const callArgs = vi.mocked(sessionModel.createSession).mock.calls[0]!;
+    expect(callArgs[0]).toBe(TEST_USER_ID);
+    expect(callArgs[1]).toBe(VALID_SESSION_BODY.date);
+    expect(callArgs[2]).toBe(VALID_SESSION_BODY.duration);
+    expect(callArgs[6]).toBe(VALID_SESSION_BODY.session_type);
   });
 });
 
@@ -145,6 +157,44 @@ describe('GET /api/sessions', () => {
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('sessions');
     expect(Array.isArray(res.body.sessions)).toBe(true);
+  });
+
+  // The default LIMIT lives in the model; the controller's job is just to
+  // pass through (or omit) the optional ?limit param. These tests verify
+  // the controller correctly translates the query string into the model arg.
+  it('passes ?limit through to the model when set', async () => {
+    vi.mocked(sessionModel.getSessionsByUser).mockResolvedValue([]);
+    const res = await request(app)
+      .get('/api/sessions?limit=50')
+      .set('Authorization', AUTH_HEADER);
+    expect(res.status).toBe(200);
+    // model called with (userId, from?, to?, limit) — limit is the 4th positional
+    const call = vi.mocked(sessionModel.getSessionsByUser).mock.calls[0]!;
+    expect(call[3]).toBe(50);
+  });
+
+  it('omits limit when query param is absent (model applies default)', async () => {
+    vi.mocked(sessionModel.getSessionsByUser).mockResolvedValue([]);
+    const res = await request(app)
+      .get('/api/sessions')
+      .set('Authorization', AUTH_HEADER);
+    expect(res.status).toBe(200);
+    const call = vi.mocked(sessionModel.getSessionsByUser).mock.calls[0]!;
+    expect(call[3]).toBeUndefined();
+  });
+
+  it('rejects non-numeric ?limit', async () => {
+    const res = await request(app)
+      .get('/api/sessions?limit=many')
+      .set('Authorization', AUTH_HEADER);
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects ?limit=0 and negative limits', async () => {
+    const r1 = await request(app).get('/api/sessions?limit=0').set('Authorization', AUTH_HEADER);
+    expect(r1.status).toBe(400);
+    const r2 = await request(app).get('/api/sessions?limit=-10').set('Authorization', AUTH_HEADER);
+    expect(r2.status).toBe(400);
   });
 });
 

@@ -9,7 +9,11 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // Single shared test account (e2e/test-account.ts) — workers must be 1
+  // so parallel runs don't race on the same account's state. If e2e
+  // runtime becomes painful, escape hatch is one account per Playwright
+  // project (3 total) which would let workers: 3 keep parallelism.
+  workers: 1,
   reporter: [['html', { outputFolder: './e2e/playwright-report' }]],
 
   use: {

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, X } from 'lucide-react';
 import { api } from '../lib/api.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
-import { INTENSITY_COLOR, SESSION_TYPE_LABELS } from '../lib/sessionUtils.ts';
+import { INTENSITY_COLOR, SESSION_TYPE_LABELS, formatGiNogi } from '../lib/sessionUtils.ts';
 import {
   COPPER, COPPER_BORDER, SURFACE_2, SURFACE_3,
   CARD_BG, CARD_SHADOW, PALE_YELLOW,
@@ -11,6 +11,8 @@ import { vibrate } from '../lib/haptics.ts';
 import {
   type SearchFilters, DEFAULT_FILTERS, hasActiveFilters, filterSessionsLocal,
 } from '../lib/searchUtils.ts';
+import { useCanonicalConstraints } from '../hooks/useCanonicalConstraints.ts';
+import { useUserConstraints } from '../hooks/useUserConstraints.ts';
 import SessionDetailModal from './SessionDetailModal.tsx';
 import type { SessionSummary, SearchSessionsResponse } from '../types/api.ts';
 
@@ -49,11 +51,10 @@ function fmtDuration(m: number): string {
 
 interface Props {
   cachedSessions: SessionSummary[];
-  onClose: () => void;
   onRefresh: () => void;
 }
 
-export default function SessionSearchPanel({ cachedSessions, onClose, onRefresh }: Props) {
+export default function SessionSearchPanel({ cachedSessions, onRefresh }: Props) {
   const [filters, setFilters] = useState<SearchFilters>({ ...DEFAULT_FILTERS });
   const [results, setResults] = useState<SessionSummary[]>([]);
   const [total, setTotal] = useState(0);
@@ -63,6 +64,11 @@ export default function SessionSearchPanel({ cachedSessions, onClose, onRefresh 
   const [detailSession, setDetailSession] = useState<SessionSummary | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Constraint vocabulary for the chip filter row. Constraints rarely change,
+  // so the canonical hook caches at module level — this is cheap.
+  const { constraints: canonicalConstraints } = useCanonicalConstraints();
+  const { constraints: userConstraints } = useUserConstraints();
 
   const LIMIT = 50;
 
@@ -96,6 +102,8 @@ export default function SessionSearchPanel({ cachedSessions, onClose, onRefresh 
       if (f.intensity_max < 5) params.set('intensity_max', String(f.intensity_max));
       if (f.from) params.set('from', f.from);
       if (f.to) params.set('to', f.to);
+      if (f.partner) params.set('partner', f.partner);
+      for (const id of f.constraint_ids) params.append('constraint_id', id);
       params.set('limit', String(LIMIT));
       params.set('offset', String(newOffset));
 
@@ -241,6 +249,56 @@ export default function SessionSearchPanel({ cachedSessions, onClose, onRefresh 
             ))}
           </div>
 
+          {/* Partner — freetext, debounced. Matches case-insensitive substring. */}
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Filter by partner name..."
+              value={filters.partner}
+              onChange={e => updateFilter('partner', e.target.value, true)}
+              className="w-full pl-3 pr-8 py-2 rounded-lg text-xs text-white placeholder:text-white/30 outline-none touch-manipulation"
+              style={{
+                backgroundColor: SURFACE_3,
+                border: `1px solid ${COPPER_BORDER}`,
+              }}
+            />
+            {filters.partner && (
+              <button
+                onClick={() => updateFilter('partner', '')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 touch-manipulation"
+                style={{ color: 'rgba(255,255,255,0.4)' }}
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
+
+          {/* Constraints — both canonical (curated) and user-scoped (custom).
+              Multi-select: a session matches if ANY selected constraint is on it. */}
+          {(canonicalConstraints.length > 0 || userConstraints.length > 0) && (
+            <div className="flex flex-wrap gap-1.5">
+              {[...canonicalConstraints, ...userConstraints].map(c => {
+                const active = filters.constraint_ids.includes(c.id);
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => {
+                      vibrate(8);
+                      const next = active
+                        ? filters.constraint_ids.filter(id => id !== c.id)
+                        : [...filters.constraint_ids, c.id];
+                      updateFilter('constraint_ids', next);
+                    }}
+                    className="px-3 py-1 rounded-lg text-xs font-medium transition-colors touch-manipulation j2-press"
+                    style={chipStyle(active)}
+                  >
+                    {c.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {/* Clear all */}
           {hasActiveFilters(filters) && (
             <button
@@ -297,7 +355,7 @@ export default function SessionSearchPanel({ cachedSessions, onClose, onRefresh 
                     {fmtDuration(s.duration)}
                   </span>
                   <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                    {s.gi_nogi === 'gi' ? 'Gi' : 'No-Gi'}
+                    {formatGiNogi(s.gi_nogi)}
                   </span>
                   {s.heading && (
                     <span

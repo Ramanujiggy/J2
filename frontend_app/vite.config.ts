@@ -4,33 +4,31 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
+  // Move Vite's cache out of node_modules — prevents EBUSY errors on Railway
+  // where the node_modules/.vite path can be held by a layer cache lock.
+  cacheDir: '.vite-cache',
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
       manifest: false,
-      workbox: {
+      // injectManifest strategy lets us ship a hand-written `src/sw.ts` that
+      // adds Web Push handlers (push + notificationclick) on top of the
+      // Workbox-managed precaching/runtime caching the plugin still injects.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: 'StaleWhileRevalidate',
-            options: { cacheName: 'google-fonts-css', expiration: { maxEntries: 4, maxAgeSeconds: 365 * 24 * 60 * 60 } },
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: { cacheName: 'google-fonts-woff', expiration: { maxEntries: 20, maxAgeSeconds: 365 * 24 * 60 * 60 }, cacheableResponse: { statuses: [0, 200] } },
-          },
-          {
-            urlPattern: /\/api\/.*/i,
-            method: 'GET',
-            handler: 'NetworkFirst',
-            options: { cacheName: 'api-cache', networkTimeoutSeconds: 5, expiration: { maxEntries: 50, maxAgeSeconds: 24 * 60 * 60 }, cacheableResponse: { statuses: [0, 200] } },
-          },
-        ],
+      },
+      // Without this, the SW only registers on production builds — meaning
+      // pushManager.subscribe() (and any code awaiting navigator.serviceWorker.ready)
+      // hangs forever in `npm run dev`. `type: 'module'` is required so the
+      // TS-source SW can use ES module imports during dev.
+      devOptions: {
+        enabled: true,
+        type: 'module',
         navigateFallback: 'index.html',
-        navigateFallbackDenylist: [/^\/api/, /^\/auth/],
       },
     }),
   ],
