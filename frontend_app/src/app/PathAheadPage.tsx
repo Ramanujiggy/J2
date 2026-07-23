@@ -190,7 +190,8 @@ export default function PathAheadPage() {
     const diffHours = Math.round(diffMs / 3600000);
     const diffDays = Math.round(diffMs / 86400000);
     const endedAgo = diffDays === 0 ? 'today' : diffDays === 1 ? 'yesterday' : `${diffDays} days ago`;
-    return { id: s.id, date: dateStr, duration: s.duration, focusLabel, endedAgo };
+    const hasNotes = !!(s.notes && s.notes.trim().length > 0);
+    return { id: s.id, date: dateStr, duration: s.duration, focusLabel, endedAgo, hasNotes };
   }, [allSessions]);
 
   useEffect(() => {
