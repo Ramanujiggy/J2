@@ -458,6 +458,7 @@ function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
           className="z-50 sm:hidden rounded-2xl"
           style={{
             width: 260,
+            minHeight: 186,
             backgroundColor: 'rgba(26,53,40,0.95)',
             border: '1px solid rgba(196,145,95,0.35)',
             backdropFilter: 'blur(12px)',
