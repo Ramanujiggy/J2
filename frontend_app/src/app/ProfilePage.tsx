@@ -26,6 +26,7 @@ import { useBeltHistory } from '../hooks/useBeltHistory.ts';
 import { getStorageEstimate, type StorageEstimate } from '../lib/videoStore.ts';
 import { formatBytes } from '../lib/videoUtils.ts';
 import { Library, ChevronRight, Bell, Award } from 'lucide-react';
+import PrismSkinToggle from '../components/PrismSkinToggle.tsx';
 
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
 
@@ -605,6 +606,14 @@ export default function ProfilePage() {
             </div>
             <ChevronRight size={18} strokeWidth={2} style={{ color: 'rgba(255,255,255,0.30)', flexShrink: 0 }} />
           </button>
+        </div>
+
+        {/* Appearance — prism skin */}
+        <div
+          className={`rounded-2xl ${isDesktop ? 'p-7' : 'mt-4 p-5'}`}
+          style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}
+        >
+          <PrismSkinToggle />
         </div>
 
         {/* Move Library section */}
