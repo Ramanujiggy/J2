@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-23T23:52:17.174Z",
+  "generatedAt": "2026-07-25T03:26:59.699Z",
   "apiRoutes": [
     {
       "method": "GET",
@@ -346,6 +346,20 @@
     },
     {
       "method": "GET",
+      "path": "/api/stamps/",
+      "file": "routes/stampRoutes.ts",
+      "handler": "listStamps",
+      "auth": "user"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stamps/",
+      "file": "routes/stampRoutes.ts",
+      "handler": "strikeStampHandler",
+      "auth": "user"
+    },
+    {
+      "method": "GET",
       "path": "/api/notes/",
       "file": "routes/trainingNoteRoutes.ts",
       "handler": "list",
@@ -631,6 +645,10 @@
     {
       "file": "035_intention_user_tags.sql",
       "title": "Associates techniques (user_tags) with intentions. An intention can"
+    },
+    {
+      "file": "036_earned_stamps.sql",
+      "title": "Backs the Boa keepsake-stamp collection. Each row is ONE strike of a die:"
     }
   ],
   "models": [
@@ -1539,6 +1557,68 @@
       ]
     },
     {
+      "name": "EarnedStampRow",
+      "file": "models/stampModel.ts",
+      "fields": [
+        {
+          "name": "id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "user_id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "die_key",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "auto_earned",
+          "optional": false,
+          "type": "boolean"
+        },
+        {
+          "name": "struck_at",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "created_at",
+          "optional": false,
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "StampSummary",
+      "file": "models/stampModel.ts",
+      "fields": [
+        {
+          "name": "die_key",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "count",
+          "optional": false,
+          "type": "number"
+        },
+        {
+          "name": "first_struck_at",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "last_struck_at",
+          "optional": false,
+          "type": "string"
+        }
+      ]
+    },
+    {
       "name": "CreateCaseInput",
       "file": "models/supportCaseModel.ts",
       "fields": [
@@ -2040,6 +2120,13 @@
       "path": "/profile/classes",
       "component": "ClassSchedulesPage",
       "file": "src/app/ClassSchedulesPage.tsx",
+      "shell": "AppShell",
+      "adminGated": false
+    },
+    {
+      "path": "/profile/collection",
+      "component": "StampCollectionPage",
+      "file": "src/app/StampCollectionPage.tsx",
       "shell": "AppShell",
       "adminGated": false
     },

@@ -25,7 +25,7 @@ import { toast } from '../hooks/use-toast.ts';
 import { useBeltHistory } from '../hooks/useBeltHistory.ts';
 import { getStorageEstimate, type StorageEstimate } from '../lib/videoStore.ts';
 import { formatBytes } from '../lib/videoUtils.ts';
-import { Library, ChevronRight, Bell } from 'lucide-react';
+import { Library, ChevronRight, Bell, Award } from 'lucide-react';
 
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
 
@@ -577,6 +577,29 @@ export default function ProfilePage() {
                 <p className="text-sm font-semibold text-white">Class times &amp; notifications</p>
                 <p className="text-xs text-white/40">
                   Three quiet pings around each class — pre, after, drive home.
+                </p>
+              </div>
+            </div>
+            <ChevronRight size={18} strokeWidth={2} style={{ color: 'rgba(255,255,255,0.30)', flexShrink: 0 }} />
+          </button>
+        </div>
+
+        {/* Collection section */}
+        <div
+          className={`rounded-2xl ${isDesktop ? 'p-7' : 'mt-4 p-5'}`}
+          style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}
+        >
+          <button
+            type="button"
+            onClick={() => navigate('/profile/collection')}
+            className="w-full flex items-center justify-between gap-3 touch-manipulation j2-press"
+          >
+            <div className="flex items-center gap-3 text-left">
+              <Award size={22} strokeWidth={1.5} style={{ color: 'rgba(196,145,95,0.85)', flexShrink: 0 }} />
+              <div>
+                <p className="text-sm font-semibold text-white">Collection</p>
+                <p className="text-xs text-white/40">
+                  Keepsake stamps struck for the moments you marked.
                 </p>
               </div>
             </div>

@@ -12,6 +12,9 @@ import PrismShape from './PrismShape.tsx';
 import TagPicker from './TagPicker.tsx';
 import { selectionsToDistribution, sessionToSelections, type ChipSelection } from '../lib/selectionsToDistribution.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
+import { useStamps } from '../hooks/useStamps.ts';
+import SealRevealSheet from './seal/SealRevealSheet.tsx';
+import { STAMP_DIES } from '../lib/stampDies.ts';
 import { useUserTags } from '../hooks/useUserTags.ts';
 import { useCanonicalPositions } from '../hooks/useCanonicalPositions.ts';
 import { useUserConstraints } from '../hooks/useUserConstraints.ts';
@@ -84,6 +87,35 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
   const [isEditing, setIsEditing] = useState(false);
   const navigate = useNavigate();
   const isDesktop = useIsDesktop();
+
+  // ── Boa keepsake strike ─────────────────────────────────────────────────
+  const { stamps: earnedStamps, refetch: refetchStamps } = useStamps();
+  const [boaStriking, setBoaStriking] = useState(false);
+  const [boaReveal, setBoaReveal] = useState<{ struckAt: string; count: number } | null>(null);
+
+  const handleBoa = async () => {
+    if (boaStriking) return;
+    setBoaStriking(true);
+    vibrate(12);
+    try {
+      const data = await api.post<{ stamp?: { count: number; last_struck_at: string }; _offline?: boolean }>(
+        '/api/stamps',
+        { die_key: 'boa' },
+      );
+      if (data.stamp) {
+        setBoaReveal({ struckAt: data.stamp.last_struck_at, count: data.stamp.count });
+        refetchStamps();
+      } else {
+        // Queued offline — optimistic reveal from the last-known count.
+        const prev = earnedStamps.get('boa')?.count ?? 0;
+        setBoaReveal({ struckAt: new Date().toISOString(), count: prev + 1 });
+      }
+    } catch {
+      // Network/permanent failure — no strike, no sheet.
+    } finally {
+      setBoaStriking(false);
+    }
+  };
 
   // ── Form state (includes Pillar Engine fields) ──────────────────────────
   const sessionDateStr = typeof session.date === 'string' ? session.date.slice(0, 10) : '';
@@ -696,11 +728,19 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                   </div>
                 )}
                 {!confirmDelete && (
-                  <button onClick={() => setIsEditing(true)}
-                    className="touch-manipulation"
-                    style={{ fontFamily: FONT_EDITORIAL, fontWeight: 700, fontStyle: 'normal', fontSize: 18, color: PALE_YELLOW, textShadow: GLOW_SOFT, background: 'none', border: 'none', cursor: 'pointer' }}>
-                    Edit
-                  </button>
+                  <div className="flex items-center gap-4">
+                    <button onClick={handleBoa} disabled={boaStriking}
+                      className="touch-manipulation"
+                      aria-label="Mark this as a mat moment"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: COPPER, background: 'rgba(196,145,95,0.12)', border: '1px solid rgba(196,145,95,0.4)', borderRadius: 10, padding: '7px 12px', cursor: 'pointer' }}>
+                      ◈ {boaStriking ? 'Striking…' : 'Boa'}
+                    </button>
+                    <button onClick={() => setIsEditing(true)}
+                      className="touch-manipulation"
+                      style={{ fontFamily: FONT_EDITORIAL, fontWeight: 700, fontStyle: 'normal', fontSize: 18, color: PALE_YELLOW, textShadow: GLOW_SOFT, background: 'none', border: 'none', cursor: 'pointer' }}>
+                      Edit
+                    </button>
+                  </div>
                 )}
               </div>
               </>
@@ -998,6 +1038,15 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
 
         </div>
       </div>
+
+      <SealRevealSheet
+        open={boaReveal != null}
+        die={STAMP_DIES.boa ?? null}
+        struckAt={boaReveal?.struckAt ?? null}
+        count={boaReveal?.count ?? 0}
+        autoEarned={false}
+        onClose={() => setBoaReveal(null)}
+      />
     </>,
     document.body
   );

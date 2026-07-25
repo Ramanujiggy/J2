@@ -34,6 +34,7 @@ const NotesPage                 = lazy(() => import('./app/NotesPage.tsx'));
 const SessionDetailPage         = lazy(() => import('./app/SessionDetailPage.tsx'));
 const ProfilePage               = lazy(() => import('./app/ProfilePage.tsx'));
 const ClassSchedulesPage        = lazy(() => import('./app/ClassSchedulesPage.tsx'));
+const StampCollectionPage       = lazy(() => import('./app/StampCollectionPage.tsx'));
 const MovesLibraryPage          = lazy(() => import('./app/MovesLibraryPage.tsx'));
 const TechniquePage             = lazy(() => import('./app/TechniquePage.tsx'));
 const AdminDashboardPage        = lazy(() => import('./app/AdminDashboardPage.tsx'));
@@ -152,6 +153,7 @@ function App() {
         <Route path="/intentions/:id/journal" element={<ProtectedShell><JournalEntryPage /></ProtectedShell>} />
         <Route path="/profile"          element={<ProtectedShell><ProfilePage /></ProtectedShell>} />
         <Route path="/profile/classes"  element={<ProtectedShell><ClassSchedulesPage /></ProtectedShell>} />
+        <Route path="/profile/collection" element={<ProtectedShell><StampCollectionPage /></ProtectedShell>} />
         <Route path="/library"        element={<ProtectedShell><MovesLibraryPage /></ProtectedShell>} />
         <Route path="/techniques/:id" element={<ProtectedShell><TechniquePage /></ProtectedShell>} />
         <Route path="/admin"             element={<ProtectedShell><AdminDashboardPage /></ProtectedShell>} />

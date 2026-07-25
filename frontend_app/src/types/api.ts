@@ -414,6 +414,19 @@ export interface BeltHistoryResponse {
   belt_history: BeltHistoryEntry[];
 }
 
+// Aggregated per-die stamp record (one entry per die the user has struck).
+// `count` drives the reveal sheet's "Nth time"; first/last are ISO timestamps.
+export interface EarnedStamp {
+  die_key: string;
+  count: number;
+  first_struck_at: string;
+  last_struck_at: string;
+}
+
+export interface StampsResponse {
+  stamps: EarnedStamp[];
+}
+
 export interface TrainingNote {
   id: string;
   text: string;

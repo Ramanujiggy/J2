@@ -64,6 +64,9 @@ export default {
         sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
         display: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
         wordmark: ['"Cormorant Garamond"', 'Georgia', 'serif'],
+        // Boa stamp faces — used only inside the seal die art (SealStamp).
+        stamp: ['"Archivo Black"', 'sans-serif'],
+        stampCondensed: ['"Oswald"', 'sans-serif'],
       },
       transitionTimingFunction: {
         heavy:  'cubic-bezier(0.16, 1, 0.3, 1)',
@@ -169,6 +172,12 @@ export default {
           '30%':      { transform: 'translateX(3px)' },
           '40%, 100%': { transform: 'translateX(0)' },
         },
+        // Boa seal re-strike on reveal-sheet open — the die presses down again.
+        'j2SealLand': {
+          '0%':   { opacity: '0', transform: 'scale(0.72) rotate(-24deg)' },
+          '58%':  { opacity: '1', transform: 'scale(1.07) rotate(-4deg)' },
+          '100%': { opacity: '1', transform: 'scale(1) rotate(-8deg)' },
+        },
       },
       animation: {
         'view-exit-up':    'view-exit-up   500ms cubic-bezier(0, 0, 0.3, 1) both',
@@ -192,6 +201,8 @@ export default {
         'j2-intent-copper-pulse':  'j2IntentCopperPulse 4.5s ease-in-out infinite',
         'j2-intent-fade-in':       'j2IntentFadeIn 250ms ease both',
         'j2-roulette-bounce':      'j2RouletteEdgeBounce 0.8s ease both',
+        'j2-seal-land':            'j2SealLand 0.64s cubic-bezier(0.34,1.56,0.64,1) 0.12s both',
+        'j2-sheet-up':             'j2SheetSlideUp 0.44s cubic-bezier(0.22,1,0.36,1) both',
       },
     },
   },

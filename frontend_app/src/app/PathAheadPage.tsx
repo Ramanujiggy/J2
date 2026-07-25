@@ -26,6 +26,9 @@ import PathAheadDesktop from '../components/PathAheadDesktop.tsx';
 import { toDateString, addDays } from '../lib/sessionUtils.ts';
 import { computeStats } from '../components/TrainingHeatmap.tsx';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
+import { useStamps } from '../hooks/useStamps.ts';
+import SealRevealSheet from '../components/seal/SealRevealSheet.tsx';
+import { STAMP_DIES } from '../lib/stampDies.ts';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -205,6 +208,35 @@ export default function PathAheadPage() {
       }
     }
   }, [consistentWeeks]);
+
+  // ── Eight Gates capstone → persisted prestige stamp ──────────────────────
+  // At 26 consistent weeks the capstone folds into the stamp collection. The
+  // strike is idempotent server-side (partial unique index), so we can POST on
+  // every qualifying mount; the ref guards against StrictMode's double-invoke,
+  // and we open the reveal sheet only on the first non-duplicate strike.
+  const { stamps: earnedStamps, refetch: refetchStamps } = useStamps();
+  const [gateReveal, setGateReveal] = useState<{ struckAt: string; count: number } | null>(null);
+  const gateStruckRef = useRef(false);
+
+  useEffect(() => {
+    if (consistentWeeks < 26 || gateStruckRef.current) return;
+    if (earnedStamps.has('eight_gates_26')) { gateStruckRef.current = true; return; }
+    gateStruckRef.current = true;
+    void (async () => {
+      try {
+        const data = await api.post<{ stamp?: { count: number; last_struck_at: string }; _offline?: boolean }>(
+          '/api/stamps',
+          { die_key: 'eight_gates_26', auto_earned: true },
+        );
+        if (data.stamp) {
+          setGateReveal({ struckAt: data.stamp.last_struck_at, count: data.stamp.count });
+          refetchStamps();
+        }
+      } catch {
+        gateStruckRef.current = false; // allow a retry on a later mount
+      }
+    })();
+  }, [consistentWeeks, earnedStamps, refetchStamps]);
 
   // ── Window computation ─────────────────────────────────────────────────
 
@@ -434,8 +466,20 @@ export default function PathAheadPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────
 
+  const gateSheet = (
+    <SealRevealSheet
+      open={gateReveal != null}
+      die={STAMP_DIES.eight_gates_26 ?? null}
+      struckAt={gateReveal?.struckAt ?? null}
+      count={gateReveal?.count ?? 0}
+      autoEarned={true}
+      onClose={() => setGateReveal(null)}
+    />
+  );
+
   if (isDesktop) {
     return (
+      <>
       <PathAheadDesktop
         name={name}
         intentionsEnabled={intentionsEnabled}
@@ -468,6 +512,8 @@ export default function PathAheadPage() {
         setSetIntentOpen={setSetIntentOpen}
         handleDeleteIntention={handleDeleteIntention}
       />
+      {gateSheet}
+      </>
     );
   }
 
@@ -475,6 +521,7 @@ export default function PathAheadPage() {
      MOBILE LAYOUT — single-column stacked (the modernized phone UI)
      ═══════════════════════════════════════════════════════════════════════ */
   return (
+    <>
     <PathAheadMobile
       name={name}
       intentionsEnabled={intentionsEnabled}
@@ -500,6 +547,8 @@ export default function PathAheadPage() {
       setSetIntentOpen={setSetIntentOpen}
       handleDeleteIntention={handleDeleteIntention}
     />
+    {gateSheet}
+    </>
   );
 }
 
