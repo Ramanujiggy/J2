@@ -22,6 +22,7 @@ export interface SessionDraft {
   polarity?: string | null;
   sub_skill_tag?: string;
   script_source?: string | null;
+  resonance?: number | null;
   user_tag_ids?: string[];
   canonical_position_ids?: string[];
   canonical_constraint_ids?: string[];
@@ -41,6 +42,7 @@ export interface SessionPayload {
   polarity?: string;
   sub_skill_tag?: string;
   script_source?: string;
+  resonance?: number | null;
   user_tag_ids?: string[];
   canonical_position_ids?: string[];
   pillar_distribution?: PillarDistribution;
@@ -74,6 +76,8 @@ export function buildSessionPayload(draft: SessionDraft): SessionPayload {
     polarity: draft.polarity ?? undefined,
     sub_skill_tag: draft.sub_skill_tag || undefined,
     script_source: draft.script_source ?? undefined,
+    // Passthrough — retired as an input but preserved on edit so it isn't nulled.
+    resonance: draft.resonance ?? undefined,
     user_tag_ids: nonEmpty(draft.user_tag_ids),
     canonical_position_ids: nonEmpty(draft.canonical_position_ids),
     pillar_distribution: distribution ?? undefined,

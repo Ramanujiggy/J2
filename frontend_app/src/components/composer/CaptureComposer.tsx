@@ -14,6 +14,7 @@ import { api, ApiError } from '../../lib/api.ts';
 import { deriveKernel, type Kernel } from '../../lib/composerKernel.ts';
 import { useSpeechTranscript } from '../../hooks/useSpeechTranscript.ts';
 import { useActiveIntention } from '../../context/ActiveIntentionContext.tsx';
+import { useSessions } from '../../context/SessionsContext.tsx';
 import { useIsDesktop } from '../../hooks/useIsDesktop.ts';
 import { useStamps } from '../../hooks/useStamps.ts';
 import { vibrate } from '../../lib/haptics.ts';
@@ -48,6 +49,11 @@ export default function CaptureComposer({ onSuccess, onCancel, defaultDate }: Pr
 
   const speech = useSpeechTranscript();
   const { activeIntention } = useActiveIntention();
+  const { sessions } = useSessions();
+  const pastPartners = useMemo(
+    () => [...new Set(sessions.flatMap(s => s.partners ?? []))],
+    [sessions],
+  );
   const { stamps: earnedStamps, refetch: refetchStamps } = useStamps();
   const [boaReveal, setBoaReveal] = useState<{ struckAt: string; count: number } | null>(null);
 
@@ -170,6 +176,7 @@ export default function CaptureComposer({ onSuccess, onCancel, defaultDate }: Pr
           saving={saving}
           onBoa={handleBoa}
           skin={skin}
+          pastPartners={pastPartners}
         />
       )}
 
