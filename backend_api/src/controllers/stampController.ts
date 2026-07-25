@@ -6,6 +6,7 @@ import { isKnownDieKey } from '../lib/stampDieKeys.js';
 const StrikeSchema = z.object({
   die_key: z.string().min(1).max(80),
   auto_earned: z.boolean().optional().default(false),
+  session_id: z.string().uuid().optional(),
 });
 
 export async function listStamps(req: Request, res: Response) {
@@ -29,7 +30,7 @@ export async function strikeStampHandler(req: Request, res: Response) {
     return;
   }
   try {
-    const stamp = await strikeStamp(req.user!.id, parsed.data.die_key, parsed.data.auto_earned);
+    const stamp = await strikeStamp(req.user!.id, parsed.data.die_key, parsed.data.auto_earned, parsed.data.session_id);
     res.status(201).json({ stamp });
   } catch (err) {
     console.error('strikeStamp error:', err);

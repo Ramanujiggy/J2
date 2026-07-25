@@ -1,6 +1,13 @@
 import { query } from '../config/db.js';
 import pool from '../config/db.js';
 
+// Per-session stamps, aggregated as a json array on the session row (migration
+// 037). Empty array when the session has no stamps. Assumes the sessions table
+// is aliased `t` in the surrounding SELECT.
+const STAMPS_AGG =
+    `COALESCE((SELECT json_agg(json_build_object('die_key', es.die_key, 'struck_at', es.struck_at) ORDER BY es.struck_at)
+      FROM earned_stamps es WHERE es.session_id = t.id), '[]') AS stamps`;
+
 /** Map of pillar value → weight in [0, 1]. Weights sum to ~1.0 (±0.01). */
 export type PillarDistribution = Partial<Record<'standup' | 'passing' | 'pins' | 'submissions' | 'guard', number>>;
 
@@ -35,6 +42,9 @@ export interface Session {
     // migration 016 — freetext partner names. Will grow to user_partners refs
     // in the Journada 2.0 social layer.
     partners?: string[] | null;
+    // migration 037 — stamps struck on this session (Boa, future dies). Populated
+    // by the list/search SELECTs; absent on create/update returns.
+    stamps?: { die_key: string; struck_at: string }[];
     created_at?: Date;
 }
 
@@ -111,7 +121,7 @@ export const getSessionsByUser = async (
     const limitClause = ` LIMIT $${params.length}`;
 
     const result = await query(
-        `SELECT * FROM training_sessions WHERE user_id = $1${whereExtra} ORDER BY date DESC${limitClause}`,
+        `SELECT t.*, ${STAMPS_AGG} FROM training_sessions t WHERE t.user_id = $1${whereExtra} ORDER BY t.date DESC${limitClause}`,
         params,
     );
     return result.rows;
@@ -184,7 +194,7 @@ export const searchSessions = async (
     params.push(limit, offset);
 
     const result = await query(
-        `SELECT * FROM training_sessions WHERE ${where} ORDER BY date DESC LIMIT $${params.length - 1} OFFSET $${params.length}`,
+        `SELECT t.*, ${STAMPS_AGG} FROM training_sessions t WHERE ${where} ORDER BY t.date DESC LIMIT $${params.length - 1} OFFSET $${params.length}`,
         params,
     );
 

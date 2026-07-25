@@ -14,14 +14,17 @@
 // the band doesn't surface (sub_skill_tag / resonance / constraint ids) so the
 // full-row PUT never nulls them. Partners are derived from @mentions in the prose.
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { PALE_YELLOW, COPPER, FONT_EDITORIAL, CARD_BG, SURFACE_2 } from '../../lib/theme.ts';
+import { vibrate } from '../../lib/haptics.ts';
 import { SKILL_TAGS } from '../../lib/constants.ts';
 import SegmentedToggle from '../SegmentedToggle.tsx';
 import TagPicker from '../TagPicker.tsx';
 import PrismFocusInput, { type PrismSkin } from '../PrismFocusInput.tsx';
 import DurationDial from '../DurationDial.tsx';
 import EffortMeter from '../EffortMeter.tsx';
+import EntryStamp from '../seal/EntryStamp.tsx';
+import { STAMP_DIES, bandDate } from '../../lib/stampDies.ts';
 import type { Kernel } from '../../lib/composerKernel.ts';
 import { sessionToSelections, type ChipSelection } from '../../lib/selectionsToDistribution.ts';
 import type { SessionDraft } from '../../lib/sessionPayload.ts';
@@ -51,6 +54,7 @@ export interface EditSeed {
   heading?: string | null;
   pillar_distribution?: PillarDistribution | null;
   deep_work_pillars?: Pillar[] | null;
+  stamps?: { die_key: string; struck_at: string }[];
 }
 
 const DOW = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -90,7 +94,11 @@ interface Props {
   onTextChange: (t: string) => void;
   onSave: (draft: SessionDraft) => void;
   saving: boolean;
-  onBoa?: () => void;
+  /** Called when the user strikes Boa on this entry — parent persists it
+   *  (immediately with session_id in edit; deferred to save in create). */
+  onBoaStruck?: () => void;
+  /** Tap a landed stamp — parent opens the reveal sheet. */
+  onOpenStamp?: (dieKey: string, struckAt: string) => void;
   skin?: PrismSkin;
   /** Distinct partner names from past sessions, for the @mention dropdown. */
   pastPartners?: string[];
@@ -100,10 +108,24 @@ interface Props {
 }
 
 export default function MarginNotesEntry({
-  kernel, entryText, onTextChange, onSave, saving, onBoa, skin = 'etched',
+  kernel, entryText, onTextChange, onSave, saving, onBoaStruck, onOpenStamp, skin = 'etched',
   pastPartners = [], initial, headerLabel,
 }: Props) {
   const kernelType = kernel.session_type === 'competition_training' ? 'class' : kernel.session_type;
+
+  // Stamps struck on this entry (Boa now; future dies). Seeded from the session
+  // on edit; a fresh Boa strike appends + animates via EntryStamp `justStruck`.
+  const [stamps, setStamps] = useState<{ die_key: string; struck_at: string }[]>(initial?.stamps ?? []);
+  const [justStruckBoa, setJustStruckBoa] = useState(false);
+  const boaStamp = stamps.find(s => s.die_key === 'boa');
+
+  const strikeBoa = () => {
+    if (boaStamp) return; // one Boa per session
+    vibrate(14);
+    setStamps(prev => [...prev, { die_key: 'boa', struck_at: new Date().toISOString() }]);
+    setJustStruckBoa(true);
+    onBoaStruck?.();
+  };
 
   const [date, setDate] = useState(initial?.date ?? kernel.date);
   const [dateEditing, setDateEditing] = useState(false);
@@ -136,6 +158,15 @@ export default function MarginNotesEntry({
   // @mention dropdown state
   const textRef = useRef<HTMLTextAreaElement>(null);
   const [mentionToken, setMentionToken] = useState<string | null>(null);
+
+  // Auto-size the prose textarea to its content (min ~2 lines) so a short entry
+  // doesn't leave a tall empty void — especially in edit.
+  useEffect(() => {
+    const el = textRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.max(56, el.scrollHeight)}px`;
+  }, [entryText]);
 
   const heading = useMemo<Pillar | null>(() => selections.find(s => s.primary)?.pillar ?? null, [selections]);
   const studyLabel = heading ? (SKILL_TAGS.find(t => t.value === heading)?.label ?? heading) : null;
@@ -233,8 +264,8 @@ export default function MarginNotesEntry({
           onClick={syncToken}
           onBlur={() => requestAnimationFrame(() => setMentionToken(null))}
           placeholder="What would you like to remember about this session? Type @ to tag a partner."
-          rows={4}
-          style={{ width: '100%', marginTop: 12, minHeight: 120, background: 'none', border: 'none', outline: 'none', resize: 'none', fontFamily: FONT_EDITORIAL, fontSize: 20, lineHeight: 1.5, color: 'rgba(255,255,255,0.92)' }}
+          rows={2}
+          style={{ width: '100%', marginTop: 12, minHeight: 56, overflow: 'hidden', background: 'none', border: 'none', outline: 'none', resize: 'none', fontFamily: FONT_EDITORIAL, fontSize: 20, lineHeight: 1.5, color: 'rgba(255,255,255,0.92)' }}
         />
         {mentionToken != null && (mentionMatches.length > 0 || mentionToken.length > 0) && (
           <div
@@ -262,15 +293,33 @@ export default function MarginNotesEntry({
         )}
       </div>
 
-      {onBoa && (
-        <div style={{ display: 'flex', gap: 8, marginTop: 10, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          <button
-            onClick={onBoa}
-            aria-label="Mark this as a mat moment"
-            style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: PALE_YELLOW, border: '1px solid rgba(196,145,95,0.5)', background: 'rgba(196,145,95,0.14)', padding: '8px 12px', borderRadius: 10, cursor: 'pointer' }}
-          >
-            ◈ Boa
-          </button>
+      {/* On-entry stamps — landed stamps sit crooked on the page; a Boa strike
+          presses one down. Tapping a stamp opens its certificate sheet. */}
+      {(stamps.length > 0 || onBoaStruck) && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12, marginTop: 10, paddingTop: 14, minHeight: 60, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          {stamps.map(s => {
+            const die = STAMP_DIES[s.die_key];
+            if (!die) return null;
+            return (
+              <EntryStamp
+                key={s.die_key}
+                die={die}
+                top={bandDate(s.struck_at)}
+                justStruck={s.die_key === 'boa' && justStruckBoa}
+                onTap={onOpenStamp ? () => onOpenStamp(s.die_key, s.struck_at) : undefined}
+              />
+            );
+          })}
+          {!boaStamp && onBoaStruck && (
+            <button
+              onClick={strikeBoa}
+              aria-label="Strike a Boa on this entry"
+              className="j2-press"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: PALE_YELLOW, border: '1px solid rgba(196,145,95,0.5)', background: 'rgba(196,145,95,0.14)', padding: '8px 12px', borderRadius: 10, cursor: 'pointer' }}
+            >
+              ◈ Boa
+            </button>
+          )}
         </div>
       )}
 

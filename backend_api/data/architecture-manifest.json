@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-25T03:26:59.699Z",
+  "generatedAt": "2026-07-25T19:37:41.850Z",
   "apiRoutes": [
     {
       "method": "GET",
@@ -649,6 +649,10 @@
     {
       "file": "036_earned_stamps.sql",
       "title": "Backs the Boa keepsake-stamp collection. Each row is ONE strike of a die:"
+    },
+    {
+      "file": "037_stamp_session_id.sql",
+      "title": "Ties a struck stamp to a specific session, so a die (Boa, and future dies)"
     }
   ],
   "models": [
@@ -1474,9 +1478,14 @@
           "type": "string[] | null"
         },
         {
-          "name": "created_at",
+          "name": "stamps",
           "optional": true,
-          "type": "Date"
+          "type": "{ die_key: string"
+        },
+        {
+          "name": "struck_at",
+          "optional": false,
+          "type": "string"
         }
       ]
     },

@@ -17,7 +17,6 @@ import { useActiveIntention } from '../../context/ActiveIntentionContext.tsx';
 import { useSessions } from '../../context/SessionsContext.tsx';
 import { useIsDesktop } from '../../hooks/useIsDesktop.ts';
 import { useStamps } from '../../hooks/useStamps.ts';
-import { vibrate } from '../../lib/haptics.ts';
 import { buildSessionPayload, type SessionDraft } from '../../lib/sessionPayload.ts';
 import { CARD_BG, STATUS_ERROR } from '../../lib/theme.ts';
 import type { SessionSummary } from '../../types/api.ts';
@@ -54,8 +53,11 @@ export default function CaptureComposer({ onSuccess, onCancel, defaultDate }: Pr
     () => [...new Set(sessions.flatMap(s => s.partners ?? []))],
     [sessions],
   );
-  const { stamps: earnedStamps, refetch: refetchStamps } = useStamps();
-  const [boaReveal, setBoaReveal] = useState<{ struckAt: string; count: number } | null>(null);
+  const { refetch: refetchStamps } = useStamps();
+  const [stampReveal, setStampReveal] = useState<{ dieKey: string; struckAt: string; count: number } | null>(null);
+  // Boa struck mid-entry on a not-yet-saved session — persisted after Save with
+  // the new session id.
+  const pendingBoaRef = useRef(false);
 
   const skin = (typeof localStorage !== 'undefined' && localStorage.getItem('j2-prism-skin') === 'facet') ? 'facet' : 'etched';
 
@@ -96,28 +98,18 @@ export default function CaptureComposer({ onSuccess, onCancel, defaultDate }: Pr
         onSuccess?.(undefined);
         return;
       }
+      // Persist a Boa struck while composing, now that the session exists.
+      const newId = (data as unknown as { session?: { id?: string } }).session?.id;
+      if (pendingBoaRef.current && newId) {
+        pendingBoaRef.current = false;
+        try { await api.post('/api/stamps', { die_key: 'boa', session_id: newId }); refetchStamps(); } catch { /* keepsake is best-effort */ }
+      }
       onSuccess?.(data.session_count);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not save your entry. Please try again.');
       savingRef.current = false;
       setSaving(false);
     }
-  };
-
-  const handleBoa = async () => {
-    vibrate(12);
-    try {
-      const data = await api.post<{ stamp?: { count: number; last_struck_at: string }; _offline?: boolean }>(
-        '/api/stamps', { die_key: 'boa' },
-      );
-      if (data.stamp) {
-        setBoaReveal({ struckAt: data.stamp.last_struck_at, count: data.stamp.count });
-        refetchStamps();
-      } else {
-        const prev = earnedStamps.get('boa')?.count ?? 0;
-        setBoaReveal({ struckAt: new Date().toISOString(), count: prev + 1 });
-      }
-    } catch { /* strike failed — no reveal */ }
   };
 
   return (
@@ -174,19 +166,20 @@ export default function CaptureComposer({ onSuccess, onCancel, defaultDate }: Pr
           onTextChange={setEntryText}
           onSave={saveDraft}
           saving={saving}
-          onBoa={handleBoa}
+          onBoaStruck={() => { pendingBoaRef.current = true; }}
+          onOpenStamp={(dieKey, struckAt) => setStampReveal({ dieKey, struckAt, count: 1 })}
           skin={skin}
           pastPartners={pastPartners}
         />
       )}
 
       <SealRevealSheet
-        open={boaReveal != null}
-        die={STAMP_DIES.boa ?? null}
-        struckAt={boaReveal?.struckAt ?? null}
-        count={boaReveal?.count ?? 0}
+        open={stampReveal != null}
+        die={stampReveal ? (STAMP_DIES[stampReveal.dieKey] ?? null) : null}
+        struckAt={stampReveal?.struckAt ?? null}
+        count={stampReveal?.count ?? 0}
         autoEarned={false}
-        onClose={() => setBoaReveal(null)}
+        onClose={() => setStampReveal(null)}
       />
     </div>
   );

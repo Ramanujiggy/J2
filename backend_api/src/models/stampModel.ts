@@ -34,19 +34,33 @@ export async function getStamps(userId: string): Promise<StampSummary[]> {
   return result.rows as StampSummary[];
 }
 
-// Strike a die. Manual dies (autoEarned=false) always insert, so the count
-// climbs. Auto-earned dies insert at most once per user — a SELECT-exists guard
-// makes the operation idempotent without relying on ON CONFLICT against the
-// partial unique index (portable across PG versions). Returns the fresh summary
-// for that die so the caller can render "Nth time" without a second round-trip.
+// Strike a die. Idempotency depends on the target:
+//   • auto-earned account die (no session) — at most once per user;
+//   • per-session die (sessionId present) — at most once per (session, die), so
+//     re-striking the same entry is a no-op;
+//   • manual account die (no session, not auto) — always inserts (count climbs).
+// SELECT-exists guards keep this portable across PG versions. Returns the fresh
+// per-die summary so the caller can render "Nth time" without a second round-trip.
 export async function strikeStamp(
   userId: string,
   dieKey: string,
   autoEarned: boolean,
+  sessionId?: string,
 ): Promise<StampSummary> {
-  if (autoEarned) {
+  if (sessionId) {
     const existing = await query(
-      'SELECT 1 FROM earned_stamps WHERE user_id = $1 AND die_key = $2 AND auto_earned = true LIMIT 1',
+      'SELECT 1 FROM earned_stamps WHERE session_id = $1 AND die_key = $2 LIMIT 1',
+      [sessionId, dieKey],
+    );
+    if (existing.rows.length === 0) {
+      await query(
+        'INSERT INTO earned_stamps (user_id, die_key, auto_earned, session_id) VALUES ($1, $2, $3, $4)',
+        [userId, dieKey, autoEarned, sessionId],
+      );
+    }
+  } else if (autoEarned) {
+    const existing = await query(
+      'SELECT 1 FROM earned_stamps WHERE user_id = $1 AND die_key = $2 AND auto_earned = true AND session_id IS NULL LIMIT 1',
       [userId, dieKey],
     );
     if (existing.rows.length === 0) {

@@ -46,7 +46,7 @@ export default function DurationDial({ value, onChange, size = 168 }: Props) {
       + '<circle class="prog" cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="' + COPPER + '" stroke-width="12" stroke-linecap="round" stroke-dasharray="' + C + '" transform="rotate(-90 ' + cx + ' ' + cy + ')"/>'
       + '<circle class="knob" r="9" fill="' + PALE_YELLOW + '" stroke="#12130e" stroke-width="2"/></svg>'
       + '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">'
-      + '<div class="dv" style="font-family:var(--font-editorial);font-size:30px;font-weight:600;color:' + PALE_YELLOW + ';letter-spacing:-0.01em"></div>'
+      + '<div class="dv" style="font-family:\'Plus Jakarta Sans\',system-ui,sans-serif;font-variant-numeric:tabular-nums;font-size:27px;font-weight:700;color:' + PALE_YELLOW + ';letter-spacing:-0.01em"></div>'
       + '<div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.44);margin-top:4px">on the mat</div>'
       + '</div></div>';
 

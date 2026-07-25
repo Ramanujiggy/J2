@@ -41,6 +41,8 @@ export interface SessionSummary {
   // migration 016 — freetext partner names. Will grow to user_partners refs
   // in the Journada 2.0 social layer.
   partners?: string[] | null;
+  // migration 037 — stamps struck on this session (Boa, future dies).
+  stamps?: { die_key: string; struck_at: string }[];
 }
 
 export type Affinity = 'go_to' | 'learning' | 'shelved';

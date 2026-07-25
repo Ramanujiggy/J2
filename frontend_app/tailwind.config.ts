@@ -178,6 +178,19 @@ export default {
           '58%':  { opacity: '1', transform: 'scale(1.07) rotate(-4deg)' },
           '100%': { opacity: '1', transform: 'scale(1) rotate(-8deg)' },
         },
+        // On-entry stamp press — the die slams down onto the page with overshoot,
+        // then settles crooked (from the Margin Notes mockup's stamp-press).
+        'j2StampPress': {
+          '0%':   { opacity: '0', transform: 'rotate(-24deg) scale(2.9)' },
+          '55%':  { opacity: '1', transform: 'rotate(-6deg) scale(0.86)' },
+          '72%':  { transform: 'rotate(-9deg) scale(1.06)' },
+          '100%': { opacity: '1', transform: 'rotate(-8deg) scale(1)' },
+        },
+        // Displaced-dust ring that puffs out just after contact.
+        'j2StampPuff': {
+          '0%':   { opacity: '0.7', transform: 'scale(0.6)' },
+          '100%': { opacity: '0', transform: 'scale(1.5)' },
+        },
       },
       animation: {
         'view-exit-up':    'view-exit-up   500ms cubic-bezier(0, 0, 0.3, 1) both',
@@ -203,6 +216,8 @@ export default {
         'j2-roulette-bounce':      'j2RouletteEdgeBounce 0.8s ease both',
         'j2-seal-land':            'j2SealLand 0.64s cubic-bezier(0.34,1.56,0.64,1) 0.12s both',
         'j2-sheet-up':             'j2SheetSlideUp 0.44s cubic-bezier(0.22,1,0.36,1) both',
+        'j2-stamp-press':          'j2StampPress 0.62s cubic-bezier(0.34,1.56,0.64,1) both',
+        'j2-stamp-puff':           'j2StampPuff 0.6s ease-out 0.16s both',
       },
     },
   },

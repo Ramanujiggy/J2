@@ -5,11 +5,9 @@ import { api } from '../lib/api.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
 import { CARD_BG, COPPER, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3, CARD_GLOW, CARD_GLOW_BORDER, FONT_EDITORIAL, INT_LABELS } from '../lib/theme.ts';
 import { INTENSITY_COLOR, formatGiNogi } from '../lib/sessionUtils.ts';
-import { vibrate } from '../lib/haptics.ts';
 import PrismShape from './PrismShape.tsx';
 import { sessionToSelections, type ChipSelection } from '../lib/selectionsToDistribution.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
-import { useStamps } from '../hooks/useStamps.ts';
 import SealRevealSheet from './seal/SealRevealSheet.tsx';
 import { STAMP_DIES } from '../lib/stampDies.ts';
 import { useUserTags } from '../hooks/useUserTags.ts';
@@ -79,33 +77,16 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
   const navigate = useNavigate();
   const isDesktop = useIsDesktop();
 
-  // ── Boa keepsake strike ─────────────────────────────────────────────────
-  const { stamps: earnedStamps, refetch: refetchStamps } = useStamps();
-  const [boaStriking, setBoaStriking] = useState(false);
-  const [boaReveal, setBoaReveal] = useState<{ struckAt: string; count: number } | null>(null);
+  // ── Boa keepsake (per-session, struck on the entry in the edit view) ──────
+  const [stampReveal, setStampReveal] = useState<{ dieKey: string; struckAt: string } | null>(null);
 
-  const handleBoa = async () => {
-    if (boaStriking) return;
-    setBoaStriking(true);
-    vibrate(12);
+  // MarginNotesEntry plays the press animation optimistically; here we persist
+  // the strike against this session and refresh so it survives a reopen.
+  const persistBoa = async () => {
     try {
-      const data = await api.post<{ stamp?: { count: number; last_struck_at: string }; _offline?: boolean }>(
-        '/api/stamps',
-        { die_key: 'boa' },
-      );
-      if (data.stamp) {
-        setBoaReveal({ struckAt: data.stamp.last_struck_at, count: data.stamp.count });
-        refetchStamps();
-      } else {
-        // Queued offline — optimistic reveal from the last-known count.
-        const prev = earnedStamps.get('boa')?.count ?? 0;
-        setBoaReveal({ struckAt: new Date().toISOString(), count: prev + 1 });
-      }
-    } catch {
-      // Network/permanent failure — no strike, no sheet.
-    } finally {
-      setBoaStriking(false);
-    }
+      await api.post('/api/stamps', { die_key: 'boa', session_id: session.id });
+      onSaved();
+    } catch { /* keepsake is best-effort */ }
   };
 
   const sessionDateStr = typeof session.date === 'string' ? session.date.slice(0, 10) : '';
@@ -617,19 +598,11 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                   </div>
                 )}
                 {!confirmDelete && (
-                  <div className="flex items-center gap-4">
-                    <button onClick={handleBoa} disabled={boaStriking}
-                      className="touch-manipulation"
-                      aria-label="Mark this as a mat moment"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: COPPER, background: 'rgba(196,145,95,0.12)', border: '1px solid rgba(196,145,95,0.4)', borderRadius: 10, padding: '7px 12px', cursor: 'pointer' }}>
-                      ◈ {boaStriking ? 'Striking…' : 'Boa'}
-                    </button>
-                    <button onClick={() => setIsEditing(true)}
-                      className="touch-manipulation"
-                      style={{ fontFamily: FONT_EDITORIAL, fontWeight: 700, fontStyle: 'normal', fontSize: 18, color: PALE_YELLOW, textShadow: GLOW_SOFT, background: 'none', border: 'none', cursor: 'pointer' }}>
-                      Edit
-                    </button>
-                  </div>
+                  <button onClick={() => setIsEditing(true)}
+                    className="touch-manipulation"
+                    style={{ fontFamily: FONT_EDITORIAL, fontWeight: 700, fontStyle: 'normal', fontSize: 18, color: PALE_YELLOW, textShadow: GLOW_SOFT, background: 'none', border: 'none', cursor: 'pointer' }}>
+                    Edit
+                  </button>
                 )}
               </div>
               </>
@@ -656,12 +629,18 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
               maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem)',
               padding: '1.25rem',
             }}>
-              <button
-                onClick={() => { setSaveError(false); setIsEditing(false); }}
-                className="touch-manipulation"
-                style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: 8 }}>
-                ‹ Cancel
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
+                <button
+                  onClick={() => { setSaveError(false); setIsEditing(false); }}
+                  className="touch-manipulation"
+                  style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                  ‹ Cancel
+                </button>
+                <span style={{ flex: 1, textAlign: 'center', fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: COPPER }}>
+                  Journal entry
+                </span>
+                <span style={{ width: 52 }} aria-hidden />
+              </div>
               {saveError && <p className="text-error text-xs mb-3">Save failed — please try again.</p>}
               {isEditing && (
                 <MarginNotesEntry
@@ -674,7 +653,8 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                   skin={skin}
                   pastPartners={pastPartners}
                   initial={session}
-                  headerLabel="Journal entry"
+                  onBoaStruck={persistBoa}
+                  onOpenStamp={(dieKey, struckAt) => setStampReveal({ dieKey, struckAt })}
                 />
               )}
             </div>
@@ -684,12 +664,12 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
       </div>
 
       <SealRevealSheet
-        open={boaReveal != null}
-        die={STAMP_DIES.boa ?? null}
-        struckAt={boaReveal?.struckAt ?? null}
-        count={boaReveal?.count ?? 0}
+        open={stampReveal != null}
+        die={stampReveal ? (STAMP_DIES[stampReveal.dieKey] ?? null) : null}
+        struckAt={stampReveal?.struckAt ?? null}
+        count={1}
         autoEarned={false}
-        onClose={() => setBoaReveal(null)}
+        onClose={() => setStampReveal(null)}
       />
     </>,
     document.body
