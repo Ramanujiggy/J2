@@ -278,7 +278,7 @@ export default function MarginNotesEntry({
                 onMouseDown={e => { e.preventDefault(); completeMention(name); }}
                 style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 10px', borderRadius: 8, background: 'none', border: 'none', color: PALE_YELLOW, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
               >
-                @{name}
+                {name}
               </button>
             ))}
             {mentionToken.length > 0 && !pastPartners.some(p => p.toLowerCase() === mentionToken.toLowerCase()) && (
@@ -286,7 +286,7 @@ export default function MarginNotesEntry({
                 onMouseDown={e => { e.preventDefault(); completeMention(mentionToken); }}
                 style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 10px', borderRadius: 8, background: 'none', border: 'none', color: COPPER, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
               >
-                + Tag “@{mentionToken}”
+                + Tag “{mentionToken}”
               </button>
             )}
           </div>
