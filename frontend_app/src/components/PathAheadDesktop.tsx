@@ -421,17 +421,7 @@ export default function PathAheadDesktop({
       )}
 
       {modals}
-      <RepRouletteFab onLogDrill={(preset) => {
-        // Both preset shapes (drill | constraint) fold into the same
-        // logPreset structure. Constraint presets carry constraintName +
-        // sessionType='cla'; drill presets carry subSkillTag +
-        // sessionType='drilling'. openLog routes desktop locally and
-        // mobile through the global event listener in MobileAppShell.
-        const presetData = preset.pool === 'drill'
-          ? { heading: preset.heading, sessionType: preset.sessionType, subSkillTag: preset.subSkillTag }
-          : { heading: preset.heading, sessionType: preset.sessionType, constraintName: preset.constraintName };
-        openLog({ date: toDateString(today), preset: presetData });
-      }} />
+      <RepRouletteFab />
     </div>
     </PageContent>
   );

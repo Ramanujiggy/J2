@@ -72,14 +72,6 @@ export default function PathAheadPage() {
   // local state, mobile dispatches `journada:open-log-form`.
   const [logOpen,             setLogOpen]             = useState(false);
   const [logDate,             setLogDate]             = useState<string | null>(null);
-  // logPreset accepts both drill (existing) and constraint (CLA roulette)
-  // shapes so the same modal can pre-fill from either pool.
-  const [logPreset,           setLogPreset]           = useState<{
-    heading?: string;
-    sessionType?: 'drilling' | 'cla';
-    subSkillTag?: string;
-    constraintName?: string;
-  } | null>(null);
   const [setIntentOpen,       setSetIntentOpen]       = useState(false);
   const [detailSessions,      setDetailSessions]      = useState<SessionSummary[]>([]);
   const [detailSessionIndex,  setDetailSessionIndex]  = useState(0);
@@ -126,24 +118,14 @@ export default function PathAheadPage() {
 
   // Branching log-modal opener — desktop opens the local modal directly,
   // mobile dispatches the event so MobileAppShell's modal opens.
-  const openLog = useCallback((opts?: {
-    date?: string;
-    preset?: {
-      heading?: string;
-      sessionType?: 'drilling' | 'cla';
-      subSkillTag?: string;
-      constraintName?: string;
-    } | null;
-  }) => {
+  const openLog = useCallback((opts?: { date?: string }) => {
     const date = opts?.date ?? toDateString(new Date());
-    const preset = opts?.preset ?? null;
     if (isDesktop) {
       setLogDate(date);
-      setLogPreset(preset);
       setLogOpen(true);
     } else {
       window.dispatchEvent(new CustomEvent('journada:open-log-form', {
-        detail: { date, preset },
+        detail: { date },
       }));
     }
   }, [isDesktop]);
@@ -446,10 +428,8 @@ export default function PathAheadPage() {
       refreshRailIntention={refreshRailIntention}
       logOpen={logOpen}
       logDate={logDate}
-      logPreset={logPreset}
       setLogOpen={setLogOpen}
       setLogDate={setLogDate}
-      setLogPreset={setLogPreset}
       detailSession={detailSession}
       detailSessions={detailSessions}
       detailSessionIndex={detailSessionIndex}

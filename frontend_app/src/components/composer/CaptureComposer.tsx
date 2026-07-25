@@ -4,10 +4,10 @@
 // from the class schedule or defaults, and the entry-first page lets the user
 // talk, glance, and save without touching the margin-notes band.
 //
-// Same public contract as LogSessionForm's core (onSuccess/onCancel/defaultDate)
-// so mount sites swap 1:1; preset launches fall through to LogSessionForm at the
-// mount site, not here. All surfaces build the request body through the shared
-// buildSessionPayload serializer so no two forms drift apart again.
+// This is now the ONLY session-capture surface (the legacy LogSessionForm was
+// retired). Contract: onSuccess/onCancel/defaultDate. All create/edit surfaces
+// build the request body through the shared buildSessionPayload serializer so no
+// two forms drift apart again.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api, ApiError } from '../../lib/api.ts';

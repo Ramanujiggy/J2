@@ -25,8 +25,7 @@ import EffortMeter from '../EffortMeter.tsx';
 import type { Kernel } from '../../lib/composerKernel.ts';
 import { sessionToSelections, type ChipSelection } from '../../lib/selectionsToDistribution.ts';
 import type { SessionDraft } from '../../lib/sessionPayload.ts';
-import type { GiNoGi, SessionType } from '../LogSessionFundamentals.tsx';
-import type { Pillar, PillarDistribution } from '../../types/api.ts';
+import type { GiNoGi, SessionType, Pillar, PillarDistribution } from '../../types/api.ts';
 
 type Polarity = 'defense' | 'neutral' | 'offense';
 type ScriptSource = 'directed' | 'organic';

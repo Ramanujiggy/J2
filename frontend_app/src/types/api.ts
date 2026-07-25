@@ -8,6 +8,7 @@ export type PillarDistribution = Partial<Record<Pillar, number>>;
 // `competition_training` is preserved as a legacy value; new sessions use
 // `class | drilling | cla` (Constraints-Led Approach).
 export type SessionType = 'class' | 'drilling' | 'competition_training' | 'cla';
+export type GiNoGi = 'gi' | 'no_gi' | 'both';
 
 export interface SessionSummary {
   id: string;

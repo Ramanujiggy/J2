@@ -64,7 +64,6 @@ export default function PathAheadMobile({
   activeIntention,
   activeIntentionProgress,
   allSessions,
-  today,
   heatmapSection,
   modals,
   styleBlock,
@@ -97,17 +96,7 @@ export default function PathAheadMobile({
         totalSessions={totalSessions}
         tenure={tenure}
         streakDays={streak}
-        rouletteSlot={
-          <RepRouletteFab
-            fabPosition="inline"
-            onLogDrill={(preset) => {
-              const presetData = preset.pool === 'drill'
-                ? { heading: preset.heading, sessionType: preset.sessionType, subSkillTag: preset.subSkillTag }
-                : { heading: preset.heading, sessionType: preset.sessionType, constraintName: preset.constraintName };
-              openLog({ date: toDateString(today), preset: presetData });
-            }}
-          />
-        }
+        rouletteSlot={<RepRouletteFab fabPosition="inline" />}
       />
 
       {/* ── 2. Day rail — tappable completion rings ────────────── */}

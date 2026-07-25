@@ -11,23 +11,13 @@ import { useOnlineSync } from '../hooks/useOnlineSync.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock.ts';
 import DesktopAppShell from './DesktopAppShell.tsx';
-import LogSessionForm from './LogSessionForm.tsx';
 import CaptureComposer from './composer/CaptureComposer.tsx';
-import { composerEnabled } from '../lib/composerFlag.ts';
 import { toDateString } from '../lib/sessionUtils.ts';
 
-// Preset shape that the bottom-nav FAB / RepRouletteFab can carry over the
-// `journada:open-log-form` window event. Mirrors the LogSessionForm
-// `default*` prop contract so the modal pre-fills cleanly.
-interface LogPresetPayload {
-  heading?: string;
-  sessionType?: 'drilling' | 'cla';
-  subSkillTag?: string;
-  constraintName?: string;
-}
+// Detail for the `journada:open-log-form` window event — any page can dispatch
+// it to open the capture modal (optionally on a specific date).
 interface OpenLogFormDetail {
   date?: string;
-  preset?: LogPresetPayload | null;
 }
 
 // Lucide-style inline SVG icons — heavier line weight + a touch larger than
@@ -142,7 +132,6 @@ function MobileAppShell({ children }: Props) {
   // `journada:open-log-form` event with optional `{ date, preset }` detail.
   const [logOpen,    setLogOpen]    = useState(false);
   const [logDate,    setLogDate]    = useState<string | null>(null);
-  const [logPreset,  setLogPreset]  = useState<LogPresetPayload | null>(null);
 
   useBodyScrollLock(logOpen);
 
@@ -151,7 +140,6 @@ function MobileAppShell({ children }: Props) {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent<OpenLogFormDetail>).detail ?? {};
       setLogDate(detail.date ?? toDateString(new Date()));
-      setLogPreset(detail.preset ?? null);
       setLogOpen(true);
     };
     window.addEventListener('journada:open-log-form', handler);
@@ -167,7 +155,6 @@ function MobileAppShell({ children }: Props) {
   const closeLogModal = useCallback(() => {
     setLogOpen(false);
     setLogDate(null);
-    setLogPreset(null);
   }, []);
 
   // ── Desktop sliding tab indicator ──
@@ -369,7 +356,6 @@ function MobileAppShell({ children }: Props) {
                       return;
                     }
                     setLogDate(toDateString(new Date()));
-                    setLogPreset(null);
                     setLogOpen(true);
                   }}
                   className="flex-1 flex items-center justify-center"
@@ -491,33 +477,16 @@ function MobileAppShell({ children }: Props) {
             className="w-full sm:max-w-lg lg:max-w-5xl animate-j2-modal-in"
             style={{ margin: 'auto 0' }}
           >
-            {composerEnabled() && !logPreset ? (
-              <CaptureComposer
-                onSuccess={() => {
-                  closeLogModal();
-                  // Notify any page that needs to refetch (PathAhead stats,
-                  // Atlas filtered sessions, Calendar heatmap, etc.).
-                  window.dispatchEvent(new Event('journada:log-session-saved'));
-                }}
-                onCancel={closeLogModal}
-                defaultDate={logDate ?? undefined}
-              />
-            ) : (
-              <LogSessionForm
-                onSuccess={() => {
-                  closeLogModal();
-                  // Notify any page that needs to refetch (PathAhead stats,
-                  // Atlas filtered sessions, Calendar heatmap, etc.).
-                  window.dispatchEvent(new Event('journada:log-session-saved'));
-                }}
-                onCancel={closeLogModal}
-                defaultDate={logDate ?? undefined}
-                defaultHeading={logPreset?.heading}
-                defaultSessionType={logPreset?.sessionType}
-                defaultSubSkillTag={logPreset?.subSkillTag}
-                defaultConstraintName={logPreset?.constraintName}
-              />
-            )}
+            <CaptureComposer
+              onSuccess={() => {
+                closeLogModal();
+                // Notify any page that needs to refetch (PathAhead stats,
+                // Atlas filtered sessions, Calendar heatmap, etc.).
+                window.dispatchEvent(new Event('journada:log-session-saved'));
+              }}
+              onCancel={closeLogModal}
+              defaultDate={logDate ?? undefined}
+            />
           </div>
         </div>
       )}

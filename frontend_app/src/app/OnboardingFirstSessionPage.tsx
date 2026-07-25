@@ -1,12 +1,12 @@
-// /onboarding/first-session — guided first session log. Wraps LogSessionForm
-// with editorial header copy and a Prism inline coachmark.
+// /onboarding/first-session — guided first session log. Wraps the Capture
+// Composer with editorial header copy and a Prism inline coachmark.
 //
 // Copy: "Log a session — you can add details later." (locked by user)
 // The Prism inline hint reflects the framing decision: the Prism is one of
 // the views, not the stated flagship feature.
 
 import { useNavigate } from 'react-router-dom';
-import LogSessionForm from '../components/LogSessionForm.tsx';
+import CaptureComposer from '../components/composer/CaptureComposer.tsx';
 import Coachmark from '../components/Coachmark.tsx';
 import OnboardingShell from '../components/OnboardingShell.tsx';
 import { useCoachmark } from '../hooks/useCoachmark.ts';
@@ -52,7 +52,7 @@ export default function OnboardingFirstSessionPage() {
 
       {/* The actual log form — same component used everywhere else. */}
       <div style={{ flex: 1 }}>
-        <LogSessionForm onSuccess={onSuccess} />
+        <CaptureComposer onSuccess={onSuccess} />
       </div>
 
       <Coachmark

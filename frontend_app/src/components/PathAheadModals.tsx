@@ -12,20 +12,11 @@
 //
 // Extracted from PathAheadPage.tsx during the 2026-05-09 refactor pass.
 
-import LogSessionForm from './LogSessionForm.tsx';
 import CaptureComposer from './composer/CaptureComposer.tsx';
-import { composerEnabled } from '../lib/composerFlag.ts';
 import SessionDetailModal from './SessionDetailModal.tsx';
 import SetIntentionModal from './SetIntentionModal.tsx';
 import { toast } from '../hooks/use-toast.ts';
 import type { Intention, SessionSummary } from '../types/api.ts';
-
-interface LogPreset {
-  heading?: string;
-  sessionType?: 'drilling' | 'cla';
-  subSkillTag?: string;
-  constraintName?: string;
-}
 
 interface Props {
   // Layout context
@@ -36,10 +27,8 @@ interface Props {
   // Log modal (desktop-only)
   logOpen: boolean;
   logDate: string | null;
-  logPreset: LogPreset | null;
   setLogOpen: (v: boolean) => void;
   setLogDate: (v: string | null) => void;
-  setLogPreset: (v: LogPreset | null) => void;
   // Session detail modal
   detailSession: SessionSummary | null;
   detailSessions: SessionSummary[];
@@ -61,10 +50,8 @@ export default function PathAheadModals({
   refreshRailIntention,
   logOpen,
   logDate,
-  logPreset,
   setLogOpen,
   setLogDate,
-  setLogPreset,
   detailSession,
   detailSessions,
   detailSessionIndex,
@@ -98,41 +85,19 @@ export default function PathAheadModals({
             onClick={e => e.stopPropagation()}
             className="w-full sm:max-w-lg lg:max-w-5xl animate-j2-modal-in"
           >
-            {composerEnabled() && !logPreset ? (
-              <CaptureComposer
-                onSuccess={(count) => {
-                  fetchAll();
-                  setLogOpen(false);
-                  setLogDate(null);
-                  setLogPreset(null);
-                  if (count === 500 && !localStorage.getItem('j2-milestone-500')) {
-                    localStorage.setItem('j2-milestone-500', '1');
-                    toast({ variant: 'success', title: '500 sessions. The mat remembers every one.' });
-                  }
-                }}
-                onCancel={() => { setLogOpen(false); setLogDate(null); setLogPreset(null); }}
-                defaultDate={logDate ?? undefined}
-              />
-            ) : (
-              <LogSessionForm
-                onSuccess={(count) => {
-                  fetchAll();
-                  setLogOpen(false);
-                  setLogDate(null);
-                  setLogPreset(null);
-                  if (count === 500 && !localStorage.getItem('j2-milestone-500')) {
-                    localStorage.setItem('j2-milestone-500', '1');
-                    toast({ variant: 'success', title: '500 sessions. The mat remembers every one.' });
-                  }
-                }}
-                onCancel={() => { setLogOpen(false); setLogDate(null); setLogPreset(null); }}
-                defaultDate={logDate ?? undefined}
-                defaultHeading={logPreset?.heading}
-                defaultSessionType={logPreset?.sessionType}
-                defaultSubSkillTag={logPreset?.subSkillTag}
-                defaultConstraintName={logPreset?.constraintName}
-              />
-            )}
+            <CaptureComposer
+              onSuccess={(count) => {
+                fetchAll();
+                setLogOpen(false);
+                setLogDate(null);
+                if (count === 500 && !localStorage.getItem('j2-milestone-500')) {
+                  localStorage.setItem('j2-milestone-500', '1');
+                  toast({ variant: 'success', title: '500 sessions. The mat remembers every one.' });
+                }
+              }}
+              onCancel={() => { setLogOpen(false); setLogDate(null); }}
+              defaultDate={logDate ?? undefined}
+            />
           </div>
         </div>
       )}

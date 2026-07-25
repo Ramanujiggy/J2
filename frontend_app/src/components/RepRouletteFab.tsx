@@ -10,15 +10,6 @@ import type { Pillar } from '../types/api.ts';
 
 // ── Drill / constraint focus → pillar tag mapping ────────────────────────
 
-const FOCUS_TO_TAG: Record<string, string> = {
-  'Guard':          'guard',
-  'Stand-up':       'standup',
-  'Dynamic Pins':   'pins',
-  'Guard Passing':  'passing',
-  'Submissions':    'submissions',
-  'Guard Retention':'guard',
-};
-
 // Pillar → focus label used in the roulette card (mirrors the existing
 // drill `focus` field). Cross-pillar constraints (parent_pillar = NULL)
 // label as "Cross-Pillar" since the pool no longer ships hand-picked focus
@@ -52,14 +43,7 @@ const CLOSE_CURVE = 'cubic-bezier(0.4, 0, 0.6, 1)';     // smooth ease-in-out
 // ── Component ────────────────────────────────────────────────────────────
 
 // onLogPick fires when the user commits to logging from either pool. The
-// preset shape mirrors LogSessionForm's `default*` props — the consumer
-// (PathAheadPage) routes it into the modal state.
-interface LogDrillPreset { pool: 'drill'; heading: string; sessionType: 'drilling'; subSkillTag: string }
-interface LogConstraintPreset { pool: 'constraint'; heading?: string; sessionType: 'cla'; constraintName: string }
-type LogPickPreset = LogDrillPreset | LogConstraintPreset;
-
 interface Props {
-  onLogDrill: (preset: LogPickPreset) => void;
   fabPosition?: 'fixed' | 'inline';
 }
 
@@ -135,7 +119,7 @@ function runTickerReel(
   tick();
 }
 
-function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
+function RepRouletteFabImpl({ fabPosition = 'fixed' }: Props) {
   const [phase, setPhase] = useState<Phase>('fab');
 
   // Pool toggle — drill (existing) or constraint (CLA prompt). Persisted to
@@ -342,25 +326,6 @@ function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
     );
   }, [spinning, pool, activeHistory, activeIndex, activePoolLength, drillHistoryIndex, constraintHistoryIndex, rouletteConstraints]);
 
-  const handleLog = () => {
-    if (pool === 'drill') {
-      onLogDrill({
-        pool: 'drill',
-        heading:     FOCUS_TO_TAG[drill.focus],
-        sessionType: 'drilling',
-        subSkillTag: drill.name,
-      });
-    } else if (constraint) {
-      onLogDrill({
-        pool: 'constraint',
-        heading: constraint.focus ? FOCUS_TO_TAG[constraint.focus] : undefined,
-        sessionType: 'cla',
-        constraintName: constraint.name,
-      });
-    }
-    handleClose();
-  };
-
   // ── Derived state ──────────────────────────────────────────────────
 
   const showCard = phase !== 'fab';
@@ -542,22 +507,6 @@ function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
               >
                 ↻ Reroll
               </button>
-              {item && (
-                <button
-                  onClick={handleLog}
-                  className="touch-manipulation j2-press"
-                  style={{
-                    flex: 1, fontSize: 11, fontWeight: 600,
-                    color: COPPER,
-                    padding: '7px 0', borderRadius: 8,
-                    border: '1px solid rgba(196,145,95,0.3)',
-                    backgroundColor: 'rgba(196,145,95,0.06)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Log this →
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -783,22 +732,6 @@ function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
                         }}>
                           ← swipe →
                         </p>
-                        <button
-                          onPointerDown={e => e.stopPropagation()}
-                          onClick={e => { e.stopPropagation(); handleLog(); }}
-                          className="text-xs touch-manipulation j2-press"
-                          style={{
-                            color: 'rgba(196,145,95,0.75)',
-                            padding: '5px 12px',
-                            borderRadius: 8,
-                            border: '1px solid rgba(196,145,95,0.3)',
-                            backgroundColor: 'rgba(196,145,95,0.06)',
-                            letterSpacing: '0.02em',
-                            transition: 'color 150ms ease, border-color 150ms ease',
-                          }}
-                        >
-                          {pool === 'drill' ? 'Log this drill →' : 'Log this round →'}
-                        </button>
                       </div>
                     </>
                   ) : (
