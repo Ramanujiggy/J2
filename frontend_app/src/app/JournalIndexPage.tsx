@@ -78,7 +78,7 @@ export default function JournalIndexPage() {
   const { byId: userTagById } = useUserTags();
   const { byId: canonicalPositionById } = useCanonicalPositions();
 
-  // Mobile detail modal state — set when a JournalRow is tapped on mobile.
+  // Mobile detail modal state — set when a session row is tapped on mobile.
   const [mobileDetailSession, setMobileDetailSession] = useState<SessionSummary | null>(null);
 
   // Shared sessions feed (Tier 3 perf — was independent /api/sessions fetch).
