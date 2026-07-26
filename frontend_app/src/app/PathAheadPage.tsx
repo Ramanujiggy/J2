@@ -11,19 +11,26 @@ import { api, ApiError } from '../lib/api.ts';
 import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock.ts';
-import { MONTH_NAMES, EIGHT_GATES, SKILL_TAGS } from '../lib/constants.ts';
+import { MONTH_NAMES, EIGHT_GATES } from '../lib/constants.ts';
 import type { SessionSummary, Intention, SessionsResponse } from '../types/api.ts';
 import { toast } from '../hooks/use-toast.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import { useActiveIntention } from '../context/ActiveIntentionContext.tsx';
 import PulseSparklineWidget from '../components/PulseSparklineWidget.tsx';
 import { computeTelemetry } from '../lib/analyticsModels.ts';
-import { isIntentionComplete, computeIntentionProgress } from '../lib/analyticsUtils.ts';
+import { isIntentionComplete, computeIntentionProgress, sessionTouchesHeading } from '../lib/analyticsUtils.ts';
 import PathAheadTelemetryCard from '../components/PathAheadTelemetryCard.tsx';
 import PathAheadModals from '../components/PathAheadModals.tsx';
 import PathAheadMobile from '../components/PathAheadMobile.tsx';
 import PathAheadDesktop from '../components/PathAheadDesktop.tsx';
 import { toDateString, addDays } from '../lib/sessionUtils.ts';
+import {
+  findUnfinishedEntry,
+  findMemoryEntry,
+  buildRecentEntries,
+  portraitDistributions,
+  sessionDateKey,
+} from '../lib/homeViewModel.ts';
 import { computeStats } from '../components/TrainingHeatmap.tsx';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import { useStamps } from '../hooks/useStamps.ts';
@@ -139,44 +146,29 @@ export default function PathAheadPage() {
 
   const totalSessions = allSessions.length;
 
-  const tenure = useMemo(() => {
-    if (allSessions.length === 0) return '';
-    const dates = allSessions.map(s => typeof s.date === 'string' ? s.date.slice(0, 10) : toDateString(new Date(s.date)));
-    dates.sort();
-    const earliest = new Date(dates[0] + 'T00:00:00');
-    const now = new Date();
-    const months = (now.getFullYear() - earliest.getFullYear()) * 12 + (now.getMonth() - earliest.getMonth());
-    const years = Math.floor(months / 12);
-    const rem = months % 12;
-    const parts: string[] = [];
-    if (years > 0) parts.push(`${years} year${years > 1 ? 's' : ''}`);
-    if (rem > 0 || years === 0) parts.push(`${rem} month${rem !== 1 ? 's' : ''}`);
-    const startLabel = earliest.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-    return `${parts.join(', ')} on the mats · since ${startLabel}`;
-  }, [allSessions]);
+  // NOTE: `tenure` and `lastSession` used to be computed here for the old
+  // mobile masthead / "Still fresh" card. Both moved off home in the
+  // table-of-contents redesign — tenure belongs to Profile, and the last
+  // session now reaches the hero through `unfinishedEntry` / `memoryEntry`.
 
-  const lastSession = useMemo(() => {
-    if (allSessions.length === 0) return null;
-    const sorted = [...allSessions].sort((a, b) => {
-      const ak = typeof a.date === 'string' ? a.date.slice(0, 10) : toDateString(new Date(a.date));
-      const bk = typeof b.date === 'string' ? b.date.slice(0, 10) : toDateString(new Date(b.date));
-      return bk.localeCompare(ak);
-    });
-    const s = sorted[0];
-    const dateStr = typeof s.date === 'string' ? s.date.slice(0, 10) : toDateString(new Date(s.date));
-    const tags = s.tags ?? [];
-    const focusParts = tags.slice(0, 2).map(t => {
-      const match = SKILL_TAGS.find(x => x.value === t);
-      return match?.label ?? t;
-    });
-    const focusLabel = focusParts.join(' & ') || 'Open rolling';
-    const sessionDate = new Date(dateStr + 'T00:00:00');
-    const diffMs = Date.now() - sessionDate.getTime();
-    const diffDays = Math.round(diffMs / 86400000);
-    const endedAgo = diffDays === 0 ? 'today' : diffDays === 1 ? 'yesterday' : `${diffDays} days ago`;
-    const hasNotes = !!(s.notes && s.notes.trim().length > 0);
-    return { id: s.id, date: dateStr, duration: s.duration, focusLabel, endedAgo, hasNotes };
-  }, [allSessions]);
+  // ── Home view-model (mobile "table of contents" layout) ────────────────
+  // Home leads with writing, not numbers: the unfinished entry owns the hero
+  // when one exists, otherwise a memory resurfaces; below it sit the last
+  // three entries and the portrait. Derivations live in lib/homeViewModel.ts.
+
+  const unfinishedEntry = useMemo(
+    () => findUnfinishedEntry(allSessions, new Date()),
+    [allSessions],
+  );
+
+  const memoryEntry = useMemo(
+    () => findMemoryEntry(allSessions, new Date()),
+    [allSessions],
+  );
+
+  const recentEntries = useMemo(() => buildRecentEntries(allSessions), [allSessions]);
+
+  const portraitShapes = useMemo(() => portraitDistributions(allSessions), [allSessions]);
 
   useEffect(() => {
     for (const gate of [...EIGHT_GATES].reverse()) {
@@ -278,6 +270,20 @@ export default function PathAheadPage() {
     ? computeIntentionProgress(activeIntention, allSessions)
     : null;
 
+  // Sessions that have touched the intention since it was set — the anchor
+  // sentence on home's intention card. Counted over the FULL session list
+  // (not the three rows the entry list shows) and matched with the canonical
+  // heading matcher, which reads pillar_distribution before legacy fields.
+  const intentionTouchedCount = useMemo(() => {
+    if (!activeIntention) return 0;
+    const start = activeIntention.week_start.slice(0, 10);
+    const heading = activeIntention.heading;
+    return allSessions.filter(s => {
+      if (sessionDateKey(s) < start) return false;
+      return heading ? sessionTouchesHeading(s, heading) : true;
+    }).length;
+  }, [activeIntention, allSessions]);
+
   const intentionStartStr = activeIntention ? activeIntention.week_start.slice(0, 10) : null;
   const intentionEndStr = intentionStartStr && activeIntention
     ? addDays(intentionStartStr, (activeIntention.duration_days ?? 7) - 1)
@@ -325,22 +331,10 @@ export default function PathAheadPage() {
     return list;
   }, [displayWeekDays, sessionsByDate]);
 
-  // Day rail data — 7 completion rings for the v2 home layout
-  const DOW_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
-  const dayRailData = useMemo(() => {
-    const todayStr2 = toDateString(today);
-    return weekDays.map((d, i) => {
-      const ds = toDateString(d);
-      const hasSessions = (sessionsByDate.get(ds) ?? []).length > 0;
-      const isToday = ds === todayStr2;
-      const isFuture = d > today;
-      const state: 'done' | 'today' | 'rest' | 'future' =
-        hasSessions ? 'done' :
-        isToday ? 'today' :
-        isFuture ? 'future' : 'rest';
-      return { dow: DOW_LABELS[i], date: d.getDate(), state };
-    });
-  }, [weekDays, sessionsByDate, today]);
+  // NOTE: the seven-ring day rail was removed from home in the
+  // table-of-contents redesign. Calendar owns dates; the entry list already
+  // is the week, in words. Backfilling a past session happens via the date
+  // stepper on the form or via Calendar.
 
   // ── Telemetry — 7d acute vs 28d chronic (aligned with ACWR windows) ────
 
@@ -415,6 +409,21 @@ export default function PathAheadPage() {
   const handleLogTap = useCallback((date?: string) => {
     openLog(date ? { date } : undefined);
   }, [openLog]);
+
+  // Home list / hero → open the entry. Same detail modal the week section
+  // uses; we just resolve the day from the session rather than the reverse.
+  const handleEntryTap = useCallback((session: SessionSummary) => {
+    const dayStr = typeof session.date === 'string'
+      ? session.date.slice(0, 10)
+      : toDateString(new Date(session.date));
+    const daySessions = sessionsByDate.get(dayStr) ?? [session];
+    const idx = daySessions.findIndex(s => s.id === session.id);
+    const { dayHasIntention } = getIntentionInfo(dayStr);
+    setDetailSessions(daySessions);
+    setDetailSessionIndex(idx >= 0 ? idx : 0);
+    setDetailDate(new Date(dayStr + 'T00:00:00'));
+    setDetailIntention(dayHasIntention ? activeIntention : null);
+  }, [sessionsByDate, getIntentionInfo, activeIntention]);
 
   // PulseSparklineWidget handles the sparse / empty case internally — it
   // renders the same invitational copy when fewer than 5 sessions exist in
@@ -503,29 +512,18 @@ export default function PathAheadPage() {
   return (
     <>
     <PathAheadMobile
-      name={name}
-      intentionsEnabled={intentionsEnabled}
       loading={loading}
-      streak={streak}
-      weekSessionCount={weekStats.count}
       totalSessions={totalSessions}
-      tenure={tenure}
-      lastSession={lastSession}
-      dayRailData={dayRailData}
-      weekDays={weekDays}
-      sessionsByDate={sessionsByDate}
-      telemetryContent={telemetryContent}
+      unfinishedEntry={unfinishedEntry}
+      memoryEntry={memoryEntry}
+      recentEntries={recentEntries}
+      portraitShapes={portraitShapes}
       activeIntention={activeIntention}
-      activeIntentionProgress={activeIntentionProgress}
-      allSessions={allSessions}
-      today={today}
-      heatmapSection={heatmapSection}
+      intentionTouchedCount={intentionTouchedCount}
       modals={modals}
       styleBlock={styleBlock}
       openLog={openLog}
-      onDayTap={handleDayTap}
-      setSetIntentOpen={setSetIntentOpen}
-      handleDeleteIntention={handleDeleteIntention}
+      onEntryTap={handleEntryTap}
     />
     {gateSheet}
     </>

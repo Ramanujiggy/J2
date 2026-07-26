@@ -1,138 +1,125 @@
-// PathAheadMobile — mobile home layout (v2: record-first, one accent).
+// PathAheadMobile — mobile home. A table of contents, not a summary.
 //
 // Vertical order:
-// 1. Masthead (greeting + streak pill + Sharpen)
-// 2. Day rail (7 interactive completion rings — tap done to view, tap today to log)
-// 3. HERO — "Still fresh" capture card (dominant object)
-// 4. This week — stats + qualitative sentence
-// 5. This week's focus — intention row
-// 6. The longer arc (heatmap/sparkline)
+//   1. Masthead — seigaiha + wordmark. Lives in MobileAppShell, not here.
+//   2. Greeting row — greeting, today's date, the die button.
+//   3. HERO — one dominant card (unfinished entry, or the reading deck).
+//   4. The list — the last three things you wrote.
+//   5. The portrait — every session stacked into one shape.
 //
-// The old PathAheadWeekSection (carousel + list toggle) is removed —
-// the DayRail covers the same Mon–Sun data in a lighter, tappable form.
+// Nothing else. The record number, tenure, the seven-ring week rail, the
+// day-by-day spine, the "this week" stat pair and the sparkline all moved to
+// Profile — identity lives on the identity screen; home is for today. There
+// is no streak anywhere: the collection only grows, and nothing on home can
+// go backwards.
+//
+// Numbers permitted on this screen: today's date, and "All {n} entries →".
 
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import HomeHero from './HomeHero.tsx';
-import DayRail from './DayRail.tsx';
-import StillFreshHero from './StillFreshHero.tsx';
-import IntentionHeroCard from './IntentionHeroCard.tsx';
-import FirstVisitCard from './FirstVisitCard.tsx';
+import HomeGreetingRow from './HomeGreetingRow.tsx';
+import HomeHeroCard from './HomeHeroCard.tsx';
+import HomeEntryList from './HomeEntryList.tsx';
+import HomePortrait from './HomePortrait.tsx';
 import RepRouletteFab from './RepRouletteFab.tsx';
 import PageContent from './PageContent.tsx';
-import { toDateString } from '../lib/sessionUtils.ts';
-import type { Intention, SessionSummary } from '../types/api.ts';
+import type { MemoryEntry, RecentEntry } from '../lib/homeViewModel.ts';
+import type { Intention, PillarDistribution, SessionSummary } from '../types/api.ts';
 
 interface Props {
-  name: string | null;
-  intentionsEnabled: boolean;
   loading: boolean;
-  streak: number;
-  weekSessionCount: number;
   totalSessions: number;
-  tenure: string;
-  lastSession: { id: string; date: string; duration: number; focusLabel: string; endedAgo: string; hasNotes?: boolean } | null;
-  dayRailData: Array<{ dow: string; date: number; state: 'done' | 'today' | 'rest' | 'future' }>;
-  weekDays: Date[];
-  sessionsByDate: Map<string, SessionSummary[]>;
-  telemetryContent: React.ReactNode;
+  unfinishedEntry: SessionSummary | null;
+  memoryEntry: MemoryEntry | null;
+  recentEntries: RecentEntry[];
+  portraitShapes: PillarDistribution[];
   activeIntention: Intention | null;
-  activeIntentionProgress: { completed: number; target: number; unit: 'sessions' | 'training_weeks' } | null;
-  allSessions: SessionSummary[];
-  today: Date;
-  heatmapSection: React.ReactNode;
+  /** Sessions touching the intention since it was set — computed over the
+   *  full history in PathAheadPage, not over `recentEntries`. */
+  intentionTouchedCount: number;
   modals: React.ReactNode;
   styleBlock: React.ReactNode;
-  openLog: (opts?: { date?: string; preset?: { heading?: string; sessionType?: 'drilling' | 'cla'; subSkillTag?: string; constraintName?: string } | null }) => void;
-  onDayTap: (day: Date, sessions: SessionSummary[]) => void;
-  setSetIntentOpen: (v: boolean) => void;
-  handleDeleteIntention: () => void;
+  openLog: (opts?: { date?: string }) => void;
+  onEntryTap: (session: SessionSummary) => void;
 }
 
 export default function PathAheadMobile({
-  intentionsEnabled,
   loading,
-  streak,
-  weekSessionCount,
   totalSessions,
-  tenure,
-  lastSession,
-  dayRailData,
-  weekDays,
-  sessionsByDate,
-  telemetryContent,
+  unfinishedEntry,
+  memoryEntry,
+  recentEntries,
+  portraitShapes,
   activeIntention,
-  activeIntentionProgress,
-  allSessions,
-  heatmapSection,
+  intentionTouchedCount,
   modals,
   styleBlock,
   openLog,
-  onDayTap,
-  setSetIntentOpen,
-  handleDeleteIntention,
+  onEntryTap,
 }: Props) {
   const navigate = useNavigate();
 
-  const handleDayRailTap = useCallback((index: number) => {
-    const day = weekDays[index];
-    if (!day) return;
-    const dayStr = toDateString(day);
-    const sessions = sessionsByDate.get(dayStr) ?? [];
-    if (sessions.length > 0) {
-      onDayTap(day, sessions);
-    } else {
-      openLog({ date: dayStr });
-    }
-  }, [weekDays, sessionsByDate, onDayTap, openLog]);
+  // "Keep writing" and "Two lines is plenty" both land in the same place the
+  // Edit affordance does — the existing entry flow. Voice-first capture for
+  // NEW sessions is a separate surface and is not touched here.
+  const handleKeepWriting = useCallback((session: SessionSummary) => {
+    onEntryTap(session);
+  }, [onEntryTap]);
+
+  const handleOpenIntention = useCallback(() => {
+    if (!activeIntention) return;
+    navigate(`/intentions/${activeIntention.id}/journal`, { state: { from: '/home' } });
+  }, [activeIntention, navigate]);
+
+  // Weeks elapsed since the intention was set, 1-based ("3rd week").
+  const intentionWeeksIn = activeIntention
+    ? Math.floor(
+        (Date.now() - new Date(activeIntention.week_start.slice(0, 10) + 'T00:00:00').getTime())
+        / (7 * 86_400_000),
+      ) + 1
+    : 0;
 
   return (
-    <PageContent ready={!loading} loadingMessages={['Shrimping down the mat...', 'Doing mat swims...', 'Pulling up gi pants...']}>
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-0 pb-3" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {styleBlock}
+    <PageContent
+      ready={!loading}
+      loadingMessages={['Shrimping down the mat...', 'Doing mat swims...', 'Pulling up gi pants...']}
+    >
+      <div
+        className="max-w-5xl mx-auto px-4 sm:px-6 pt-0 pb-3"
+        style={{ display: 'flex', flexDirection: 'column', gap: 22 }}
+      >
+        {styleBlock}
 
-      {/* ── 1. Masthead — greeting + record + streak pill + Sharpen ── */}
-      <HomeHero
-        totalSessions={totalSessions}
-        tenure={tenure}
-        streakDays={streak}
-        rouletteSlot={<RepRouletteFab fabPosition="inline" />}
-      />
+        {/* ── 2. Greeting row ─────────────────────────────────────────── */}
+        <HomeGreetingRow rouletteSlot={<RepRouletteFab fabPosition="inline" />} />
 
-      {/* ── 2. Day rail — tappable completion rings ────────────── */}
-      <DayRail days={dayRailData} onDayTap={handleDayRailTap} />
-
-      {/* ── 3. HERO — "Still fresh" capture card ──────────────── */}
-      <StillFreshHero
-        lastSession={lastSession}
-        onAddNotes={() => openLog({ date: lastSession?.date })}
-        onDismiss={() => {}}
-      />
-
-      {/* ── 4. This week (telemetry) ──────────────────────────── */}
-      {telemetryContent}
-
-      {/* ── 5. This week's focus ──────────────────────────────── */}
-      {intentionsEnabled && (
-        <IntentionHeroCard
-          intention={activeIntention}
-          weekSessionCount={weekSessionCount}
-          progress={activeIntentionProgress}
-          onSetIntent={() => setSetIntentOpen(true)}
-          onViewJournal={activeIntention ? () => navigate(`/intentions/${activeIntention.id}/journal`, { state: { from: '/home' } }) : undefined}
-          onDeleteIntent={handleDeleteIntention}
+        {/* ── 3. HERO ─────────────────────────────────────────────────── */}
+        <HomeHeroCard
+          unfinishedEntry={unfinishedEntry}
+          memoryEntry={memoryEntry}
+          activeIntention={activeIntention}
+          intentionWeeksIn={intentionWeeksIn}
+          intentionTouchedCount={intentionTouchedCount}
+          hasAnySessions={totalSessions > 0}
+          onKeepWriting={handleKeepWriting}
+          onReadEntry={onEntryTap}
+          onOpenIntention={handleOpenIntention}
+          onLog={() => openLog()}
         />
-      )}
 
-      {/* ── 6. The longer arc ─────────────────────────────────── */}
-      {!loading && allSessions.length === 0 ? (
-        <FirstVisitCard onLogFirst={() => openLog()} />
-      ) : (
-        heatmapSection
-      )}
+        {/* ── 4. The list ─────────────────────────────────────────────── */}
+        <HomeEntryList
+          entries={recentEntries}
+          totalCount={totalSessions}
+          onEntryTap={onEntryTap}
+        />
 
-      {modals}
-    </div>
+        {/* ── 5. The portrait ─────────────────────────────────────────── */}
+        <HomePortrait shapes={portraitShapes} sessionCount={totalSessions} />
+
+        {modals}
+      </div>
     </PageContent>
   );
 }
+

@@ -1,25 +1,32 @@
-// Session editorial detail view — desktop-only routed page at /journal/:id.
-// Atelier-width magazine layout: hero header, 4-stat row, Prism + tags, notes
-// blockquote, related sessions, prev/next by chronological order.
+// The entry as a page — desktop-only routed view at /journal/:id.
+//
+// The read-only body is EntryReadView, shared with SessionDetailModal so the
+// entry reads identically wherever it's opened. This page adds what only a
+// routed view can carry: similar sessions, and prev/next through the whole
+// history. Editing opens the same Margin Notes editor the modal uses.
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useSessions } from '../context/SessionsContext.tsx';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
+import { useUserConstraints } from '../hooks/useUserConstraints.ts';
+import { useCanonicalConstraints } from '../hooks/useCanonicalConstraints.ts';
 import PageContent from '../components/PageContent.tsx';
-import MiniPrism from '../components/charts/MiniPrism.tsx';
+import EntryReadView from '../components/EntryReadView.tsx';
+import SessionDetailModal from '../components/SessionDetailModal.tsx';
+import { api } from '../lib/api.ts';
 import { SKILL_TAGS, MONTH_NAMES } from '../lib/constants.ts';
-import { toDateString, DAY_NAMES, INTENSITY_COLOR, SESSION_TYPE_LABELS, formatDuration, formatGiNogi } from '../lib/sessionUtils.ts';
-import {
-  PALE_YELLOW, COPPER, CARD_BG, FONT_EDITORIAL, INT_LABELS, STATUS_ERROR,
-} from '../lib/theme.ts';
+import { toDateString, DAY_NAMES, formatDuration } from '../lib/sessionUtils.ts';
+import { CARD_BG, COPPER, FONT_EDITORIAL, STATUS_ERROR } from '../lib/theme.ts';
 import type { SessionSummary } from '../types/api.ts';
 
 export default function SessionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isDesktop = useIsDesktop();
+  const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!isDesktop) navigate('/home', { replace: true });
@@ -58,197 +65,94 @@ export default function SessionDetailPage() {
       .reverse();
   }, [sorted, session]);
 
+  // Constraint names feed the "one question" fallback in EntryReadView.
+  const { byId: userConstraintById } = useUserConstraints();
+  const { byId: canonicalConstraintById } = useCanonicalConstraints();
+  const constraints = useMemo<string[]>(() => {
+    if (!session) return [];
+    const names: string[] = [];
+    for (const cid of session.canonical_constraint_ids ?? []) {
+      const c = canonicalConstraintById.get(cid);
+      if (c) names.push(c.name);
+    }
+    for (const cid of session.user_constraint_ids ?? []) {
+      const c = userConstraintById.get(cid);
+      if (c) names.push(c.name);
+    }
+    return names;
+  }, [session, canonicalConstraintById, userConstraintById]);
+
+  const headingLabel = session?.heading
+    ? (SKILL_TAGS.find(s => s.value === session.heading)?.label ?? session.heading)
+    : null;
+
+  const sessionDate = session
+    ? new Date((typeof session.date === 'string' ? session.date.slice(0, 10) : toDateString(new Date(session.date))) + 'T00:00:00')
+    : null;
+
+  const handleDelete = useCallback(async () => {
+    if (!session) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/api/sessions/${session.id}`);
+      navigate('/journal', { replace: true });
+    } catch {
+      setDeleting(false);
+    }
+  }, [session, navigate]);
+
   if (!isDesktop) return null;
 
   return (
+    <>
     <PageContent ready={!loading} loadingMessages={['Opening the entry...', 'Smoothing the page...']}>
     <div style={{ maxWidth: 960, margin: '0 auto', padding: '48px 80px 104px' }}>
-
-      {/* Back link */}
-      <button
-        onClick={() => navigate('/journal')}
-        style={{
-          fontSize: 15, fontWeight: 600,
-          color: COPPER, borderBottom: `1px solid ${COPPER}40`,
-          background: 'transparent', padding: 0,
-          cursor: 'pointer', marginBottom: 48,
-          display: 'inline-block',
-        }}
-      >
-        ← Back to journal
-      </button>
 
       {fetchError && <p style={{ fontSize: 13, color: STATUS_ERROR, marginBottom: 16 }}>{fetchError}</p>}
 
       {!session && !loading ? (
         <NotFound onBack={() => navigate('/journal')} />
-      ) : session ? (
+      ) : session && sessionDate ? (
         <>
-          <DetailHeader session={session} />
-          <StatsRow session={session} />
-          <PrismAndTags session={session} />
-          {session.notes?.trim() && <ReflectionBlock notes={session.notes} />}
-          {related.length > 0 && <RelatedRow sessions={related} onOpen={(sid) => navigate(`/journal/${sid}`)} />}
-          <PrevNext
-            prev={prev}
-            next={next}
-            onOpen={(sid) => navigate(`/journal/${sid}`)}
+          <EntryReadView
+            session={session}
+            date={sessionDate}
+            constraints={constraints}
+            headingLabel={headingLabel}
+            backLabel="Journal"
+            onBack={() => navigate('/journal')}
+            onEdit={() => setEditing(true)}
+            onDelete={handleDelete}
+            deleting={deleting}
           />
+
+          <div style={{ maxWidth: 640, marginInline: 'auto', marginTop: 64 }}>
+            {related.length > 0 && <RelatedRow sessions={related} onOpen={(sid) => navigate(`/journal/${sid}`)} />}
+            <PrevNext
+              prev={prev}
+              next={next}
+              onOpen={(sid) => navigate(`/journal/${sid}`)}
+            />
+          </div>
         </>
       ) : null}
 
     </div>
     </PageContent>
-  );
-}
 
-// ── Hero header ───────────────────────────────────────────────────────────
-
-function DetailHeader({ session }: { session: SessionSummary }) {
-  const dateStr = typeof session.date === 'string' ? session.date.slice(0, 10) : toDateString(new Date(session.date));
-  const d = new Date(dateStr + 'T00:00:00');
-  const dateLabel = new Intl.DateTimeFormat('en-US', {
-    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
-  }).format(d).toUpperCase();
-  const primary = session.tags?.[0];
-  const focusLabel = primary ? (SKILL_TAGS.find(t => t.value === primary)?.label ?? primary) : 'Free rolling';
-  const typeLabel = SESSION_TYPE_LABELS[session.session_type] ?? session.session_type;
-  const subtitle =
-    session.session_type === 'class'                ? 'Open-mat afternoon.' :
-    session.session_type === 'drilling'             ? 'Drilling block.'     :
-    session.session_type === 'competition_training' ? 'Competition training.' :
-                                                      `${typeLabel} session.`;
-
-  return (
-    <div style={{ marginBottom: 56, paddingBottom: 48, borderBottom: '1px solid var(--j2-border-2)' }}>
-      <div className="j2-label-copper" style={{ marginBottom: 22 }}>{dateLabel}</div>
-      <h1 className="j2-serif-display j2-heading-glow" style={{ fontSize: 96, margin: 0, lineHeight: 1 }}>
-        {focusLabel}
-      </h1>
-      <div
-        className="j2-serif-italic"
-        style={{ marginTop: 18, fontSize: 22, color: 'rgba(255,255,255,0.60)' }}
-      >
-        {subtitle}
-      </div>
-    </div>
-  );
-}
-
-// ── 4-stat row ────────────────────────────────────────────────────────────
-
-function StatsRow({ session }: { session: SessionSummary }) {
-  const intensity = Math.max(1, Math.min(5, session.intensity ?? 3));
-  const intColor = INTENSITY_COLOR[intensity] ?? '#5E8A5C';
-  const intLabel = INT_LABELS[intensity] || 'Steady';
-  const giLabel = formatGiNogi(session.gi_nogi);
-  const typeLabel = SESSION_TYPE_LABELS[session.session_type] ?? session.session_type;
-  const stats: { k: string; v: React.ReactNode }[] = [
-    { k: 'Duration', v: formatDuration(session.duration ?? 0) },
-    {
-      k: 'Intensity',
-      v: (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-          <span
-            aria-hidden
-            style={{
-              width: 12, height: 12, borderRadius: '50%',
-              background: intColor, boxShadow: `0 0 10px ${intColor}60`,
-            }}
-          />
-          {intLabel}
-        </span>
-      ),
-    },
-    { k: 'Style', v: giLabel.toUpperCase() },
-    { k: 'Class', v: typeLabel },
-  ];
-  return (
-    <div style={{ display: 'flex', gap: 40, marginBottom: 56, flexWrap: 'wrap' }}>
-      {stats.map((s, i) => (
-        <div key={i}>
-          <div className="j2-label-micro" style={{ marginBottom: 8 }}>{s.k}</div>
-          <div
-            style={{
-              fontSize: 22, fontFamily: FONT_EDITORIAL,
-              color: PALE_YELLOW,
-              display: 'flex', alignItems: 'center', gap: 12,
-            }}
-          >
-            {s.v}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ── Prism + positions 2-col ───────────────────────────────────────────────
-
-function PrismAndTags({ session }: { session: SessionSummary }) {
-  const primary = session.tags?.[0] ?? null;
-  const tagChips = (session.tags ?? []).map(t => SKILL_TAGS.find(x => x.value === t)?.label ?? t);
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, marginBottom: 56 }}>
-      {/* LEFT — Prism */}
-      <div>
-        <div className="j2-label-copper" style={{ marginBottom: 18 }}>◇ Focus area</div>
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <MiniPrism activeTag={primary} size={360} />
-        </div>
-      </div>
-      {/* RIGHT — positions / tags */}
-      <div>
-        <div className="j2-label-copper" style={{ marginBottom: 20 }}>◈ Positions worked</div>
-        {tagChips.length > 0 ? (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-            {tagChips.map((t, i) => (
-              <span
-                key={`${t}-${i}`}
-                style={{
-                  height: 42, padding: '0 20px',
-                  display: 'inline-flex', alignItems: 'center',
-                  fontSize: 14, fontWeight: 600,
-                  background: 'rgba(196,145,95,0.16)',
-                  border: `1px solid ${COPPER}`,
-                  borderRadius: 21,
-                  color: PALE_YELLOW,
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {t}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.40)', fontStyle: 'italic' }}>
-            Free rolling. No positions tagged.
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ── Reflection blockquote ─────────────────────────────────────────────────
-
-function ReflectionBlock({ notes }: { notes: string }) {
-  return (
-    <div style={{ marginBottom: 56 }}>
-      <div className="j2-label-copper" style={{ marginBottom: 18 }}>◈ Reflection</div>
-      <div
-        className="j2-serif-italic"
-        style={{
-          fontSize: 25, lineHeight: 1.7,
-          color: 'rgba(255,255,255,0.90)',
-          whiteSpace: 'pre-wrap',
-          paddingLeft: 28,
-          borderLeft: `2px solid ${COPPER}`,
-        }}
-      >
-        {notes}
-      </div>
-    </div>
+    {/* Editing reuses the modal's Margin Notes panel — the read view stays
+        on the page behind it, so the modal opens straight into the editor. */}
+    {editing && session && sessionDate && (
+      <SessionDetailModal
+        session={session}
+        date={sessionDate}
+        initialEditing
+        onClose={() => setEditing(false)}
+        onSaved={() => setEditing(false)}
+        onDeleted={() => navigate('/journal', { replace: true })}
+      />
+    )}
+    </>
   );
 }
 
