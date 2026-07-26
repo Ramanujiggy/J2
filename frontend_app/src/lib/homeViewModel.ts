@@ -5,7 +5,7 @@
 // functions turn the raw session list into exactly those three shapes.
 // Kept pure (no React, no Date.now defaults) so they can be unit-tested.
 
-import type { PillarDistribution, SessionSummary } from '../types/api.ts';
+import type { Intention, PillarDistribution, SessionSummary, UserTag } from '../types/api.ts';
 import { toDateString } from './sessionUtils.ts';
 
 /** Sessions whose logged date is more than this old stop owning the hero. */
@@ -215,6 +215,78 @@ export function isExcerptTruncated(
   const excerpt = excerptOf(session, maxChars);
   if (!excerpt) return false;
   return (session.notes?.trim().replace(/\s+/g, ' ').length ?? 0) > excerpt.length;
+}
+
+/** How many recent sessions the technique anchor is measured against. */
+const TECHNIQUE_WINDOW = 10;
+
+export interface TechniqueCard {
+  tag: UserTag;
+  /** Sessions in the recent window that trained this technique. */
+  recentCount: number;
+  /** Size of that window — "four of your last ten". */
+  windowSize: number;
+}
+
+/**
+ * Techniques the user has classified as theirs to work on, for the hero deck.
+ *
+ * `learning` is literally "currently working on" in the library's own
+ * vocabulary, so it ranks first; `go_to` follows as the other deliberate
+ * classification. `shelved` never surfaces here, and neither does an
+ * unclassified technique — an untouched row is library browsing, not a
+ * first-person anchor, and the hero only ever shows the user their own work.
+ */
+export function buildTechniqueCards(
+  tags: UserTag[],
+  sessions: SessionSummary[],
+  max = 3,
+): TechniqueCard[] {
+  const eligible = tags.filter(t => t.affinity === 'learning' || t.affinity === 'go_to');
+  if (eligible.length === 0) return [];
+
+  const window = sortSessionsDesc(sessions).slice(0, TECHNIQUE_WINDOW);
+  const windowSize = window.length;
+
+  const rank = (t: UserTag) => (t.affinity === 'learning' ? 0 : 1);
+
+  return eligible
+    .map(tag => ({
+      tag,
+      windowSize,
+      recentCount: window.filter(s => (s.user_tag_ids ?? []).includes(tag.id)).length,
+    }))
+    .sort((a, b) => {
+      if (rank(a.tag) !== rank(b.tag)) return rank(a.tag) - rank(b.tag);
+      if (b.recentCount !== a.recentCount) return b.recentCount - a.recentCount;
+      return a.tag.name.localeCompare(b.tag.name);
+    })
+    .slice(0, max);
+}
+
+/**
+ * Intentions the user has already set, newest first, excluding the one
+ * currently running (it has its own card) and anything dated ahead.
+ */
+export function findRecentIntentions(
+  intentions: Intention[],
+  activeIntentionId: string | null,
+  today: Date,
+  max = 2,
+): Intention[] {
+  const todayKey = toDateString(today);
+  return intentions
+    .filter(i => i.id !== activeIntentionId && i.week_start.slice(0, 10) <= todayKey)
+    .sort((a, b) => b.week_start.slice(0, 10).localeCompare(a.week_start.slice(0, 10)))
+    .slice(0, max);
+}
+
+/** Technique names an intention carries, resolved against the library. */
+export function intentionTechniques(intention: Intention, tags: UserTag[]): UserTag[] {
+  const ids = intention.user_tag_ids ?? [];
+  if (ids.length === 0) return [];
+  const byId = new Map(tags.map(t => [t.id, t]));
+  return ids.map(id => byId.get(id)).filter((t): t is UserTag => !!t);
 }
 
 /**

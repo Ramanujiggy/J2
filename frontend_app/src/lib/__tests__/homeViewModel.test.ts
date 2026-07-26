@@ -5,9 +5,12 @@ import {
   buildRecentEntries,
   excerptOf,
   isExcerptTruncated,
+  buildTechniqueCards,
+  findRecentIntentions,
+  intentionTechniques,
   portraitDistributions,
 } from '../homeViewModel.ts';
-import type { SessionSummary } from '../../types/api.ts';
+import type { Intention, SessionSummary, UserTag } from '../../types/api.ts';
 
 const TODAY = new Date(2026, 6, 25); // Sat 25 Jul 2026 — local time, like the app
 
@@ -209,6 +212,99 @@ describe('excerptOf', () => {
     expect(isExcerptTruncated(short)).toBe(false);
     expect(isExcerptTruncated(long)).toBe(true);
     expect(isExcerptTruncated(session({ id: 'c', date: '2026-07-01' }))).toBe(false);
+  });
+});
+
+function tag(over: Partial<UserTag> & { id: string; name: string }): UserTag {
+  return {
+    user_id: 'u1',
+    parent_pillar: 'guard',
+    created_at: '2026-01-01T00:00:00Z',
+    ...over,
+  };
+}
+
+describe('buildTechniqueCards', () => {
+  // The hero shows the user their own work, never the library at large.
+  it('only surfaces techniques the user deliberately classified', () => {
+    const cards = buildTechniqueCards([
+      tag({ id: 'l', name: 'Learning one',  affinity: 'learning' }),
+      tag({ id: 'g', name: 'Go-to one',     affinity: 'go_to' }),
+      tag({ id: 's', name: 'Shelved one',   affinity: 'shelved' }),
+      tag({ id: 'u', name: 'Unclassified' }),
+    ], [], 10);
+    expect(cards.map(c => c.tag.id)).toEqual(['l', 'g']);
+  });
+
+  it('ranks what you are working on above what you already have', () => {
+    const cards = buildTechniqueCards([
+      tag({ id: 'g', name: 'Go-to',    affinity: 'go_to' }),
+      tag({ id: 'l', name: 'Learning', affinity: 'learning' }),
+    ], [], 10);
+    expect(cards[0]!.tag.id).toBe('l');
+  });
+
+  it('counts how many of the recent sessions actually trained it', () => {
+    const cards = buildTechniqueCards(
+      [tag({ id: 't1', name: 'Knee cut', affinity: 'learning' })],
+      [
+        session({ id: 'a', date: '2026-07-24', user_tag_ids: ['t1'] }),
+        session({ id: 'b', date: '2026-07-22', user_tag_ids: ['other'] }),
+        session({ id: 'c', date: '2026-07-20', user_tag_ids: ['t1'] }),
+      ],
+    );
+    expect(cards[0]!.recentCount).toBe(2);
+    expect(cards[0]!.windowSize).toBe(3);
+  });
+
+  it('caps the deck so the hero does not become a library', () => {
+    const many = Array.from({ length: 9 }, (_, i) =>
+      tag({ id: `t${i}`, name: `T${i}`, affinity: 'learning' }));
+    expect(buildTechniqueCards(many, [], 3)).toHaveLength(3);
+  });
+
+  it('returns nothing when the library has no classified techniques', () => {
+    expect(buildTechniqueCards([tag({ id: 'u', name: 'Untouched' })], [])).toEqual([]);
+  });
+});
+
+describe('findRecentIntentions', () => {
+  const intent = (id: string, weekStart: string): Intention => ({
+    id, user_id: 'u1', week_start: weekStart, intent_label: `Intent ${id}`,
+    intent_category: null, heading: null, duration_days: 7,
+    completion_type: 'days', target_count: null, journal_entry: null,
+    created_at: weekStart,
+  });
+
+  it('excludes the running intention — it already has its own card', () => {
+    const out = findRecentIntentions(
+      [intent('active', '2026-07-20'), intent('old', '2026-06-01')],
+      'active',
+      TODAY,
+    );
+    expect(out.map(i => i.id)).toEqual(['old']);
+  });
+
+  it('returns newest first and excludes anything dated ahead', () => {
+    const out = findRecentIntentions([
+      intent('future', '2026-09-01'),
+      intent('older',  '2026-05-01'),
+      intent('newer',  '2026-06-01'),
+    ], null, TODAY);
+    expect(out.map(i => i.id)).toEqual(['newer', 'older']);
+  });
+});
+
+describe('intentionTechniques', () => {
+  it('resolves tag ids against the library and drops unknown ones', () => {
+    const intention = {
+      id: 'i1', user_id: 'u1', week_start: '2026-07-01', intent_label: 'x',
+      intent_category: null, heading: null, duration_days: 7,
+      completion_type: 'days' as const, target_count: null, journal_entry: null,
+      created_at: '2026-07-01', user_tag_ids: ['t1', 'gone'],
+    };
+    const out = intentionTechniques(intention, [tag({ id: 't1', name: 'Knee cut' })]);
+    expect(out.map(t => t.name)).toEqual(['Knee cut']);
   });
 });
 

@@ -26,8 +26,8 @@ import { excerptOf, isExcerptTruncated } from '../lib/homeViewModel.ts';
 import { STAMP_DIES, bandDate } from '../lib/stampDies.ts';
 import SealStamp from './seal/SealStamp.tsx';
 import SealRevealSheet from './seal/SealRevealSheet.tsx';
-import type { MemoryEntry } from '../lib/homeViewModel.ts';
-import type { Intention, SessionSummary } from '../types/api.ts';
+import type { MemoryEntry, TechniqueCard } from '../lib/homeViewModel.ts';
+import type { Intention, SessionSummary, UserTag } from '../types/api.ts';
 
 /** Fixed across every card type — the page below must never jump on swipe. */
 const CARD_HEIGHT = 262;
@@ -419,6 +419,142 @@ function DayOneCard({ onLogFirst }: { onLogFirst: () => void }) {
 }
 
 /**
+ * A technique the user classified as theirs to work on. The copy always
+ * states the anchor — how much of their own recent training touched it —
+ * because a technique card that can't say why it's here is library browsing
+ * wearing the hero's clothes.
+ */
+function TechniqueCardView({ card, onOpen }: {
+  card: TechniqueCard;
+  onOpen: () => void;
+}) {
+  const { tag, recentCount, windowSize } = card;
+  const learning = tag.affinity === 'learning';
+  const pillar = SKILL_TAGS.find(s => s.value === tag.parent_pillar)?.label ?? tag.parent_pillar;
+
+  const anchor = recentCount > 0
+    ? `You've trained this in ${spellSmall(recentCount)} of your last ${spellSmall(windowSize)} sessions.`
+    : learning
+      ? "You marked this as something you're working on. It hasn't come up lately."
+      : 'One of your go-to techniques.';
+
+  // The user's own note on the technique outranks anything we could say.
+  const journal = tag.resonance_journal?.trim();
+
+  return (
+    <div style={CARD_STYLE}>
+      <CardHeader
+        pill={learning ? 'Working on' : 'Go-to'}
+        right={<span style={{ ...MICRO_LABEL, color: 'rgba(255,255,255,0.46)' }}>{pillar}</span>}
+      />
+
+      <div
+        style={{
+          fontFamily: FONT_EDITORIAL, fontSize: 25, fontWeight: 600,
+          color: PALE_YELLOW, marginTop: 16, lineHeight: 1.15,
+          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+        }}
+      >
+        {tag.name}
+      </div>
+
+      {journal ? (
+        <div
+          style={{
+            ...QUOTE_STYLE, fontSize: 15, marginTop: 10, maxWidth: 270,
+            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}
+        >
+          {journal}
+        </div>
+      ) : (
+        <div
+          style={{
+            fontSize: 13.5, color: 'rgba(255,255,255,0.66)', marginTop: 10,
+            lineHeight: 1.6, maxWidth: 270,
+          }}
+        >
+          {anchor}
+        </div>
+      )}
+
+      <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <button type="button" style={CTA_STYLE} onClick={onOpen}>
+          Open technique
+        </button>
+        {journal && recentCount > 0 && (
+          <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.46)' }}>
+            {recentCount} of {windowSize}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** An intention that has already run — kept so the user can re-read it. */
+function PastIntentionCard({ intention, techniques, onOpen }: {
+  intention: Intention;
+  techniques: UserTag[];
+  onOpen: () => void;
+}) {
+  const start = new Date(intention.week_start.slice(0, 10) + 'T00:00:00');
+  const when = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(start);
+
+  return (
+    <div style={CARD_STYLE}>
+      <CardHeader
+        pill="Earlier intention"
+        right={<span style={{ ...MICRO_LABEL, color: 'rgba(255,255,255,0.46)' }}>{when}</span>}
+      />
+
+      <div
+        style={{
+          fontFamily: FONT_EDITORIAL, fontSize: 25, fontWeight: 600,
+          color: PALE_YELLOW, marginTop: 16, lineHeight: 1.15,
+          display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+        }}
+      >
+        {intention.intent_label}
+      </div>
+
+      {techniques.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
+          {techniques.slice(0, 3).map(t => (
+            <span
+              key={t.id}
+              style={{
+                fontSize: 11, fontWeight: 600,
+                padding: '4px 10px', borderRadius: 20,
+                border: '1px solid rgba(196,145,95,0.35)',
+                color: COPPER, whiteSpace: 'nowrap',
+              }}
+            >
+              {t.name}
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div style={{ marginTop: 'auto' }}>
+        <button type="button" style={CTA_STYLE} onClick={onOpen}>
+          Open the thread
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Small counts read better spelled out in the card's editorial voice. */
+function spellSmall(n: number): string {
+  const words = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+  return words[n] ?? String(n);
+}
+
+/**
  * Sessions exist but there's nothing to read yet — everything logged is
  * either unwritten or too recent to feel resurfaced, and no intention is set.
  * States what's true without implying the user failed to do something.
@@ -472,10 +608,18 @@ interface Props {
   activeIntention: Intention | null;
   intentionWeeksIn: number;
   intentionTouchedCount: number;
+  /** Techniques classified as Learning / Go-to in the library. */
+  techniqueCards: TechniqueCard[];
+  /** Intentions that have already run, newest first. */
+  pastIntentions: Intention[];
+  /** Resolves an intention's user_tag_ids to library rows. */
+  techniquesForIntention: (intention: Intention) => UserTag[];
   hasAnySessions: boolean;
   onKeepWriting: (session: SessionSummary) => void;
   onReadEntry: (session: SessionSummary) => void;
   onOpenIntention: () => void;
+  onOpenPastIntention: (intention: Intention) => void;
+  onOpenTechnique: (tag: UserTag) => void;
   onLog: () => void;
 }
 
@@ -485,10 +629,15 @@ export default function HomeHeroCard({
   activeIntention,
   intentionWeeksIn,
   intentionTouchedCount,
+  techniqueCards,
+  pastIntentions,
+  techniquesForIntention,
   hasAnySessions,
   onKeepWriting,
   onReadEntry,
   onOpenIntention,
+  onOpenPastIntention,
+  onOpenTechnique,
   onLog,
 }: Props) {
   const [index, setIndex] = useState(0);
@@ -535,6 +684,25 @@ export default function HomeHeroCard({
         memory={memoryEntry}
         onRead={onReadEntry}
         onLogToday={onLog}
+      />,
+    );
+  }
+  for (const card of techniqueCards) {
+    deck.push(
+      <TechniqueCardView
+        key={`tech-${card.tag.id}`}
+        card={card}
+        onOpen={() => onOpenTechnique(card.tag)}
+      />,
+    );
+  }
+  for (const past of pastIntentions) {
+    deck.push(
+      <PastIntentionCard
+        key={`past-${past.id}`}
+        intention={past}
+        techniques={techniquesForIntention(past)}
+        onOpen={() => onOpenPastIntention(past)}
       />,
     );
   }

@@ -28,9 +28,13 @@ import {
   findUnfinishedEntry,
   findMemoryEntry,
   buildRecentEntries,
+  buildTechniqueCards,
+  findRecentIntentions,
+  intentionTechniques,
   portraitDistributions,
   sessionDateKey,
 } from '../lib/homeViewModel.ts';
+import { useUserTags } from '../hooks/useUserTags.ts';
 import { computeStats } from '../components/TrainingHeatmap.tsx';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import { useStamps } from '../hooks/useStamps.ts';
@@ -170,6 +174,21 @@ export default function PathAheadPage() {
 
   const portraitShapes = useMemo(() => portraitDistributions(allSessions), [allSessions]);
 
+  // Techniques the user has classified as theirs to work on, and the
+  // intentions they've already run — both ride the hero deck so the things
+  // they committed to stay reachable from home.
+  const { tags: userTags } = useUserTags();
+
+  const techniqueCards = useMemo(
+    () => buildTechniqueCards(userTags, allSessions),
+    [userTags, allSessions],
+  );
+
+  const techniquesForIntention = useCallback(
+    (intention: Intention) => intentionTechniques(intention, userTags),
+    [userTags],
+  );
+
   useEffect(() => {
     for (const gate of [...EIGHT_GATES].reverse()) {
       if (consistentWeeks >= gate.weeks) {
@@ -274,6 +293,11 @@ export default function PathAheadPage() {
   // sentence on home's intention card. Counted over the FULL session list
   // (not the three rows the entry list shows) and matched with the canonical
   // heading matcher, which reads pillar_distribution before legacy fields.
+  const pastIntentions = useMemo(
+    () => findRecentIntentions(intentions, activeIntention?.id ?? null, today),
+    [intentions, activeIntention, today],
+  );
+
   const intentionTouchedCount = useMemo(() => {
     if (!activeIntention) return 0;
     const start = activeIntention.week_start.slice(0, 10);
@@ -521,6 +545,9 @@ export default function PathAheadPage() {
       intentionsEnabled={intentionsEnabled}
       activeIntention={activeIntention}
       intentionTouchedCount={intentionTouchedCount}
+      pastIntentions={pastIntentions}
+      techniqueCards={techniqueCards}
+      techniquesForIntention={techniquesForIntention}
       modals={modals}
       styleBlock={styleBlock}
       openLog={openLog}

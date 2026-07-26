@@ -23,8 +23,8 @@ import HomeEntryList from './HomeEntryList.tsx';
 import HomePortrait from './HomePortrait.tsx';
 import RepRouletteFab from './RepRouletteFab.tsx';
 import PageContent from './PageContent.tsx';
-import type { MemoryEntry, RecentEntry } from '../lib/homeViewModel.ts';
-import type { Intention, PillarDistribution, SessionSummary } from '../types/api.ts';
+import type { MemoryEntry, RecentEntry, TechniqueCard } from '../lib/homeViewModel.ts';
+import type { Intention, PillarDistribution, SessionSummary, UserTag } from '../types/api.ts';
 
 interface Props {
   loading: boolean;
@@ -40,6 +40,11 @@ interface Props {
   /** Sessions touching the intention since it was set — computed over the
    *  full history in PathAheadPage, not over `recentEntries`. */
   intentionTouchedCount: number;
+  /** Intentions already run, newest first — readable from the hero deck. */
+  pastIntentions: Intention[];
+  /** Library techniques classified Learning / Go-to. */
+  techniqueCards: TechniqueCard[];
+  techniquesForIntention: (intention: Intention) => UserTag[];
   modals: React.ReactNode;
   styleBlock: React.ReactNode;
   openLog: (opts?: { date?: string }) => void;
@@ -56,6 +61,9 @@ export default function PathAheadMobile({
   intentionsEnabled,
   activeIntention,
   intentionTouchedCount,
+  pastIntentions,
+  techniqueCards,
+  techniquesForIntention,
   modals,
   styleBlock,
   openLog,
@@ -74,6 +82,14 @@ export default function PathAheadMobile({
     if (!activeIntention) return;
     navigate(`/intentions/${activeIntention.id}/journal`, { state: { from: '/home' } });
   }, [activeIntention, navigate]);
+
+  const handleOpenPastIntention = useCallback((intention: Intention) => {
+    navigate(`/intentions/${intention.id}/journal`, { state: { from: '/home' } });
+  }, [navigate]);
+
+  const handleOpenTechnique = useCallback((tag: UserTag) => {
+    navigate(`/techniques/${tag.id}`, { state: { from: '/home' } });
+  }, [navigate]);
 
   // Weeks elapsed since the intention was set, 1-based ("3rd week").
   const intentionWeeksIn = activeIntention
@@ -104,10 +120,15 @@ export default function PathAheadMobile({
           activeIntention={intentionsEnabled ? activeIntention : null}
           intentionWeeksIn={intentionWeeksIn}
           intentionTouchedCount={intentionTouchedCount}
+          pastIntentions={intentionsEnabled ? pastIntentions : []}
+          techniqueCards={techniqueCards}
+          techniquesForIntention={techniquesForIntention}
           hasAnySessions={totalSessions > 0}
           onKeepWriting={handleKeepWriting}
           onReadEntry={onEntryTap}
           onOpenIntention={handleOpenIntention}
+          onOpenPastIntention={handleOpenPastIntention}
+          onOpenTechnique={handleOpenTechnique}
           onLog={() => openLog()}
         />
 
