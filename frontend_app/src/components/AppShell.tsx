@@ -4,7 +4,10 @@ import { Plus } from 'lucide-react';
 import { useProfile } from '../context/ProfileContext.tsx';
 import SeigaihaPattern from './visuals/SeigaihaPattern.tsx';
 import BeltBar, { type BeltRank, BELT_COLORS, PATCH_COLORS } from './BeltBar.tsx';
-import { PAGE_BG, PALE_YELLOW, GLOW_TITLE, GLOW_NAV, COPPER_BORDER } from '../lib/theme.ts';
+import { PAGE_BG, PALE_YELLOW, GLOW_TITLE, GLOW_NAV, BRAND_ORANGE } from '../lib/theme.ts';
+
+/** Bottom-nav ground — a shade below the page so the bar reads as beneath it. */
+const NAV_BG = '#0B1712' as const;
 import PageTransition from './PageTransition.tsx';
 import OfflineBanner from './OfflineBanner.tsx';
 import { useOnlineSync } from '../hooks/useOnlineSync.ts';
@@ -20,12 +23,13 @@ interface OpenLogFormDetail {
   date?: string;
 }
 
-// Lucide-style inline SVG icons — heavier line weight + a touch larger than
-// before so the bottom nav reads as a confident, set-in-stone control rather
-// than a thin utility strip. strokeWidth bumps 1.7→2 inactive, 2.2→2.6 active.
+// Bottom-nav icons. Size 20, stroke 2 active / 1.6 idle per the handoff's
+// tab-bar spec. The previous 22px/2.6 weights read as an app-store toolbar;
+// the lighter line lets the active state be carried by colour and the pill
+// behind the icon rather than by heft.
 function HomeIcon({ active }: { active: boolean }) {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.6 : 2} strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.5z" />
       <path d="M9 21V12h6v9" />
     </svg>
@@ -33,7 +37,7 @@ function HomeIcon({ active }: { active: boolean }) {
 }
 function CalendarIcon({ active }: { active: boolean }) {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.6 : 2} strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="4" width="18" height="18" rx="2" />
       <path d="M16 2v4M8 2v4M3 10h18" />
     </svg>
@@ -41,7 +45,7 @@ function CalendarIcon({ active }: { active: boolean }) {
 }
 function ProfileIcon({ active }: { active: boolean }) {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.6 : 2} strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="8" r="4" />
       <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
     </svg>
@@ -49,7 +53,7 @@ function ProfileIcon({ active }: { active: boolean }) {
 }
 function JournalIcon({ active }: { active: boolean }) {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.6 : 2} strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" strokeLinejoin="round">
       <path d="M4 4h7a3 3 0 013 3v13a3 3 0 00-3-3H4z" />
       <path d="M20 4h-7a3 3 0 00-3 3v13a3 3 0 013-3h7z" />
     </svg>
@@ -119,7 +123,6 @@ function MobileAppShell({ children }: Props) {
     location.pathname.startsWith(t.path) ||
     t.alsoActiveOn?.some(p => location.pathname.startsWith(p))
   )?.path ?? '/home';
-  const activeIdx = TABS.findIndex(t => t.path === activeTab);
 
   // Page-level horizontal swipe-to-navigate has been retired — it made the
   // app feel light and "swipey" in a way that worked against the leather-
@@ -287,58 +290,20 @@ function MobileAppShell({ children }: Props) {
       </main>
 
       {/* ── Mobile bottom nav — hidden on sm+ ────────────────────────
-          Taller bar, heavier icons, active pill behind icon, copper
-          hairline above the existing border (a "stitched seam") so the
-          edge has more presence. */}
+          Quiet, flat, and solid. It sits under the whole app, so it earns
+          nothing by competing with the page: one hairline, one active
+          state (champagne icon on a champagne-tinted pill), and no glow.
+          The frosted blur, copper stitched seam and sliding lit indicator
+          it used to carry were three separate accents doing the job of one. */}
       <nav
         className="sm:hidden fixed bottom-0 left-0 right-0 flex border-t z-40"
         style={{
-          backgroundColor: 'rgba(21,46,34,0.82)',
-          backdropFilter: 'saturate(180%) blur(12px)',
-          WebkitBackdropFilter: 'saturate(180%) blur(12px)',
-          borderTopColor: COPPER_BORDER,
+          backgroundColor: NAV_BG,
+          borderTopColor: 'rgba(255,255,255,0.06)',
           paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 10px)',
-          paddingTop: 6,
-          boxShadow: '0 -10px 28px -10px rgba(0,0,0,0.55)',
+          paddingTop: 8,
         }}
       >
-        {/* Stitched-seam hairline above the existing border */}
-        <div
-          aria-hidden
-          style={{
-            position: 'absolute',
-            top: -1,
-            left: 0,
-            right: 0,
-            height: 1,
-            background: 'linear-gradient(to right, transparent, rgba(196,145,95,0.35), transparent)',
-            pointerEvents: 'none',
-          }}
-        />
-        {/* Sliding top-bar indicator (visual index accounts for the inserted FAB slot) */}
-        {(() => {
-          const midIdx = Math.floor(TABS.length / 2);
-          // If activeTab is at/after the midpoint, its visual slot shifts by 1 (FAB takes midIdx)
-          const visualIdx = activeIdx < midIdx ? activeIdx : activeIdx + 1;
-          const totalSlots = TABS.length + 1;
-          return (
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: `${(visualIdx / totalSlots) * 100 + 50 / totalSlots - 2}%`,
-                width: '4%',
-                minWidth: 32,
-                height: 2.5,
-                borderRadius: 1,
-                backgroundColor: PALE_YELLOW,
-                boxShadow: '0 0 10px rgba(242,228,168,0.65), 0 0 20px rgba(196,145,95,0.35)',
-                transition: 'left 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                pointerEvents: 'none',
-              }}
-            />
-          );
-        })()}
         {/* Render tabs with + Log FAB inserted at middle index */}
         {(() => {
           const midIdx = Math.floor(TABS.length / 2);
@@ -362,35 +327,23 @@ function MobileAppShell({ children }: Props) {
                   aria-label="Log a training session"
                   style={{ padding: '6px 0', background: 'transparent', border: 'none' }}
                 >
-                  {/* Real-button FAB: vertical gradient dome, pale-yellow inner
-                      ring, layered outer shadows (copper halo + directional
-                      drop + warm ambient), lucide Plus icon (no anemic text "+"),
-                      press feedback via .j2-fab-log. */}
+                  {/* Flat orange ink and one soft drop — orange already means
+                      "this is the action", so the dome gradient, champagne
+                      ring, copper halo and ambient bloom were four ways of
+                      saying it a fifth time. Lifted just enough to read as
+                      primary without ballooning out of the bar. */}
                   <span
                     className="j2-fab-log"
                     style={{
-                      width: 56, height: 56, borderRadius: '50%',
-                      background: 'linear-gradient(180deg, #E8893A 0%, #C46E1E 55%, #B95E18 100%)',
+                      width: 54, height: 54, borderRadius: '50%',
+                      backgroundColor: BRAND_ORANGE,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      marginTop: -20,
+                      marginTop: -12,
                       cursor: 'pointer',
-                      // Outer (drop + halo + ambient) and inner (top highlight + bottom shadow) shadows
-                      boxShadow: [
-                        '0 12px 28px -10px rgba(218,116,34,0.70)',           // directional drop
-                        '0 0 0 1.5px rgba(242,228,168,0.32)',                // pale-yellow inner ring
-                        '0 0 0 4px rgba(218,116,34,0.14)',                   // soft copper halo
-                        '0 0 32px rgba(242,228,168,0.14)',                   // warm ambient
-                        'inset 0 1px 0 rgba(255,255,255,0.22)',              // top highlight (light hits dome)
-                        'inset 0 -3px 6px rgba(74,30,4,0.30)',               // bottom inner shadow (dome bottom)
-                      ].join(', '),
+                      boxShadow: '0 10px 26px -8px rgba(218,116,34,0.80)',
                     }}
                   >
-                    <Plus
-                      size={22}
-                      strokeWidth={2.75}
-                      color={PALE_YELLOW}
-                      style={{ filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.25))' }}
-                    />
+                    <Plus size={22} strokeWidth={2.2} color="#fff" />
                   </span>
                 </button>
               );
@@ -401,43 +354,37 @@ function MobileAppShell({ children }: Props) {
               <button
                 key={path}
                 onClick={() => navigate(path)}
-                className="flex-1 relative flex flex-col items-center justify-center gap-1"
+                className="flex-1 relative flex flex-col items-center justify-center"
                 style={{
-                  paddingTop: 10, paddingBottom: 6,
-                  color: isActive ? PALE_YELLOW : 'rgba(255,255,255,0.40)',
-                  transition: 'color 0.3s ease',
+                  gap: 5,
+                  paddingTop: 4, paddingBottom: 4,
+                  // 0.46 is the small-text contrast floor; the old 0.40 sat
+                  // under it on this background.
+                  color: isActive ? PALE_YELLOW : 'rgba(255,255,255,0.46)',
+                  transition: 'color 0.2s ease',
                   background: 'transparent',
                   border: 'none',
                   cursor: 'pointer',
                 }}
               >
-                {/* Icon container with active pill behind it. The pill ties the
-                    icon to its name and gives the active state more weight than
-                    a bare color change. */}
-                <span style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 32 }}>
-                  {isActive && (
-                    <span
-                      aria-hidden
-                      style={{
-                        position: 'absolute',
-                        inset: 0,
-                        borderRadius: 10,
-                        background: 'rgba(242,228,168,0.08)',
-                        boxShadow: 'inset 0 0 0 1px rgba(242,228,168,0.10)',
-                      }}
-                    />
-                  )}
-                  <span style={{ position: 'relative', textShadow: isActive ? GLOW_NAV : 'none' }}>
-                    <Icon active={isActive} />
-                  </span>
+                {/* The pill behind the icon is the entire active treatment —
+                    it ties the icon to its name without a second accent. */}
+                <span
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    width: 34, height: 30, borderRadius: 9,
+                    background: isActive ? 'rgba(242,228,168,0.10)' : 'transparent',
+                    transition: 'background 0.2s ease',
+                  }}
+                >
+                  <Icon active={isActive} />
                 </span>
                 <span
                   style={{
-                    fontSize: 11,
-                    fontWeight: isActive ? 600 : 500,
-                    letterSpacing: '0.04em',
+                    fontSize: 10,
+                    fontWeight: 600,
+                    letterSpacing: '0.06em',
                     lineHeight: 1,
-                    textShadow: isActive ? GLOW_NAV : 'none',
                   }}
                 >
                   {label}
