@@ -55,24 +55,42 @@ export function toPolygonPoints(pts: Array<{ cx: number; cy: number }>): string 
 }
 
 /**
+ * The heaviest single pillar weight across a set of distributions — the
+ * denominator for rendering them on one shared scale.
+ */
+export function peakWeight(dists: PillarDistribution[]): number {
+  let peak = 0;
+  for (const d of dists) {
+    for (const p of PILLAR_ORDER) {
+      const w = d[p.value] ?? 0;
+      if (w > peak) peak = w;
+    }
+  }
+  return peak;
+}
+
+/**
  * Polygon points for one session's pillar distribution — each vertex pulled in
  * toward the centre by its weight. `floor` keeps untouched pillars off the dead
  * centre so a single-pillar session still reads as a shape rather than a spike.
+ *
+ * `scale` is the denominator every session is measured against. Pass ONE value
+ * for the whole set (see peakWeight) rather than normalising each session
+ * against its own maximum: per-session normalisation pins every session's top
+ * pillar to the outer rim, so stacking them produces one hard-edged star
+ * instead of an accumulation you can see through.
  */
 export function distributionPoints(
   dist: PillarDistribution,
   cx: number,
   cy: number,
   r: number,
-  floor = 0.12,
+  scale = 1,
+  floor = 0.1,
 ): string {
-  // Normalise against the largest weight so every session's shape fills the
-  // frame — the portrait is about shape, not magnitude.
-  const weights = PILLAR_ORDER.map(p => dist[p.value] ?? 0);
-  const max = Math.max(...weights, 0);
+  const denom = scale > 0 ? scale : 1;
   const pts = PILLAR_ORDER.map((p, i) => {
-    const raw = max > 0 ? (dist[p.value] ?? 0) / max : 0;
-    const mag = Math.max(floor, Math.min(1, raw));
+    const mag = Math.max(floor, Math.min(1, (dist[p.value] ?? 0) / denom));
     const angle = vertexAngle(i);
     return {
       cx: cx + r * mag * Math.cos(angle),

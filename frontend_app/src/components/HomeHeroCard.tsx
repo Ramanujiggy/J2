@@ -1,15 +1,14 @@
 // HomeHeroCard — the one dominant object on home.
 //
-// Two modes, one shell:
+// One shell, a deck of cards inside it: an unfinished entry to pick back up,
+// your intention, and something of your own to re-read. The unfinished entry
+// leads when there is one, so the prompt to write is the first thing you see.
 //
-//   Mode A · a task exists. An unfinished entry owns the hero alone — no
-//   peek, no swipe. A task in a carousel becomes a task you can swipe away.
-//
-//   Mode B · nothing unfinished. The hero becomes a reading deck: your own
-//   past, your intention, a technique you keep returning to. Every card is
-//   the same kind of thing (something to read), so swiping is honest.
-//
-// If a task AND a memory are both available the task wins; the memory keeps.
+// It does NOT own the hero exclusively. The handoff called for a task to
+// take the slot alone on the reasoning that "a task in a carousel becomes a
+// task you can swipe away" — deliberately overridden: writing is optional
+// here, and a hero locked to a prompt the user has already declined is worse
+// than one they can browse past. The prompt leads; it never traps.
 //
 // The shell is a FIXED height across every card type. A hero that resizes
 // per card makes the whole page below it jump on every swipe. Type is
@@ -22,7 +21,8 @@ import {
   COPPER, PALE_YELLOW, BRAND_ORANGE, FONT_EDITORIAL,
 } from '../lib/theme.ts';
 import { formatDuration } from '../lib/sessionUtils.ts';
-import { excerptOf } from '../lib/homeViewModel.ts';
+import { SKILL_TAGS } from '../lib/constants.ts';
+import { excerptOf, isExcerptTruncated } from '../lib/homeViewModel.ts';
 import { STAMP_DIES, bandDate } from '../lib/stampDies.ts';
 import SealStamp from './seal/SealStamp.tsx';
 import SealRevealSheet from './seal/SealRevealSheet.tsx';
@@ -178,7 +178,12 @@ function TaskCard({ entry, onKeepWriting }: {
   const dateKey = typeof entry.date === 'string' ? entry.date.slice(0, 10) : entry.date;
   const d = new Date(dateKey + 'T00:00:00');
   const weekday = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(d);
-  const discipline = entry.heading?.trim() || 'Jiu Jitsu';
+  // `heading` is a pillar slug ("passing"); every other surface resolves it
+  // through SKILL_TAGS before showing it to anyone.
+  const heading = entry.heading?.trim();
+  const discipline = heading
+    ? (SKILL_TAGS.find(s => s.value === heading)?.label ?? heading)
+    : 'Jiu Jitsu';
   const stamp = entry.stamps?.[0];
   const die = stamp ? STAMP_DIES[stamp.die_key] : undefined;
   // An unfinished entry is one with nothing written, but if a fragment does
@@ -186,9 +191,7 @@ function TaskCard({ entry, onKeepWriting }: {
   // own words" and must never frame copy the app wrote.
   const EXCERPT_CHARS = 90;
   const excerpt = excerptOf(entry, EXCERPT_CHARS);
-  // Only trail off when the text was actually cut — a complete short fragment
-  // that ends in an ellipsis reads as truncated when it isn't.
-  const truncated = !!excerpt && (entry.notes?.trim().replace(/\s+/g, ' ').length ?? 0) > excerpt.length;
+  const truncated = isExcerptTruncated(entry, EXCERPT_CHARS);
 
   return (
     <div style={CARD_STYLE}>
@@ -486,9 +489,20 @@ export default function HomeHeroCard({
   const touchStartY = useRef(0);
   const isHorizontal = useRef<boolean | null>(null);
 
-  // Deck contents. Order puts the intention first — it is the card the user
-  // asked for, so it carries the slot when one is set.
+  // Deck order: the unfinished entry leads so the prompt to write is what you
+  // land on, then the intention (the thing you asked for), then a memory.
+  // Every card after the first is something to read, and the first can be
+  // swiped past — declining to write is a valid answer.
   const deck: React.ReactNode[] = [];
+  if (unfinishedEntry) {
+    deck.push(
+      <TaskCard
+        key={`task-${unfinishedEntry.id}`}
+        entry={unfinishedEntry}
+        onKeepWriting={() => onKeepWriting(unfinishedEntry)}
+      />,
+    );
+  }
   if (activeIntention) {
     deck.push(
       <IntentionCard
@@ -542,16 +556,6 @@ export default function HomeHeroCard({
     if (isHorizontal.current && Math.abs(dx) > 50) step(dx < 0 ? 1 : -1);
     setDragX(0);
   }, [step]);
-
-  // ── Mode A · a task exists. It owns the hero alone. ───────────────────────
-  if (unfinishedEntry) {
-    return (
-      <TaskCard
-        entry={unfinishedEntry}
-        onKeepWriting={() => onKeepWriting(unfinishedEntry)}
-      />
-    );
-  }
 
   // ── Day one · a blank first page, not a dashboard reporting zero. ─────────
   // Gated on having no sessions at all. It must NEVER stand in for an empty

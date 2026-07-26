@@ -4,6 +4,7 @@ import {
   findMemoryEntry,
   buildRecentEntries,
   excerptOf,
+  isExcerptTruncated,
   portraitDistributions,
 } from '../homeViewModel.ts';
 import type { SessionSummary } from '../../types/api.ts';
@@ -198,6 +199,16 @@ describe('excerptOf', () => {
 
   it('returns null for an unwritten session', () => {
     expect(excerptOf(session({ id: 'x', date: '2026-07-01' }))).toBeNull();
+  });
+
+  // A complete short fragment that ends in an ellipsis reads as cut off when
+  // it isn't, so the flag has to track real truncation.
+  it('flags truncation only when text was actually cut', () => {
+    const short = session({ id: 'a', date: '2026-07-01', notes: 'Short one.' });
+    const long  = session({ id: 'b', date: '2026-07-01', notes: 'x'.repeat(400) });
+    expect(isExcerptTruncated(short)).toBe(false);
+    expect(isExcerptTruncated(long)).toBe(true);
+    expect(isExcerptTruncated(session({ id: 'c', date: '2026-07-01' }))).toBe(false);
   });
 });
 

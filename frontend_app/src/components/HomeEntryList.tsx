@@ -38,7 +38,7 @@ export default function HomeEntryList({ entries, totalCount, onEntryTap }: Props
 
   return (
     <div>
-      {entries.map(({ session, excerpt }) => {
+      {entries.map(({ session, excerpt, truncated }) => {
         const { day, weekday } = dateParts(session);
         return (
           <button
@@ -101,6 +101,7 @@ export default function HomeEntryList({ entries, totalCount, onEntryTap }: Props
               }}
             >
               {excerpt ?? 'No notes yet'}
+              {truncated && <span style={{ color: 'rgba(255,255,255,0.46)' }}> …</span>}
             </span>
           </button>
         );

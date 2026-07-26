@@ -176,6 +176,8 @@ export interface RecentEntry {
   session: SessionSummary;
   /** First line of what they wrote, trimmed. Null when nothing is written yet. */
   excerpt: string | null;
+  /** True when the entry runs past the excerpt — the row trails off with "…". */
+  truncated: boolean;
 }
 
 /**
@@ -187,6 +189,7 @@ export function buildRecentEntries(sessions: SessionSummary[], count = 3): Recen
   return sortSessionsDesc(sessions).slice(0, count).map(session => ({
     session,
     excerpt: excerptOf(session),
+    truncated: isExcerptTruncated(session),
   }));
 }
 
@@ -202,6 +205,16 @@ export function excerptOf(
   const cut = flat.slice(0, maxChars);
   const lastSpace = cut.lastIndexOf(' ');
   return (lastSpace > maxChars * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd();
+}
+
+/** Whether `excerptOf` had to cut this entry short — drives the trailing "…". */
+export function isExcerptTruncated(
+  session: SessionSummary,
+  maxChars = EXCERPT_MAX_CHARS,
+): boolean {
+  const excerpt = excerptOf(session, maxChars);
+  if (!excerpt) return false;
+  return (session.notes?.trim().replace(/\s+/g, ' ').length ?? 0) > excerpt.length;
 }
 
 /**

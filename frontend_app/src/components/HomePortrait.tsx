@@ -13,6 +13,7 @@ import {
   prismVertices,
   toPolygonPoints,
   distributionPoints,
+  peakWeight,
   pillarLabel,
 } from '../lib/prismGeometry.ts';
 import type { Pillar, PillarDistribution } from '../types/api.ts';
@@ -85,10 +86,13 @@ interface Props {
 export default function HomePortrait({ shapes, sessionCount }: Props) {
   const navigate = useNavigate();
   const observed = useMemo(() => observe(shapes), [shapes]);
-  const layers = useMemo(
-    () => shapes.map(d => distributionPoints(d, CX, CY, R)),
-    [shapes],
-  );
+  // One shared denominator across every session, so only the busiest session
+  // reaches the rim and the rest nest inside it. That size variation is what
+  // makes the overlay read as many sessions rather than one carved object.
+  const layers = useMemo(() => {
+    const scale = peakWeight(shapes);
+    return shapes.map(d => distributionPoints(d, CX, CY, R, scale));
+  }, [shapes]);
 
   // Nothing to overlay — day one has no portrait.
   if (shapes.length === 0) return null;
