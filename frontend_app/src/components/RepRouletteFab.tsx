@@ -422,6 +422,14 @@ function RepRouletteFabImpl({ fabPosition = 'fixed' }: Props) {
           ref={panelRef}
           className="z-50 sm:hidden rounded-2xl"
           style={{
+            // The card MUST be positioned. z-index has no effect on a static
+            // element, so without this the `z-50` above is inert and the
+            // dismiss scrim behind it (position:fixed, z-40) paints on top —
+            // positioned boxes always paint above non-positioned ones. Every
+            // tap then lands on the scrim and closes the card instead of
+            // hitting Reroll.
+            position: 'relative',
+            zIndex: 50,
             width: 260,
             minHeight: 186,
             backgroundColor: 'rgba(26,53,40,0.95)',
