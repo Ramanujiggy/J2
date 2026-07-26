@@ -101,6 +101,7 @@ Full diagnostic rationale and implementation detail for each item lives in `impl
 |---|---|---|
 | `[ ]` | **Push notifications / reminders** | "You haven't logged in 5 days" or "Set your intention for this week." Web Push API, or a simple email digest via the existing Nodemailer service. |
 | `[ ]` | **Coach notes / video links** | Attach a YouTube link or coach note to a session or intention. Could use the existing `notes` field with a structured prefix, or a separate DB field. |
+| `[ ]` | **Gold `@mention` styling in the entry prose** | Deferred 2026-07-25. Color partner `@mentions` copper in the Margin Notes entry so tags stand out. A `<textarea>` can't style part of its text; approach chosen = **highlight-overlay** (mirror div behind a transparent-text textarea colors each `@Ash`; keeps the textarea so voice/mobile/caret stay bulletproof — the `@` stays visible). `contenteditable` was rejected as too fragile for this voice-fed mobile input. Single file: `MarginNotesEntry.tsx`. |
 
 ---
 
