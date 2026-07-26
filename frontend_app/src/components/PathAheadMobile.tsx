@@ -33,6 +33,9 @@ interface Props {
   memoryEntry: MemoryEntry | null;
   recentEntries: RecentEntry[];
   portraitShapes: PillarDistribution[];
+  /** Profile feature flag. When off, the intention card must not reach the
+   *  deck — its CTA deep-links into a section the nav has hidden. */
+  intentionsEnabled: boolean;
   activeIntention: Intention | null;
   /** Sessions touching the intention since it was set — computed over the
    *  full history in PathAheadPage, not over `recentEntries`. */
@@ -50,6 +53,7 @@ export default function PathAheadMobile({
   memoryEntry,
   recentEntries,
   portraitShapes,
+  intentionsEnabled,
   activeIntention,
   intentionTouchedCount,
   modals,
@@ -97,7 +101,7 @@ export default function PathAheadMobile({
         <HomeHeroCard
           unfinishedEntry={unfinishedEntry}
           memoryEntry={memoryEntry}
-          activeIntention={activeIntention}
+          activeIntention={intentionsEnabled ? activeIntention : null}
           intentionWeeksIn={intentionWeeksIn}
           intentionTouchedCount={intentionTouchedCount}
           hasAnySessions={totalSessions > 0}

@@ -36,7 +36,7 @@ export default function SessionDetailPage() {
   // history is needed so prev/next reaches the oldest entries and "similar
   // sessions" can surface old ones with matching focus — that matches the
   // context's default unfiltered fetch.
-  const { sessions, loading, error: fetchError } = useSessions();
+  const { sessions, loading, error: fetchError, refresh } = useSessions();
 
   const pendingSessions = usePendingSessions();
   const allSessions = useMemo(() => [...sessions, ...pendingSessions], [sessions, pendingSessions]);
@@ -90,16 +90,25 @@ export default function SessionDetailPage() {
     ? new Date((typeof session.date === 'string' ? session.date.slice(0, 10) : toDateString(new Date(session.date))) + 'T00:00:00')
     : null;
 
+  // Every mutation has to invalidate SessionsContext — the provider fetches
+  // once at app mount and has no other refresh path, so without this the page
+  // (and /journal behind it) keep showing pre-edit or already-deleted rows.
   const handleDelete = useCallback(async () => {
     if (!session) return;
     setDeleting(true);
     try {
       await api.delete(`/api/sessions/${session.id}`);
+      await refresh();
       navigate('/journal', { replace: true });
     } catch {
       setDeleting(false);
     }
-  }, [session, navigate]);
+  }, [session, navigate, refresh]);
+
+  const handleSaved = useCallback(() => {
+    setEditing(false);
+    void refresh();
+  }, [refresh]);
 
   if (!isDesktop) return null;
 
@@ -148,8 +157,8 @@ export default function SessionDetailPage() {
         date={sessionDate}
         initialEditing
         onClose={() => setEditing(false)}
-        onSaved={() => setEditing(false)}
-        onDeleted={() => navigate('/journal', { replace: true })}
+        onSaved={handleSaved}
+        onDeleted={() => { void refresh(); navigate('/journal', { replace: true }); }}
       />
     )}
     </>

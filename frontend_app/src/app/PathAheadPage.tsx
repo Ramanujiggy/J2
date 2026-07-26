@@ -518,6 +518,7 @@ export default function PathAheadPage() {
       memoryEntry={memoryEntry}
       recentEntries={recentEntries}
       portraitShapes={portraitShapes}
+      intentionsEnabled={intentionsEnabled}
       activeIntention={activeIntention}
       intentionTouchedCount={intentionTouchedCount}
       modals={modals}

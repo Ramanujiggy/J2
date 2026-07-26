@@ -58,7 +58,13 @@ export function findUnfinishedEntry(
   return null;
 }
 
-export type MemoryTier = 'year_ago_today' | 'month_last_year' | 'most_sealed';
+export type MemoryTier =
+  | 'year_ago_today'
+  | 'month_last_year'
+  | 'month_ago'
+  | 'week_ago'
+  | 'most_sealed'
+  | 'earlier';
 
 export interface MemoryEntry {
   session: SessionSummary;
@@ -69,11 +75,27 @@ export interface MemoryEntry {
   ordinal: number;
 }
 
+/** How far either side of the target date a week/month memory may sit. */
+const WEEK_TIER_TOLERANCE_DAYS = 3;
+const MONTH_TIER_TOLERANCE_DAYS = 7;
+
+/** Anything newer than this is still "now" — it wouldn't feel resurfaced. */
+const MIN_MEMORY_AGE_DAYS = 5;
+
 /**
- * The resurfacing chain from the build brief, in order:
+ * The resurfacing chain, longest reach first:
  *   1. an entry from a year ago today
  *   2. the same calendar month last year (closest day-of-month)
- *   3. the user's most-sealed entry
+ *   3. about a month ago
+ *   4. about a week ago
+ *   5. the user's most-sealed entry
+ *   6. anything else they've written
+ *
+ * Tiers 3 and 4 exist because the cadence has to compress early: the payoff
+ * must land in week one, and the first time someone reads their own
+ * seven-day-old sentence is the conversion moment. Without them a user in
+ * their first year has nothing to resurface at all.
+ *
  * Only written entries resurface — the point is to be read.
  */
 export function findMemoryEntry(
@@ -93,18 +115,23 @@ export function findMemoryEntry(
     session, tier, label, ordinal: ordinalOf(session),
   });
 
+  const todayKey = toDateString(today);
+  const dated = written.map(s => ({
+    s,
+    key: sessionDateKey(s),
+    d: new Date(sessionDateKey(s) + 'T00:00:00'),
+  }));
+
   // 1 — a year ago today.
-  const yearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
-  const yearAgoKey = toDateString(yearAgo);
-  const exact = written.find(s => sessionDateKey(s) === yearAgoKey);
-  if (exact) return build(exact, 'year_ago_today', 'A year ago today');
+  const yearAgoKey = toDateString(
+    new Date(today.getFullYear() - 1, today.getMonth(), today.getDate()),
+  );
+  const exact = dated.find(({ key }) => key === yearAgoKey);
+  if (exact) return build(exact.s, 'year_ago_today', 'A year ago today');
 
   // 2 — same calendar month, previous year; closest day-of-month wins.
-  const targetYear = today.getFullYear() - 1;
-  const targetMonth = today.getMonth();
-  const sameMonth = written
-    .map(s => ({ s, d: new Date(sessionDateKey(s) + 'T00:00:00') }))
-    .filter(({ d }) => d.getFullYear() === targetYear && d.getMonth() === targetMonth)
+  const sameMonth = dated
+    .filter(({ d }) => d.getFullYear() === today.getFullYear() - 1 && d.getMonth() === today.getMonth())
     .sort((a, b) =>
       Math.abs(a.d.getDate() - today.getDate()) - Math.abs(b.d.getDate() - today.getDate()));
   if (sameMonth.length > 0) {
@@ -112,11 +139,35 @@ export function findMemoryEntry(
     return build(sameMonth[0]!.s, 'month_last_year', `${monthName} last year`);
   }
 
-  // 3 — the most-sealed entry.
-  const sealed = written
-    .filter(s => (s.stamps?.length ?? 0) > 0)
-    .sort((a, b) => (b.stamps?.length ?? 0) - (a.stamps?.length ?? 0));
-  if (sealed.length > 0) return build(sealed[0]!, 'most_sealed', 'Worth keeping');
+  // 3 / 4 — the compressed early cadence. Closest entry to the target age.
+  const nearestTo = (targetAge: number, tolerance: number) => {
+    const candidates = dated
+      .map(entry => ({ ...entry, age: daysBetween(entry.key, todayKey) }))
+      .filter(({ age }) => Math.abs(age - targetAge) <= tolerance)
+      .sort((a, b) => Math.abs(a.age - targetAge) - Math.abs(b.age - targetAge));
+    return candidates[0] ?? null;
+  };
+
+  const monthAgo = nearestTo(30, MONTH_TIER_TOLERANCE_DAYS);
+  if (monthAgo) return build(monthAgo.s, 'month_ago', 'A month ago');
+
+  const weekAgo = nearestTo(7, WEEK_TIER_TOLERANCE_DAYS);
+  if (weekAgo) return build(weekAgo.s, 'week_ago', 'A week ago');
+
+  // 5 — the most-sealed entry.
+  const sealed = dated
+    .filter(({ s }) => (s.stamps?.length ?? 0) > 0)
+    .sort((a, b) => (b.s.stamps?.length ?? 0) - (a.s.stamps?.length ?? 0));
+  if (sealed.length > 0) return build(sealed[0]!.s, 'most_sealed', 'Worth keeping');
+
+  // 6 — anything they've written that isn't from the last few days. Better a
+  // plain memory than an empty hero telling a writing user they've written
+  // nothing.
+  const earlier = dated
+    .map(entry => ({ ...entry, age: daysBetween(entry.key, todayKey) }))
+    .filter(({ age }) => age >= MIN_MEMORY_AGE_DAYS)
+    .sort((a, b) => b.age - a.age);
+  if (earlier.length > 0) return build(earlier[0]!.s, 'earlier', 'Earlier');
 
   return null;
 }

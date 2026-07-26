@@ -254,30 +254,6 @@ export default function EntryReadView({
           >
             {prose}
           </div>
-
-          {/* ── The seal, at press scale ─────────────────────────────── */}
-          {die && stamp && (
-            <>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 22 }}>
-                <button
-                  type="button"
-                  aria-label={`${die.name} seal — a mat moment, ${bandDate(stamp.struck_at)}. Open details.`}
-                  onClick={() => setSealOpen(true)}
-                  style={{
-                    width: 140, height: 140, transform: 'rotate(-8deg)',
-                    background: 'none', border: 'none', padding: 0, cursor: 'pointer',
-                  }}
-                >
-                  <SealStamp die={die} top={bandDate(stamp.struck_at)} size={140} />
-                </button>
-              </div>
-              <div style={{ ...MICRO, textAlign: 'right', color: TEXT_TERTIARY, marginTop: 10 }}>
-                {die.name} · struck {new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric' })
-                  .format(new Date(stamp.struck_at))}
-                {(session.stamps?.length ?? 0) > 1 && ` · ${session.stamps!.length} marks`}
-              </div>
-            </>
-          )}
         </>
       ) : (
         /* ── Logged, but nothing written yet ────────────────────────── */
@@ -324,6 +300,33 @@ export default function EntryReadView({
               </svg>
               Two lines is plenty
             </button>
+          </div>
+        </>
+      )}
+
+      {/* ── The seal, at press scale ──────────────────────────────────────
+          Outside the written/unwritten branch on purpose: a session can be
+          sealed without ever being written, and this page is the only place
+          besides the collection where the die appears at full size. */}
+      {die && stamp && (
+        <>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 22 }}>
+            <button
+              type="button"
+              aria-label={`${die.name} seal — a mat moment, ${bandDate(stamp.struck_at)}. Open details.`}
+              onClick={() => setSealOpen(true)}
+              style={{
+                width: 140, height: 140, transform: 'rotate(-8deg)',
+                background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+              }}
+            >
+              <SealStamp die={die} top={bandDate(stamp.struck_at)} size={140} />
+            </button>
+          </div>
+          <div style={{ ...MICRO, textAlign: 'right', color: TEXT_TERTIARY, marginTop: 10 }}>
+            {die.name} · struck {new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric' })
+              .format(new Date(stamp.struck_at))}
+            {(session.stamps?.length ?? 0) > 1 && ` · ${session.stamps!.length} marks`}
           </div>
         </>
       )}

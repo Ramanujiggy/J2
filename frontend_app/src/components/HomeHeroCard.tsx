@@ -25,6 +25,7 @@ import { formatDuration } from '../lib/sessionUtils.ts';
 import { excerptOf } from '../lib/homeViewModel.ts';
 import { STAMP_DIES, bandDate } from '../lib/stampDies.ts';
 import SealStamp from './seal/SealStamp.tsx';
+import SealRevealSheet from './seal/SealRevealSheet.tsx';
 import type { MemoryEntry } from '../lib/homeViewModel.ts';
 import type { Intention, SessionSummary } from '../types/api.ts';
 
@@ -169,11 +170,11 @@ function CardHeader({ pill, right }: { pill: string; right?: React.ReactNode }) 
 
 // ── Card bodies ─────────────────────────────────────────────────────────────
 
-function TaskCard({ entry, onKeepWriting, onOpenSeal }: {
+function TaskCard({ entry, onKeepWriting }: {
   entry: SessionSummary;
   onKeepWriting: () => void;
-  onOpenSeal?: (session: SessionSummary) => void;
 }) {
+  const [sealOpen, setSealOpen] = useState(false);
   const dateKey = typeof entry.date === 'string' ? entry.date.slice(0, 10) : entry.date;
   const d = new Date(dateKey + 'T00:00:00');
   const weekday = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(d);
@@ -183,7 +184,11 @@ function TaskCard({ entry, onKeepWriting, onOpenSeal }: {
   // An unfinished entry is one with nothing written, but if a fragment does
   // exist it gets the quote treatment — the copper margin rule means "your
   // own words" and must never frame copy the app wrote.
-  const excerpt = excerptOf(entry, 90);
+  const EXCERPT_CHARS = 90;
+  const excerpt = excerptOf(entry, EXCERPT_CHARS);
+  // Only trail off when the text was actually cut — a complete short fragment
+  // that ends in an ellipsis reads as truncated when it isn't.
+  const truncated = !!excerpt && (entry.notes?.trim().replace(/\s+/g, ' ').length ?? 0) > excerpt.length;
 
   return (
     <div style={CARD_STYLE}>
@@ -205,7 +210,7 @@ function TaskCard({ entry, onKeepWriting, onOpenSeal }: {
       {excerpt ? (
         <div style={{ ...QUOTE_STYLE, marginTop: 12, maxWidth: 236 }}>
           {excerpt}
-          <span style={{ color: 'rgba(255,255,255,0.46)' }}> …</span>
+          {truncated && <span style={{ color: 'rgba(255,255,255,0.46)' }}> …</span>}
         </div>
       ) : (
         <div
@@ -226,18 +231,28 @@ function TaskCard({ entry, onKeepWriting, onOpenSeal }: {
       </div>
 
       {die && stamp && (
-        <button
-          type="button"
-          aria-label={`${die.name} seal. Open details.`}
-          onClick={e => { e.stopPropagation(); onOpenSeal?.(entry); }}
-          style={{
-            position: 'absolute', right: 16, bottom: 16, width: 56, height: 56,
-            transform: 'rotate(-8deg)', background: 'none', border: 'none',
-            padding: 0, cursor: 'pointer',
-          }}
-        >
-          <SealStamp die={die} top={bandDate(stamp.struck_at)} size={56} />
-        </button>
+        <>
+          <button
+            type="button"
+            aria-label={`${die.name} seal — a mat moment, ${bandDate(stamp.struck_at)}. Open details.`}
+            onClick={e => { e.stopPropagation(); setSealOpen(true); }}
+            style={{
+              position: 'absolute', right: 16, bottom: 16, width: 56, height: 56,
+              transform: 'rotate(-8deg)', background: 'none', border: 'none',
+              padding: 0, cursor: 'pointer',
+            }}
+          >
+            <SealStamp die={die} top={bandDate(stamp.struck_at)} size={56} />
+          </button>
+          <SealRevealSheet
+            open={sealOpen}
+            die={die}
+            struckAt={stamp.struck_at}
+            count={entry.stamps?.filter(s => s.die_key === stamp.die_key).length ?? 1}
+            autoEarned={die.earnRule === 'auto'}
+            onClose={() => setSealOpen(false)}
+          />
+        </>
       )}
     </div>
   );
@@ -392,6 +407,46 @@ function DayOneCard({ onLogFirst }: { onLogFirst: () => void }) {
   );
 }
 
+/**
+ * Sessions exist but there's nothing to read yet — everything logged is
+ * either unwritten or too recent to feel resurfaced, and no intention is set.
+ * States what's true without implying the user failed to do something.
+ */
+function NothingToResurfaceCard({ onLog }: { onLog: () => void }) {
+  return (
+    <div style={CARD_STYLE}>
+      <CardHeader
+        pill="Your journal"
+        right={<span style={{ ...MICRO_LABEL, color: COPPER }}>Building</span>}
+      />
+
+      <div
+        style={{
+          fontFamily: FONT_EDITORIAL, fontSize: 27, fontWeight: 600,
+          color: PALE_YELLOW, marginTop: 20, lineHeight: 1.14,
+        }}
+      >
+        Nothing to read<br />back yet.
+      </div>
+
+      <div
+        style={{
+          fontSize: 13.5, color: 'rgba(255,255,255,0.66)', marginTop: 10,
+          lineHeight: 1.55, maxWidth: 260,
+        }}
+      >
+        Write two lines after a session and it will find its way back to you here.
+      </div>
+
+      <div style={{ marginTop: 'auto' }}>
+        <button type="button" style={CTA_STYLE} onClick={onLog}>
+          <PlusIcon /> Log a session
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function ordinal(n: number): string {
   const s = ['th', 'st', 'nd', 'rd'];
   const v = n % 100;
@@ -411,7 +466,6 @@ interface Props {
   onReadEntry: (session: SessionSummary) => void;
   onOpenIntention: () => void;
   onLog: () => void;
-  onOpenSeal?: (session: SessionSummary) => void;
 }
 
 export default function HomeHeroCard({
@@ -425,7 +479,6 @@ export default function HomeHeroCard({
   onReadEntry,
   onOpenIntention,
   onLog,
-  onOpenSeal,
 }: Props) {
   const [index, setIndex] = useState(0);
   const [dragX, setDragX] = useState(0);
@@ -496,14 +549,21 @@ export default function HomeHeroCard({
       <TaskCard
         entry={unfinishedEntry}
         onKeepWriting={() => onKeepWriting(unfinishedEntry)}
-        onOpenSeal={onOpenSeal}
       />
     );
   }
 
   // ── Day one · a blank first page, not a dashboard reporting zero. ─────────
-  if (!hasAnySessions || count === 0) {
+  // Gated on having no sessions at all. It must NEVER stand in for an empty
+  // deck: telling a user with entries behind it that nothing is written here
+  // contradicts the very list sitting below the hero.
+  if (!hasAnySessions) {
     return <DayOneCard onLogFirst={onLog} />;
+  }
+
+  // ── Sessions logged, but nothing to resurface yet. ────────────────────────
+  if (count === 0) {
+    return <NothingToResurfaceCard onLog={onLog} />;
   }
 
   // ── Mode B · the reading deck. ────────────────────────────────────────────

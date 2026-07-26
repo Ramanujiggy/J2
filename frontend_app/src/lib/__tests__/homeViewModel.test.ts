@@ -89,7 +89,26 @@ describe('findMemoryEntry — the resurfacing chain', () => {
     expect(found?.label).toBe('July last year');
   });
 
-  it('falls back to the most-sealed entry when no anniversary exists', () => {
+  // The cadence has to compress early — the first time someone reads their
+  // own seven-day-old sentence is the conversion moment. Without these tiers
+  // a user in their first year has nothing to resurface at all.
+  it('resurfaces an entry from about a month ago before falling further back', () => {
+    const found = findMemoryEntry([
+      session({ id: 'monthish', date: '2026-06-26', notes: 'roughly a month back' }),
+      session({ id: 'weekish',  date: '2026-07-18', notes: 'roughly a week back' }),
+    ], TODAY);
+    expect(found?.tier).toBe('month_ago');
+    expect(found?.session.id).toBe('monthish');
+  });
+
+  it('resurfaces an entry from about a week ago when there is no month-old one', () => {
+    const found = findMemoryEntry([
+      session({ id: 'weekish', date: '2026-07-18', notes: 'roughly a week back' }),
+    ], TODAY);
+    expect(found?.tier).toBe('week_ago');
+  });
+
+  it('falls back to the most-sealed entry when no anniversary or recent tier hits', () => {
     const found = findMemoryEntry([
       session({ id: 'plain',  date: '2026-03-01', notes: 'a normal day' }),
       session({
@@ -102,6 +121,25 @@ describe('findMemoryEntry — the resurfacing chain', () => {
     ], TODAY);
     expect(found?.tier).toBe('most_sealed');
     expect(found?.session.id).toBe('sealed');
+  });
+
+  // Regression: a first-year user with writing but no anniversary, no
+  // recent-tier hit and no seals used to get nothing here — which made the
+  // hero fall through to the day-one "Nothing written here yet" card while
+  // their entries were listed directly below it.
+  it('always resurfaces something when the user has written anything older than a few days', () => {
+    const found = findMemoryEntry([
+      session({ id: 'lone', date: '2026-03-01', notes: 'the only thing I ever wrote' }),
+    ], TODAY);
+    expect(found).not.toBeNull();
+    expect(found?.session.id).toBe('lone');
+  });
+
+  it('does not resurface something written in the last few days', () => {
+    expect(findMemoryEntry([
+      session({ id: 'today', date: '2026-07-25', notes: 'just now' }),
+      session({ id: 'yday',  date: '2026-07-24', notes: 'yesterday' }),
+    ], TODAY)).toBeNull();
   });
 
   // The memory exists to be read — an unwritten session has nothing to offer.
