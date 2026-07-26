@@ -282,8 +282,13 @@ function MobileAppShell({ children }: Props) {
       <OfflineBanner />
 
       {/* ── Page content ────────────────────────────────────────── */}
+      {/* overflow-x-hidden is a guard, not a layout tool: nothing in the app
+          should pan the page sideways, and a single element hanging past the
+          right edge (a card peek, a wide chip row) silently turns every
+          horizontal drag into a page pan. Components that genuinely scroll
+          sideways still do so in their own overflow-x containers. */}
       <main
-        className="flex-1 overflow-auto sm:pb-0 j2-app-scroll"
+        className="flex-1 overflow-y-auto overflow-x-hidden sm:pb-0 j2-app-scroll"
         style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px) + 8px)' }}
       >
         <PageTransition>{children}</PageTransition>

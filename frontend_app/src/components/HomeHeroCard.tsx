@@ -32,6 +32,9 @@ import type { Intention, SessionSummary } from '../types/api.ts';
 /** Fixed across every card type — the page below must never jump on swipe. */
 const CARD_HEIGHT = 262;
 
+/** Horizontal travel, in px, that commits to the next card. */
+const SWIPE_THRESHOLD_PX = 50;
+
 const CARD_STYLE: React.CSSProperties = {
   position: 'relative',
   height: CARD_HEIGHT,
@@ -131,14 +134,19 @@ function PlusIcon({ size = 16 }: { size?: number }) {
   );
 }
 
-/** The two stacked strips behind the deck — depth without a count. */
+/** The two stacked strips behind the deck — depth without a count.
+ *
+ *  Offsets stay inside the page's 16px gutter. The mockup's −13/−22 were
+ *  drawn inside a phone frame that clipped its own overflow; here the far
+ *  strip would hang 6px past the viewport, making the whole page
+ *  horizontally scrollable and turning any swipe into a page pan. */
 function Peeks() {
   return (
     <>
       <div
         aria-hidden
         style={{
-          position: 'absolute', right: -22, top: 24, bottom: 24, width: 26,
+          position: 'absolute', right: -15, top: 24, bottom: 24, width: 26,
           borderRadius: 14,
           border: '1px solid rgba(255,255,255,0.06)', borderRight: 'none',
           background: 'linear-gradient(to right, #122419, #0f2016)',
@@ -148,7 +156,7 @@ function Peeks() {
       <div
         aria-hidden
         style={{
-          position: 'absolute', right: -13, top: 14, bottom: 14, width: 26,
+          position: 'absolute', right: -8, top: 14, bottom: 14, width: 26,
           borderRadius: 14,
           border: '1px solid rgba(255,255,255,0.1)', borderRight: 'none',
           background: 'linear-gradient(to right, #162c20, #12241a)',
@@ -485,6 +493,12 @@ export default function HomeHeroCard({
 }: Props) {
   const [index, setIndex] = useState(0);
   const [dragX, setDragX] = useState(0);
+  /** True only while easing back after a swipe that didn't reach the
+   *  threshold. On a committed swipe the drag resets with no transition, so
+   *  it doesn't travel one way while the incoming card travels the other. */
+  const [snapBack, setSnapBack] = useState(false);
+  /** Direction the incoming card should enter from, or null on first paint. */
+  const [enterDir, setEnterDir] = useState<1 | -1 | null>(null);
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
   const isHorizontal = useRef<boolean | null>(null);
@@ -530,17 +544,21 @@ export default function HomeHeroCard({
   const step = useCallback((dir: 1 | -1) => {
     if (count <= 1) return;
     setIndex(prev => (prev + dir + count) % count);
+    setEnterDir(prefersReducedMotion() ? null : dir);
   }, [count]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0]!.clientX;
     touchStartY.current = e.touches[0]!.clientY;
     isHorizontal.current = null;
+    setSnapBack(false);
   }, []);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     const dx = e.touches[0]!.clientX - touchStartX.current;
     const dy = e.touches[0]!.clientY - touchStartY.current;
+    // Lock the axis on the first meaningful movement so a vertical scroll
+    // that wanders sideways never drags the card.
     if (isHorizontal.current === null) {
       if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
         isHorizontal.current = Math.abs(dx) > Math.abs(dy);
@@ -548,13 +566,16 @@ export default function HomeHeroCard({
       return;
     }
     if (!isHorizontal.current) return;
-    setDragX(prefersReducedMotion() ? 0 : dx);
+    // Half-distance: attached to the finger without travelling the full span.
+    setDragX(prefersReducedMotion() ? 0 : dx * 0.5);
   }, []);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
     const dx = e.changedTouches[0]!.clientX - touchStartX.current;
-    if (isHorizontal.current && Math.abs(dx) > 50) step(dx < 0 ? 1 : -1);
+    const committed = !!isHorizontal.current && Math.abs(dx) > SWIPE_THRESHOLD_PX;
+    setSnapBack(!committed);
     setDragX(0);
+    if (committed) step(dx < 0 ? 1 : -1);
   }, [step]);
 
   // ── Day one · a blank first page, not a dashboard reporting zero. ─────────
@@ -571,21 +592,34 @@ export default function HomeHeroCard({
   }
 
   // ── Mode B · the reading deck. ────────────────────────────────────────────
+  const swipeable = count > 1;
+  const enterClass = enterDir === 1
+    ? 'animate-j2-page-slide-in-forward'
+    : enterDir === -1 ? 'animate-j2-page-slide-in-back' : undefined;
+
   return (
     <div style={{ position: 'relative' }}>
-      {count > 1 && <Peeks />}
+      {swipeable && <Peeks />}
       <div
         data-no-page-swipe=""
-        onTouchStart={count > 1 ? handleTouchStart : undefined}
-        onTouchMove={count > 1 ? handleTouchMove : undefined}
-        onTouchEnd={count > 1 ? handleTouchEnd : undefined}
+        onTouchStart={swipeable ? handleTouchStart : undefined}
+        onTouchMove={swipeable ? handleTouchMove : undefined}
+        onTouchEnd={swipeable ? handleTouchEnd : undefined}
         style={{
-          transform: dragX ? `translateX(${dragX * 0.4}px)` : undefined,
-          transition: dragX ? 'none' : 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-          willChange: count > 1 ? 'transform' : undefined,
+          // pan-y is the whole fix for the page sliding along with the card:
+          // it tells the browser we own the horizontal axis, so it only pans
+          // vertically. Without it the native pan and this transform both run.
+          touchAction: swipeable ? 'pan-y' : undefined,
+          transform: dragX ? `translateX(${dragX}px)` : undefined,
+          transition: snapBack ? 'transform 260ms cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
+          willChange: swipeable ? 'transform' : undefined,
         }}
       >
-        {deck[index % count]}
+        {/* Keyed so the incoming card remounts and plays its entrance from
+            the side the swipe came from. */}
+        <div key={index} className={enterClass}>
+          {deck[index % count]}
+        </div>
       </div>
     </div>
   );
