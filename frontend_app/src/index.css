@@ -241,6 +241,32 @@
   .j2-desk-page { animation: none; }
 }
 
+/* ────────────────────────────────────────────────────────────────────
+ * Today's desk — the main prose column beside a narrower margin column,
+ * the way an annotated page reads. Below 1250px the margin drops beneath
+ * the prose and lays its blocks out side by side, so the prose column
+ * never gets squeezed: words win the space fight.
+ * ──────────────────────────────────────────────────────────────────── */
+.j2-desk {
+  display: flex;
+  gap: 72px;
+  justify-content: center;
+}
+.j2-desk-main   { flex: 0 1 620px; min-width: 0; }
+.j2-desk-margin { flex: 0 1 296px; min-width: 220px; padding-top: 86px; }
+
+@media (max-width: 1250px) {
+  .j2-desk { flex-wrap: wrap; gap: 0 40px; justify-content: flex-start; }
+  .j2-desk-main   { flex: 1 1 460px; }
+  .j2-desk-margin {
+    flex: 1 1 100%;
+    padding-top: 10px;
+    display: flex;
+    gap: 40px;
+  }
+  .j2-desk-margin > * { flex: 1; }
+}
+
 /* Rail masthead wave — the seigaiha at full copper strength, masked so it
    fades out before it reaches the nav. Distinct from .j2-seigaiha-bg (the
    fixed, dimmer, page-wide backdrop): this one is bounded by the 118px

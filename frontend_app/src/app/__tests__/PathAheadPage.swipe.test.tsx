@@ -68,22 +68,10 @@ function swipe(el: HTMLElement, startX: number, endX: number, dt = 0) {
   fireEvent.touchEnd(el, { changedTouches: [{ clientX: endX, clientY: 0 }] });
 }
 
-// ── Week view tests ─────────────────────────────────────────────────────────
-
-describe('PathAheadPage — week view', () => {
-
-  it('renders 7 mini day cards (Mon–Sun) in the week scroll', async () => {
-    renderPage();
-    const weekScroll = await screen.findByTestId('week-scroll');
-    expect(weekScroll).toBeInTheDocument();
-    // Mon Mar 23 through Sun Mar 29
-    expect(screen.getByText('Mar 23')).toBeInTheDocument();
-    expect(screen.getByText('Mar 29')).toBeInTheDocument();
-    // Should have 7 day cards
-    const buttons = weekScroll.querySelectorAll('button');
-    expect(buttons.length).toBe(7);
-  });
-});
+// The week-view test that lived here was removed on 2026-07-31 along with
+// the week carousel itself: home is a table of contents on both viewports
+// now, and Calendar owns dates. It had been failing before the removal, so
+// nothing was covering the carousel by then anyway.
 
 // ── Rep Roulette FAB tests ──────────────────────────────────────────────────
 

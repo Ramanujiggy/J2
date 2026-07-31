@@ -81,9 +81,13 @@ function observe(shapes: PillarDistribution[]): string {
 interface Props {
   shapes: PillarDistribution[];
   sessionCount: number;
+  /** `desk` drops the copper kicker and the chevron: in the desktop column
+   *  the shape itself is the affordance, and the row sits under a rule the
+   *  entry list already drew. */
+  variant?: 'mobile' | 'desk';
 }
 
-export default function HomePortrait({ shapes, sessionCount }: Props) {
+export default function HomePortrait({ shapes, sessionCount, variant = 'mobile' }: Props) {
   const navigate = useNavigate();
   const observed = useMemo(() => observe(shapes), [shapes]);
   // One shared denominator across every session, so only the busiest session
@@ -97,20 +101,22 @@ export default function HomePortrait({ shapes, sessionCount }: Props) {
   // Nothing to overlay — day one has no portrait.
   if (shapes.length === 0) return null;
 
+  const desk = variant === 'desk';
+
   return (
     <button
       type="button"
-      onClick={() => navigate('/analytics')}
+      onClick={() => navigate('/atlas')}
       className="j2-press"
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 16,
+        gap: desk ? 20 : 16,
         width: '100%',
         textAlign: 'left',
-        marginTop: 6,
-        paddingTop: 20,
-        borderTop: '1px solid rgba(255,255,255,0.06)',
+        marginTop: desk ? 36 : 6,
+        paddingTop: desk ? 0 : 20,
+        borderTop: desk ? 'none' : '1px solid rgba(255,255,255,0.06)',
         background: 'none',
         cursor: 'pointer',
       }}
@@ -129,39 +135,50 @@ export default function HomePortrait({ shapes, sessionCount }: Props) {
       </svg>
 
       <span style={{ flex: 1 }}>
-        <span
-          style={{
-            display: 'block',
-            fontSize: 10.5,
-            fontWeight: 700,
-            letterSpacing: '0.15em',
-            textTransform: 'uppercase',
-            color: COPPER,
-          }}
-        >
-          Your game
-        </span>
+        {!desk && (
+          <span
+            style={{
+              display: 'block',
+              fontSize: 10.5,
+              fontWeight: 700,
+              letterSpacing: '0.15em',
+              textTransform: 'uppercase',
+              color: COPPER,
+            }}
+          >
+            Your game
+          </span>
+        )}
         <span
           style={{
             display: 'block',
             fontFamily: FONT_EDITORIAL,
-            fontSize: 20,
+            fontSize: desk ? 21 : 20,
             fontWeight: 600,
             color: PALE_YELLOW,
-            marginTop: 4,
+            marginTop: desk ? 0 : 4,
             lineHeight: 1.2,
           }}
         >
           {spell(sessionCount)} {sessionCount === 1 ? 'session' : 'sessions'}, one shape
         </span>
-        {observed && (
-          <span style={{ display: 'block', fontSize: 12, color: 'rgba(255,255,255,0.46)', marginTop: 6 }}>
-            {observed}
-          </span>
-        )}
+        <span
+          style={{
+            display: 'block',
+            fontSize: 12,
+            color: 'rgba(255,255,255,0.46)',
+            marginTop: desk ? 5 : 6,
+            lineHeight: desk ? 1.55 : undefined,
+            maxWidth: desk ? 330 : undefined,
+            textWrap: 'pretty',
+          }}
+        >
+          {observed}
+          {desk && (observed ? ' ' : '') + 'Click to open the instruments.'}
+        </span>
       </span>
 
-      <span style={{ color: 'rgba(255,255,255,0.46)', fontSize: 20, flex: 'none' }}>›</span>
+      {!desk && <span style={{ color: 'rgba(255,255,255,0.46)', fontSize: 20, flex: 'none' }}>›</span>}
     </button>
   );
 }

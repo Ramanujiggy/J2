@@ -21,6 +21,9 @@ interface Props {
   entries: RecentEntry[];
   totalCount: number;
   onEntryTap: (session: SessionSummary) => void;
+  /** `desk` is the desktop column: wider date gutter, larger type, and a
+   *  left-aligned footer link (centred reads as a button in a 620px column). */
+  variant?: 'mobile' | 'desk';
 }
 
 function dateParts(session: SessionSummary): { day: string; weekday: string } {
@@ -32,9 +35,16 @@ function dateParts(session: SessionSummary): { day: string; weekday: string } {
   };
 }
 
-export default function HomeEntryList({ entries, totalCount, onEntryTap }: Props) {
+export default function HomeEntryList({ entries, totalCount, onEntryTap, variant = 'mobile' }: Props) {
   const navigate = useNavigate();
   if (entries.length === 0) return null;
+
+  const desk = variant === 'desk';
+  const dateColW   = desk ? 96 : 84;
+  const dateSize   = desk ? 20 : 19;
+  const excerptSize = desk ? 17.5 : 16.5;
+  const rowGap     = desk ? 18 : 14;
+  const rowPadding = desk ? '17px 0' : '16px 0';
 
   return (
     <div>
@@ -49,10 +59,10 @@ export default function HomeEntryList({ entries, totalCount, onEntryTap }: Props
             style={{
               display: 'flex',
               alignItems: 'flex-start',
-              gap: 14,
+              gap: rowGap,
               width: '100%',
               minHeight: 44,
-              padding: '16px 0',
+              padding: rowPadding,
               textAlign: 'left',
               background: 'none',
               border: 'none',
@@ -62,12 +72,12 @@ export default function HomeEntryList({ entries, totalCount, onEntryTap }: Props
           >
             {/* Sage is spent here and nowhere else — it is what makes the list
                 read as journal pages rather than table rows. */}
-            <span style={{ width: 84, flex: 'none', lineHeight: 1.15 }}>
+            <span style={{ width: dateColW, flex: 'none', lineHeight: 1.15 }}>
               <span
                 style={{
                   display: 'block',
                   fontFamily: FONT_EDITORIAL,
-                  fontSize: 19,
+                  fontSize: dateSize,
                   color: SAGE,
                   whiteSpace: 'nowrap',
                 }}
@@ -93,8 +103,8 @@ export default function HomeEntryList({ entries, totalCount, onEntryTap }: Props
               style={{
                 flex: 1,
                 fontFamily: FONT_EDITORIAL,
-                fontSize: 16.5,
-                lineHeight: 1.45,
+                fontSize: excerptSize,
+                lineHeight: desk ? 1.5 : 1.45,
                 color: excerpt ? 'rgba(255,255,255,0.66)' : 'rgba(255,255,255,0.46)',
                 fontStyle: excerpt ? 'normal' : 'italic',
                 textWrap: 'pretty',
@@ -114,8 +124,8 @@ export default function HomeEntryList({ entries, totalCount, onEntryTap }: Props
           display: 'block',
           width: '100%',
           minHeight: 44,
-          textAlign: 'center',
-          padding: '16px 0 0',
+          textAlign: desk ? 'left' : 'center',
+          padding: desk ? '15px 0 0' : '16px 0 0',
           fontSize: 13.5,
           fontWeight: 600,
           color: BRAND_ORANGE,
@@ -124,7 +134,9 @@ export default function HomeEntryList({ entries, totalCount, onEntryTap }: Props
           cursor: 'pointer',
         }}
       >
-        All {totalCount} {totalCount === 1 ? 'entry' : 'entries'} →
+        {desk
+          ? 'Open the journal →'
+          : `All ${totalCount} ${totalCount === 1 ? 'entry' : 'entries'} →`}
       </button>
     </div>
   );

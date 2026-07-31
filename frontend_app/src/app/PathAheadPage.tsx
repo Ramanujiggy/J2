@@ -11,15 +11,12 @@ import { api, ApiError } from '../lib/api.ts';
 import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock.ts';
-import { MONTH_NAMES, EIGHT_GATES } from '../lib/constants.ts';
+import { EIGHT_GATES } from '../lib/constants.ts';
 import type { SessionSummary, Intention, SessionsResponse } from '../types/api.ts';
 import { toast } from '../hooks/use-toast.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import { useActiveIntention } from '../context/ActiveIntentionContext.tsx';
-import PulseSparklineWidget from '../components/PulseSparklineWidget.tsx';
-import { computeTelemetry } from '../lib/analyticsModels.ts';
-import { isIntentionComplete, computeIntentionProgress, sessionTouchesHeading } from '../lib/analyticsUtils.ts';
-import PathAheadTelemetryCard from '../components/PathAheadTelemetryCard.tsx';
+import { isIntentionComplete, sessionTouchesHeading } from '../lib/analyticsUtils.ts';
 import PathAheadModals from '../components/PathAheadModals.tsx';
 import PathAheadMobile from '../components/PathAheadMobile.tsx';
 import PathAheadDesktop from '../components/PathAheadDesktop.tsx';
@@ -41,10 +38,6 @@ import { useStamps } from '../hooks/useStamps.ts';
 import SealRevealSheet from '../components/seal/SealRevealSheet.tsx';
 import { STAMP_DIES } from '../lib/stampDies.ts';
 
-// ── Types ──────────────────────────────────────────────────────────────────
-
-interface DeleteResponse      { message: string }
-
 // ── PathAheadPage ──────────────────────────────────────────────────────────
 
 export default function PathAheadPage() {
@@ -58,23 +51,11 @@ export default function PathAheadPage() {
   const [sessions,   setSessions]   = useState<SessionSummary[]>([]);
   const [loading,    setLoading]    = useState(true);
 
-  // Week scroll ref
-  const weekScrollRef = useRef<HTMLDivElement>(null);
-  const MINI_CARD_W = 110;
-  const MINI_CARD_GAP = 10;
-
-  // Week view toggle — carousel (minimalist) vs list (detailed)
-  type WeekViewMode = 'carousel' | 'list';
-  const [weekView, setWeekView] = useState<WeekViewMode>(
-    () => (localStorage.getItem('j2_week_view') as WeekViewMode) || 'carousel'
-  );
-  const handleWeekViewChange = useCallback((mode: WeekViewMode) => {
-    setWeekView(mode);
-    localStorage.setItem('j2_week_view', mode);
-  }, []);
-
-  // Week navigation offset (0 = current week, -1 = last week, +1 = next)
-  const [weekOffset, setWeekOffset] = useState(0);
+  // NOTE: the week carousel/list toggle, its offset state, and the whole
+  // operational spine (stat strip, telemetry, pulse sparkline, day rail,
+  // partner + constraint rails) were removed on 2026-07-31 when desktop
+  // adopted the table-of-contents home. Those surfaces live on Atlas and
+  // Profile. Git history holds the prior dashboard.
 
   // Both shells host the log composer and listen for
   // `journada:open-log-form`, so this page owns no log-modal state — every
@@ -134,7 +115,10 @@ export default function PathAheadPage() {
 
   const pendingSessions = usePendingSessions();
   const allSessions = useMemo(() => [...sessions, ...pendingSessions], [sessions, pendingSessions]);
-  const { streak, longestStreak, consistentWeeks } = useMemo(() => computeStats(allSessions, new Date().getFullYear()), [allSessions]);
+  // Only `consistentWeeks` survives here, and only to trigger the Eight
+  // Gates stamp — streak and longestStreak went with the desktop stat strip.
+  // Home shows no streak on either viewport: the collection only grows.
+  const { consistentWeeks } = useMemo(() => computeStats(allSessions, new Date().getFullYear()), [allSessions]);
 
   const totalSessions = allSessions.length;
 
@@ -156,6 +140,16 @@ export default function PathAheadPage() {
   const memoryEntry = useMemo(
     () => findMemoryEntry(allSessions, new Date()),
     [allSessions],
+  );
+
+  // Desktop's margin column carries a second memory beside the hero's. Run
+  // the same chain with the hero's entry removed so the two never quote the
+  // same session back at the reader.
+  const marginMemory = useMemo(
+    () => (memoryEntry
+      ? findMemoryEntry(allSessions.filter(s => s.id !== memoryEntry.session.id), new Date())
+      : null),
+    [allSessions, memoryEntry],
   );
 
   const recentEntries = useMemo(() => buildRecentEntries(allSessions), [allSessions]);
@@ -223,45 +217,6 @@ export default function PathAheadPage() {
 
   const today = useMemo(() => new Date(), []);
 
-  // Mon–Sun of the current ISO week — used for weekStats (HomeHero always shows current week)
-  const weekDays = useMemo(() => {
-    const monday = new Date(today);
-    const dow = monday.getDay(); // 0 = Sun
-    monday.setDate(monday.getDate() - (dow === 0 ? 6 : dow - 1));
-    return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(monday);
-      d.setDate(monday.getDate() + i);
-      return d;
-    });
-  }, [today]);
-
-  // Offset-shifted week — used by the visible carousel and list (weekOffset: -2..+1)
-  const displayWeekDays = useMemo(() => {
-    const monday = new Date(today);
-    const dow = monday.getDay();
-    monday.setDate(monday.getDate() - (dow === 0 ? 6 : dow - 1) + weekOffset * 7);
-    return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(monday);
-      d.setDate(monday.getDate() + i);
-      return d;
-    });
-  }, [today, weekOffset]);
-
-  // Section header label — "This Week" at offset 0, date range otherwise
-  const weekLabel = useMemo(() => {
-    if (weekOffset === 0) return 'This Week';
-    const start = displayWeekDays[0]!;
-    const end   = displayWeekDays[6]!;
-    const sm = MONTH_NAMES[start.getMonth()];
-    const em = MONTH_NAMES[end.getMonth()];
-    return sm === em
-      ? `${sm} ${start.getDate()} – ${end.getDate()}`
-      : `${sm} ${start.getDate()} – ${em} ${end.getDate()}`;
-  }, [weekOffset, displayWeekDays]);
-
-  // Days-from-Monday offset for today (used to map weekDays index → windowDays index)
-  const todayDowOffset = today.getDay() === 0 ? 6 : today.getDay() - 1;
-
   // Active intention: any intention whose calendar window contains today
   // AND, for non-'days' completion modes, that hasn't hit its target yet.
   // For 'days' mode, the calendar window IS the completion criterion.
@@ -273,9 +228,6 @@ export default function PathAheadPage() {
     if (i.completion_type !== 'days' && isIntentionComplete(i, allSessions)) return false;
     return true;
   }) ?? null;
-  const activeIntentionProgress = activeIntention
-    ? computeIntentionProgress(activeIntention, allSessions)
-    : null;
 
   // Sessions that have touched the intention since it was set — the anchor
   // sentence on home's intention card. Counted over the FULL session list
@@ -301,24 +253,13 @@ export default function PathAheadPage() {
     ? addDays(intentionStartStr, (activeIntention.duration_days ?? 7) - 1)
     : null;
 
-  // Shared intention-brightness helper — used by both mobile and desktop carousels
-  const getIntentionInfo = useCallback((dayStr: string) => {
-    const dayHasIntention = activeIntention !== null
-      && intentionStartStr !== null && intentionEndStr !== null
-      && dayStr >= intentionStartStr && dayStr <= intentionEndStr;
-    let intentionBrightness = 1.15;
-    if (dayHasIntention) {
-      const todayStr = toDateString(today);
-      const daysFromToday = Math.max(0, Math.round(
-        (new Date(dayStr + 'T00:00:00').getTime() - new Date(todayStr + 'T00:00:00').getTime()) / 86400000
-      ));
-      const duration = activeIntention!.duration_days ?? 7;
-      intentionBrightness = duration <= 1
-        ? 1.3
-        : Math.max(0.78, 1.3 - 0.52 * (daysFromToday / (duration - 1)));
-    }
-    return { dayHasIntention, intentionBrightness };
-  }, [activeIntention, intentionStartStr, intentionEndStr, today]);
+  /** Whether a day falls inside the active intention's window — the detail
+   *  modal shows the intention alongside an entry it covers. */
+  const dayHasIntention = useCallback((dayStr: string) => (
+    activeIntention !== null
+    && intentionStartStr !== null && intentionEndStr !== null
+    && dayStr >= intentionStartStr && dayStr <= intentionEndStr
+  ), [activeIntention, intentionStartStr, intentionEndStr]);
 
   // Sessions indexed by date string — all sessions per day
   const sessionsByDate = useMemo(() => {
@@ -331,59 +272,10 @@ export default function PathAheadPage() {
     return map;
   }, [allSessions]);
 
-  // Flat list of sessions for the list view — scoped to the displayed week
-  const weekSessionsList = useMemo(() => {
-    const list: { session: SessionSummary; day: Date; dayStr: string }[] = [];
-    for (const day of displayWeekDays) {
-      const dayStr = toDateString(day);
-      for (const session of (sessionsByDate.get(dayStr) ?? [])) {
-        list.push({ session, day, dayStr });
-      }
-    }
-    return list;
-  }, [displayWeekDays, sessionsByDate]);
-
   // NOTE: the seven-ring day rail was removed from home in the
   // table-of-contents redesign. Calendar owns dates; the entry list already
   // is the week, in words. Backfilling a past session happens via the date
   // stepper on the form or via Calendar.
-
-  // ── Telemetry — 7d acute vs 28d chronic (aligned with ACWR windows) ────
-
-  const telemetry = useMemo(() => computeTelemetry(allSessions, today), [allSessions, today]);
-
-  // ── Week stats (Mon-Sun of current week) ──────────────────────────────
-  const weekStats = useMemo(() => {
-    const weekDateStrings = new Set(weekDays.map(toDateString));
-    const weekSessions = allSessions.filter(s => {
-      const key = typeof s.date === 'string' ? s.date.slice(0, 10) : toDateString(new Date(s.date));
-      return weekDateStrings.has(key);
-    });
-    const totalMinutes = weekSessions.reduce((acc, s) => acc + s.duration, 0);
-    return { count: weekSessions.length, totalMinutes };
-  }, [allSessions, weekDays]);
-
-  // ── Intent delete ──────────────────────────────────────────────────────
-
-  const handleDeleteIntention = async () => {
-    if (!activeIntention) return;
-    try {
-      await api.delete<DeleteResponse>(`/api/intentions/${activeIntention.id}`);
-      // Context refresh re-fetches /api/intentions, which propagates to every
-      // page that reads from useActiveIntention() (rail, IntentionsPage, etc).
-      await refreshRailIntention();
-    } catch {
-      // silent — user can retry
-    }
-  };
-
-  // Week scroll — center today on mount (only in carousel mode)
-  useEffect(() => {
-    if (weekView !== 'carousel') return;
-    const el = weekScrollRef.current;
-    if (!el) return;
-    el.scrollTo({ left: todayDowOffset * (MINI_CARD_W + MINI_CARD_GAP), behavior: 'instant' as ScrollBehavior });
-  }, [todayDowOffset, weekView]);
 
   // ── Shared JSX fragments ────────────────────────────────────────────────
 
@@ -394,53 +286,20 @@ export default function PathAheadPage() {
     `}</style>
   );
 
-  const telemetryContent = <PathAheadTelemetryCard telemetry={telemetry} />;
-
-  // Tap handlers shared between desktop + mobile WeekSection. Centralises
-  // the sessionsByDate / getIntentionInfo / activeIntention bookkeeping so
-  // the section component itself stays presentation-only.
-  const handleDayTap = useCallback((day: Date, sessions: SessionSummary[]) => {
-    setDetailSessions(sessions);
-    setDetailSessionIndex(0);
-    setDetailDate(day);
-    const dayStr = toDateString(day);
-    const { dayHasIntention } = getIntentionInfo(dayStr);
-    setDetailIntention(dayHasIntention ? activeIntention : null);
-  }, [getIntentionInfo, activeIntention]);
-
-  const handleSessionTap = useCallback(({ session, day, dayStr }: { session: SessionSummary; day: Date; dayStr: string }) => {
-    const daySessions = sessionsByDate.get(dayStr) ?? [];
-    const idx = daySessions.findIndex(s => s.id === session.id);
-    const { dayHasIntention } = getIntentionInfo(dayStr);
-    setDetailSessions(daySessions);
-    setDetailSessionIndex(idx >= 0 ? idx : 0);
-    setDetailDate(day);
-    setDetailIntention(dayHasIntention ? activeIntention : null);
-  }, [sessionsByDate, getIntentionInfo, activeIntention]);
-
-  const handleLogTap = useCallback((date?: string) => {
-    openLog(date ? { date } : undefined);
-  }, [openLog]);
-
-  // Home list / hero → open the entry. Same detail modal the week section
-  // uses; we just resolve the day from the session rather than the reverse.
+  // Home list / hero → open the entry. Resolves the day from the session so
+  // the detail modal can page through everything logged that day, and shows
+  // the intention alongside when the day falls inside its window.
   const handleEntryTap = useCallback((session: SessionSummary) => {
     const dayStr = typeof session.date === 'string'
       ? session.date.slice(0, 10)
       : toDateString(new Date(session.date));
     const daySessions = sessionsByDate.get(dayStr) ?? [session];
     const idx = daySessions.findIndex(s => s.id === session.id);
-    const { dayHasIntention } = getIntentionInfo(dayStr);
     setDetailSessions(daySessions);
     setDetailSessionIndex(idx >= 0 ? idx : 0);
     setDetailDate(new Date(dayStr + 'T00:00:00'));
-    setDetailIntention(dayHasIntention ? activeIntention : null);
-  }, [sessionsByDate, getIntentionInfo, activeIntention]);
-
-  // PulseSparklineWidget handles the sparse / empty case internally — it
-  // renders the same invitational copy when fewer than 5 sessions exist in
-  // the last 30 days, so no outer gate is needed here.
-  const heatmapSection = <PulseSparklineWidget sessions={allSessions} />;
+    setDetailIntention(dayHasIntention(dayStr) ? activeIntention : null);
+  }, [sessionsByDate, dayHasIntention, activeIntention]);
 
   const modals = (
     <PathAheadModals
@@ -478,35 +337,22 @@ export default function PathAheadPage() {
       <>
       <PathAheadDesktop
         name={name}
-        intentionsEnabled={intentionsEnabled}
         loading={loading}
-        streak={streak}
-        longestStreak={longestStreak}
-        weekStatsCount={weekStats.count}
-        weekStatsTotalMinutes={weekStats.totalMinutes}
-        consistentWeeks={consistentWeeks}
+        totalSessions={totalSessions}
+        unfinishedEntry={unfinishedEntry}
+        memoryEntry={memoryEntry}
+        marginMemory={marginMemory}
+        recentEntries={recentEntries}
+        portraitShapes={portraitShapes}
+        intentionsEnabled={intentionsEnabled}
         activeIntention={activeIntention}
-        activeIntentionProgress={activeIntentionProgress}
-        allSessions={allSessions}
-        weekOffset={weekOffset}
-        weekLabel={weekLabel}
-        weekView={weekView}
-        onWeekOffsetChange={setWeekOffset}
-        onWeekViewChange={handleWeekViewChange}
-        displayWeekDays={displayWeekDays}
-        today={today}
-        sessionsByDate={sessionsByDate}
-        weekSessionsList={weekSessionsList}
-        onLogTap={handleLogTap}
-        onDayTap={handleDayTap}
-        onSessionTap={handleSessionTap}
-        heatmapSection={heatmapSection}
-        telemetryContent={telemetryContent}
+        intentionTouchedCount={intentionTouchedCount}
+        pastIntentions={pastIntentions}
+        techniqueCards={techniqueCards}
+        techniquesForIntention={techniquesForIntention}
         modals={modals}
-        styleBlock={styleBlock}
         openLog={openLog}
-        setSetIntentOpen={setSetIntentOpen}
-        handleDeleteIntention={handleDeleteIntention}
+        onEntryTap={handleEntryTap}
       />
       {gateSheet}
       </>

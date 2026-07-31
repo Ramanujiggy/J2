@@ -29,8 +29,11 @@ import SealRevealSheet from './seal/SealRevealSheet.tsx';
 import type { MemoryEntry, TechniqueCard } from '../lib/homeViewModel.ts';
 import type { Intention, SessionSummary, UserTag } from '../types/api.ts';
 
-/** Fixed across every card type — the page below must never jump on swipe. */
-const CARD_HEIGHT = 262;
+/** Fixed across every card type — the page below must never jump on swipe.
+ *  Read through a custom property so the desktop desk can set its own
+ *  (roomier column, so the handoff's 250px is enough) without every card
+ *  component taking a size prop. */
+const CARD_HEIGHT = 'var(--j2-hero-h, 262px)';
 
 /** Horizontal travel, in px, that commits to the next card. */
 const SWIPE_THRESHOLD_PX = 50;
@@ -140,28 +143,42 @@ function PlusIcon({ size = 16 }: { size?: number }) {
  *  drawn inside a phone frame that clipped its own overflow; here the far
  *  strip would hang 6px past the viewport, making the whole page
  *  horizontally scrollable and turning any swipe into a page pan. */
-function Peeks() {
+function Peeks({ onTurn }: { onTurn?: () => void }) {
+  // With `onTurn` the strips ARE the click target — the handoff's prototype
+  // faked this with a hardcoded x-offset on the card and flagged it as a gap.
+  // Without it they stay decorative (mobile turns the deck by swiping).
+  const far: React.CSSProperties = {
+    position: 'absolute', right: -15, top: 24, bottom: 24, width: 26,
+    borderRadius: 14,
+    border: '1px solid rgba(255,255,255,0.06)', borderRight: 'none',
+    background: 'linear-gradient(to right, #122419, #0f2016)',
+    opacity: 0.5,
+  };
+  const near: React.CSSProperties = {
+    position: 'absolute', right: -8, top: 14, bottom: 14, width: 26,
+    borderRadius: 14,
+    border: '1px solid rgba(255,255,255,0.1)', borderRight: 'none',
+    background: 'linear-gradient(to right, #162c20, #12241a)',
+    opacity: 0.9,
+  };
+
+  if (!onTurn) {
+    return (
+      <>
+        <div aria-hidden style={far} />
+        <div aria-hidden style={near} />
+      </>
+    );
+  }
+
   return (
     <>
-      <div
-        aria-hidden
-        style={{
-          position: 'absolute', right: -15, top: 24, bottom: 24, width: 26,
-          borderRadius: 14,
-          border: '1px solid rgba(255,255,255,0.06)', borderRight: 'none',
-          background: 'linear-gradient(to right, #122419, #0f2016)',
-          opacity: 0.5,
-        }}
-      />
-      <div
-        aria-hidden
-        style={{
-          position: 'absolute', right: -8, top: 14, bottom: 14, width: 26,
-          borderRadius: 14,
-          border: '1px solid rgba(255,255,255,0.1)', borderRight: 'none',
-          background: 'linear-gradient(to right, #162c20, #12241a)',
-          opacity: 0.9,
-        }}
+      <button type="button" aria-hidden tabIndex={-1} onClick={onTurn} style={{ ...far, padding: 0, cursor: 'pointer' }} />
+      <button
+        type="button"
+        onClick={onTurn}
+        aria-label="Turn to the next card"
+        style={{ ...near, padding: 0, cursor: 'pointer' }}
       />
     </>
   );
@@ -621,6 +638,9 @@ interface Props {
   onOpenPastIntention: (intention: Intention) => void;
   onOpenTechnique: (tag: UserTag) => void;
   onLog: () => void;
+  /** Desktop: the peek strips become the affordance that turns the deck.
+   *  On touch the swipe already does that, so the strips stay decorative. */
+  peeksTurn?: boolean;
 }
 
 export default function HomeHeroCard({
@@ -639,6 +659,7 @@ export default function HomeHeroCard({
   onOpenPastIntention,
   onOpenTechnique,
   onLog,
+  peeksTurn,
 }: Props) {
   const [index, setIndex] = useState(0);
   const [dragX, setDragX] = useState(0);
@@ -767,7 +788,7 @@ export default function HomeHeroCard({
 
   return (
     <div style={{ position: 'relative' }}>
-      {swipeable && <Peeks />}
+      {swipeable && <Peeks onTurn={peeksTurn ? () => step(1) : undefined} />}
       <div
         data-no-page-swipe=""
         onTouchStart={swipeable ? handleTouchStart : undefined}

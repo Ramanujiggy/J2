@@ -1,205 +1,185 @@
-// PathAheadDesktop — the desktop (editorial dashboard) layout for
-// PathAheadPage. Rail shell wraps this page; we own everything right
-// of the rail.
+// PathAheadDesktop — Today, as a desk.
 //
-// Structure, top → bottom:
-//   • Editorial header (date eyebrow + serif hero + streak subtitle + CTAs)
-//   • 2-stat strip (practice streak + this week's hours)
-//   • 2-col main: operational spine (left) + pulse sidebar (right)
-//   • Modals + RepRouletteFab
+// The same table of contents mobile shows, laid out the way an annotated
+// page reads: a 620px prose column with the hero, the last three things you
+// wrote, and the portrait — and a 296px margin column beside it holding the
+// two things worth a glance but not a whole card.
 //
-// Pure layout shell. All state, computations, and side-effects live in
-// the parent; everything we need comes in as props.
+// What it is NOT, any more: the operational dashboard that used to live
+// here (streak subtitle, stat strip, week carousel, telemetry, partner and
+// constraint rails). Those numbers moved to Profile and Atlas when home
+// became a journal rather than a tracker — desktop simply agreed with
+// mobile late. There is no streak on this page: the collection only grows,
+// and nothing on home should be able to go backwards.
 //
-// Extracted from PathAheadPage.tsx during the 2026-05-09 refactor pass.
+// Numbers permitted here: today's date, the intention's week count and
+// touched-entry count, and the session count inside the portrait's sentence.
+//
+// Pure layout. Every value arrives as a prop from PathAheadPage.
 
+import { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMemo } from 'react';
-import TodayCard from './today/TodayCard.tsx';
-import IntentionHeroCard from './IntentionHeroCard.tsx';
-import FirstVisitCard from './FirstVisitCard.tsx';
-import DesktopPathAheadSkeleton from './DesktopPathAheadSkeleton.tsx';
-import TopPartnersCard from './TopPartnersCard.tsx';
-import RecentConstraintsCard from './RecentConstraintsCard.tsx';
-import RepRouletteFab from './RepRouletteFab.tsx';
-import MostRecentSessionCard from './MostRecentSessionCard.tsx';
+import HomeHeroCard from './HomeHeroCard.tsx';
+import HomeEntryList from './HomeEntryList.tsx';
+import HomePortrait from './HomePortrait.tsx';
 import PageContent from './PageContent.tsx';
-import PathAheadWeekSection, { type WeekViewMode } from './PathAheadWeekSection.tsx';
-import { CARD_BG, FONT_EDITORIAL, PALE_YELLOW } from '../lib/theme.ts';
-import { toDateString } from '../lib/sessionUtils.ts';
-import type { Intention, SessionSummary } from '../types/api.ts';
+import DesktopPathAheadSkeleton from './DesktopPathAheadSkeleton.tsx';
+import RepRouletteFab from './RepRouletteFab.tsx';
+import { COPPER, FONT_EDITORIAL, PALE_YELLOW, BRAND_ORANGE } from '../lib/theme.ts';
+import { excerptOf } from '../lib/homeViewModel.ts';
+import type { MemoryEntry, RecentEntry, TechniqueCard } from '../lib/homeViewModel.ts';
+import type { Intention, PillarDistribution, SessionSummary, UserTag } from '../types/api.ts';
 
-interface DaySessionEntry {
-  session: SessionSummary;
-  day: Date;
-  dayStr: string;
-}
+const TEXT_PRIMARY   = 'rgba(255,255,255,0.92)';
+const TEXT_SECONDARY = 'rgba(255,255,255,0.66)';
+const TEXT_TERTIARY  = 'rgba(255,255,255,0.46)';
+const TEXT_HINT      = 'rgba(255,255,255,0.26)';
+const HAIRLINE       = '1px solid rgba(255,255,255,0.06)';
 
-interface Props {
-  // Profile + ambient
-  name: string | null;
-  intentionsEnabled: boolean;
-  loading: boolean;
-  // Stats
-  streak: number;
-  longestStreak: number;
-  weekStatsCount: number;
-  weekStatsTotalMinutes: number;
-  consistentWeeks: number;
-  // Intention
-  activeIntention: Intention | null;
-  /** Completion progress for non-'days' intentions (mig 034). null otherwise. */
-  activeIntentionProgress: { completed: number; target: number; unit: 'sessions' | 'training_weeks' } | null;
-  // Sessions
-  allSessions: SessionSummary[];
-  // Week section
-  weekOffset: number;
-  weekLabel: string;
-  weekView: WeekViewMode;
-  onWeekOffsetChange: (next: number | ((prev: number) => number)) => void;
-  onWeekViewChange: (mode: WeekViewMode) => void;
-  displayWeekDays: Date[];
-  today: Date;
-  sessionsByDate: Map<string, SessionSummary[]>;
-  weekSessionsList: DaySessionEntry[];
-  onLogTap: (date?: string) => void;
-  onDayTap: (day: Date, sessions: SessionSummary[]) => void;
-  onSessionTap: (entry: DaySessionEntry) => void;
-  // Other shared elements
-  heatmapSection: React.ReactNode;
-  telemetryContent: React.ReactNode;
-  modals: React.ReactNode;
-  styleBlock: React.ReactNode;
-  // Callbacks
-  openLog: (opts?: { date?: string; preset?: { heading?: string; sessionType?: 'drilling' | 'cla'; subSkillTag?: string; constraintName?: string } | null }) => void;
-  setSetIntentOpen: (v: boolean) => void;
-  handleDeleteIntention: () => void;
-}
+const LABEL_STYLE: React.CSSProperties = {
+  fontSize: 10.5, fontWeight: 700,
+  letterSpacing: '0.15em', textTransform: 'uppercase',
+  color: TEXT_TERTIARY,
+};
 
-// SectionLabel — italic Cormorant lowercase + trailing copper hairline.
-// Refero anchor: 222's "INVITES 6 ─────" pattern (`daf006a1-…`). Defines
-// the page's vertical rhythm without adding card chrome. Used only by
-// the desktop layout, so it lives alongside.
-function SectionLabel({ children }: { children: React.ReactNode }) {
+/** A margin note — a border-topped block, never a card. Cards would make
+ *  the margin compete with the hero; the whole point is that it doesn't. */
+function MarginNote({
+  label, labelColor, children, sub, link, onClick,
+}: {
+  label: string;
+  labelColor?: string;
+  children: React.ReactNode;
+  sub?: string;
+  link?: string;
+  onClick?: () => void;
+}) {
   return (
-    <div
+    <button
+      type="button"
+      onClick={onClick}
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 14,
-        marginTop: 8,
+        display: 'block', width: '100%', textAlign: 'left',
+        padding: '20px 0 24px',
+        borderTop: HAIRLINE,
+        background: 'none', border: 'none', borderTopWidth: 1,
+        borderTopStyle: 'solid', borderTopColor: 'rgba(255,255,255,0.06)',
+        cursor: onClick ? 'pointer' : 'default',
       }}
     >
       <span
         style={{
-          fontFamily: FONT_EDITORIAL,
-          fontStyle: 'italic',
-          fontSize: 15,
-          color: 'rgba(242,228,168,0.55)',
-          letterSpacing: '0.02em',
-          lineHeight: 1,
+          display: 'block',
+          fontSize: 9.5, fontWeight: 700,
+          letterSpacing: '0.14em', textTransform: 'uppercase',
+          color: labelColor ?? TEXT_TERTIARY,
+          marginBottom: 12,
         }}
       >
-        {children}
+        {label}
       </span>
-      <span
-        aria-hidden
-        style={{
-          flex: 1,
-          height: 1,
-          background: 'rgba(196,145,95,0.22)',
-        }}
-      />
-    </div>
+      {children}
+      {sub && (
+        <span style={{ display: 'block', fontSize: 12, color: TEXT_TERTIARY, marginTop: 9, lineHeight: 1.5 }}>
+          {sub}
+        </span>
+      )}
+      {link && (
+        <span style={{ display: 'inline-block', fontSize: 12.5, fontWeight: 600, color: BRAND_ORANGE, marginTop: 12 }}>
+          {link}
+        </span>
+      )}
+    </button>
   );
+}
+
+interface Props {
+  name: string | null;
+  loading: boolean;
+  totalSessions: number;
+  unfinishedEntry: SessionSummary | null;
+  memoryEntry: MemoryEntry | null;
+  /** A second, different memory for the margin — the hero already has one. */
+  marginMemory: MemoryEntry | null;
+  recentEntries: RecentEntry[];
+  portraitShapes: PillarDistribution[];
+  intentionsEnabled: boolean;
+  activeIntention: Intention | null;
+  intentionTouchedCount: number;
+  pastIntentions: Intention[];
+  techniqueCards: TechniqueCard[];
+  techniquesForIntention: (intention: Intention) => UserTag[];
+  modals: React.ReactNode;
+  openLog: (opts?: { date?: string }) => void;
+  onEntryTap: (session: SessionSummary) => void;
 }
 
 export default function PathAheadDesktop({
   name,
-  intentionsEnabled,
   loading,
-  streak,
-  longestStreak,
-  weekStatsCount,
-  weekStatsTotalMinutes,
-  consistentWeeks,
+  totalSessions,
+  unfinishedEntry,
+  memoryEntry,
+  marginMemory,
+  recentEntries,
+  portraitShapes,
+  intentionsEnabled,
   activeIntention,
-  activeIntentionProgress,
-  allSessions,
-  weekOffset,
-  weekLabel,
-  weekView,
-  onWeekOffsetChange,
-  onWeekViewChange,
-  displayWeekDays,
-  today,
-  sessionsByDate,
-  weekSessionsList,
-  onLogTap,
-  onDayTap,
-  onSessionTap,
-  heatmapSection,
-  telemetryContent,
+  intentionTouchedCount,
+  pastIntentions,
+  techniqueCards,
+  techniquesForIntention,
   modals,
-  styleBlock,
   openLog,
-  setSetIntentOpen,
-  handleDeleteIntention,
+  onEntryTap,
 }: Props) {
   const navigate = useNavigate();
 
-  const todayLabel = useMemo(
-    () => new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).format(today).toUpperCase(),
+  const today = useMemo(() => new Date(), []);
+  const dateLabel = useMemo(
+    () => new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+      .format(today)
+      .replace(',', ' ·'),
     [today],
   );
+  // "Evening, Robert" — the time of day, not a wish. A greeting that
+  // congratulates ("Good evening!") is the register this app doesn't use.
+  const partOfDay = useMemo(() => {
+    const h = today.getHours();
+    return h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : 'Evening';
+  }, [today]);
 
-  // Streak subtitle — tiered copy based on consistent weeks
-  const streakSubtitle =
-    consistentWeeks >= 26 ? `${consistentWeeks} weeks logged. Consistency is showing.` :
-    consistentWeeks >= 12 ? `${consistentWeeks} weeks in a row. Nice rhythm.` :
-    consistentWeeks >= 1  ? `${consistentWeeks} week${consistentWeeks === 1 ? '' : 's'} in. Building the habit.` :
-    `Welcome back${name ? `, ${name}` : ''}.`;
+  const handleKeepWriting = useCallback((s: SessionSummary) => onEntryTap(s), [onEntryTap]);
+  const handleOpenIntention = useCallback(() => {
+    if (!activeIntention) return;
+    navigate(`/intentions/${activeIntention.id}/journal`, { state: { from: '/home' } });
+  }, [activeIntention, navigate]);
+  const handleOpenPastIntention = useCallback((i: Intention) => {
+    navigate(`/intentions/${i.id}/journal`, { state: { from: '/home' } });
+  }, [navigate]);
+  const handleOpenTechnique = useCallback((tag: UserTag) => {
+    navigate(`/techniques/${tag.id}`, { state: { from: '/home' } });
+  }, [navigate]);
 
-  // Most recent session — for the sidebar widget
-  const mostRecent = allSessions.length > 0
-    ? [...allSessions].sort((a, b) => {
-        const da = typeof a.date === 'string' ? a.date.slice(0, 10) : toDateString(new Date(a.date));
-        const db = typeof b.date === 'string' ? b.date.slice(0, 10) : toDateString(new Date(b.date));
-        return db.localeCompare(da);
-      })[0]
-    : null;
+  const intentionWeeksIn = activeIntention
+    ? Math.floor(
+        (Date.now() - new Date(activeIntention.week_start.slice(0, 10) + 'T00:00:00').getTime())
+        / (7 * 86_400_000),
+      ) + 1
+    : 0;
 
-  // Right rail visibility — TopPartnersCard and RecentConstraintsCard both
-  // self-hide when their 30-day window is empty. Mirror their gate cheaply
-  // here (partner strings / constraint ids present) so an empty rail
-  // collapses the grid to one column instead of leaving 440px of dead space.
-  const railHasData = useMemo(() => {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 30);
-    const cutoffStr = cutoff.toISOString().slice(0, 10);
-    return allSessions.some(s => {
-      const d = typeof s.date === 'string' ? s.date.slice(0, 10) : toDateString(new Date(s.date));
-      if (d < cutoffStr) return false;
-      return (s.partners ?? []).some(p => p.trim())
-        || (s.canonical_constraint_ids?.length ?? 0) > 0
-        || (s.user_constraint_ids?.length ?? 0) > 0;
-    });
-  }, [allSessions]);
+  // Whether the hero is actually a deck — drives the "turn the card" hint.
+  // Mirrors HomeHeroCard's own deck assembly; a hint pointing at a single
+  // card would be a lie.
+  const deckSize =
+    (unfinishedEntry ? 1 : 0)
+    + (intentionsEnabled && activeIntention ? 1 : 0)
+    + (memoryEntry ? 1 : 0)
+    + techniqueCards.length
+    + (intentionsEnabled ? pastIntentions.length : 0);
 
-  // heroCardStyle was used by the now-retired AnnualRadial hero block.
-  // Removed with the IA migration to Atlas → Prism. Re-introduce only if a
-  // new hero card lands on Path Ahead.
-  const softCardStyle: React.CSSProperties = {
-    backgroundColor: CARD_BG,
-    border: '1px solid var(--j2-border-2)',
-    borderRadius: 16,
-  };
+  const marginQuote = marginMemory ? excerptOf(marginMemory.session, 120) : null;
 
-  // Desktop loading state — render the brand-correct skeleton instead of
-  // the empty page chrome. PageContent itself short-circuits on desktop
-  // (see PageContent.tsx:82), so the proper hand-off here is to swap in
-  // the skeleton during `loading` rather than rely on the belt-tying
-  // loader (which is mobile-only by design).
   if (loading) {
     return (
       <PageContent ready={true}>
@@ -209,220 +189,121 @@ export default function PathAheadDesktop({
   }
 
   return (
-    <PageContent ready={!loading} loadingMessages={['Shrimping down the mat...', 'Doing mat swims...', 'Pulling up gi pants...']}>
-    <div className="j2-page-container" style={{ paddingTop: 40, paddingBottom: 72 }}>
-      {styleBlock}
-
-      {/* ── Header ──────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 28 }}>
-        <div>
-          <div className="j2-label-micro" style={{ marginBottom: 10 }}>{todayLabel}</div>
-          <h1
-            className="j2-serif-display j2-heading-glow"
-            style={{ fontSize: 40, margin: 0, lineHeight: 1 }}
-          >
-            This week
-          </h1>
-          <div
-            className="j2-serif-italic"
-            style={{ marginTop: 8, fontSize: 16 }}
-          >
-            {streakSubtitle}
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: 14 }}>
-          {/* Adjust-focus chip is only shown once an intention exists. The
-              no-intention state is handled by the dashed IntentionHeroCard
-              below, which is far more inviting — keeping both visible was
-              offering the same action twice with different wording. */}
-          {intentionsEnabled && activeIntention && (
-            <button
-              onClick={() => setSetIntentOpen(true)}
+    <PageContent ready={!loading}>
+      <div className="j2-desk-page">
+        <div className="j2-desk">
+          {/* ── The prose column ────────────────────────────────── */}
+          <div className="j2-desk-main">
+            <div style={LABEL_STYLE}>{dateLabel}</div>
+            <h1
               style={{
-                height: 42, padding: '0 18px',
-                background: 'var(--j2-surface-3)',
-                color: 'rgba(255,255,255,0.90)',
-                border: '1px solid var(--j2-border-2)',
-                borderRadius: 12,
-                fontWeight: 500, fontSize: 14,
-                display: 'inline-flex', alignItems: 'center', gap: 10,
-                cursor: 'pointer',
-                transition: 'background 180ms ease',
+                fontFamily: FONT_EDITORIAL,
+                fontSize: 33, fontWeight: 600,
+                color: PALE_YELLOW,
+                letterSpacing: '-0.01em',
+                margin: '8px 0 0',
+                lineHeight: 1.1,
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'var(--j2-surface-3)'; }}
             >
-              ◇ Adjust focus
-            </button>
-          )}
-          <button
-            onClick={() => openLog()}
-            style={{
-              height: 44, padding: '0 22px',
-              background: '#DA7422', color: '#fff',
-              fontWeight: 600, borderRadius: 12,
-              boxShadow: '0 0 0 1px rgba(218,116,34,0.3), 0 10px 24px -12px rgba(218,116,34,0.6)',
-              transition: 'background 180ms ease, transform 180ms ease',
-              display: 'inline-flex', alignItems: 'center', gap: 10,
-              fontSize: 15,
-              cursor: 'pointer',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#E8823A'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = '#DA7422'; }}
-          >
-            + Log session
-          </button>
-        </div>
-      </div>
+              {partOfDay}{name ? `, ${name}` : ''}
+            </h1>
 
-      {!loading && allSessions.length === 0 ? (
-        <div style={{ maxWidth: 480, margin: '0 auto' }}>
-          <FirstVisitCard onLogFirst={() => openLog()} />
-        </div>
-      ) : (
-      <>
+            {/* The hero. 250px is enough in a 620px column — the custom
+                property overrides the phone's 262px without every card
+                component learning about viewports. */}
+            <div style={{ marginTop: 26, ['--j2-hero-h' as string]: '250px' }}>
+              <HomeHeroCard
+                unfinishedEntry={unfinishedEntry}
+                memoryEntry={memoryEntry}
+                activeIntention={intentionsEnabled ? activeIntention : null}
+                intentionWeeksIn={intentionWeeksIn}
+                intentionTouchedCount={intentionTouchedCount}
+                pastIntentions={intentionsEnabled ? pastIntentions : []}
+                techniqueCards={techniqueCards}
+                techniquesForIntention={techniquesForIntention}
+                hasAnySessions={totalSessions > 0}
+                onKeepWriting={handleKeepWriting}
+                onReadEntry={onEntryTap}
+                onOpenIntention={handleOpenIntention}
+                onOpenPastIntention={handleOpenPastIntention}
+                onOpenTechnique={handleOpenTechnique}
+                onLog={() => openLog()}
+                peeksTurn
+              />
+            </div>
+            {deckSize > 1 && (
+              <div style={{ fontSize: 10.5, color: TEXT_HINT, marginTop: 9, textAlign: 'right', paddingRight: 2 }}>
+                the deck edge turns the card →
+              </div>
+            )}
 
-      {/* ── Stat strip (operational) ────────────────────────────────
-          Compact hairline row — serif numeral + sans unit suffix
-          (mirrors PulseSparklineWidget's Stat pattern). Value and unit
-          are split so a zero week renders serif "0" + sans "H", never
-          the serif string "0h" (which reads as the word "oh"). */}
-      <div
-        style={{
-          display: 'flex', gap: 56, padding: '16px 0', marginBottom: 32,
-          borderTop: '1px solid var(--j2-border-1)',
-          borderBottom: '1px solid var(--j2-border-1)',
-        }}
-      >
-        {([
-          {
-            label: 'Practice streak',
-            value: streak > 0 ? `${streak}` : '—',
-            suffix: streak > 0 ? 'd' : undefined,
-            sub: longestStreak > 0 ? `best: ${longestStreak}d` : 'build the habit',
-          },
-          {
-            label: 'This week',
-            value: (() => {
-              const h = weekStatsTotalMinutes / 60;
-              return Number.isInteger(h) ? `${h}` : h.toFixed(1);
-            })(),
-            suffix: 'h',
-            sub: `${weekStatsCount} session${weekStatsCount === 1 ? '' : 's'}`,
-          },
-        ] as { label: string; value: string; suffix?: string; sub: string }[]).map((s, i) => (
-          <div key={i}>
-            <div className="j2-label-micro" style={{ marginBottom: 6 }}>{s.label}</div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
-              <span style={{ fontSize: 30, fontFamily: FONT_EDITORIAL, fontWeight: 500, color: PALE_YELLOW, lineHeight: 1 }}>
-                {s.value}
-              </span>
-              {s.suffix && (
-                <span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.02em' }}>
-                  {s.suffix}
+            {/* The list */}
+            <div style={{ marginTop: 34 }}>
+              <div style={{ ...LABEL_STYLE, marginBottom: 4 }}>The last things you wrote</div>
+              <HomeEntryList
+                entries={recentEntries}
+                totalCount={totalSessions}
+                onEntryTap={onEntryTap}
+                variant="desk"
+              />
+            </div>
+
+            {/* The portrait */}
+            <HomePortrait shapes={portraitShapes} sessionCount={totalSessions} variant="desk" />
+          </div>
+
+          {/* ── The margin ──────────────────────────────────────── */}
+          <div className="j2-desk-margin">
+            {intentionsEnabled && activeIntention && (
+              <MarginNote
+                label="Your intention · active"
+                labelColor={COPPER}
+                sub={`Set ${intentionWeeksIn} week${intentionWeeksIn === 1 ? '' : 's'} ago · ${intentionTouchedCount} ${intentionTouchedCount === 1 ? 'entry has' : 'entries have'} touched it`}
+                link="Open the thread →"
+                onClick={handleOpenIntention}
+              >
+                <span
+                  style={{
+                    display: 'block',
+                    fontFamily: FONT_EDITORIAL,
+                    fontSize: 21, lineHeight: 1.35, fontWeight: 600,
+                    color: TEXT_PRIMARY,
+                    textWrap: 'pretty',
+                  }}
+                >
+                  {activeIntention.intent_label}
                 </span>
-              )}
-            </div>
-            <div
-              style={{
-                marginTop: 4, fontSize: 10, fontWeight: 600,
-                color: 'rgba(255,255,255,0.42)',
-                textTransform: 'uppercase', letterSpacing: '0.12em',
-              }}
-            >
-              {s.sub}
-            </div>
+              </MarginNote>
+            )}
+
+            {marginMemory && marginQuote && (
+              <MarginNote
+                label={marginMemory.label}
+                sub={new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric' })
+                  .format(new Date(marginMemory.session.date.toString().slice(0, 10) + 'T00:00:00'))}
+                link="Read it →"
+                onClick={() => onEntryTap(marginMemory.session)}
+              >
+                <span
+                  style={{
+                    display: 'block',
+                    fontFamily: FONT_EDITORIAL,
+                    fontSize: 17.5, lineHeight: 1.5,
+                    fontStyle: 'italic',
+                    color: TEXT_SECONDARY,
+                    textWrap: 'pretty',
+                  }}
+                >
+                  “{marginQuote}”
+                </span>
+              </MarginNote>
+            )}
           </div>
-        ))}
-      </div>
-
-      {/* ── 2-col main (1-col when the rail has nothing to show) ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: railHasData ? '1fr 400px' : '1fr', gap: 32, alignItems: 'flex-start', marginBottom: 32 }}>
-
-        {/* LEFT column — operational spine: today → this week → pulse */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 22, minWidth: 0 }}>
-          {/* TodayCard — operational centerpiece. Time-aware dialog that
-              walks the user through the day: pre-class "Planning to attend?"
-              → in-session → post-class "Did you attend?" → drive-home log
-              CTA. "No" answers minimize the class out (localStorage). */}
-          <SectionLabel>next class</SectionLabel>
-          <TodayCard
-            sessions={allSessions}
-            onLogSession={(ctx) => openLog({ date: ctx.date })}
-          />
-
-          {/* This week — promoted from the right rail. Now the operational
-              anchor for "what does the rest of the week look like." */}
-          <SectionLabel>this week</SectionLabel>
-          <div style={{ ...softCardStyle, padding: 22 }}>
-            <PathAheadWeekSection
-              weekOffset={weekOffset}
-              weekLabel={weekLabel}
-              weekView={weekView}
-              onWeekOffsetChange={onWeekOffsetChange}
-              onWeekViewChange={onWeekViewChange}
-              displayWeekDays={displayWeekDays}
-              today={today}
-              sessionsByDate={sessionsByDate}
-              weekSessionsList={weekSessionsList}
-              onLogTap={onLogTap}
-              onDayTap={onDayTap}
-              onSessionTap={onSessionTap}
-              bodyMarginTop={16}
-            />
-          </div>
-
-          {/* Active intention for the week — moved from right rail; sits
-              directly under the week view since it's the *meaning* of
-              this week, not a side metric. */}
-          {intentionsEnabled && (
-            <IntentionHeroCard
-              intention={activeIntention}
-              weekSessionCount={weekStatsCount}
-              progress={activeIntentionProgress}
-              onSetIntent={() => setSetIntentOpen(true)}
-              onViewJournal={activeIntention ? () => navigate(`/intentions/${activeIntention.id}/journal`) : undefined}
-              onDeleteIntent={handleDeleteIntention}
-            />
-          )}
-
-          {/* Last 30 days — recent rhythm, short enough to feel operational. */}
-          <SectionLabel>pulse</SectionLabel>
-          {heatmapSection}
-
-          {telemetryContent}
-
-          {/* Most recent session — sits directly under telemetry so the
-              operational left column reads top-to-bottom: today → this
-              week → recent rhythm → telemetry → most recent training. */}
-          {mostRecent && (
-            <MostRecentSessionCard mostRecent={mostRecent} softCardStyle={softCardStyle} />
-          )}
         </div>
 
-        {/* RIGHT rail — pulse sidebar: who you trained with, what rules
-            you trained under. Two cards. Omitted entirely (grid collapses
-            to one column) when neither card has 30-day data. */}
-        {railHasData && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-            {/* Top partners — last 30 days. Self-hides when no partner data. */}
-            <TopPartnersCard sessions={allSessions} softCardStyle={softCardStyle} />
-            {/* Recent constraints — last 30 days. Self-hides when empty. */}
-            <RecentConstraintsCard sessions={allSessions} softCardStyle={softCardStyle} />
-          </div>
-        )}
+        {modals}
+        <RepRouletteFab />
       </div>
-
-      {/* Recent intentions row removed — they live on /intentions where
-          they belong. Path Ahead is for the present week, not a shelf of
-          past weeks. */}
-
-      </>
-      )}
-
-      {modals}
-      <RepRouletteFab />
-    </div>
     </PageContent>
   );
 }
