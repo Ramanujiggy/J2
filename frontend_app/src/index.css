@@ -292,6 +292,24 @@
   .j2-journal-scrubnote { display: none; }
 }
 
+/* ────────────────────────────────────────────────────────────────────
+ * Profile — identity column beside the housekeeping column.
+ * ──────────────────────────────────────────────────────────────────── */
+.j2-profile-body { display: flex; gap: 72px; }
+.j2-profile-main { flex: 1 1 560px; max-width: 560px; min-width: 0; }
+.j2-profile-side { flex: 0 1 360px; min-width: 300px; padding-top: 96px; }
+.j2-hk-row:hover { border-color: rgba(255,255,255,0.14); }
+
+@media (max-width: 1250px) {
+  .j2-profile-body { flex-wrap: wrap; gap: 40px; }
+  .j2-profile-main { flex: 1 1 100%; max-width: none; }
+  .j2-profile-side { flex: 1 1 100%; padding-top: 0; }
+}
+
+/* The promotion sheet's waiting tape slot — fills on hover so the empty
+   position reads as somewhere tape can go, not as damage. */
+.j2-tape-slot:hover { background: rgba(255,255,255,0.14); }
+
 /* Rail masthead wave — the seigaiha at full copper strength, masked so it
    fades out before it reaches the nav. Distinct from .j2-seigaiha-bg (the
    fixed, dimmer, page-wide backdrop): this one is bounded by the 118px

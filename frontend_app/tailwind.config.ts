@@ -191,6 +191,13 @@ export default {
           '0%':   { opacity: '0.7', transform: 'scale(0.6)' },
           '100%': { opacity: '0', transform: 'scale(1.5)' },
         },
+        // A stripe of tape being wrapped onto the rank bar — squashed and
+        // narrow, then overshooting past full height before settling.
+        'j2Tape': {
+          '0%':   { transform: 'scaleY(0.2)', opacity: '0' },
+          '60%':  { transform: 'scaleY(1.15)', opacity: '1' },
+          '100%': { transform: 'none' },
+        },
       },
       animation: {
         'view-exit-up':    'view-exit-up   500ms cubic-bezier(0, 0, 0.3, 1) both',
@@ -218,6 +225,7 @@ export default {
         'j2-sheet-up':             'j2SheetSlideUp 0.44s cubic-bezier(0.22,1,0.36,1) both',
         'j2-stamp-press':          'j2StampPress 0.62s cubic-bezier(0.34,1.56,0.64,1) both',
         'j2-stamp-puff':           'j2StampPuff 0.6s ease-out 0.16s both',
+        'j2-tape':                 'j2Tape 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
       },
     },
   },

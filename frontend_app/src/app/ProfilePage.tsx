@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 
@@ -27,6 +27,10 @@ import { getStorageEstimate, type StorageEstimate } from '../lib/videoStore.ts';
 import { formatBytes } from '../lib/videoUtils.ts';
 import { Library, ChevronRight, Bell, Award } from 'lucide-react';
 import PrismSkinToggle from '../components/PrismSkinToggle.tsx';
+import ProfileDesktop from '../components/ProfileDesktop.tsx';
+import { useStamps } from '../hooks/useStamps.ts';
+import { useSessions } from '../context/SessionsContext.tsx';
+import { portraitDistributions } from '../lib/homeViewModel.ts';
 
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
 
@@ -92,10 +96,66 @@ export default function ProfilePage() {
 
   // Belt history
   const { entries: beltEntries, refetch: refetchBeltHistory } = useBeltHistory();
+
+  // Desktop identity surfaces — the collection and the door to Atlas.
+  const { stamps } = useStamps();
+  const { sessions: allSessions } = useSessions();
+  const portraitShapes = useMemo(() => portraitDistributions(allSessions), [allSessions]);
   const [beltFormOpen, setBeltFormOpen] = useState(false);
   const [beltForm, setBeltForm] = useState({ belt_rank: 'blue' as string, stripes: 0, promoted_at: '', notes: '' });
   const [beltSaving, setBeltSaving] = useState(false);
   const [beltDeleting, setBeltDeleting] = useState<string | null>(null);
+
+  // Desktop promotion flow — the sheet commits straight to belt_history and
+  // syncs the profile's own rank/stripes, so the rail label and every other
+  // belt surface follow. The new row also becomes a Promotion in the journal
+  // stream (derived, see lib/journalStream.ts) — which is the point: the
+  // promotion joins the corpus and can come back on its anniversary.
+  const handleRecordPromotion = async (
+    next: { rank: string; stripes: number; promotedAt: string },
+  ) => {
+    setBeltSaving(true);
+    try {
+      await api.post('/api/belt-history', {
+        belt_rank: next.rank,
+        stripes: next.stripes,
+        promoted_at: next.promotedAt,
+        notes: null,
+      });
+      await api.put('/api/profile', {
+        ...form,
+        belt_rank: next.rank,
+        stripes: next.stripes,
+      });
+      setForm(f => ({ ...f, belt_rank: next.rank as BeltRank, stripes: next.stripes }));
+      refetchBeltHistory();
+      await refreshProfile();
+      toast({ title: 'Tied on. It’s in your journal now — and it will come back on the anniversary.' });
+    } catch {
+      toast({ title: 'Could not record that promotion.', variant: 'destructive' });
+    } finally {
+      setBeltSaving(false);
+    }
+  };
+
+  /** Housekeeping's one-tap export — both CSVs, your words are yours. */
+  const handleExportAll = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const [sessionsRes, intentionsRes] = await Promise.all([
+        api.get<{ sessions: SessionSummary[] }>('/api/sessions'),
+        api.get<{ intentions: Intention[] }>('/api/intentions'),
+      ]);
+      await exportSessionsCsv(sessionsRes.sessions ?? []);
+      exportIntentionsCsv(intentionsRes.intentions ?? []);
+      toast({ title: 'Exported. Check your downloads.' });
+    } catch {
+      toast({ title: 'Could not export right now.', variant: 'destructive' });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const handleAddBeltEntry = async () => {
     if (!beltForm.promoted_at) return;
@@ -130,6 +190,8 @@ export default function ProfilePage() {
       setBeltDeleting(null);
     }
   };
+  /** Desktop only — the full settings page, reached from housekeeping. */
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [existingDates, setExistingDates] = useState<Set<string>>(new Set());
@@ -219,10 +281,72 @@ export default function ProfilePage() {
     }
   };
 
+  // ── Desktop: identity first, chores in the margin ───────────────────────
+  // The full settings page below is still the whole truth — "Your details"
+  // in housekeeping opens it. Nothing moved off Profile, it just stopped
+  // being the first thing you see.
+  if (isDesktop && !detailsOpen) {
+    return (
+      <>
+        <ProfileDesktop
+          name={form.name || null}
+          beltRank={form.belt_rank}
+          stripes={form.stripes}
+          academy={form.home_gym_name || null}
+          beltEntries={beltEntries}
+          stamps={stamps}
+          portraitShapes={portraitShapes}
+          sessionCount={allSessions.length}
+          savingPromotion={beltSaving}
+          onRecordPromotion={handleRecordPromotion}
+          housekeeping={[
+            {
+              heading: 'Housekeeping',
+              rows: [
+                { title: 'Your details', subtitle: 'Name, belt, home gym.', onClick: () => setDetailsOpen(true) },
+                { title: 'Class times & notifications', subtitle: 'Three quiet pings around each class.', onClick: () => navigate('/profile/classes') },
+                { title: 'Move library', subtitle: 'Your own clips and the techniques you keep.', onClick: () => navigate('/library') },
+              ],
+            },
+            {
+              heading: 'Your data',
+              rows: [
+                { title: 'Import training history', subtitle: 'Upload a CSV of past sessions.', onClick: () => setImportOpen(true) },
+                { title: 'Export everything', subtitle: 'Sessions and intentions as CSV — your words are yours.', onClick: () => { void handleExportAll(); } },
+              ],
+            },
+          ]}
+        />
+        {importOpen && (
+          <CsvImportModal
+            existingDates={existingDates}
+            onClose={() => setImportOpen(false)}
+            onImported={() => { setImportOpen(false); refreshProfile(); }}
+          />
+        )}
+      </>
+    );
+  }
+
   return (
     <div className="flex flex-col">
 
       <main className={`flex-1 ${isDesktop ? 'j2-page-container' : 'w-full mx-auto max-w-xl px-4 sm:px-6'}`} style={isDesktop ? { paddingTop: 48, paddingBottom: 48 } : { paddingTop: 24, paddingBottom: 24 }}>
+        {isDesktop && detailsOpen && (
+          <button
+            type="button"
+            onClick={() => setDetailsOpen(false)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24,
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: 'rgba(255,255,255,0.66)', fontSize: 12, fontWeight: 700,
+              letterSpacing: '0.12em', textTransform: 'uppercase',
+            }}
+          >
+            <span style={{ fontSize: 19, color: 'rgba(255,255,255,0.26)' }}>‹</span>
+            <span>Profile</span>
+          </button>
+        )}
         {/* Editorial header — desktop */}
         {isDesktop ? (
           <div className="mb-10">
