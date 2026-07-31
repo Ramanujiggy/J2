@@ -104,6 +104,14 @@ export default function CaptureComposer({ onSuccess, onCancel, defaultDate }: Pr
         pendingBoaRef.current = false;
         try { await api.post('/api/stamps', { die_key: 'boa', session_id: newId }); refetchStamps(); } catch { /* keepsake is best-effort */ }
       }
+      // 500-session milestone. Lives here rather than in a caller's onSuccess
+      // because every capture surface routes through this function — it used
+      // to hang off the desktop log modal only, so mobile never saw it.
+      if (data.session_count === 500 && !localStorage.getItem('j2-milestone-500')) {
+        localStorage.setItem('j2-milestone-500', '1');
+        const { toast } = await import('../../hooks/use-toast.ts');
+        toast({ variant: 'success', title: '500 sessions. The mat remembers every one.' });
+      }
       onSuccess?.(data.session_count);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not save your entry. Please try again.');

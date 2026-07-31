@@ -76,13 +76,9 @@ export default function PathAheadPage() {
   // Week navigation offset (0 = current week, -1 = last week, +1 = next)
   const [weekOffset, setWeekOffset] = useState(0);
 
-  // Modals — log-session state is desktop-only. On mobile the modal lives
-  // in MobileAppShell so the bottom-nav `+` FAB can launch it directly
-  // from any page without redirecting through `/home`. PathAheadPage CTAs
-  // call `openLog(...)` below which branches on viewport: desktop uses
-  // local state, mobile dispatches `journada:open-log-form`.
-  const [logOpen,             setLogOpen]             = useState(false);
-  const [logDate,             setLogDate]             = useState<string | null>(null);
+  // Both shells host the log composer and listen for
+  // `journada:open-log-form`, so this page owns no log-modal state — every
+  // CTA just dispatches the event (see `openLog` below).
   const [setIntentOpen,       setSetIntentOpen]       = useState(false);
   const [detailSessions,      setDetailSessions]      = useState<SessionSummary[]>([]);
   const [detailSessionIndex,  setDetailSessionIndex]  = useState(0);
@@ -127,21 +123,13 @@ export default function PathAheadPage() {
     return () => window.removeEventListener('journada:log-session-saved', handler);
   }, [fetchAll]);
 
-  // Branching log-modal opener — desktop opens the local modal directly,
-  // mobile dispatches the event so MobileAppShell's modal opens.
+  // One opener for both viewports — the shell owns the modal.
   const openLog = useCallback((opts?: { date?: string }) => {
     const date = opts?.date ?? toDateString(new Date());
-    if (isDesktop) {
-      setLogDate(date);
-      setLogOpen(true);
-    } else {
-      window.dispatchEvent(new CustomEvent('journada:open-log-form', {
-        detail: { date },
-      }));
-    }
-  }, [isDesktop]);
+    window.dispatchEvent(new CustomEvent('journada:open-log-form', { detail: { date } }));
+  }, []);
 
-  const anyModalOpen = logOpen || !!detailSession || setIntentOpen;
+  const anyModalOpen = !!detailSession || setIntentOpen;
   useBodyScrollLock(anyModalOpen);
 
   const pendingSessions = usePendingSessions();
@@ -456,13 +444,8 @@ export default function PathAheadPage() {
 
   const modals = (
     <PathAheadModals
-      isDesktop={isDesktop}
       fetchAll={fetchAll}
       refreshRailIntention={refreshRailIntention}
-      logOpen={logOpen}
-      logDate={logDate}
-      setLogOpen={setLogOpen}
-      setLogDate={setLogDate}
       detailSession={detailSession}
       detailSessions={detailSessions}
       detailSessionIndex={detailSessionIndex}

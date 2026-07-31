@@ -49,6 +49,10 @@ export const SAGE = '#8FB56A' as const;
  *  records, champagne displays, orange acts. */
 export const BRAND_ORANGE = '#DA7422' as const;
 
+/** Orange, hovered. The only lightened variant — nothing else in the palette
+ *  brightens on hover, because nothing else is an act. */
+export const BRAND_ORANGE_HOVER = '#E8823A' as const;
+
 // ─── Prestige accents ────────────────────────────────────────────────────────
 
 /** Prestige green — 8th Gate milestone. Electric, fully saturated, teal-shifted. */

@@ -1,112 +1,95 @@
-// Desktop app shell — rail nav layout, rendered at >= 1024px only.
-// Replaces the header + horizontal tabs + mobile bottom nav with a single
-// sticky left rail (wordmark, nav, focus card, practitioner pill) beside a
-// flex-1 content canvas. See desktop redesign plan, Phase 2.
+// Desktop app shell — the 236px rail beside a scrolling content canvas.
+// Rendered at >= 1024px only (AppShell switches on useIsDesktop).
+//
+// Rail, top to bottom:
+//   • Masthead (118px) — seigaiha wave masked to fade downward, wordmark,
+//     tagline. The wave is bounded here; the page-wide ambient backdrop is
+//     a separate, dimmer layer (.j2-seigaiha-bg).
+//   • Nav — Today / Journal / Intentions / Atlas / Profile (+ gated Admin).
+//   • Foot — the orange "Log session" CTA over the practitioner chip.
+//
+// The rail carries no belt animation. Per the 2026-07-31 desktop pass the
+// tie-on ceremony belongs to the promotion moment on Profile — an animation
+// that plays on every page load stops meaning anything.
+//
+// The log CTA opens a shell-level modal, so it works from any page. Pages
+// dispatch `journada:open-log-form` to reach the same modal (the mobile
+// shell listens for the identical event), so no page keeps its own composer.
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext.tsx';
-import BeltBar from './BeltBar.tsx';
 import RailAmbient from './RailAmbient.tsx';
 import OfflineBanner from './OfflineBanner.tsx';
 import PageTransition from './PageTransition.tsx';
+import CaptureComposer from './composer/CaptureComposer.tsx';
 import { useOnlineSync } from '../hooks/useOnlineSync.ts';
-import { PAGE_BG, CARD_BG, PALE_YELLOW, COPPER } from '../lib/theme.ts';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock.ts';
+import { toDateString } from '../lib/sessionUtils.ts';
+import { PAGE_BG, PALE_YELLOW, COPPER, BRAND_ORANGE, BRAND_ORANGE_HOVER } from '../lib/theme.ts';
 
-// ─── Icons (inline SVG, matches AppShell style) ──────────────────────────────
+// ─── Icons ───────────────────────────────────────────────────────────────────
+// 18px, 1.7 stroke, line style — the handoff's rail icon set.
 
-// Icon stroke weight is uniform across resting + active states — color
-// (via currentColor on the nav button) does the work of signalling active.
 const ICON_ATTRS = {
-  width: 22, height: 22, viewBox: '0 0 24 24',
+  width: 18, height: 18, viewBox: '0 0 24 24',
   fill: 'none' as const, stroke: 'currentColor',
-  strokeWidth: 1.6,
+  strokeWidth: 1.7,
   strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const,
+  style: { display: 'block' as const, flexShrink: 0 },
 };
 
-function CompassIcon() {
-  return (
-    <svg {...ICON_ATTRS}>
-      <circle cx="12" cy="12" r="9" />
-      <polygon points="16,8 10,10 8,16 14,14" />
-    </svg>
-  );
+function HomeIcon() {
+  return <svg {...ICON_ATTRS}><path d="M3 10.5L12 3l9 7.5" /><path d="M5 9.5V21h14V9.5" /></svg>;
 }
-function BookIcon() {
-  return (
-    <svg {...ICON_ATTRS}>
-      <path d="M4 4h7a3 3 0 013 3v13a3 3 0 00-3-3H4z" />
-      <path d="M20 4h-7a3 3 0 00-3 3v13a3 3 0 013-3h7z" />
-    </svg>
-  );
+function ListIcon() {
+  return <svg {...ICON_ATTRS}><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg>;
+}
+function TargetIcon() {
+  return <svg {...ICON_ATTRS}><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1" /></svg>;
 }
 function MapIcon() {
-  return (
-    <svg {...ICON_ATTRS}>
-      <polygon points="3,7 9,4 15,7 21,4 21,17 15,20 9,17 3,20" />
-      <line x1="9" y1="4" x2="9" y2="17" />
-      <line x1="15" y1="7" x2="15" y2="20" />
-    </svg>
-  );
-}
-function DiamondIcon() {
-  return (
-    <svg {...ICON_ATTRS}>
-      <polygon points="12,3 21,12 12,21 3,12" />
-      <line x1="12" y1="3" x2="12" y2="21" />
-      <line x1="3" y1="12" x2="21" y2="12" />
-    </svg>
-  );
+  return <svg {...ICON_ATTRS}><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2z" /><path d="M9 4v14M15 6v14" /></svg>;
 }
 function UserIcon() {
-  return (
-    <svg {...ICON_ATTRS}>
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-    </svg>
-  );
+  return <svg {...ICON_ATTRS}><circle cx="12" cy="8" r="4" /><path d="M4 21c1-4 4.5-6 8-6s7 2 8 6" /></svg>;
 }
 function ShieldIcon() {
-  return (
-    <svg {...ICON_ATTRS}>
-      <path d="M12 3 4 6v6c0 5 3.5 8.5 8 9 4.5-.5 8-4 8-9V6l-8-3z" />
-    </svg>
-  );
+  return <svg {...ICON_ATTRS}><path d="M12 3 4 6v6c0 5 3.5 8.5 8 9 4.5-.5 8-4 8-9V6l-8-3z" /></svg>;
+}
+function EditIcon() {
+  return <svg {...ICON_ATTRS}><path d="M3 21h4L20 8l-4-4L3 17v4z" /></svg>;
 }
 
 // ─── Nav definition ──────────────────────────────────────────────────────────
-// Labels here are the Phase 2 starting set. Rename lands in later phases
-// (Calendar → Atlas in Phase 4, Analytics folds into Atlas at the same time).
 
 type NavItem = {
   path: string;
   label: string;
   Icon: () => JSX.Element;
   gated?: 'intentions' | 'admin';
-  /** Extra path prefixes that should highlight this nav item. Used for
-   *  sub-surfaces that aren't themselves nav targets — e.g. the Technique
-   *  Library lives under Profile but routes at `/library` + `/techniques`,
-   *  and Notes is a Journal-adjacent surface routed at `/notes`. Without
-   *  this, those routes fall through to `/home` (the default). */
+  /** Extra path prefixes that highlight this item — sub-surfaces that aren't
+   *  nav targets themselves. Notes and the Technique Library sit under
+   *  Journal; Calendar is one of Atlas's own destinations. */
   alsoActiveOn?: readonly string[];
 };
 
-// Atlas absorbs what used to be Calendar + Analytics. /calendar still
-// exists for the dedicated mobile heatmap view + direct URLs; /analytics
-// redirects to /atlas (its functionality is now Atlas's Prism tab).
+// Home is labelled "Today": the page is what happened and what's next, not a
+// plan. Atlas keeps Years / Library / Calendar as its own header links, so
+// those routes highlight Atlas from the rail.
 const NAV_ITEMS: readonly NavItem[] = [
-  { path: '/home',       label: 'Path Ahead', Icon: CompassIcon },
-  { path: '/journal',    label: 'Journal',    Icon: BookIcon, alsoActiveOn: ['/notes', '/library', '/techniques'] },
+  { path: '/home',       label: 'Today',      Icon: HomeIcon },
+  { path: '/journal',    label: 'Journal',    Icon: ListIcon, alsoActiveOn: ['/notes', '/library', '/techniques'] },
+  { path: '/intentions', label: 'Intentions', Icon: TargetIcon, gated: 'intentions' },
   { path: '/atlas',      label: 'Atlas',      Icon: MapIcon, alsoActiveOn: ['/calendar'] },
-  { path: '/intentions', label: 'Intentions', Icon: DiamondIcon, gated: 'intentions' },
   { path: '/profile',    label: 'Profile',    Icon: UserIcon },
-  // Admin gate (mig 023). Only renders for users with users.is_admin = true.
-  // The route /admin needs to appear in NAV_ITEMS for activeTab's prefix
-  // match to highlight it correctly when the founder is on the dashboard.
+  // Admin gate (mig 023) — only renders for users.is_admin.
   { path: '/admin',      label: 'Admin',      Icon: ShieldIcon, gated: 'admin' },
 ] as const;
 
-// ─── Shell ───────────────────────────────────────────────────────────────────
+const RAIL_BORDER   = '1px solid rgba(255,255,255,0.06)';
+const TEXT_SECONDARY = 'rgba(255,255,255,0.66)';
+const TEXT_TERTIARY  = 'rgba(255,255,255,0.46)';
 
 interface Props { children: React.ReactNode; }
 
@@ -130,14 +113,38 @@ export default function DesktopAppShell({ children }: Props) {
     it.alsoActiveOn?.some(p => location.pathname.startsWith(p))
   )?.path ?? '/home';
 
-  // PageTransition is now non-directional (single fade-and-settle), so the
-  // mobile-matching forward/back state machine that used to live here is
-  // gone. Just navigate.
-  const go = useCallback((path: string) => {
-    navigate(path);
-  }, [navigate]);
+  const go = useCallback((path: string) => { navigate(path); }, [navigate]);
 
   const initials = (name ?? '').split(' ').map(s => s[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'J';
+  const beltLabel = beltRank
+    ? `${beltRank[0]!.toUpperCase()}${beltRank.slice(1)} belt${stripes ? ` · ${stripes}` : ''}`
+    : 'White belt';
+
+  // ── Shell-level log modal ────────────────────────────────────────────
+  // Mirrors MobileAppShell: the composer lives in the shell so the rail CTA
+  // (and any page dispatching `journada:open-log-form`) reaches it without a
+  // route detour or a second copy of the form.
+  const [logOpen, setLogOpen] = useState(false);
+  const [logDate, setLogDate] = useState<string | null>(null);
+
+  useBodyScrollLock(logOpen);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ date?: string }>).detail ?? {};
+      setLogDate(detail.date ?? toDateString(new Date()));
+      setLogOpen(true);
+    };
+    window.addEventListener('journada:open-log-form', handler);
+    return () => window.removeEventListener('journada:open-log-form', handler);
+  }, []);
+
+  // Tell other surfaces (RepRouletteFab) when the modal is up.
+  useEffect(() => {
+    window.dispatchEvent(new Event(logOpen ? 'journada:log-form-open' : 'journada:log-form-closed'));
+  }, [logOpen]);
+
+  const closeLog = useCallback(() => { setLogOpen(false); setLogDate(null); }, []);
 
   return (
     <div
@@ -149,7 +156,7 @@ export default function DesktopAppShell({ children }: Props) {
         position: 'relative',
       }}
     >
-      {/* Ambient seigaiha wave background, behind everything */}
+      {/* Ambient seigaiha backdrop, behind everything */}
       <div className="j2-seigaiha-bg" aria-hidden />
 
       {/* ── Rail ─────────────────────────────────────────────────── */}
@@ -158,11 +165,9 @@ export default function DesktopAppShell({ children }: Props) {
           position: 'sticky',
           top: 0,
           height: '100vh',
-          padding: '40px 28px 28px',
           display: 'flex',
           flexDirection: 'column',
-          gap: 28,
-          borderRight: '1px solid var(--j2-border-2)',
+          borderRight: RAIL_BORDER,
           background: 'rgba(10,21,16,0.7)',
           backdropFilter: 'blur(6px)',
           WebkitBackdropFilter: 'blur(6px)',
@@ -170,169 +175,106 @@ export default function DesktopAppShell({ children }: Props) {
           isolation: 'isolate',
         }}
       >
-        {/* Ambient layer — subdued onboarding animations behind everything.
-            Pentagon-forming motes up top, drifting signature line near the
-            bottom. Absolute + pointer-events: none; stacks below all content
-            without interfering with nav or focus card interaction. */}
-        <RailAmbient />
-
-        {/* Wordmark + tagline */}
-        <div>
-          <div
-            className="j2-wordmark"
-            style={{ fontSize: 38, lineHeight: 1 }}
-          >
+        {/* Masthead — wave, wordmark, tagline */}
+        <div style={{ height: 118, position: 'relative', overflow: 'hidden', flex: 'none' }}>
+          <div className="j2-rail-wave" aria-hidden />
+          <RailAmbient />
+          <div className="j2-wordmark" style={{ position: 'absolute', left: 24, top: 26, fontSize: 27 }}>
             Journada
           </div>
           <div
-            className="j2-label-micro"
-            style={{ marginTop: 12, fontSize: 12, letterSpacing: '0.14em' }}
+            style={{
+              position: 'absolute', left: 24, top: 64,
+              fontSize: 9.5, fontWeight: 700,
+              letterSpacing: '0.16em', textTransform: 'uppercase',
+              color: TEXT_TERTIARY,
+            }}
           >
             For intentional grappling
           </div>
         </div>
 
-        {/* Nav — editorial restyle. ◇ NAVIGATION kicker, then the items
-            read as a literary index: no background fills, no left bar.
-            Active item gets a champagne label with a copper underline;
-            inactive items italicize on hover. Color carries the active
-            state, not chrome. */}
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
-          <div className="j2-label-copper" style={{ marginBottom: 8, paddingLeft: 4 }}>
-            ◇ Navigation
-          </div>
+        {/* Nav — 44px rows. The tinted pill is the entire active treatment;
+            no underline, no left bar, no glow. */}
+        <nav style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 2 }}>
           {items.map(({ path, label, Icon }) => {
             const isActive = activeTab === path;
             return (
               <button
                 key={path}
                 onClick={() => go(path)}
+                aria-current={isActive ? 'page' : undefined}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 14,
-                  padding: '10px 4px',
-                  background: 'transparent',
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  height: 44, padding: '0 12px',
+                  borderRadius: 10,
+                  background: isActive ? 'rgba(242,228,168,0.07)' : 'transparent',
                   border: 'none',
-                  color: isActive ? PALE_YELLOW : 'rgba(255,255,255,0.60)',
-                  fontWeight: 500, fontSize: 16,
-                  fontStyle: 'normal',
+                  color: isActive ? PALE_YELLOW : TEXT_TERTIARY,
+                  fontSize: 13.5, fontWeight: 600,
                   textAlign: 'left',
-                  transition: 'color 160ms ease, font-style 160ms ease',
                   cursor: 'pointer',
+                  transition: 'color 160ms ease, background 160ms ease',
                 }}
-                onMouseEnter={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.color = 'rgba(242,228,168,0.90)';
-                    e.currentTarget.style.fontStyle = 'italic';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.color = 'rgba(255,255,255,0.60)';
-                    e.currentTarget.style.fontStyle = 'normal';
-                  }
-                }}
+                onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = TEXT_SECONDARY; }}
+                onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = TEXT_TERTIARY; }}
               >
                 <Icon />
-                <span
-                  style={{
-                    // Underline lives on the label so it sits beneath the
-                    // word — not under the icon. Transparent border on the
-                    // inactive state keeps the row's baseline stable.
-                    borderBottom: isActive
-                      ? `1.5px solid ${COPPER}`
-                      : '1.5px solid transparent',
-                    paddingBottom: 2,
-                    transition: 'border-color 160ms ease',
-                  }}
-                >
-                  {label}
-                </span>
+                {label}
               </button>
             );
           })}
         </nav>
 
-        {/* Focus card retired from the rail — IntentionHeroCard on the Path
-            Ahead page now uses this same chrome and serves as the single
-            home for the active intention. Removing it from the rail also
-            removes the duplicate copy of the same week-focus message and
-            lets the rail breathe more (nav + practitioner pill only). */}
-
-        {/* Practitioner pill — avatar + name + animated belt identity.
-            The belt ties on mount (login/refresh), then sits as an ambient
-            rank marker. marginTop:auto pins the whole section to the bottom
-            of the rail regardless of whether the focus card above is rendered.
-            The 40px copper hairline above replaces the prior full-width
-            top border — matches the editorial divider used elsewhere
-            (telemetry card, page kickers). */}
-        <div style={{ marginTop: 'auto', paddingTop: 18 }}>
-          <div
-            aria-hidden
+        {/* Foot — the one orange act in the chrome, over the practitioner chip */}
+        <div style={{ marginTop: 'auto', padding: '18px 20px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <button
+            onClick={() => { setLogDate(toDateString(new Date())); setLogOpen(true); }}
             style={{
-              width: 40, height: 1,
-              backgroundColor: 'rgba(196,145,95,0.25)',
-              marginBottom: 18,
+              height: 44, padding: '0 18px', borderRadius: 11,
+              background: BRAND_ORANGE, color: '#fff',
+              fontWeight: 600, fontSize: 14,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              whiteSpace: 'nowrap', cursor: 'pointer', border: 'none',
+              transition: 'background 180ms ease',
             }}
-          />
-          {/* Belt ceremony — small, ambient, ties on page load */}
-          <div
-            style={{
-              width: '100%',
-              height: 32,
-              marginBottom: 14,
-              opacity: 0.88,
-            }}
-            aria-label={`${beltRank ?? 'White'} belt${stripes ? `, ${stripes} stripe${stripes > 1 ? 's' : ''}` : ''}`}
+            onMouseEnter={e => { e.currentTarget.style.background = BRAND_ORANGE_HOVER; }}
+            onMouseLeave={e => { e.currentTarget.style.background = BRAND_ORANGE; }}
           >
-            <BeltBar rank={beltRank} stripes={stripes ?? 0} />
-          </div>
+            <EditIcon />
+            Log session
+          </button>
 
-          {/* Avatar + name — tappable, routes to profile */}
           <button
             onClick={() => go('/profile')}
             style={{
-              display: 'flex', alignItems: 'center', gap: 12,
-              background: 'transparent',
-              cursor: 'pointer',
-              textAlign: 'left',
-              width: '100%',
-              padding: 0,
+              display: 'flex', alignItems: 'center', gap: 11,
+              paddingTop: 16, borderTop: RAIL_BORDER,
+              background: 'transparent', border: 'none',
+              textAlign: 'left', width: '100%', cursor: 'pointer',
             }}
           >
             <div
               style={{
-                width: 40, height: 40, borderRadius: '50%',
-                background: `linear-gradient(135deg, #244A37, ${CARD_BG})`,
-                border: '1px solid var(--j2-border-2)',
+                width: 36, height: 36, borderRadius: '50%',
+                border: '1px solid rgba(196,145,95,0.35)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontFamily: 'var(--font-wordmark)', fontSize: 17,
-                color: PALE_YELLOW,
-                flexShrink: 0,
+                fontSize: 11, fontWeight: 700, color: COPPER, flex: 'none',
               }}
             >
               {initials}
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ minWidth: 0 }}>
               <div
                 style={{
-                  fontSize: 14, fontWeight: 600,
-                  color: 'rgba(255,255,255,0.90)',
+                  fontSize: 13, fontWeight: 600, color: TEXT_SECONDARY,
                   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                  lineHeight: 1.2,
                 }}
               >
                 {name ?? 'Practitioner'}
               </div>
-              <div
-                style={{
-                  fontSize: 11,
-                  color: 'rgba(255,255,255,0.38)',
-                  letterSpacing: '0.04em',
-                  marginTop: 2,
-                }}
-              >
-                {beltRank ? `${beltRank[0]!.toUpperCase()}${beltRank.slice(1)} belt` : 'White belt'}
-                {stripes ? ` · ${stripes}` : ''}
+              <div style={{ fontSize: 10.5, color: TEXT_TERTIARY, marginTop: 1 }}>
+                {beltLabel}
               </div>
             </div>
           </button>
@@ -353,6 +295,39 @@ export default function DesktopAppShell({ children }: Props) {
         <OfflineBanner />
         <PageTransition>{children}</PageTransition>
       </main>
+
+      {/* ── Shell-level log modal ────────────────────────────────── */}
+      {logOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Log session"
+          className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto px-5 animate-j2-backdrop-in"
+          style={{
+            backgroundColor: 'rgba(13, 26, 20, 1)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            paddingTop: 24,
+            paddingBottom: 56,
+          }}
+          onClick={closeLog}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            className="w-full lg:max-w-5xl animate-j2-modal-in"
+            style={{ margin: 'auto 0' }}
+          >
+            <CaptureComposer
+              onSuccess={() => {
+                closeLog();
+                window.dispatchEvent(new Event('journada:log-session-saved'));
+              }}
+              onCancel={closeLog}
+              defaultDate={logDate ?? undefined}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
