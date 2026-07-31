@@ -306,6 +306,32 @@
   .j2-profile-side { flex: 1 1 100%; padding-top: 0; }
 }
 
+/* ────────────────────────────────────────────────────────────────────
+ * Intentions — the intention beside its thread, split by a copper
+ * hairline that fades out at both ends. Below 1250px the columns stack
+ * and the rule hides (a horizontal hairline there would read as a
+ * divider between sections, which is not what it means).
+ * ──────────────────────────────────────────────────────────────────── */
+.j2-intentions-body { display: flex; gap: 56px; }
+.j2-intentions-col  { flex: 0 1 520px; min-width: 0; }
+.j2-intentions-rule {
+  width: 1px;
+  flex: none;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(196,145,95,0.24) 15%,
+    rgba(196,145,95,0.24) 85%,
+    transparent
+  );
+}
+
+@media (max-width: 1250px) {
+  .j2-intentions-body { flex-wrap: wrap; }
+  .j2-intentions-col  { flex: 1 1 420px; }
+  .j2-intentions-rule { display: none; }
+}
+
 /* The promotion sheet's waiting tape slot — fills on hover so the empty
    position reads as somewhere tape can go, not as damage. */
 .j2-tape-slot:hover { background: rgba(255,255,255,0.14); }

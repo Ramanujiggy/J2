@@ -14,12 +14,14 @@ import { useSessions } from '../context/SessionsContext.tsx';
 import { useCoachmark } from '../hooks/useCoachmark.ts';
 import { toDateString, addDays } from '../lib/sessionUtils.ts';
 import { topTagInRange, computeAlignment, tagHoursInRange } from '../lib/analyticsUtils.ts';
-import type { Intention } from '../types/api.ts';
+import type { Intention, SessionSummary } from '../types/api.ts';
+import { toast } from '../hooks/use-toast.ts';
 import {
   type IntentionsLayout, type IntentionStats,
 } from '../components/intentions/intentionsTypes.ts';
-import IntentionsDesktopView from '../components/intentions/IntentionsDesktopView.tsx';
+import IntentionsDesk from '../components/intentions/IntentionsDesk.tsx';
 import IntentionsMobileView from '../components/intentions/IntentionsMobileView.tsx';
+import SetIntentionModal from '../components/SetIntentionModal.tsx';
 
 const LAYOUT_STORAGE_KEY = 'j2_intentions_layout';
 
@@ -84,25 +86,45 @@ export default function IntentionsPage() {
     navigate(path, opts);
   }, [navigate]);
 
+  // Active = its calendar window contains today. Everything else that has
+  // already started is an era that ran, newest first.
+  const todayStr = toDateString(new Date());
+  const activeIntention = useMemo(() => intentions.find(i => {
+    const start = i.week_start.slice(0, 10);
+    return todayStr >= start && todayStr <= addDays(start, (i.duration_days ?? 7) - 1);
+  }) ?? null, [intentions, todayStr]);
+
+  const pastIntentions = useMemo(
+    () => intentions
+      .filter(i => i.id !== activeIntention?.id && i.week_start.slice(0, 10) <= todayStr)
+      .sort((a, b) => b.week_start.localeCompare(a.week_start)),
+    [intentions, activeIntention, todayStr],
+  );
+
   if (isDesktop) {
     return (
-      <IntentionsDesktopView
-        intentions={intentions}
-        sessions={sessions}
-        loading={loading}
-        intentionsEnabled={intentionsEnabled}
-        editTarget={editTarget}
-        createOpen={createOpen}
-        layout={layout}
-        onLayoutChange={setLayout}
-        statsMap={statsMap}
-        onOpenCreate={onOpenCreate}
-        onOpenEdit={onOpenEdit}
-        onCloseModal={onCloseModal}
-        onSaved={onSaved}
-        onNavigate={onNavigate}
-        intentionsCoachmark={intentionsCoachmark}
-      />
+      <>
+        <IntentionsDesk
+          intentions={intentions}
+          sessions={sessions}
+          activeIntention={activeIntention}
+          pastIntentions={pastIntentions}
+          onOpenSession={(s: SessionSummary) => navigate(`/journal/${s.id}`)}
+          onOpenCreate={onOpenCreate}
+          onOpenEdit={onOpenEdit}
+          onSeePlus={() => toast({
+            title: 'Plus isn’t open yet.',
+            description: 'One active intention is free, and always will be. Writing, memories and seals are never gated.',
+          })}
+        />
+        {(createOpen || editTarget) && (
+          <SetIntentionModal
+            editIntention={editTarget ?? undefined}
+            onSaved={() => { onSaved(); onCloseModal(); }}
+            onClose={onCloseModal}
+          />
+        )}
+      </>
     );
   }
 
