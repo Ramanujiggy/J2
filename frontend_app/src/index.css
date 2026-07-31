@@ -267,6 +267,31 @@
   .j2-desk-margin > * { flex: 1; }
 }
 
+/* ────────────────────────────────────────────────────────────────────
+ * Journal — the stream beside the year scrubber. Below 1250px the
+ * scrubber collapses beneath the stream as a horizontal band of years
+ * rather than squeezing the prose.
+ * ──────────────────────────────────────────────────────────────────── */
+.j2-journal-body { display: flex; gap: 64px; }
+.j2-journal-scrub { width: 230px; flex: none; padding-top: 8px; }
+.j2-journal-row:hover .j2-journal-x { color: rgba(255,255,255,0.92); }
+
+@media (max-width: 1250px) {
+  .j2-journal-body { flex-direction: column; gap: 0; }
+  .j2-journal-scrub {
+    width: auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 32px;
+    margin-top: 38px;
+    padding-top: 0;
+    border-top: 1px solid rgba(196,145,95,0.2);
+  }
+  .j2-journal-scrub > *:first-child { flex: 1 1 100%; margin: 14px 0 0; }
+  .j2-journal-scrub > div:not(:first-child) { flex: 1 1 160px; border-top: none; padding: 12px 0 0; }
+  .j2-journal-scrubnote { display: none; }
+}
+
 /* Rail masthead wave — the seigaiha at full copper strength, masked so it
    fades out before it reaches the nav. Distinct from .j2-seigaiha-bg (the
    fixed, dimmer, page-wide backdrop): this one is bounded by the 118px

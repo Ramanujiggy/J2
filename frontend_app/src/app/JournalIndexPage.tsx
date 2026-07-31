@@ -5,7 +5,7 @@
 // Mobile: narrower list layout, same data, taps open the SessionDetailModal
 // in-place (keeps mobile feeling native, no full-page route push).
 
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { VariableSizeList, type ListChildComponentProps } from 'react-window';
 import { useSessions } from '../context/SessionsContext.tsx';
@@ -13,14 +13,18 @@ import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import { useUserTags } from '../hooks/useUserTags.ts';
 import { useCanonicalPositions } from '../hooks/useCanonicalPositions.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
+import { useTrainingNotes } from '../hooks/useTrainingNotes.ts';
+import { useBeltHistory } from '../hooks/useBeltHistory.ts';
+import { useActiveIntention } from '../context/ActiveIntentionContext.tsx';
 import PageContent from '../components/PageContent.tsx';
+import JournalDesktop from '../components/JournalDesktop.tsx';
 import SessionDetailModal from '../components/SessionDetailModal.tsx';
 import JournalEmptyHero from '../components/empty/JournalEmptyHero.tsx';
 import SegmentedToggle from '../components/SegmentedToggle.tsx';
 import { SKILL_TAGS } from '../lib/constants.ts';
-import { toDateString, DAY_NAMES, SESSION_TYPE_LABELS, INTENSITY_COLOR, formatDuration, formatGiNogi } from '../lib/sessionUtils.ts';
+import { toDateString, addDays, DAY_NAMES, SESSION_TYPE_LABELS, INTENSITY_COLOR, formatDuration, formatGiNogi } from '../lib/sessionUtils.ts';
 import {
-  PALE_YELLOW, COPPER, COPPER_BORDER, CARD_BG, FONT_EDITORIAL, GLOW_SOFT, STATUS_ERROR,
+  PALE_YELLOW, COPPER, CARD_BG, FONT_EDITORIAL, GLOW_SOFT, STATUS_ERROR,
 } from '../lib/theme.ts';
 import type { SessionSummary } from '../types/api.ts';
 
@@ -35,40 +39,12 @@ type MobileItem =
   | { kind: 'month';   key: string; month: string; count: number }
   | { kind: 'day';     key: string; dateStr: string; sessions: SessionSummary[] };
 
-interface MonthSummary {
-  totalMinutes: number;
-  dominantPillar: string | null;
-}
-
-type DesktopItem =
-  | { kind: 'month'; key: string; month: string; count: number; collapsed: boolean; summary: MonthSummary }
-  | { kind: 'session'; key: string; session: SessionSummary };
-
 function mobileItemHeight(item: MobileItem): number {
   if (item.kind === 'month') return 56;
   const n = item.sessions.length;
   return 28 + 50 * n + 10 * Math.max(0, n - 1);
 }
 
-function desktopItemHeight(item: DesktopItem): number {
-  if (item.kind === 'month') return 52;
-  return 44;
-}
-
-function computeMonthSummary(sessions: SessionSummary[]): MonthSummary {
-  const totalMinutes = sessions.reduce((a, s) => a + (s.duration ?? 0), 0);
-  const tagCounts: Record<string, number> = {};
-  for (const s of sessions) {
-    const primary = s.tags?.[0];
-    if (primary) tagCounts[primary] = (tagCounts[primary] ?? 0) + 1;
-  }
-  const sorted = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]);
-  const top = sorted[0];
-  const dominantPillar = top
-    ? (SKILL_TAGS.find(t => t.value === top[0])?.label ?? top[0])
-    : null;
-  return { totalMinutes, dominantPillar };
-}
 
 export default function JournalIndexPage() {
   const navigate = useNavigate();
@@ -86,19 +62,24 @@ export default function JournalIndexPage() {
   const [filter, setFilter] = useState<Filter>('All');
   const [query, setQuery] = useState('');
 
-  const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
-  const expandedMonthsInitialized = useRef(false);
-
-  const toggleMonth = useCallback((month: string) => {
-    setExpandedMonths(prev => {
-      const next = new Set(prev);
-      if (next.has(month)) next.delete(month); else next.add(month);
-      return next;
-    });
-  }, []);
-
   const pendingSessions = usePendingSessions();
   const allSessions = useMemo(() => [...sessions, ...pendingSessions], [sessions, pendingSessions]);
+
+  // ── Desktop: the whole corpus, not just sessions ────────────────────────
+  // Notes, intentions and promotions join the stream here. All three are
+  // already fetched for other surfaces, so this is a merge, not a new
+  // round trip. Mobile keeps the session-only list until it gets its own
+  // pass — see components/JournalDesktop.tsx.
+  const { notes: trainingNotes } = useTrainingNotes();
+  const { intentions } = useActiveIntention();
+  const { entries: promotions } = useBeltHistory();
+
+  const todayStr = toDateString(new Date());
+  const activeIntention = intentions.find(i => {
+    const start = i.week_start.slice(0, 10);
+    const end = addDays(start, (i.duration_days ?? 7) - 1);
+    return todayStr >= start && todayStr <= end;
+  }) ?? null;
 
   const totalHours = useMemo(
     () => Math.round(allSessions.reduce((a, s) => a + (s.duration ?? 0), 0) / 60),
@@ -153,33 +134,30 @@ export default function JournalIndexPage() {
     return out;
   }, [groups]);
 
-  // Seed expanded months once — first 2 months start open.
-  useEffect(() => {
-    if (expandedMonthsInitialized.current || groups.length === 0) return;
-    expandedMonthsInitialized.current = true;
-    setExpandedMonths(new Set(groups.slice(0, 2).map(([m]) => m)));
-  }, [groups]);
-
-  const desktopItems = useMemo<DesktopItem[]>(() => {
-    const out: DesktopItem[] = [];
-    for (const [month, monthSessions] of groups) {
-      const collapsed = !expandedMonths.has(month);
-      const summary = computeMonthSummary(monthSessions);
-      out.push({ kind: 'month', key: month, month, count: monthSessions.length, collapsed, summary });
-      if (!collapsed) {
-        for (const s of monthSessions) {
-          out.push({ kind: 'session', key: String(s.id), session: s });
-        }
-      }
-    }
-    return out;
-  }, [groups, expandedMonths]);
-
   // Reset the virtualized list's internal cache when items change.
   const mobileListRef  = useRef<VariableSizeList | null>(null);
-  const desktopListRef = useRef<VariableSizeList | null>(null);
   useEffect(() => { mobileListRef.current?.resetAfterIndex(0);  }, [mobileItems]);
-  useEffect(() => { desktopListRef.current?.resetAfterIndex(0); }, [desktopItems]);
+
+  // Desktop is the whole corpus in one stream. Everything below this branch
+  // — the month accordion, the skill-tag filter, both virtualized lists —
+  // is the mobile session index, untouched until mobile gets its own pass.
+  if (isDesktop) {
+    return (
+      <PageContent ready={!loading} loadingMessages={['Pulling entries...', 'Dusting the pages...']}>
+        {fetchError && (
+          <p style={{ color: STATUS_ERROR, fontSize: 13, textAlign: 'center', paddingTop: 24 }}>{fetchError}</p>
+        )}
+        <JournalDesktop
+          sessions={allSessions}
+          notes={trainingNotes}
+          intentions={intentions}
+          promotions={promotions}
+          activeIntention={activeIntention}
+          onOpenSession={s => navigate(`/journal/${s.id}`)}
+        />
+      </PageContent>
+    );
+  }
 
   if (!isDesktop) {
     return (
@@ -325,102 +303,9 @@ export default function JournalIndexPage() {
     );
   }
 
-  return (
-    <PageContent ready={!loading} loadingMessages={['Pulling entries...', 'Dusting the pages...', 'Finding the margin notes...']}>
-    <div className="j2-page-container" style={{ paddingTop: 64, paddingBottom: 104 }}>
-
-      {/* ── Header ─────────────────────────────────────────── */}
-      <div style={{ marginBottom: 48 }}>
-        <div className="j2-label-micro" style={{ marginBottom: 16 }}>Journal</div>
-        <h1 className="j2-serif-display j2-heading-glow" style={{ fontSize: 84, margin: 0, lineHeight: 1 }}>
-          Your training log.
-        </h1>
-        <div
-          className="j2-serif-italic"
-          style={{ marginTop: 16, fontSize: 22, color: 'rgba(255,255,255,0.60)' }}
-        >
-          {allSessions.length} {allSessions.length === 1 ? 'entry' : 'entries'} · {totalHours} hour{totalHours === 1 ? '' : 's'} logged.
-        </div>
-      </div>
-
-      {fetchError && <p style={{ fontSize: 15, color: STATUS_ERROR, marginBottom: 20 }}>{fetchError}</p>}
-
-      {/* ── Search + filter chips ──────────────────────────── */}
-      <div style={{ display: 'flex', gap: 14, marginBottom: 40, alignItems: 'center' }}>
-        <input
-          type="search"
-          inputMode="search"
-          enterKeyHint="search"
-          autoCapitalize="none"
-          autoCorrect="off"
-          placeholder="Search positions, focus, notes…"
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          style={{
-            flex: 1,
-            background: 'var(--j2-surface-3)',
-            border: '1px solid var(--j2-border-2)',
-            borderRadius: 12,
-            padding: '16px 20px',
-            color: 'rgba(255,255,255,0.90)',
-            fontSize: 16,
-            outline: 'none',
-            transition: 'border-color 180ms ease, background 180ms ease',
-          }}
-          onFocus={e => { e.currentTarget.style.borderColor = 'rgba(196,145,95,0.5)'; e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; }}
-          onBlur={e => { e.currentTarget.style.borderColor = 'var(--j2-border-2)'; e.currentTarget.style.background = 'var(--j2-surface-3)'; }}
-        />
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          {(['All', ...SKILL_TAGS.map(t => t.value)] as Filter[]).map(v => {
-            const label = v === 'All' ? 'All' : (SKILL_TAGS.find(t => t.value === v)?.label ?? v);
-            const active = filter === v;
-            return (
-              <button
-                key={v}
-                onClick={() => setFilter(v)}
-                style={{
-                  height: 42, padding: '0 20px',
-                  display: 'inline-flex', alignItems: 'center',
-                  fontSize: 14, fontWeight: 600,
-                  background: active ? 'rgba(196,145,95,0.16)' : 'var(--j2-surface-2)',
-                  border: `1px solid ${active ? COPPER : 'var(--j2-border-2)'}`,
-                  borderRadius: 21,
-                  color: active ? PALE_YELLOW : 'rgba(255,255,255,0.60)',
-                  cursor: 'pointer',
-                  transition: 'all 160ms ease',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ── Month-grouped entries — virtualized ──────────────── */}
-      {filtered.length === 0 && !loading ? (
-        <EmptyState hasAny={allSessions.length > 0} />
-      ) : (
-        <VariableSizeList
-          ref={desktopListRef}
-          height={Math.max(540, (typeof window !== 'undefined' ? window.innerHeight : 900) - 360)}
-          width="100%"
-          itemCount={desktopItems.length}
-          itemSize={(i) => desktopItemHeight(desktopItems[i]!)}
-          overscanCount={4}
-          estimatedItemSize={118}
-          itemKey={(i) => desktopItems[i]!.key}
-        >
-          {({ index, style }: ListChildComponentProps) => (
-            <DesktopVirtRow item={desktopItems[index]!} style={style} navigate={navigate} onToggleMonth={toggleMonth} />
-          )}
-        </VariableSizeList>
-      )}
-
-    </div>
-    </PageContent>
-  );
+  // The old desktop session index (month accordion + virtualized rows)
+  // was removed on 2026-07-31 — desktop returns the stream above. Git
+  // history holds it.
 }
 
 // Group sessions (already sorted desc by date) into [date, sessions[]] pairs,
@@ -624,132 +509,6 @@ function MobileVirtRow({
   );
 }
 
-function DesktopVirtRow({
-  item, style, navigate, onToggleMonth,
-}: {
-  item: DesktopItem;
-  style: React.CSSProperties;
-  navigate: ReturnType<typeof useNavigate>;
-  onToggleMonth: (month: string) => void;
-}) {
-  if (item.kind === 'month') {
-    const monthLabel = new Date(item.month + '-01T00:00:00')
-      .toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    const hours = Math.round(item.summary.totalMinutes / 60);
-    const statsText = item.summary.dominantPillar
-      ? `${hours}h · mostly ${item.summary.dominantPillar}`
-      : `${hours}h`;
-
-    return (
-      <div style={style}>
-        <button
-          onClick={() => onToggleMonth(item.month)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            width: '100%',
-            padding: '12px 4px',
-            borderBottom: '1px solid var(--j2-border-2)',
-            background: 'transparent',
-            cursor: 'pointer',
-            textAlign: 'left',
-            transition: 'background 120ms ease',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.015)'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{
-              fontSize: 10,
-              color: COPPER_BORDER,
-              width: 14,
-              textAlign: 'center',
-              transition: 'transform 200ms ease',
-              transform: item.collapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
-            }}>
-              ▾
-            </span>
-            <span className="j2-serif-display" style={{ fontSize: 18 }}>
-              {monthLabel}
-            </span>
-            <span className="j2-label-micro" style={{ fontSize: 10 }}>
-              {item.count} {item.count === 1 ? 'entry' : 'entries'}
-            </span>
-          </div>
-          {item.collapsed && (
-            <span style={{
-              fontSize: 11,
-              color: 'rgba(255,255,255,0.25)',
-              fontVariantNumeric: 'tabular-nums',
-            }}>
-              {statsText}
-            </span>
-          )}
-        </button>
-      </div>
-    );
-  }
-
-  const s = item.session;
-  const dateStr = typeof s.date === 'string' ? s.date.slice(0, 10) : toDateString(new Date(s.date));
-  const d = new Date(dateStr + 'T00:00:00');
-  const intensity = Math.max(1, Math.min(5, s.intensity ?? 3));
-  const intColor = INTENSITY_COLOR[intensity] ?? '#5E8A5C';
-  const primary = s.tags?.[0];
-  const focusLabel = primary ? (SKILL_TAGS.find(t => t.value === primary)?.label ?? primary) : 'Free rolling';
-  const classLabel = SESSION_TYPE_LABELS[s.session_type] ?? s.session_type;
-  const secondaryTags = s.tags?.slice(1, 3) ?? [];
-  const secondaryText = secondaryTags.map(t => SKILL_TAGS.find(x => x.value === t)?.label ?? t).join(' · ');
-
-  return (
-    <div style={style}>
-      <button
-        onClick={() => navigate(`/journal/${s.id}`)}
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '58px 10px 1fr auto auto',
-          gap: 10,
-          alignItems: 'center',
-          width: '100%',
-          padding: '8px 4px 8px 20px',
-          borderBottom: '1px solid rgba(255,255,255,0.025)',
-          background: 'transparent',
-          textAlign: 'left',
-          cursor: 'pointer',
-          transition: 'background 120ms ease',
-        }}
-        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.015)'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-      >
-        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', fontVariantNumeric: 'tabular-nums' }}>
-          <strong style={{ color: 'rgba(255,255,255,0.65)', fontWeight: 600 }}>{d.getDate()}</strong>
-          {' '}{DAY_NAMES[d.getDay()]}
-        </span>
-        <span
-          aria-hidden
-          style={{
-            width: 9, height: 9, borderRadius: '50%',
-            background: intColor,
-            boxShadow: `0 0 6px ${intColor}60`,
-          }}
-        />
-        <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {focusLabel}
-          <span style={{ fontWeight: 400, color: 'rgba(255,255,255,0.30)', fontSize: 12, marginLeft: 6 }}>
-            · {classLabel}
-          </span>
-        </span>
-        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.28)', textAlign: 'right', minWidth: 80 }}>
-          {secondaryText || ' '}
-        </span>
-        <span style={{ fontSize: 13, fontWeight: 600, color: COPPER, textAlign: 'right', minWidth: 50, fontVariantNumeric: 'tabular-nums' }}>
-          {formatDuration(s.duration ?? 0)}
-        </span>
-      </button>
-    </div>
-  );
-}
 
 function EmptyState({ hasAny }: { hasAny: boolean }) {
   // No sessions at all → editorial hero (chapter title pattern).
