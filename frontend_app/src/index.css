@@ -625,3 +625,26 @@
 .j2-toast-destructive::before { background: #E07560; }
 
 
+
+/* ────────────────────────────────────────────────────────────────────
+ * Atlas — the instrument beside its verdict. The row wraps rather than
+ * clipping, so the sentence stacks under the radar on a narrow desk.
+ * ──────────────────────────────────────────────────────────────────── */
+.j2-atlas-inst {
+  display: flex;
+  gap: 56px;
+  margin-top: 34px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.j2-atlas-smgrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px 14px;
+  margin-top: 30px;
+}
+
+@media (max-width: 1250px) {
+  .j2-atlas-smgrid { grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); }
+}
