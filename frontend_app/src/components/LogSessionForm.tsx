@@ -330,8 +330,14 @@ export default function LogSessionForm({
             <textarea
               value={form.notes}
               onChange={e => setForm(prev => ({ ...prev, notes: e.target.value }))}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.stopPropagation();
+                }
+              }}
               placeholder="What happened on the mat today?"
               rows={4}
+              enterKeyHint="next"
               style={{
                 width: '100%',
                 background: 'transparent',
