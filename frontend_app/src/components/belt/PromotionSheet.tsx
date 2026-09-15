@@ -28,6 +28,11 @@ const HAIRLINE       = '1px solid rgba(255,255,255,0.06)';
 const REDUCED = typeof matchMedia !== 'undefined'
   && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+/** "Tap" on touch screens, "Click" with a mouse — the sheet is shared by
+ *  the mobile profile form and the desktop identity page. */
+const POINTER_VERB = typeof matchMedia !== 'undefined'
+  && matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Click';
+
 interface Props {
   open: boolean;
   rank: BeltRankKey;
@@ -189,7 +194,7 @@ export default function PromotionSheet({
         <div style={{ fontSize: 11.5, color: TEXT_TERTIARY, marginTop: 10 }}>
           {tying
             ? 'Tying it on…'
-            : `Click the bar to add tape${draftStripes < 4 ? ' — one slot waits.' : '.'}`}
+            : `${POINTER_VERB} the bar to add tape${draftStripes < 4 ? ' — one slot waits.' : '.'}`}
         </div>
 
         {/* Cloth swatches */}

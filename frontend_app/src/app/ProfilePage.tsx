@@ -4,23 +4,19 @@ import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 
 import { api } from '../lib/api.ts';
 import { useAuth } from '../context/AuthContext.tsx';
-import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, SURFACE_2, SURFACE_2_BORDER, SURFACE_3, COPPER, STATUS_ERROR, STATUS_ERROR_BG, STATUS_ERROR_BORDER } from '../lib/theme.ts';
+import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, SURFACE_2, SURFACE_2_BORDER, COPPER, FONT_EDITORIAL, STATUS_ERROR, STATUS_ERROR_BG, STATUS_ERROR_BORDER } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import CsvImportModal from '../components/CsvImportModal.tsx';
 import ReportProblemModal from '../components/ReportProblemModal.tsx';
 import { exportSessionsCsv, exportIntentionsCsv } from '../lib/csvExport.ts';
 import type { SessionSummary, Intention } from '../types/api.ts';
 import PageContent from '../components/PageContent.tsx';
-import { type BeltRank, BELT_COLORS } from '../components/BeltBar.tsx';
+import { type BeltRank } from '../components/BeltBar.tsx';
+import FlatBelt from '../components/belt/FlatBelt.tsx';
+import PromotionSheet from '../components/belt/PromotionSheet.tsx';
+import { beltDisplayName, isBeltRank } from '../lib/beltCloth.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../components/ui/select.tsx';
 import { toast } from '../hooks/use-toast.ts';
 import { useBeltHistory } from '../hooks/useBeltHistory.ts';
 import { getStorageEstimate, type StorageEstimate } from '../lib/videoStore.ts';
@@ -34,13 +30,10 @@ import { portraitDistributions } from '../lib/homeViewModel.ts';
 
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
 
-const BELT_RANKS: { value: BeltRank; label: string }[] = [
-  { value: 'white',  label: 'White'  },
-  { value: 'blue',   label: 'Blue'   },
-  { value: 'purple', label: 'Purple' },
-  { value: 'brown',  label: 'Brown'  },
-  { value: 'black',  label: 'Black'  },
-];
+/** "March 2026" — how a promotion is dated on the belt surfaces. */
+const formatPromotionMonth = (iso: string) =>
+  new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' })
+    .format(new Date(iso.slice(0, 10) + 'T00:00:00'));
 
 interface ProfileData {
   name: string;
@@ -101,12 +94,11 @@ export default function ProfilePage() {
   const { stamps } = useStamps();
   const { sessions: allSessions } = useSessions();
   const portraitShapes = useMemo(() => portraitDistributions(allSessions), [allSessions]);
-  const [beltFormOpen, setBeltFormOpen] = useState(false);
-  const [beltForm, setBeltForm] = useState({ belt_rank: 'blue' as string, stripes: 0, promoted_at: '', notes: '' });
   const [beltSaving, setBeltSaving] = useState(false);
-  const [beltDeleting, setBeltDeleting] = useState<string | null>(null);
+  /** The promotion sheet, opened by tapping the belt (mobile + desktop details). */
+  const [sheetOpen, setSheetOpen] = useState(false);
 
-  // Desktop promotion flow — the sheet commits straight to belt_history and
+  // Promotion flow — the sheet commits straight to belt_history and
   // syncs the profile's own rank/stripes, so the rail label and every other
   // belt surface follow. The new row also becomes a Promotion in the journal
   // stream (derived, see lib/journalStream.ts) — which is the point: the
@@ -157,39 +149,6 @@ export default function ProfilePage() {
     }
   };
 
-  const handleAddBeltEntry = async () => {
-    if (!beltForm.promoted_at) return;
-    setBeltSaving(true);
-    try {
-      await api.post('/api/belt-history', {
-        belt_rank: beltForm.belt_rank,
-        stripes: beltForm.stripes,
-        promoted_at: beltForm.promoted_at,
-        notes: beltForm.notes.trim() || null,
-      });
-      refetchBeltHistory();
-      setBeltForm({ belt_rank: 'blue', stripes: 0, promoted_at: '', notes: '' });
-      setBeltFormOpen(false);
-      toast({ title: 'Promotion recorded.' });
-    } catch {
-      toast({ title: 'Failed to save promotion.', variant: 'destructive' });
-    } finally {
-      setBeltSaving(false);
-    }
-  };
-
-  const handleDeleteBeltEntry = async (id: string) => {
-    setBeltDeleting(id);
-    try {
-      await api.delete(`/api/belt-history/${id}`);
-      refetchBeltHistory();
-      toast({ title: 'Promotion removed.' });
-    } catch {
-      toast({ title: 'Failed to delete.', variant: 'destructive' });
-    } finally {
-      setBeltDeleting(null);
-    }
-  };
   /** Desktop only — the full settings page, reached from housekeeping. */
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -383,6 +342,9 @@ export default function ProfilePage() {
             const inputCls = isDesktop
               ? `${inputClsDesktop} j2-copper-focus`
               : inputClsMobile;
+            // The most recent promotion is what the belt was "tied on".
+            const tiedOn = beltEntries[0]?.promoted_at ?? null;
+            const tiedOnLabel = tiedOn ? formatPromotionMonth(tiedOn) : null;
             return (
           <form onSubmit={handleSubmit} className={`space-y-6 rounded-2xl ${isDesktop ? 'p-10' : 'p-6'}`} style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}>
 
@@ -401,179 +363,42 @@ export default function ProfilePage() {
               />
             </div>
 
-            {/* Belt rank */}
+            {/* The belt — the same flat belt as the desktop identity page.
+                Tap it to open the promotion sheet; nothing here is part of
+                the form's Save, the sheet commits on its own. */}
             <div>
-              <label className={labelCls} style={labelStyle}>Belt Rank</label>
-              <Select
-                value={form.belt_rank ?? ''}
-                onValueChange={val => setForm(prev => ({
-                  ...prev,
-                  belt_rank: (val as BeltRank) || null,
-                  stripes: val ? prev.stripes : 0,
-                }))}
-              >
-                <SelectTrigger
-                  className={
-                    isDesktop
-                      ? 'w-full text-[15px] text-white rounded-xl h-[52px] px-4 j2-copper-focus'
-                      : 'w-full bg-white/10 border-white/10 text-white focus:ring-brand-orange'
-                  }
-                >
-                  <SelectValue placeholder="— Select belt rank —" />
-                </SelectTrigger>
-                <SelectContent>
-                  {BELT_RANKS.map(({ value, label }) => (
-                    <SelectItem key={value} value={value}>{label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+              <label className={labelCls} style={labelStyle}>Belt</label>
+              <FlatBelt
+                rank={isBeltRank(form.belt_rank) ? form.belt_rank : 'white'}
+                stripes={form.stripes}
+                onClick={() => setSheetOpen(true)}
+                title="Record a promotion"
+              />
+              <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.46)', marginTop: 10 }}>
+                {tiedOnLabel ? `Tied on ${tiedOnLabel} · ` : ''}
+                {isDesktop ? 'click' : 'tap'} the belt to record a promotion
+              </p>
 
-            {/* Stripes */}
-            {form.belt_rank && (
-              <div>
-                <label className={labelCls} style={labelStyle}>Stripes</label>
-                <div className={`flex ${isDesktop ? 'gap-3' : 'gap-2'}`}>
-                  {[0, 1, 2, 3, 4].map(n => {
-                    const active = form.stripes === n;
-                    if (isDesktop) {
-                      return (
-                        <button
-                          key={n}
-                          type="button"
-                          onClick={() => setForm(prev => ({ ...prev, stripes: n }))}
-                          className="rounded-xl text-[15px] font-semibold transition-all cursor-pointer flex-1"
-                          style={{
-                            height: 52,
-                            backgroundColor: active ? 'rgba(218,116,34,0.18)' : SURFACE_3,
-                            border: active ? `1px solid ${COPPER}` : '1px solid rgba(255,255,255,0.08)',
-                            color: active ? COPPER : 'rgba(255,255,255,0.55)',
-                            boxShadow: active ? `0 0 14px rgba(218,116,34,0.22)` : 'none',
-                          }}
-                        >
-                          {n}
-                        </button>
-                      );
-                    }
-                    return (
-                      <button
-                        key={n}
-                        type="button"
-                        onClick={() => setForm(prev => ({ ...prev, stripes: n }))}
-                        className={`w-11 h-11 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
-                          active
-                            ? 'bg-brand-orange text-white'
-                            : 'bg-white/10 text-white/60 hover:bg-white/20'
-                        }`}
-                      >
-                        {n}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Belt Timeline */}
-            <div style={{ marginTop: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)' }}>
-                  Belt Timeline
-                </span>
-                <span style={{ flex: 1, height: 1, backgroundColor: 'rgba(196,145,95,0.25)', borderRadius: 1 }} />
-              </div>
-
-              {beltEntries.length === 0 && !beltFormOpen && (
-                <p style={{ fontSize: 13, fontStyle: 'italic', color: 'rgba(255,255,255,0.35)', marginBottom: 10 }}>
-                  No promotions recorded yet. Add your belt history to see milestones on the calendar.
-                </p>
-              )}
-
-              {beltEntries.map(entry => (
-                <div key={entry.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: BELT_COLORS[entry.belt_rank as BeltRank] ?? COPPER, flexShrink: 0 }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.80)' }}>
-                      {entry.belt_rank.charAt(0).toUpperCase() + entry.belt_rank.slice(1)} Belt
-                      {entry.stripes > 0 && <span style={{ color: 'rgba(255,255,255,0.45)' }}> · {entry.stripes} stripe{entry.stripes !== 1 ? 's' : ''}</span>}
+              {/* Promotions recorded so far */}
+              {beltEntries.length > 0 && (
+                <div style={{ marginTop: 12 }}>
+                  {beltEntries.map(entry => (
+                    <div
+                      key={entry.id}
+                      style={{
+                        display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+                        gap: 16, padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.06)',
+                      }}
+                    >
+                      <span style={{ fontFamily: FONT_EDITORIAL, fontSize: 17, color: 'rgba(255,255,255,0.66)' }}>
+                        {beltDisplayName(isBeltRank(entry.belt_rank) ? entry.belt_rank : 'white', entry.stripes)}
+                      </span>
+                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.46)', whiteSpace: 'nowrap' }}>
+                        {formatPromotionMonth(entry.promoted_at)}
+                      </span>
                     </div>
-                    {entry.notes && (
-                      <div style={{ fontSize: 12, fontStyle: 'italic', color: 'rgba(255,255,255,0.30)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        "{entry.notes}"
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>
-                    {new Date(entry.promoted_at + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteBeltEntry(entry.id)}
-                    disabled={beltDeleting === entry.id}
-                    style={{ fontSize: 14, color: 'rgba(255,255,255,0.20)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px' }}
-                  >
-                    ×
-                  </button>
+                  ))}
                 </div>
-              ))}
-
-              {beltFormOpen ? (
-                <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <select
-                      value={beltForm.belt_rank}
-                      onChange={e => setBeltForm(f => ({ ...f, belt_rank: e.target.value }))}
-                      style={{ flex: 1, fontSize: 13, padding: '8px 10px', borderRadius: 8, backgroundColor: SURFACE_3, border: '1px solid rgba(255,255,255,0.08)', color: 'white' }}
-                    >
-                      {BELT_RANKS.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
-                    </select>
-                    <select
-                      value={beltForm.stripes}
-                      onChange={e => setBeltForm(f => ({ ...f, stripes: Number(e.target.value) }))}
-                      style={{ width: 60, fontSize: 13, padding: '8px 6px', borderRadius: 8, backgroundColor: SURFACE_3, border: '1px solid rgba(255,255,255,0.08)', color: 'white' }}
-                    >
-                      {[0,1,2,3,4].map(n => <option key={n} value={n}>{n} str</option>)}
-                    </select>
-                  </div>
-                  <input
-                    type="date"
-                    value={beltForm.promoted_at}
-                    onChange={e => setBeltForm(f => ({ ...f, promoted_at: e.target.value }))}
-                    style={{ fontSize: 13, padding: '8px 10px', borderRadius: 8, backgroundColor: SURFACE_3, border: '1px solid rgba(255,255,255,0.08)', color: 'white', colorScheme: 'dark' }}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Notes (optional)"
-                    value={beltForm.notes}
-                    onChange={e => setBeltForm(f => ({ ...f, notes: e.target.value }))}
-                    style={{ fontSize: 13, padding: '8px 10px', borderRadius: 8, backgroundColor: SURFACE_3, border: '1px solid rgba(255,255,255,0.08)', color: 'white' }}
-                  />
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button
-                      type="button"
-                      onClick={handleAddBeltEntry}
-                      disabled={beltSaving || !beltForm.promoted_at}
-                      style={{ flex: 1, fontSize: 13, fontWeight: 600, padding: '8px 0', borderRadius: 8, border: `1px solid ${COPPER}`, color: COPPER, backgroundColor: 'rgba(196,145,95,0.06)', cursor: 'pointer' }}
-                    >
-                      {beltSaving ? 'Saving…' : '+ Add Promotion'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setBeltFormOpen(false)}
-                      style={{ fontSize: 13, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.45)', backgroundColor: 'transparent', cursor: 'pointer' }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setBeltFormOpen(true)}
-                  style={{ marginTop: 8, fontSize: 13, fontWeight: 600, color: COPPER, background: 'none', border: 'none', borderBottom: `1px solid rgba(196,145,95,0.3)`, padding: 0, cursor: 'pointer' }}
-                >
-                  + Add promotion →
-                </button>
               )}
             </div>
 
@@ -1030,6 +855,16 @@ export default function ProfilePage() {
       {reportOpen && (
         <ReportProblemModal onClose={() => setReportOpen(false)} />
       )}
+
+      <PromotionSheet
+        open={sheetOpen}
+        rank={isBeltRank(form.belt_rank) ? form.belt_rank : 'white'}
+        stripes={form.stripes}
+        academy={form.home_gym_name || null}
+        saving={beltSaving}
+        onClose={() => setSheetOpen(false)}
+        onCommit={next => { setSheetOpen(false); void handleRecordPromotion(next); }}
+      />
     </div>
   );
 }
