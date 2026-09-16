@@ -19,7 +19,7 @@ import SealStamp from './seal/SealStamp.tsx';
 import HomePortrait from './HomePortrait.tsx';
 import { STAMP_DIES, bandDate } from '../lib/stampDies.ts';
 import { beltDisplayName, isBeltRank, type BeltRankKey } from '../lib/beltCloth.ts';
-import { PALE_YELLOW, FONT_EDITORIAL } from '../lib/theme.ts';
+import { PALE_YELLOW, FONT_EDITORIAL, STATUS_ERROR, STATUS_ERROR_BG, STATUS_ERROR_BORDER } from '../lib/theme.ts';
 import type { BeltHistoryEntry, EarnedStamp, PillarDistribution } from '../types/api.ts';
 
 const TEXT_SECONDARY = 'rgba(255,255,255,0.66)';
@@ -41,6 +41,18 @@ export interface HousekeepingRow {
   title: string;
   subtitle: string;
   onClick: () => void;
+  /** Rendered in place of the › chevron — e.g. a toggle switch. */
+  control?: React.ReactNode;
+  /** 'danger' for destructive rows (Log out). */
+  tone?: 'default' | 'danger';
+}
+
+export interface HousekeepingSection {
+  heading: string;
+  rows: HousekeepingRow[];
+  /** Free-form block rendered after the rows, inside its own hairline card
+   *  (e.g. the prism skin picker with its live preview). */
+  content?: React.ReactNode;
 }
 
 interface Props {
@@ -56,7 +68,7 @@ interface Props {
   sessionCount: number;
   savingPromotion?: boolean;
   onRecordPromotion: (next: { rank: BeltRankKey; stripes: number; promotedAt: string }) => void;
-  housekeeping: { heading: string; rows: HousekeepingRow[] }[];
+  housekeeping: HousekeepingSection[];
 }
 
 export default function ProfileDesktop({
@@ -203,30 +215,39 @@ export default function ProfileDesktop({
               <div style={{ ...LABEL, margin: si === 0 ? '0 0 12px' : '26px 0 12px' }}>
                 {section.heading}
               </div>
-              {section.rows.map(row => (
-                <button
-                  key={row.title}
-                  type="button"
-                  onClick={row.onClick}
-                  className="j2-hk-row"
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 15, width: '100%',
-                    border: HAIRLINE, borderRadius: 14, padding: '17px 19px',
-                    marginBottom: 12, background: 'none', textAlign: 'left',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: TEXT_SECONDARY }}>
-                      {row.title}
+              {section.rows.map(row => {
+                const danger = row.tone === 'danger';
+                return (
+                  <button
+                    key={row.title}
+                    type="button"
+                    onClick={row.onClick}
+                    className="j2-hk-row"
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 15, width: '100%',
+                      border: danger ? `1px solid ${STATUS_ERROR_BORDER}` : HAIRLINE,
+                      borderRadius: 14, padding: '17px 19px',
+                      marginBottom: 12, background: danger ? STATUS_ERROR_BG : 'none',
+                      textAlign: 'left', cursor: 'pointer',
+                    }}
+                  >
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: danger ? STATUS_ERROR : TEXT_SECONDARY }}>
+                        {row.title}
+                      </span>
+                      <span style={{ display: 'block', fontSize: 11.5, color: TEXT_TERTIARY, marginTop: 3, lineHeight: 1.5 }}>
+                        {row.subtitle}
+                      </span>
                     </span>
-                    <span style={{ display: 'block', fontSize: 11.5, color: TEXT_TERTIARY, marginTop: 3, lineHeight: 1.5 }}>
-                      {row.subtitle}
-                    </span>
-                  </span>
-                  <span aria-hidden style={{ color: TEXT_HINT, fontSize: 17 }}>›</span>
-                </button>
-              ))}
+                    {row.control ?? <span aria-hidden style={{ color: TEXT_HINT, fontSize: 17 }}>›</span>}
+                  </button>
+                );
+              })}
+              {section.content && (
+                <div style={{ border: HAIRLINE, borderRadius: 14, padding: '17px 19px', marginBottom: 12 }}>
+                  {section.content}
+                </div>
+              )}
             </div>
           ))}
         </div>

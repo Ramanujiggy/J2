@@ -215,27 +215,49 @@ export default function ProfilePage() {
     }
   }, [loading, initAutocomplete]);
 
+  /** The profile PUT is whole-object, so every save sends the full form. */
+  const putProfile = (intentions: boolean) => api.put('/api/profile', {
+    name: form.name || null,
+    belt_rank: form.belt_rank,
+    stripes: form.stripes,
+    home_gym_name: form.home_gym_name || null,
+    home_gym_address: form.home_gym_address || null,
+    home_gym_place_id: form.home_gym_place_id || null,
+    intentions_enabled: intentions,
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSaving(true);
 
     try {
-      await api.put('/api/profile', {
-        name: form.name || null,
-        belt_rank: form.belt_rank,
-        stripes: form.stripes,
-        home_gym_name: form.home_gym_name || null,
-        home_gym_address: form.home_gym_address || null,
-        home_gym_place_id: form.home_gym_place_id || null,
-        intentions_enabled: intentionsEnabled,
-      });
+      await putProfile(intentionsEnabled);
       refreshProfile();
       toast({ variant: 'success', title: 'Profile saved.' });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to save profile.';
       setError(msg);
       toast({ variant: 'destructive', title: 'Could not save profile.', description: msg });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  /** Desktop housekeeping toggle — there is no Save button on the identity
+   *  screen, so the switch persists on its own and rolls back on failure. */
+  const handleToggleIntentions = async () => {
+    if (saving) return;
+    const next = !intentionsEnabled;
+    setIntentionsEnabled(next);
+    setSaving(true);
+    try {
+      await putProfile(next);
+      refreshProfile();
+    } catch (err) {
+      setIntentionsEnabled(!next);
+      const msg = err instanceof Error ? err.message : 'Failed to save profile.';
+      toast({ variant: 'destructive', title: 'Could not save setting.', description: msg });
     } finally {
       setSaving(false);
     }
@@ -269,10 +291,43 @@ export default function ProfilePage() {
               ],
             },
             {
+              heading: 'Preferences',
+              rows: [
+                {
+                  title: 'Training intentions',
+                  subtitle: 'Track weekly focus and journal your intentions.',
+                  onClick: () => { void handleToggleIntentions(); },
+                  control: (
+                    <span
+                      role="switch"
+                      aria-checked={intentionsEnabled}
+                      aria-label="Training intentions"
+                      className="rounded-full relative flex-shrink-0 w-12 h-6 transition-colors"
+                      style={{ display: 'block', backgroundColor: intentionsEnabled ? 'rgba(218,116,34,0.85)' : 'rgba(255,255,255,0.10)' }}
+                    >
+                      <span
+                        className="absolute top-0.5 rounded-full bg-white transition-transform w-5 h-5"
+                        style={{ transform: intentionsEnabled ? 'translateX(26px)' : 'translateX(2px)' }}
+                      />
+                    </span>
+                  ),
+                },
+              ],
+              content: <PrismSkinToggle />,
+            },
+            {
               heading: 'Your data',
               rows: [
                 { title: 'Import training history', subtitle: 'Upload a CSV of past sessions.', onClick: () => setImportOpen(true) },
                 { title: 'Export everything', subtitle: 'Sessions and intentions as CSV — your words are yours.', onClick: () => { void handleExportAll(); } },
+              ],
+            },
+            {
+              heading: 'Account',
+              rows: [
+                ...(isAdmin ? [{ title: 'Admin dashboard', subtitle: 'Users, reports, and production design.', onClick: () => navigate('/admin') }] : []),
+                { title: 'Report a problem', subtitle: 'Two fields; debug context attaches itself.', onClick: () => setReportOpen(true) },
+                { title: 'Log out', subtitle: 'Sign out of Journada on this device.', onClick: () => { logout(); navigate('/'); }, tone: 'danger' as const },
               ],
             },
           ]}
@@ -283,6 +338,9 @@ export default function ProfilePage() {
             onClose={() => setImportOpen(false)}
             onImported={() => { setImportOpen(false); refreshProfile(); }}
           />
+        )}
+        {reportOpen && (
+          <ReportProblemModal onClose={() => setReportOpen(false)} />
         )}
       </>
     );
@@ -311,19 +369,19 @@ export default function ProfilePage() {
         {isDesktop ? (
           <div className="mb-10">
             <p className="j2-label-copper" style={{ marginBottom: 12 }}>
-              ◇ Your information
+              ◇ Housekeeping
             </p>
             <h1
               className="j2-serif-display j2-heading-glow"
-              style={{ fontSize: 84, lineHeight: 1, margin: 0, letterSpacing: '-0.01em' }}
+              style={{ fontSize: 64, lineHeight: 1, margin: 0, letterSpacing: '-0.01em' }}
             >
-              Profile
+              Your details
             </h1>
             <p
               className="j2-serif-italic"
               style={{ marginTop: 18, fontSize: 20, color: 'rgba(255,255,255,0.55)', lineHeight: 1.4 }}
             >
-              Identity, rank, and the data behind your journey.
+              Name, belt, and home gym.
             </p>
           </div>
         ) : (
@@ -441,7 +499,9 @@ export default function ProfilePage() {
               )}
             </div>
 
-            {/* Features */}
+            {/* Features — mobile only; desktop keeps this as a
+                housekeeping toggle on the identity screen. */}
+            {!isDesktop && (
             <div
               className={`rounded-xl ${isDesktop ? 'px-5 py-4 space-y-4' : 'px-4 py-3 space-y-3'}`}
               style={{ backgroundColor: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}` }}
@@ -476,6 +536,7 @@ export default function ProfilePage() {
                 </div>
               </label>
             </div>
+            )}
 
             {error && <p className="text-error text-sm">{error}</p>}
 
@@ -509,8 +570,10 @@ export default function ProfilePage() {
           })()}
             </div>
 
-            {/* Sidebar column — Library, Import, Export */}
-            <div className={isDesktop ? 'col-span-5 space-y-4' : 'contents'}>
+            {/* Sidebar — mobile only. Desktop's identity screen already
+                carries every one of these as a housekeeping row. */}
+            {!isDesktop && (
+            <div className="contents">
 
         {/* Class times & notifications */}
         <div
@@ -736,113 +799,66 @@ export default function ProfilePage() {
         </div>
 
             </div>
+            )}
           </div>
         </PageContent>
 
-        {/* ── Admin + support actions ──────────────────────────────────
-            Admin Dashboard link only renders for users with is_admin = true
-            (mig 023). Report a Problem is visible for any authed user; the
-            modal silently auto-attaches debug context so the admin gets
-            full triage info from a 2-field form. */}
-        <div className={`${isDesktop ? 'mt-10' : 'mt-6'} flex flex-col items-center`} style={{ gap: 12 }}>
-          {isAdmin && (
-            <button
-              onClick={() => navigate('/admin')}
-              className={isDesktop ? 'rounded-xl transition-all' : 'w-full rounded-xl transition-all touch-manipulation j2-press'}
-              style={isDesktop ? {
-                padding: '12px 32px',
-                fontSize: 14,
-                fontWeight: 600,
-                color: COPPER,
-                backgroundColor: 'rgba(196,145,95,0.10)',
-                border: '1px solid rgba(196,145,95,0.30)',
-              } : {
-                height: 48,
-                fontSize: 14,
-                fontWeight: 600,
-                color: COPPER,
-                backgroundColor: 'rgba(196,145,95,0.12)',
-                border: '1px solid rgba(196,145,95,0.30)',
-              }}
-              onMouseEnter={isDesktop ? (e => {
-                e.currentTarget.style.backgroundColor = 'rgba(196,145,95,0.18)';
-                e.currentTarget.style.borderColor = 'rgba(196,145,95,0.55)';
-              }) : undefined}
-              onMouseLeave={isDesktop ? (e => {
-                e.currentTarget.style.backgroundColor = 'rgba(196,145,95,0.10)';
-                e.currentTarget.style.borderColor = 'rgba(196,145,95,0.30)';
-              }) : undefined}
-            >
-              ◇ Admin Dashboard
-            </button>
-          )}
+        {/* ── Admin + support actions — mobile only ─────────────────────
+            Desktop carries these as the "Account" housekeeping group on the
+            identity screen. Admin Dashboard only renders for users with
+            is_admin = true (mig 023). Report a Problem is visible for any
+            authed user; the modal silently auto-attaches debug context so
+            the admin gets full triage info from a 2-field form. */}
+        {!isDesktop && (
+          <>
+            <div className="mt-6 flex flex-col items-center" style={{ gap: 12 }}>
+              {isAdmin && (
+                <button
+                  onClick={() => navigate('/admin')}
+                  className="w-full rounded-xl transition-all touch-manipulation j2-press"
+                  style={{
+                    height: 48,
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: COPPER,
+                    backgroundColor: 'rgba(196,145,95,0.12)',
+                    border: '1px solid rgba(196,145,95,0.30)',
+                  }}
+                >
+                  ◇ Admin Dashboard
+                </button>
+              )}
 
-          <button
-            onClick={() => setReportOpen(true)}
-            className={isDesktop ? 'text-sm rounded-xl transition-colors' : 'w-full text-sm rounded-xl transition-colors touch-manipulation j2-press'}
-            style={isDesktop ? {
-              padding: '12px 32px',
-              color: 'rgba(255,255,255,0.55)',
-              backgroundColor: 'transparent',
-              border: '1px solid rgba(255,255,255,0.10)',
-            } : {
-              height: 44,
-              color: 'rgba(255,255,255,0.65)',
-              backgroundColor: 'transparent',
-              border: '1px solid rgba(255,255,255,0.12)',
-            }}
-            onMouseEnter={isDesktop ? (e => {
-              e.currentTarget.style.color = COPPER;
-              e.currentTarget.style.borderColor = 'rgba(196,145,95,0.40)';
-            }) : undefined}
-            onMouseLeave={isDesktop ? (e => {
-              e.currentTarget.style.color = 'rgba(255,255,255,0.55)';
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)';
-            }) : undefined}
-          >
-            Report a problem
-          </button>
-        </div>
+              <button
+                onClick={() => setReportOpen(true)}
+                className="w-full text-sm rounded-xl transition-colors touch-manipulation j2-press"
+                style={{
+                  height: 44,
+                  color: 'rgba(255,255,255,0.65)',
+                  backgroundColor: 'transparent',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                }}
+              >
+                Report a problem
+              </button>
+            </div>
 
-        <div className={`flex justify-center ${isDesktop ? 'mt-8' : 'mt-6'}`}>
-          {isDesktop ? (
-            <button
-              onClick={() => { logout(); navigate('/'); }}
-              className="text-sm font-semibold uppercase tracking-[0.14em] rounded-xl transition-all"
-              style={{
-                padding: '14px 32px',
-                color: STATUS_ERROR,
-                backgroundColor: STATUS_ERROR_BG,
-                border: `1px solid ${STATUS_ERROR_BORDER}`,
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.backgroundColor = STATUS_ERROR_BG;
-                e.currentTarget.style.borderColor = STATUS_ERROR_BORDER;
-                e.currentTarget.style.color = STATUS_ERROR;
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.backgroundColor = STATUS_ERROR_BG;
-                e.currentTarget.style.borderColor = STATUS_ERROR_BORDER;
-                e.currentTarget.style.color = STATUS_ERROR;
-              }}
-            >
-              Log out
-            </button>
-          ) : (
-            <button
-              onClick={() => { logout(); navigate('/'); }}
-              className="w-full text-sm font-semibold rounded-xl transition-all touch-manipulation j2-press"
-              style={{
-                height: 48,
-                color: STATUS_ERROR,
-                backgroundColor: STATUS_ERROR_BG,
-                border: `1px solid ${STATUS_ERROR_BORDER}`,
-              }}
-            >
-              Log out
-            </button>
-          )}
-        </div>
+            <div className="flex justify-center mt-6">
+              <button
+                onClick={() => { logout(); navigate('/'); }}
+                className="w-full text-sm font-semibold rounded-xl transition-all touch-manipulation j2-press"
+                style={{
+                  height: 48,
+                  color: STATUS_ERROR,
+                  backgroundColor: STATUS_ERROR_BG,
+                  border: `1px solid ${STATUS_ERROR_BORDER}`,
+                }}
+              >
+                Log out
+              </button>
+            </div>
+          </>
+        )}
       </main>
 
       {importOpen && (
