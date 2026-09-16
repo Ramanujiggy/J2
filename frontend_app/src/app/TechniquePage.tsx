@@ -18,7 +18,8 @@
 //   persistent context while the right column is the writing surface.
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { PROFILE_ORIGIN, isFromProfile } from '../lib/navOrigin.ts';
 import { ChevronLeft } from 'lucide-react';
 import { api } from '../lib/api.ts';
 import PageContent from '../components/PageContent.tsx';
@@ -85,6 +86,10 @@ export default function TechniquePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isDesktop = useIsDesktop();
+  const location = useLocation();
+  // Opened via Profile → Library: keep that origin on back + peer links so
+  // the whole drill-down stays a Profile sub-menu (see lib/navOrigin.ts).
+  const originState = isFromProfile(location.state) ? PROFILE_ORIGIN : undefined;
   const {
     byId, tagsByPillar, loading: tagsLoading, error: hookError,
     setAffinity, setResonance, patchVideoMeta,
@@ -283,7 +288,7 @@ export default function TechniquePage() {
             Technique not found.
           </p>
           <button
-            onClick={() => navigate('/library')}
+            onClick={() => navigate('/library', { state: originState })}
             className="mt-4 text-sm"
             style={{ color: COPPER, textDecoration: 'underline' }}
           >
@@ -407,7 +412,7 @@ export default function TechniquePage() {
         {otherInPillar.map(peer => (
           <li key={peer.id}>
             <button
-              onClick={() => navigate(`/techniques/${peer.id}`)}
+              onClick={() => navigate(`/techniques/${peer.id}`, { state: originState })}
               className="j2-press touch-manipulation"
               style={{
                 width: '100%',
@@ -446,7 +451,7 @@ export default function TechniquePage() {
             Something went wrong loading this technique.
           </p>
           <button
-            onClick={() => navigate('/library')}
+            onClick={() => navigate('/library', { state: originState })}
             className="mt-4 text-sm"
             style={{ color: COPPER, textDecoration: 'underline' }}
           >
@@ -461,7 +466,7 @@ export default function TechniquePage() {
         // Mirrors PathAheadPage's `j2-page-container` register.
         <div className="j2-page-container" style={{ paddingTop: 32, paddingBottom: 64 }}>
           <button
-            onClick={() => navigate('/library')}
+            onClick={() => navigate('/library', { state: originState })}
             className="text-sm flex items-center gap-1 mb-4 transition-colors touch-manipulation"
             style={{ color: 'rgba(255,255,255,0.50)' }}
           >
@@ -510,7 +515,7 @@ export default function TechniquePage() {
           style={{ paddingTop: 24, paddingBottom: 48 }}
         >
           <button
-            onClick={() => navigate('/library')}
+            onClick={() => navigate('/library', { state: originState })}
             className="text-xs flex items-center gap-1 mb-4 transition-colors touch-manipulation"
             style={{ color: 'rgba(255,255,255,0.50)' }}
           >

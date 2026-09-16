@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { PROFILE_ORIGIN } from '../lib/navOrigin.ts';
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 
 import { api } from '../lib/api.ts';
@@ -264,7 +265,7 @@ export default function ProfilePage() {
               rows: [
                 { title: 'Your details', subtitle: 'Name, belt, home gym.', onClick: () => setDetailsOpen(true) },
                 { title: 'Class times & notifications', subtitle: 'Three quiet pings around each class.', onClick: () => navigate('/profile/classes') },
-                { title: 'Move library', subtitle: 'Your own clips and the techniques you keep.', onClick: () => navigate('/library') },
+                { title: 'Move library', subtitle: 'Your own clips and the techniques you keep.', onClick: () => navigate('/library', { state: PROFILE_ORIGIN }) },
               ],
             },
             {
@@ -572,7 +573,7 @@ export default function ProfilePage() {
         >
           <button
             type="button"
-            onClick={() => navigate('/library')}
+            onClick={() => navigate('/library', { state: PROFILE_ORIGIN })}
             className="w-full flex items-center justify-between gap-3 touch-manipulation j2-press"
           >
             <div className="flex items-center gap-3 text-left">

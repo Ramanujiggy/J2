@@ -5,6 +5,7 @@ import { useProfile } from '../context/ProfileContext.tsx';
 import SeigaihaPattern from './visuals/SeigaihaPattern.tsx';
 import BeltBar, { type BeltRank, BELT_COLORS, PATCH_COLORS } from './BeltBar.tsx';
 import { PAGE_BG, PALE_YELLOW, GLOW_TITLE, GLOW_NAV, BRAND_ORANGE } from '../lib/theme.ts';
+import { isFromProfile } from '../lib/navOrigin.ts';
 
 /** Bottom-nav ground — a shade below the page so the bar reads as beneath it. */
 const NAV_BG = '#0B1712' as const;
@@ -119,10 +120,16 @@ function MobileAppShell({ children }: Props) {
     () => ALL_TABS.filter(t => !t.intentionsGated || intentionsEnabled),
     [intentionsEnabled],
   );
-  const activeTab = TABS.find(t =>
+  const routeTab = TABS.find(t =>
     location.pathname.startsWith(t.path) ||
     t.alsoActiveOn?.some(p => location.pathname.startsWith(p))
   )?.path ?? '/home';
+  // Library / technique pages opened from Profile behave as a Profile
+  // sub-menu (see lib/navOrigin.ts), so keep the Profile tab lit.
+  const activeTab = isFromProfile(location.state)
+    && (location.pathname.startsWith('/library') || location.pathname.startsWith('/techniques'))
+    ? '/profile'
+    : routeTab;
 
   // Page-level horizontal swipe-to-navigate has been retired — it made the
   // app feel light and "swipey" in a way that worked against the leather-

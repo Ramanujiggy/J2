@@ -27,6 +27,7 @@ import { useOnlineSync } from '../hooks/useOnlineSync.ts';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock.ts';
 import { toDateString } from '../lib/sessionUtils.ts';
 import { PAGE_BG, PALE_YELLOW, COPPER, BRAND_ORANGE, BRAND_ORANGE_HOVER } from '../lib/theme.ts';
+import { isFromProfile } from '../lib/navOrigin.ts';
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 // 18px, 1.7 stroke, line style — the handoff's rail icon set.
@@ -108,10 +109,16 @@ export default function DesktopAppShell({ children }: Props) {
     }),
     [intentionsEnabled, isAdmin],
   );
-  const activeTab = items.find(it =>
+  const routeTab = items.find(it =>
     location.pathname.startsWith(it.path) ||
     it.alsoActiveOn?.some(p => location.pathname.startsWith(p))
   )?.path ?? '/home';
+  // Library / technique pages opened from Profile behave as a Profile
+  // sub-menu (see lib/navOrigin.ts), so keep the Profile tab lit.
+  const activeTab = isFromProfile(location.state)
+    && (location.pathname.startsWith('/library') || location.pathname.startsWith('/techniques'))
+    ? '/profile'
+    : routeTab;
 
   const go = useCallback((path: string) => { navigate(path); }, [navigate]);
 

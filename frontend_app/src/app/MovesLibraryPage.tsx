@@ -19,17 +19,18 @@
 // the thumbnail + metadata sync via the server.
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import PageContent from '../components/PageContent.tsx';
 import LibraryEmptyHero from '../components/empty/LibraryEmptyHero.tsx';
 import LocalVideoMigrationPrompt from '../components/LocalVideoMigrationPrompt.tsx';
 import { useUserTags } from '../hooks/useUserTags.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import SegmentedToggle from '../components/SegmentedToggle.tsx';
-import { PALE_YELLOW, GLOW_SOFT, COPPER, SURFACE_2, SURFACE_3, CARD_BG } from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, COPPER, SURFACE_2, SURFACE_2_BORDER, SURFACE_3, CARD_BG, FONT_EDITORIAL } from '../lib/theme.ts';
+import { PROFILE_ORIGIN, isFromProfile } from '../lib/navOrigin.ts';
 import { formatDurationMMSS } from '../lib/videoUtils.ts';
 import { vibrate } from '../lib/haptics.ts';
-import { ChevronRight, ChevronDown, Video } from 'lucide-react';
+import { ChevronRight, ChevronDown, ChevronLeft, Video } from 'lucide-react';
 import type { UserTag, Pillar, Affinity } from '../types/api.ts';
 
 const PILLAR_LABELS: Record<Pillar, string> = {
@@ -68,6 +69,11 @@ function matchesFilter(tag: UserTag, filter: LibraryFilter): boolean {
 export default function MovesLibraryPage() {
   const navigate = useNavigate();
   const isDesktop = useIsDesktop();
+  const location = useLocation();
+  // Entered from Profile → render as a Profile sub-menu (back chevron,
+  // no Journal toggle) and carry the origin into /techniques/:id.
+  const fromProfile = isFromProfile(location.state);
+  const originState = fromProfile ? PROFILE_ORIGIN : undefined;
   const { tags, loading, error, attachVideo } = useUserTags();
 
   const [filter, setFilter] = useState<LibraryFilter>('all');
@@ -153,10 +159,40 @@ export default function MovesLibraryPage() {
         style={isDesktop ? { paddingTop: 20, paddingBottom: 20 } : { paddingTop: 24, paddingBottom: 24 }}
       >
 
-        {/* Header — mobile gets the journal toggle; desktop keeps the
-            standalone "Technique Library" heading since the rail nav already
-            provides top-level navigation. */}
-        {isDesktop ? (
+        {/* Header — three variants:
+            • From Profile (any width): back chevron + "Technique Library",
+              matching the other Profile sub-pages (Class times, Collection).
+            • Mobile: the journal toggle (Entries / Intentions / Notes / Techs).
+            • Desktop: standalone "Technique Library" heading since the rail
+              nav already provides top-level navigation. */}
+        {fromProfile ? (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+              <button
+                onClick={() => navigate('/profile')}
+                aria-label="Back to profile"
+                className="touch-manipulation"
+                style={{
+                  padding: 8, borderRadius: 10,
+                  background: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}`,
+                  color: 'rgba(242,228,168,0.6)', cursor: 'pointer',
+                }}
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <h1
+                style={{
+                  fontFamily: FONT_EDITORIAL, fontSize: 28, color: PALE_YELLOW, textShadow: GLOW_SOFT, margin: 0,
+                }}
+              >
+                Technique Library
+              </h1>
+            </div>
+            <p style={{ color: 'rgba(255,255,255,0.40)', fontSize: 13, marginBottom: 4 }}>
+              {counts.total} technique{counts.total === 1 ? '' : 's'}
+            </p>
+          </div>
+        ) : isDesktop ? (
           <div>
             <h2 className="text-2xl font-display font-bold tracking-tight" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
               Technique Library
@@ -212,7 +248,7 @@ export default function MovesLibraryPage() {
         {filter === 'all' && recentTags.length >= 3 && (
           <RecentlyAddedRibbon
             tags={recentTags}
-            onOpenTechnique={id => navigate(`/techniques/${id}`)}
+            onOpenTechnique={id => navigate(`/techniques/${id}`, { state: originState })}
           />
         )}
 
@@ -275,7 +311,7 @@ export default function MovesLibraryPage() {
                   tags={sections[p]}
                   expanded={isExpanded}
                   onToggle={() => togglePillar(p)}
-                  onOpenTechnique={id => navigate(`/techniques/${id}`)}
+                  onOpenTechnique={id => navigate(`/techniques/${id}`, { state: originState })}
                   isFirst={idx === 0}
                   filterActive={filter !== 'all'}
                 />
