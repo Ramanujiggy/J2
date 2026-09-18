@@ -392,9 +392,6 @@ export default function ProfilePage() {
         {/* Editorial header — desktop */}
         {isDesktop ? (
           <div className="mb-10">
-            <p className="j2-label-copper" style={{ marginBottom: 12 }}>
-              ◇ Housekeeping
-            </p>
             <h1
               className="j2-serif-display j2-heading-glow"
               style={{ fontSize: 64, lineHeight: 1, margin: 0, letterSpacing: '-0.01em' }}
