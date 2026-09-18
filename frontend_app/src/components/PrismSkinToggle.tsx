@@ -18,27 +18,40 @@ const PREVIEW: ChipSelection[] = [
   { pillar: 'standup', primary: false, deep_work: false },
 ];
 
-function readSkin(): PrismSkin {
+export function readPrismSkin(): PrismSkin {
   try { return localStorage.getItem(STORAGE_KEY) === 'facet' ? 'facet' : 'etched'; }
   catch { return 'etched'; }
 }
 
-export default function PrismSkinToggle() {
-  const [skin, setSkin] = useState<PrismSkin>(readSkin);
+export const PRISM_SKIN_LABEL: Record<PrismSkin, string> = { etched: 'Etched', facet: 'Facet' };
+
+interface Props {
+  /** The host already titled the setting (e.g. PrismSkinSheet). */
+  hideHeading?: boolean;
+  onChange?: (skin: PrismSkin) => void;
+}
+
+export default function PrismSkinToggle({ hideHeading, onChange }: Props = {}) {
+  const [skin, setSkin] = useState<PrismSkin>(readPrismSkin);
   const [preview] = useState<ChipSelection[]>(PREVIEW);
 
   const choose = (v: PrismSkin | null) => {
     if (!v) return;
     setSkin(v);
     try { localStorage.setItem(STORAGE_KEY, v); } catch { /* ignore */ }
+    onChange?.(v);
   };
 
   return (
     <div>
-      <p className="text-sm font-semibold text-white" style={{ marginBottom: 2 }}>Prism style</p>
-      <p className="text-xs text-white/40" style={{ marginBottom: 14 }}>
-        How the focus prism looks when you log a session.
-      </p>
+      {!hideHeading && (
+        <>
+          <p className="text-sm font-semibold text-white" style={{ marginBottom: 2 }}>Prism style</p>
+          <p className="text-xs text-white/40" style={{ marginBottom: 14 }}>
+            How the focus prism looks when you log a session.
+          </p>
+        </>
+      )}
 
       <SegmentedToggle<PrismSkin>
         options={[{ value: 'etched', label: 'Etched' }, { value: 'facet', label: 'Facet · glow' }]}
@@ -50,7 +63,7 @@ export default function PrismSkinToggle() {
       <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <PrismFocusInput selections={preview} onChange={() => {}} skin={skin} />
         <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: -6 }}>
-          Preview · <span style={{ color: PALE_YELLOW }}>{skin === 'facet' ? 'Facet' : 'Etched'}</span>
+          Preview · <span style={{ color: PALE_YELLOW }}>{PRISM_SKIN_LABEL[skin]}</span>
         </p>
       </div>
     </div>

@@ -52,9 +52,6 @@ export interface HousekeepingRow {
 export interface HousekeepingSection {
   heading: string;
   rows: HousekeepingRow[];
-  /** Free-form block rendered after the rows, inside its own hairline card
-   *  (e.g. the prism skin picker with its live preview). */
-  content?: React.ReactNode;
 }
 
 interface Props {
@@ -246,11 +243,6 @@ export default function ProfileDesktop({
                   </button>
                 );
               })}
-              {section.content && (
-                <div style={{ border: HAIRLINE, borderRadius: 14, padding: '17px 19px', marginBottom: 12 }}>
-                  {section.content}
-                </div>
-              )}
             </div>
           ))}
         </div>
