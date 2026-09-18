@@ -20,7 +20,7 @@
 // Cancellation rolls the ring back; completion fires haptics + commits deep_work.
 
 import { useEffect, useRef, useState } from 'react';
-import { COPPER, PALE_YELLOW, SURFACE_3 } from '../lib/theme.ts';
+import { COPPER, COPPER_BORDER, PALE_YELLOW, SURFACE_3 } from '../lib/theme.ts';
 import { vibrate } from '../lib/haptics.ts';
 import type { ChipSelection } from '../lib/selectionsToDistribution.ts';
 import type { Pillar } from '../types/api.ts';
@@ -320,7 +320,7 @@ export default function FocusAreaChips({ selections, onChange, defaultPrimaryPil
             ? (isPrimary ? `1px solid ${PALE_YELLOW}` : '1px solid rgba(196,145,95,0.6)')
             : '1px solid rgba(255,255,255,0.10)';
           const halo = isDeepWork
-            ? `0 0 0 2px rgba(196,145,95,0.45), 0 0 12px rgba(196,145,95,0.35)`
+            ? `0 0 0 2px ${COPPER_BORDER}, 0 0 12px rgba(196,145,95,0.35)`
             : 'none';
 
           return (

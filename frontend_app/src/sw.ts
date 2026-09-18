@@ -15,26 +15,26 @@ declare const self: ServiceWorkerGlobalScope & {
   __WB_MANIFEST: Array<{ url: string; revision: string | null }>;
 };
 
-// ── Precache + Workbox routing ──────────────────────────────────────────────
+// ── Activate immediately ───────────────────────────────────────────────────
+// Without these, a new SW waits in "waiting" state until ALL tabs close.
+// PWA users (especially iOS) may never close the app, so they'd be stuck
+// on stale cached assets permanently.
+self.addEventListener('install', () => { self.skipWaiting(); });
+self.addEventListener('activate', (event) => { event.waitUntil(self.clients.claim()); });
 
-cleanupOutdatedCaches();
-precacheAndRoute(self.__WB_MANIFEST ?? []);
-
-// Auto-activate new SW immediately — don't wait for all tabs to close.
-// The client-side registerSW({ onNeedRefresh }) sends a SKIP_WAITING
-// message; this listener picks it up and takes control of all clients
-// so the new code is live on the next navigation without a manual refresh.
+// Belt-and-suspenders: also handle the SKIP_WAITING message from
+// registerSW({ onNeedRefresh }) in case the install listener above
+// fires before the client sends the message.
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
 });
 
-// Claim all open clients immediately after activation so the new SW
-// controls existing tabs without requiring a reload.
-self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
-});
+// ── Precache + Workbox routing ──────────────────────────────────────────────
+
+cleanupOutdatedCaches();
+precacheAndRoute(self.__WB_MANIFEST ?? []);
 
 // Google Fonts CSS
 registerRoute(

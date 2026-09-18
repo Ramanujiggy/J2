@@ -1,3 +1,5 @@
+import { INT_COLORS } from './theme.ts';
+
 // ── Date helpers ───────────────────────────────────────────────────────────
 
 export function toDateString(d: Date): string {
@@ -29,14 +31,7 @@ export function formatDuration(minutes: number): string {
 
 export const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-// Day card intensity colors (lighter than heatmap — optimized for card top accent bar)
-export const INTENSITY_COLOR: Record<number, string> = {
-  1: '#A8CB72',
-  2: '#A8CB72',
-  3: '#4BA862',
-  4: '#D4A040',   // warm amber mid-step
-  5: '#DA7422',
-};
+export const INTENSITY_COLOR: Record<number, string> = INT_COLORS;
 
 export const SESSION_TYPE_LABELS: Record<string, string> = {
   class:                'Class',

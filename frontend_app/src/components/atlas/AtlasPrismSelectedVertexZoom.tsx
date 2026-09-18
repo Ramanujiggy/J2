@@ -176,7 +176,7 @@ export default function AtlasPrismSelectedVertexZoom({
                 const dateStr = typeof s.date === 'string' ? s.date.slice(0, 10) : toDateString(new Date(s.date));
                 const d = new Date(dateStr + 'T00:00:00');
                 const intensity = Math.max(1, Math.min(5, s.intensity ?? 3));
-                const intColor = INT_COLORS[intensity as 1 | 2 | 3 | 4 | 5] ?? '#A8CB72';
+                const intColor = INT_COLORS[intensity as 1 | 2 | 3 | 4 | 5] ?? '#5E8A5C';
                 return (
                   <button
                     key={s.id}

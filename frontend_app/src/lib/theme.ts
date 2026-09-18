@@ -41,6 +41,18 @@ export const PALE_YELLOW = '#F2E4A8' as const;
 /** Warm caramel — card borders and wave tile arc strokes. */
 export const COPPER = '#C4915F' as const;
 
+/** Sage — reserved for entry-list dates on Home. It is what makes the list
+ *  read as journal pages rather than table rows; do not spend it elsewhere. */
+export const SAGE = '#8FB56A' as const;
+
+/** Orange — the ONLY colour permitted on a tappable affordance. Copper
+ *  records, champagne displays, orange acts. */
+export const BRAND_ORANGE = '#DA7422' as const;
+
+/** Orange, hovered. The only lightened variant — nothing else in the palette
+ *  brightens on hover, because nothing else is an act. */
+export const BRAND_ORANGE_HOVER = '#E8823A' as const;
+
 // ─── Prestige accents ────────────────────────────────────────────────────────
 
 /** Prestige green — 8th Gate milestone. Electric, fully saturated, teal-shifted. */

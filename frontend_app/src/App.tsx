@@ -7,6 +7,7 @@ import { ActiveIntentionProvider } from './context/ActiveIntentionContext.tsx';
 import { SessionsProvider } from './context/SessionsContext.tsx';
 import AppShell from './components/AppShell.tsx';
 import PrismLoader from './components/PrismLoader.tsx';
+import { PAGE_BG } from './lib/theme.ts';
 
 // ── Eager pages — the four most-likely first-paint targets ─────────────────
 // These render on initial load, so keeping them in the main bundle avoids a
@@ -33,6 +34,7 @@ const NotesPage                 = lazy(() => import('./app/NotesPage.tsx'));
 const SessionDetailPage         = lazy(() => import('./app/SessionDetailPage.tsx'));
 const ProfilePage               = lazy(() => import('./app/ProfilePage.tsx'));
 const ClassSchedulesPage        = lazy(() => import('./app/ClassSchedulesPage.tsx'));
+const StampCollectionPage       = lazy(() => import('./app/StampCollectionPage.tsx'));
 const MovesLibraryPage          = lazy(() => import('./app/MovesLibraryPage.tsx'));
 const TechniquePage             = lazy(() => import('./app/TechniquePage.tsx'));
 const AdminDashboardPage        = lazy(() => import('./app/AdminDashboardPage.tsx'));
@@ -58,7 +60,7 @@ function RouteFallback() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'var(--j2-page-bg, #0D1A14)',
+        backgroundColor: `var(--j2-page-bg, ${PAGE_BG})`,
       }}
     >
       <PrismLoader />
@@ -151,6 +153,7 @@ function App() {
         <Route path="/intentions/:id/journal" element={<ProtectedShell><JournalEntryPage /></ProtectedShell>} />
         <Route path="/profile"          element={<ProtectedShell><ProfilePage /></ProtectedShell>} />
         <Route path="/profile/classes"  element={<ProtectedShell><ClassSchedulesPage /></ProtectedShell>} />
+        <Route path="/profile/collection" element={<ProtectedShell><StampCollectionPage /></ProtectedShell>} />
         <Route path="/library"        element={<ProtectedShell><MovesLibraryPage /></ProtectedShell>} />
         <Route path="/techniques/:id" element={<ProtectedShell><TechniquePage /></ProtectedShell>} />
         <Route path="/admin"             element={<ProtectedShell><AdminDashboardPage /></ProtectedShell>} />

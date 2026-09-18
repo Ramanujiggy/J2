@@ -132,7 +132,6 @@ export default function StillFreshHero({ lastSession, onAddNotes, onDismiss }: P
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
     const dx = e.changedTouches[0].clientX - touchStartX.current;
-    const dt = Date.now();
     if (isHorizontal.current && (Math.abs(dx) > 50)) {
       if (dx < 0) goNext();
       else goPrev();
@@ -255,7 +254,7 @@ export default function StillFreshHero({ lastSession, onAddNotes, onDismiss }: P
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 }}>
                 <button
                   type="button"
-                  onClick={() => navigate(`/library/${technique.id}`)}
+                  onClick={() => navigate(`/techniques/${technique.id}`)}
                   className="j2-press"
                   style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, height: 40, padding: '0 16px', borderRadius: 10, border: 'none', backgroundColor: ORANGE, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
                 >

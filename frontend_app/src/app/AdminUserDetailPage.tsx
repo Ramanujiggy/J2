@@ -17,6 +17,7 @@ import { api, ApiError } from '../lib/api.ts';
 import {
     PALE_YELLOW, COPPER, CARD_BG, CARD_GLOW, CARD_GLOW_BORDER,
     SURFACE_2, SURFACE_2_BORDER, FONT_EDITORIAL, GLOW_SOFT,
+    STATUS_ERROR, STATUS_ERROR_BG, STATUS_ERROR_BORDER,
 } from '../lib/theme.ts';
 import { formatDuration, SESSION_TYPE_LABELS, INTENSITY_COLOR, formatGiNogi } from '../lib/sessionUtils.ts';
 import type {
@@ -97,11 +98,11 @@ export default function AdminUserDetailPage() {
                 {error && (
                     <div
                         style={{
-                            backgroundColor: 'rgba(248,113,113,0.10)',
-                            border: '1px solid rgba(248,113,113,0.25)',
+                            backgroundColor: STATUS_ERROR_BG,
+                            border: `1px solid ${STATUS_ERROR_BORDER}`,
                             borderRadius: 12,
                             padding: '12px 16px',
-                            color: 'rgba(248,113,113,0.95)',
+                            color: STATUS_ERROR,
                             fontSize: 14,
                             marginBottom: 24,
                         }}

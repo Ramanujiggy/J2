@@ -12,7 +12,7 @@
 import { useMemo, useState } from 'react';
 import JournalEmptyState from '../JournalEmptyState.tsx';
 import { Pencil } from 'lucide-react';
-import { COPPER, GLOW_SOFT, PALE_YELLOW, SURFACE_2 } from '../../lib/theme.ts';
+import { COPPER, COPPER_BORDER, GLOW_SOFT, PALE_YELLOW, SURFACE_2 } from '../../lib/theme.ts';
 import { SKILL_TAGS, CATEGORY_COLORS } from '../../lib/constants.ts';
 import { computeAlignment, tagHoursInRange, topTagInRange } from '../../lib/analyticsUtils.ts';
 import type { Intention, SessionSummary } from '../../types/api.ts';
@@ -321,7 +321,7 @@ export default function IntentionsMobileView({
                   )}
                   {/* Technique count badge */}
                   {(intention.user_tag_ids?.length ?? 0) > 0 && (
-                    <span style={{ fontSize: 10, color: 'rgba(196,145,95,0.45)', fontWeight: 600, letterSpacing: '0.08em', marginTop: 4, display: 'inline-block' }}>
+                    <span style={{ fontSize: 10, color: COPPER_BORDER, fontWeight: 600, letterSpacing: '0.08em', marginTop: 4, display: 'inline-block' }}>
                       {intention.user_tag_ids!.length} tech{intention.user_tag_ids!.length !== 1 ? 's' : ''}
                     </span>
                   )}

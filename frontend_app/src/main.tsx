@@ -36,3 +36,11 @@ const updateSW = registerSW({
     }, 60 * 60 * 1000);
   },
 });
+
+// After a new SW activates and claims this tab, reload so the page
+// fetches fresh assets from the new precache.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    window.location.reload();
+  });
+}

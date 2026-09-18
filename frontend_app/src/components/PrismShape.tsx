@@ -7,6 +7,7 @@
 
 import { memo } from 'react';
 import { COPPER, PALE_YELLOW } from '../lib/theme.ts';
+import { prismVertices, toPolygonPoints } from '../lib/prismGeometry.ts';
 import type { ChipSelection } from '../lib/selectionsToDistribution.ts';
 import type { Pillar } from '../types/api.ts';
 
@@ -14,26 +15,8 @@ const CX = 120;
 const CY = 115;
 const R  = 88;
 
-const PILLAR_ORDER: ReadonlyArray<{ value: Pillar; label: string }> = [
-  { value: 'standup',     label: 'Stand-up' },
-  { value: 'passing',     label: 'Passing' },
-  { value: 'pins',        label: 'Pins' },
-  { value: 'submissions', label: 'Subs' },
-  { value: 'guard',       label: 'Guard' },
-];
-
-const VERTICES = PILLAR_ORDER.map((p, i) => {
-  const angle = ((-90 + i * 72) * Math.PI) / 180;
-  return {
-    ...p,
-    cx: CX + R * Math.cos(angle),
-    cy: CY + R * Math.sin(angle),
-    lx: CX + (R + 22) * Math.cos(angle),
-    ly: CY + (R + 22) * Math.sin(angle),
-  };
-});
-
-const POLYGON_POINTS = VERTICES.map(v => `${v.cx.toFixed(1)},${v.cy.toFixed(1)}`).join(' ');
+const VERTICES = prismVertices(CX, CY, R);
+const POLYGON_POINTS = toPolygonPoints(VERTICES);
 
 interface Props {
   selections: ChipSelection[];

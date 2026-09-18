@@ -1,15 +1,16 @@
 // DesktopPathAheadSkeleton — placeholder shape rendered during the initial
-// data fetch on Path Ahead's desktop layout. Replaces the empty-state flash
-// (the `FirstVisitCard` momentarily painting before sessions arrive).
+// data fetch on Today's desktop layout. Replaces the empty-state flash
+// (day-one copy momentarily painting before sessions arrive).
 //
 // Brand register: forest-tinted SURFACE_2 boxes with a copper hairline
 // border and a copper-gradient sweep traveling across via the
 // `j2-skeleton-sweep` keyframe in index.css. Mirrors the `j2-streak-sheen`
 // motion vocabulary already in the app — quiet, ambient, never gym-bro.
 //
-// Layout shape mirrors PathAheadPage's actual desktop grid: hero header,
-// stat strip, intention card, week view, primary CTA, plus a right-rail
-// of three secondary cards. Pure geometry — no copy, no real data.
+// The shape tracks the desk it stands in for: prose column (label, title,
+// hero, three list rows, portrait) beside the two margin notes. A skeleton
+// that outlines a different layout than the one that lands reads as a jump,
+// which is the one thing it exists to prevent.
 
 import { SURFACE_2, CARD_GLOW_BORDER } from '../lib/theme.ts';
 
@@ -54,52 +55,38 @@ function SkeletonBox({ height, radius = 16, delay = 0, className = '' }: Skeleto
 
 export default function DesktopPathAheadSkeleton() {
   return (
-    <div
-      role="status"
-      aria-label="Loading your training data"
-      style={{
-        maxWidth: 1680,
-        margin: '0 auto',
-        padding: '64px 64px 104px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 28,
-      }}
-    >
-      {/* Header strip — greeting + actions */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 32 }}>
-        <SkeletonBox height={56} radius={12} delay={0}   className="flex-1" />
-        <SkeletonBox height={44} radius={10} delay={120} className="w-[180px]" />
-        <SkeletonBox height={54} radius={12} delay={240} className="w-[200px]" />
-      </div>
-
-      {/* Stat strip — 4 metric cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 22 }}>
-        <SkeletonBox height={120} radius={16} delay={0}   />
-        <SkeletonBox height={120} radius={16} delay={140} />
-        <SkeletonBox height={120} radius={16} delay={280} />
-        <SkeletonBox height={120} radius={16} delay={420} />
-      </div>
-
-      {/* Hero + right rail (2-col) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 440px', gap: 56, alignItems: 'start' }}>
-        {/* Left column — hero + week + CTA + heatmap stub */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <SkeletonBox height={220} radius={20} delay={0} />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8 }}>
-            {Array.from({ length: 7 }).map((_, i) => (
-              <SkeletonBox key={i} height={88} radius={12} delay={80 + i * 60} />
+    <div role="status" aria-label="Loading your training data" className="j2-desk-page">
+      <div className="j2-desk">
+        {/* Prose column */}
+        <div className="j2-desk-main" style={{ display: 'flex', flexDirection: 'column' }}>
+          <SkeletonBox height={12} radius={4} delay={0}   className="w-[180px]" />
+          <div style={{ marginTop: 12 }}>
+            <SkeletonBox height={34} radius={8} delay={80} className="w-[280px]" />
+          </div>
+          {/* The hero */}
+          <div style={{ marginTop: 26 }}>
+            <SkeletonBox height={250} radius={18} delay={160} />
+          </div>
+          {/* The list — three rows */}
+          <div style={{ marginTop: 34, display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <SkeletonBox height={12} radius={4} delay={240} className="w-[210px]" />
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} style={{ marginTop: 16 }}>
+                <SkeletonBox height={46} radius={8} delay={320 + i * 90} />
+              </div>
             ))}
           </div>
-          <SkeletonBox height={60}  radius={14} delay={500} />
-          <SkeletonBox height={140} radius={16} delay={620} />
+          {/* The portrait */}
+          <div style={{ marginTop: 36, display: 'flex', alignItems: 'center', gap: 20 }}>
+            <SkeletonBox height={104} radius={52} delay={600} className="w-[104px] flex-none" />
+            <SkeletonBox height={56}  radius={8}  delay={660} className="flex-1" />
+          </div>
         </div>
 
-        {/* Right rail — 3 stacked cards */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-          <SkeletonBox height={180} radius={16} delay={200} />
-          <SkeletonBox height={220} radius={16} delay={360} />
-          <SkeletonBox height={220} radius={16} delay={520} />
+        {/* The margin — two notes */}
+        <div className="j2-desk-margin" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <SkeletonBox height={132} radius={10} delay={200} />
+          <SkeletonBox height={148} radius={10} delay={380} />
         </div>
       </div>
     </div>

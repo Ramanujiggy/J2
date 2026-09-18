@@ -293,7 +293,7 @@ export default function ClassSchedulesPage() {
             style={{
               textAlign: 'center',
               background: 'transparent',
-              border: `1.5px dashed rgba(196,145,95,0.45)`,
+              border: `1.5px dashed ${COPPER_BORDER}`,
               borderRadius: 14,
               padding: '16px 14px',
               cursor: 'pointer',

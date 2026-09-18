@@ -47,11 +47,6 @@ Year-at-a-glance view. Contains `TrainingHeatmap` for the selected year with pre
 
 ---
 
-### `AnalyticsPage.tsx`
-Full analytics view powered by `SkillRadar`. Contains an **Intention vs Training Telemetry** section below the radar: a collapsible table comparing each week's set intention category against the actual top-logged skill tag. Toggle show/hide. Fetches sessions and intentions on mount.
-
----
-
 ### `IntentionsPage.tsx`
 Historical list of all weekly intentions. Table layout: Week · Intention + category badge · Training Telemetry (top tag for that week) · Journal link. Empty state if none set. "Disabled" notice if `intentions_enabled = false`.
 
@@ -177,56 +172,6 @@ Grid layout: columns are weeks of the year. Each cell represents one day, colour
 
 ---
 
-### `SkillRadar.tsx`
-
-Analytics instrument with four views, a vertical icon rail, time windows, and animated transitions.
-
-**Props**: `sessions: SessionSummary[]`
-
-**Views**
-
-| ID | Title | Chart | Data source |
-|---|---|---|---|
-| `prism` | The Grappling Prism | Pentagon radar (SVG) | `tags` array per session |
-| `volume` | Volume by Month | Bar chart (SVG) | `duration` grouped by month |
-| `split` | The Two Worlds | Donut (SVG) | `gi_nogi` field |
-| `format` | Session Format | Donut (SVG) | `session_type` field |
-
-**Time windows**: `30d` · `60d` · `90d` · `all`
-
-**Display toggle** (h / %): affects breakdown rows. On Volume view (where it doesn't apply), morphs into a thin pale yellow line and slides into the rail border — reverses on exit.
-
-**View transition mechanics**
-- Exit: 500ms, `cubic-bezier(0, 0, 0.3, 1)` (fast-start)
-- Enter: 560ms, `cubic-bezier(0.2, 1.1, 0.4, 1)` (spring bounce), 120ms delay
-- Direction: computed from rail index — slides up toward lower-indexed views, down toward higher
-
-**Skill colors** (prism radar polygon)
-
-| Skill | Fill | Stroke |
-|---|---|---|
-| standup | amber/25% | amber/75% |
-| guard_retention | cyan/25% | cyan/75% |
-| submissions | red/25% | red/75% |
-| pin_escapes | purple/25% | purple/75% |
-| guard_passing | blue/25% | blue/75% |
-
-**Segment colors** (donut charts)
-
-| Segment | Color |
-|---|---|
-| Gi | `rgba(111,208,140,0.80)` green |
-| No-Gi | `rgba(218,116,34,0.80)` orange |
-| Class | `rgba(111,208,140,0.80)` green |
-| Drilling | `rgba(240,223,160,0.65)` pale yellow |
-| Competition | `rgba(220,90,80,0.80)` red |
-
-**Subtitle easter egg**: each view has a subtitle hidden behind a triangle icon. Hover to reveal (700ms fade-in). Fades out on view change.
-
-Wrapped in `ErrorBoundary`.
-
----
-
 ### `BeltBar.tsx`
 
 Animated BJJ belt tying sequence. Plays once on mount.
@@ -344,7 +289,7 @@ Wraps all authenticated pages. Renders the navigation bar (bottom tabs on mobile
 
 ### `ErrorBoundary.tsx`
 
-React class-based error boundary wrapping `TrainingHeatmap` and `SkillRadar`. Catches render errors and displays a minimal fallback instead of crashing the page.
+React class-based error boundary wrapping `TrainingHeatmap` and other chart-heavy views. Catches render errors and displays a minimal fallback instead of crashing the page.
 
 ---
 
@@ -356,7 +301,7 @@ React class-based error boundary wrapping `TrainingHeatmap` and `SkillRadar`. Ca
 | `/reset-password` | `ResetPasswordPage` | No |
 | `/home` | `PathAheadPage` | Yes |
 | `/calendar` | `CalendarPage` | Yes |
-| `/analytics` | `AnalyticsPage` | Yes |
+| `/analytics` | → redirects to `/atlas` (legacy) | Yes |
 | `/intentions` | `IntentionsPage` | Yes |
 | `/intentions/:id/journal` | `JournalEntryPage` | Yes |
 | `/profile` | `ProfilePage` | Yes |
