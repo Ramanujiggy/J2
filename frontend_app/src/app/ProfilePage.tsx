@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PROFILE_ORIGIN } from '../lib/navOrigin.ts';
-import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 
 import { api } from '../lib/api.ts';
 import { useAuth } from '../context/AuthContext.tsx';
@@ -27,11 +26,11 @@ import { formatBytes } from '../lib/videoUtils.ts';
 import { Library, ChevronRight, Bell, Award } from 'lucide-react';
 import PrismSkinToggle from '../components/PrismSkinToggle.tsx';
 import ProfileDesktop from '../components/ProfileDesktop.tsx';
+import ProfileDetailsSheet, { type ProfileDetails } from '../components/ProfileDetailsSheet.tsx';
+import { useGymAutocomplete, MAPS_KEY } from '../hooks/useGymAutocomplete.ts';
 import { useStamps } from '../hooks/useStamps.ts';
 import { useSessions } from '../context/SessionsContext.tsx';
 import { portraitDistributions } from '../lib/homeViewModel.ts';
-
-const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
 
 interface ProfileData {
   name: string;
@@ -44,6 +43,7 @@ interface ProfileData {
 
 interface ProfileResponse {
   profile: {
+    email?: string | null;
     name: string | null;
     belt_rank: string | null;
     stripes: number;
@@ -70,7 +70,6 @@ export default function ProfilePage() {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const gymInputRef = useRef<HTMLInputElement>(null);
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
   const [form, setForm] = useState<ProfileData>({
     name: '',
@@ -81,6 +80,8 @@ export default function ProfilePage() {
     home_gym_place_id: '',
   });
   const [intentionsEnabled, setIntentionsEnabled] = useState(true);
+  /** Sign-in email, shown read-only on "Your details". */
+  const [email, setEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -172,7 +173,7 @@ export default function ProfilePage() {
     }
   };
 
-  /** Desktop only — the full settings page, reached from housekeeping. */
+  /** Desktop only — the "Your details" sheet, opened from housekeeping or the name. */
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
@@ -199,6 +200,7 @@ export default function ProfilePage() {
             home_gym_place_id: p.home_gym_place_id ?? '',
           });
           setIntentionsEnabled(p.intentions_enabled ?? true);
+          setEmail(p.email ?? null);
         }
       })
       .catch(() => {})
@@ -208,34 +210,16 @@ export default function ProfilePage() {
   useEffect(() => { fetchProfile(); }, [fetchProfile]);
   useOnlineRefetch(fetchProfile);
 
-  // Initialise Google Places Autocomplete for the gym input
-  const initAutocomplete = useCallback(async () => {
-    if (!MAPS_KEY || !gymInputRef.current) return;
-
-    setOptions({ key: MAPS_KEY, v: 'weekly' });
-    const { Autocomplete } = await importLibrary('places') as google.maps.PlacesLibrary;
-
-    autocompleteRef.current = new Autocomplete(gymInputRef.current, {
-      types: ['establishment'],
-      fields: ['name', 'formatted_address', 'place_id'],
-    });
-
-    autocompleteRef.current.addListener('place_changed', () => {
-      const place = autocompleteRef.current!.getPlace();
-      setForm(prev => ({
-        ...prev,
-        home_gym_name: place.name ?? prev.home_gym_name,
-        home_gym_address: place.formatted_address ?? '',
-        home_gym_place_id: place.place_id ?? '',
-      }));
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!loading) {
-      initAutocomplete();
-    }
-  }, [loading, initAutocomplete]);
+  // Google Places on the mobile form's gym input. Desktop edits the gym in
+  // the details sheet, which attaches its own.
+  useGymAutocomplete(gymInputRef, !loading && !isDesktop, place => {
+    setForm(prev => ({
+      ...prev,
+      home_gym_name: place.home_gym_name ?? prev.home_gym_name,
+      home_gym_address: place.home_gym_address,
+      home_gym_place_id: place.home_gym_place_id,
+    }));
+  });
 
   /** The profile PUT is whole-object, so every save sends the full form. */
   const putProfile = (intentions: boolean) => api.put('/api/profile', {
@@ -266,6 +250,32 @@ export default function ProfilePage() {
     }
   };
 
+  /** "Your details" sheet (desktop) — name and gym, saved together. */
+  const handleSaveDetails = async (next: ProfileDetails) => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await api.put('/api/profile', {
+        name: next.name || null,
+        belt_rank: form.belt_rank,
+        stripes: form.stripes,
+        home_gym_name: next.home_gym_name || null,
+        home_gym_address: next.home_gym_address || null,
+        home_gym_place_id: next.home_gym_place_id || null,
+        intentions_enabled: intentionsEnabled,
+      });
+      setForm(f => ({ ...f, ...next }));
+      setDetailsOpen(false);
+      refreshProfile();
+      toast({ variant: 'success', title: 'Profile saved.' });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to save profile.';
+      toast({ variant: 'destructive', title: 'Could not save profile.', description: msg });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   /** Desktop housekeeping toggle — there is no Save button on the identity
    *  screen, so the switch persists on its own and rolls back on failure. */
   const handleToggleIntentions = async () => {
@@ -286,10 +296,9 @@ export default function ProfilePage() {
   };
 
   // ── Desktop: identity first, chores in the margin ───────────────────────
-  // The full settings page below is still the whole truth — "Your details"
-  // in housekeeping opens it. Nothing moved off Profile, it just stopped
-  // being the first thing you see.
-  if (isDesktop && !detailsOpen) {
+  // Name, gym and sign-in live in the "Your details" sheet; the belt has its
+  // own sheet. The full form below is the mobile profile only.
+  if (isDesktop) {
     return (
       <>
         <ProfileDesktop
@@ -305,6 +314,7 @@ export default function ProfilePage() {
           onRecordPromotion={handleRecordPromotion}
           onRemovePromotion={id => { void handleRemovePromotion(id); }}
           removingPromotionId={removingPromotionId}
+          onEditDetails={() => setDetailsOpen(true)}
           housekeeping={[
             {
               heading: 'Housekeeping',
@@ -366,6 +376,19 @@ export default function ProfilePage() {
         {reportOpen && (
           <ReportProblemModal onClose={() => setReportOpen(false)} />
         )}
+        <ProfileDetailsSheet
+          open={detailsOpen}
+          details={{
+            name: form.name,
+            home_gym_name: form.home_gym_name,
+            home_gym_address: form.home_gym_address,
+            home_gym_place_id: form.home_gym_place_id,
+          }}
+          email={email}
+          saving={saving}
+          onClose={() => setDetailsOpen(false)}
+          onSave={next => { void handleSaveDetails(next); }}
+        />
       </>
     );
   }
@@ -374,40 +397,7 @@ export default function ProfilePage() {
     <div className="flex flex-col">
 
       <main className={`flex-1 ${isDesktop ? 'j2-page-container' : 'w-full mx-auto max-w-xl px-4 sm:px-6'}`} style={isDesktop ? { paddingTop: 48, paddingBottom: 48 } : { paddingTop: 24, paddingBottom: 24 }}>
-        {isDesktop && detailsOpen && (
-          <button
-            type="button"
-            onClick={() => setDetailsOpen(false)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24,
-              background: 'none', border: 'none', cursor: 'pointer',
-              color: 'rgba(255,255,255,0.66)', fontSize: 12, fontWeight: 700,
-              letterSpacing: '0.12em', textTransform: 'uppercase',
-            }}
-          >
-            <span style={{ fontSize: 19, color: 'rgba(255,255,255,0.26)' }}>‹</span>
-            <span>Profile</span>
-          </button>
-        )}
-        {/* Editorial header — desktop */}
-        {isDesktop ? (
-          <div className="mb-10">
-            <h1
-              className="j2-serif-display j2-heading-glow"
-              style={{ fontSize: 64, lineHeight: 1, margin: 0, letterSpacing: '-0.01em' }}
-            >
-              Your details
-            </h1>
-            <p
-              className="j2-serif-italic"
-              style={{ marginTop: 18, fontSize: 20, color: 'rgba(255,255,255,0.55)', lineHeight: 1.4 }}
-            >
-              Name, belt, and home gym.
-            </p>
-          </div>
-        ) : (
-          <h2 className="text-lg font-display font-semibold text-white mb-6">Your Profile</h2>
-        )}
+        <h2 className="text-lg font-display font-semibold text-white mb-6">Your Profile</h2>
 
         <PageContent ready={!loading} loadingMessages={['Taping fingers...']}>
           <div className={isDesktop ? 'grid grid-cols-12 gap-8 items-start' : 'space-y-4'}>

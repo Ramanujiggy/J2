@@ -71,6 +71,8 @@ interface Props {
   savingPromotion?: boolean;
   onRecordPromotion: (next: { rank: BeltRankKey; stripes: number; promotedAt: string }) => void;
   onRemovePromotion: (id: string) => void;
+  /** Opens the "Your details" sheet (name, gym, sign-in). */
+  onEditDetails: () => void;
   removingPromotionId?: string | null;
   housekeeping: HousekeepingSection[];
 }
@@ -78,7 +80,7 @@ interface Props {
 export default function ProfileDesktop({
   name, beltRank, stripes, academy, trainingSince,
   beltEntries, stamps, portraitShapes, sessionCount,
-  savingPromotion, onRecordPromotion, onRemovePromotion, removingPromotionId, housekeeping,
+  savingPromotion, onRecordPromotion, onRemovePromotion, removingPromotionId, onEditDetails, housekeeping,
 }: Props) {
   const navigate = useNavigate();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -112,10 +114,18 @@ export default function ProfileDesktop({
         {/* ── Identity ─────────────────────────────────────────────── */}
         <div className="j2-profile-main">
           <div style={LABEL}>Profile</div>
+          {/* The name is the door to "Your details", the way the belt is
+              the door to a promotion. */}
           <h1
+            role="button"
+            tabIndex={0}
+            title="Edit your details"
+            onClick={onEditDetails}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEditDetails(); } }}
             style={{
               fontFamily: FONT_EDITORIAL, fontSize: 33, fontWeight: 600,
               color: PALE_YELLOW, letterSpacing: '-0.01em', margin: '8px 0 0',
+              cursor: 'pointer', display: 'inline-block',
             }}
           >
             {name ?? 'Practitioner'}
