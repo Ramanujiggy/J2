@@ -5,7 +5,7 @@ import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 
 import { api } from '../lib/api.ts';
 import { useAuth } from '../context/AuthContext.tsx';
-import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, SURFACE_2, SURFACE_2_BORDER, COPPER, FONT_EDITORIAL, STATUS_ERROR, STATUS_ERROR_BG, STATUS_ERROR_BORDER } from '../lib/theme.ts';
+import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, SURFACE_2, SURFACE_2_BORDER, COPPER, STATUS_ERROR, STATUS_ERROR_BG, STATUS_ERROR_BORDER } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import CsvImportModal from '../components/CsvImportModal.tsx';
 import ReportProblemModal from '../components/ReportProblemModal.tsx';
@@ -16,7 +16,8 @@ import { type BeltRank } from '../components/BeltBar.tsx';
 import FlatBelt from '../components/belt/FlatBelt.tsx';
 import PromotionSheet from '../components/belt/PromotionSheet.tsx';
 import PromotionRevealSheet from '../components/belt/PromotionRevealSheet.tsx';
-import { beltDisplayName, isBeltRank } from '../lib/beltCloth.ts';
+import PromotionList, { formatPromotionMonth } from '../components/belt/PromotionList.tsx';
+import { isBeltRank } from '../lib/beltCloth.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { toast } from '../hooks/use-toast.ts';
@@ -31,11 +32,6 @@ import { useSessions } from '../context/SessionsContext.tsx';
 import { portraitDistributions } from '../lib/homeViewModel.ts';
 
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
-
-/** "March 2026" — how a promotion is dated on the belt surfaces. */
-const formatPromotionMonth = (iso: string) =>
-  new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' })
-    .format(new Date(iso.slice(0, 10) + 'T00:00:00'));
 
 interface ProfileData {
   name: string;
@@ -130,6 +126,30 @@ export default function ProfilePage() {
       toast({ title: 'Could not record that promotion.', variant: 'destructive' });
     } finally {
       setBeltSaving(false);
+    }
+  };
+
+  /** Removing a promotion. If it was the current position, the profile's
+   *  own rank/stripes fall back to the next one on the ladder so every belt
+   *  surface (rail label, identity screen, reveal) follows. */
+  const [removingPromotionId, setRemovingPromotionId] = useState<string | null>(null);
+  const handleRemovePromotion = async (id: string) => {
+    if (removingPromotionId) return;
+    setRemovingPromotionId(id);
+    try {
+      await api.delete(`/api/belt-history/${id}`);
+      const wasCurrent = beltEntries[0]?.id === id;
+      const next = beltEntries.find(e => e.id !== id) ?? null;
+      if (wasCurrent && next) {
+        await api.put('/api/profile', { ...form, belt_rank: next.belt_rank, stripes: next.stripes });
+        setForm(f => ({ ...f, belt_rank: next.belt_rank as BeltRank, stripes: next.stripes }));
+        await refreshProfile();
+      }
+      refetchBeltHistory();
+    } catch {
+      toast({ title: 'Could not remove that promotion.', variant: 'destructive' });
+    } finally {
+      setRemovingPromotionId(null);
     }
   };
 
@@ -283,6 +303,8 @@ export default function ProfilePage() {
           sessionCount={allSessions.length}
           savingPromotion={beltSaving}
           onRecordPromotion={handleRecordPromotion}
+          onRemovePromotion={id => { void handleRemovePromotion(id); }}
+          removingPromotionId={removingPromotionId}
           housekeeping={[
             {
               heading: 'Housekeeping',
@@ -440,27 +462,14 @@ export default function ProfilePage() {
                 {isDesktop ? 'click' : 'tap'} the belt to record a promotion
               </p>
 
-              {/* Promotions recorded so far */}
-              {beltEntries.length > 0 && (
-                <div style={{ marginTop: 12 }}>
-                  {beltEntries.map(entry => (
-                    <div
-                      key={entry.id}
-                      style={{
-                        display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
-                        gap: 16, padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.06)',
-                      }}
-                    >
-                      <span style={{ fontFamily: FONT_EDITORIAL, fontSize: 17, color: 'rgba(255,255,255,0.66)' }}>
-                        {beltDisplayName(isBeltRank(entry.belt_rank) ? entry.belt_rank : 'white', entry.stripes)}
-                      </span>
-                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.46)', whiteSpace: 'nowrap' }}>
-                        {formatPromotionMonth(entry.promoted_at)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
+              {/* Promotions recorded so far — newest first, one row per
+                  position, removable for corrections. */}
+              <PromotionList
+                entries={beltEntries}
+                onRemove={id => { void handleRemovePromotion(id); }}
+                removingId={removingPromotionId}
+                style={{ marginTop: 12 }}
+              />
             </div>
 
             {/* Home gym */}

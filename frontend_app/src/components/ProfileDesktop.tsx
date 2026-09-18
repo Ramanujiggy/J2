@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import FlatBelt from './belt/FlatBelt.tsx';
 import PromotionSheet from './belt/PromotionSheet.tsx';
 import PromotionRevealSheet from './belt/PromotionRevealSheet.tsx';
+import PromotionList from './belt/PromotionList.tsx';
 import SealStamp from './seal/SealStamp.tsx';
 import HomePortrait from './HomePortrait.tsx';
 import { STAMP_DIES, bandDate } from '../lib/stampDies.ts';
@@ -69,13 +70,15 @@ interface Props {
   sessionCount: number;
   savingPromotion?: boolean;
   onRecordPromotion: (next: { rank: BeltRankKey; stripes: number; promotedAt: string }) => void;
+  onRemovePromotion: (id: string) => void;
+  removingPromotionId?: string | null;
   housekeeping: HousekeepingSection[];
 }
 
 export default function ProfileDesktop({
   name, beltRank, stripes, academy, trainingSince,
   beltEntries, stamps, portraitShapes, sessionCount,
-  savingPromotion, onRecordPromotion, housekeeping,
+  savingPromotion, onRecordPromotion, onRemovePromotion, removingPromotionId, housekeeping,
 }: Props) {
   const navigate = useNavigate();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -140,28 +143,15 @@ export default function ProfileDesktop({
             {tiedOnLabel ? `Tied on ${tiedOnLabel} · ` : ''}click the belt to record a promotion
           </div>
 
-          {/* Promotions */}
-          {beltEntries.length > 0 && (
-            <div style={{ marginTop: 20, maxWidth: 420 }}>
-              {beltEntries.map(entry => (
-                <div
-                  key={entry.id}
-                  style={{
-                    display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
-                    gap: 16, padding: '10px 0', borderTop: HAIRLINE,
-                  }}
-                >
-                  <span style={{ fontFamily: FONT_EDITORIAL, fontSize: 18, color: TEXT_SECONDARY }}>
-                    {beltDisplayName(isBeltRank(entry.belt_rank) ? entry.belt_rank : 'white', entry.stripes)}
-                  </span>
-                  <span style={{ fontSize: 11, color: TEXT_TERTIARY, whiteSpace: 'nowrap' }}>
-                    {new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' })
-                      .format(new Date(entry.promoted_at.slice(0, 10) + 'T00:00:00'))}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+          {/* Promotions — the ladder so far, newest first. Bounded by
+              reality: one row per position, 25 at the absolute most. */}
+          <PromotionList
+            entries={beltEntries}
+            onRemove={onRemovePromotion}
+            removingId={removingPromotionId ?? null}
+            size="sheet"
+            style={{ marginTop: 20, maxWidth: 420 }}
+          />
 
           {/* The collection */}
           <div style={{ ...LABEL, marginTop: 34 }}>The collection</div>
