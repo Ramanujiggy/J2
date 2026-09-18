@@ -1,8 +1,5 @@
 node_modules/
 
-# BJJ API research — committed once for persistence, now ignored
-bjj-api-research/
-
 # Playwright
 e2e/test-results/
 e2e/playwright-report/
