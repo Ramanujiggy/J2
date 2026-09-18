@@ -132,7 +132,8 @@ export default function PromotionRevealSheet({
             box 1/SCALE as wide and is transform-scaled up: the belt still
             spans the full stage, the knot and tails grow with it, and the
             tail easter egg keeps working. On narrow screens the stage
-            shrinks with the sheet; the belt stays proportional. */}
+            shrinks with the sheet; the belt stays proportional. The
+            'cloth' skin matches the profile's resting belt. */}
         {REDUCED ? (
           <div style={{ marginTop: 26 }}>
             <FlatBelt rank={rank} stripes={stripes} size="sheet" />
@@ -157,7 +158,7 @@ export default function PromotionRevealSheet({
                 transformOrigin: 'top left',
               }}
             >
-              <BeltBar rank={rank} stripes={stripes} />
+              <BeltBar rank={rank} stripes={stripes} skin="cloth" textureScale={SCALE} />
             </div>
           </div>
         )}

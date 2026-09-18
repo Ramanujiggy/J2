@@ -2,29 +2,55 @@
 // Belt slides in from the left; a two-strip crossing knot forms at the centre;
 // tails drop straight down with a pendulum swing.
 //
+// Two skins. 'rail' (default) is the original: lib/belt.ts colours with a
+// horizontal ribbing. 'cloth' dresses the same motion in FlatBelt's fabric —
+// beltCloth colours, the diagonal weave, the rank bar, inset shading — so the
+// promotion ceremony matches the belt on the profile page. `textureScale`
+// keeps the weave at resting density when the bar is transform-scaled up.
+//
 // Easter egg — once the tying animation completes the tails become interactive:
 //   • Hover + drag cursor: tail follows horizontally (fast track, springy release)
 //   • Click: whip-and-snap animation
 
 import { useState, useEffect } from 'react';
 import { type BeltRank, BELT_COLORS, PATCH_COLORS, ribbed } from '../lib/belt.ts';
+import { BELT_CLOTH, rankBarColor, weaveBackground } from '../lib/beltCloth.ts';
 import { PALE_YELLOW } from '../lib/theme.ts';
 
 // Re-export so existing consumers (AppShell, ProfilePage, ProfileContext) don't break.
 export { type BeltRank, BELT_COLORS, PATCH_COLORS };
 
+export type BeltBarSkin = 'rail' | 'cloth';
+
 interface BeltBarProps {
   rank?: string | null;
   stripes?: number;
+  skin?: BeltBarSkin;
+  /** Divide texture periods by this when the bar is CSS-scaled by the same
+   *  factor, so the weave reads at native density. Cloth skin only. */
+  textureScale?: number;
 }
 
-export default function BeltBar({ rank, stripes = 0 }: BeltBarProps) {
+export default function BeltBar({ rank, stripes = 0, skin = 'rail', textureScale = 1 }: BeltBarProps) {
   const beltRank = rank as BeltRank | null;
-  const beltColor = beltRank ? (BELT_COLORS[beltRank] ?? null) : null;
-  const patchColor = beltRank ? (PATCH_COLORS[beltRank] ?? '#0D0D0D') : '#0D0D0D';
+  const cloth = skin === 'cloth';
+  const beltColor = beltRank
+    ? (cloth ? BELT_CLOTH[beltRank] : BELT_COLORS[beltRank]) ?? null
+    : null;
+  const patchColor = beltRank
+    ? (cloth ? rankBarColor(beltRank) : (PATCH_COLORS[beltRank] ?? '#0D0D0D'))
+    : '#0D0D0D';
   if (!beltColor) return null;
   const clampedStripes = Math.min(Math.max(Math.round(stripes), 0), 4);
-  return <BeltBarInner beltColor={beltColor} patchColor={patchColor} stripes={clampedStripes} />;
+  return (
+    <BeltBarInner
+      beltColor={beltColor}
+      patchColor={patchColor}
+      stripes={clampedStripes}
+      skin={skin}
+      textureScale={textureScale}
+    />
+  );
 }
 
 // ── Timing (ms) ──────────────────────────────────────────────────────────────
@@ -57,11 +83,28 @@ function BeltBarInner({
   beltColor,
   patchColor,
   stripes,
+  skin,
+  textureScale,
 }: {
   beltColor: string;
   patchColor: string;
   stripes: number;
+  skin: BeltBarSkin;
+  textureScale: number;
 }) {
+  // ── Fabric ────────────────────────────────────────────────────────────────
+  // Every piece of belt (bar, knot strips, tails) goes through `fabric` so
+  // the two skins differ only here.
+  const cloth = skin === 'cloth';
+  const weave = cloth ? weaveBackground(textureScale) : null;
+  const fabric = (color: string): string => (weave ? `${weave}, ${color}` : ribbed(color));
+  // FlatBelt's thickness: a light catch along the top, a heavier shadow
+  // beneath. Scaled down so it lands at FlatBelt's size after the zoom.
+  const insets = cloth
+    ? `inset 0 ${2 / textureScale}px 0 rgba(255,255,255,0.05), inset 0 -${3 / textureScale}px ${2 / textureScale}px rgba(0,0,0,0.35)`
+    : undefined;
+  const edge = cloth ? `${1 / textureScale}px solid rgba(255,255,255,0.09)` : undefined;
+
   // ── Tying animation state ─────────────────────────────────────────────────
   const [slideIn,   setSlideIn]   = useState(false);
   const [knotIn,    setKnotIn]    = useState(false);
@@ -102,9 +145,9 @@ function BeltBarInner({
   const tipStart = 100 - TIP_PCT;               // = 91 %
 
   // Left tail background: ribbing texture over a 3-zone colour gradient
-  const leftTailBg =
-    `repeating-linear-gradient(to bottom, transparent 0px, transparent 2px, rgba(0,0,0,0.10) 2px, rgba(0,0,0,0.10) 3px), ` +
-    `linear-gradient(to bottom, ${beltColor} ${beltPct}%, ${patchColor} ${beltPct}%, ${patchColor} ${tipStart}%, #0D0D0D ${tipStart}%)`;
+  const leftTailBg = fabric(
+    `linear-gradient(to bottom, ${beltColor} ${beltPct}%, ${patchColor} ${beltPct}%, ${patchColor} ${tipStart}%, #0D0D0D ${tipStart}%)`,
+  );
 
   // ── Tail interaction helpers ──────────────────────────────────────────────
 
@@ -220,7 +263,9 @@ function BeltBarInner({
             position: 'absolute',
             inset: 0,
             borderRadius: 2,
-            background: ribbed(beltColor),
+            background: fabric(beltColor),
+            boxShadow: insets,
+            border: edge,
             transform: slideIn ? 'translateX(0)' : 'translateX(-100%)',
             transition: slideIn ? `transform ${SLIDE_MS}ms cubic-bezier(0.22, 1, 0.36, 1)` : 'none',
           }} />
@@ -247,7 +292,8 @@ function BeltBarInner({
             width: STRIP_W, height: STRIP_H,
             marginTop: -(STRIP_H / 2), marginLeft: -(STRIP_W / 2),
             borderRadius: 2,
-            background: ribbed(beltColor),
+            background: fabric(beltColor),
+            boxShadow: insets,
             transform: `rotate(${STRIP_ANG}deg)`,
             zIndex: 3,
           }} />
@@ -258,10 +304,10 @@ function BeltBarInner({
             width: STRIP_W, height: STRIP_H,
             marginTop: -(STRIP_H / 2), marginLeft: -(STRIP_W / 2),
             borderRadius: 2,
-            background: ribbed(beltColor),
+            background: fabric(beltColor),
             transform: `rotate(-${STRIP_ANG}deg)`,
             zIndex: 4,
-            boxShadow: '1px 2px 4px rgba(0,0,0,0.40)',
+            boxShadow: insets ? `1px 2px 4px rgba(0,0,0,0.40), ${insets}` : '1px 2px 4px rgba(0,0,0,0.40)',
           }} />
         </div>
 
@@ -308,7 +354,7 @@ function BeltBarInner({
             width:           TAIL_W,
             height:          TAIL_H,          // static — animation uses scaleY, not height
             transformOrigin: 'top center',    // static — scaleY grows downward from knot base
-            background:      ribbed(beltColor),
+            background:      fabric(beltColor),
             borderRadius:    '0 0 2px 2px',
             overflow:        'hidden',
             zIndex:          2,

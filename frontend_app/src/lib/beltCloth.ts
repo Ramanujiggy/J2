@@ -20,6 +20,25 @@ export const BELT_CLOTH: Record<BeltRankKey, string> = {
 export const RANK_BAR_BLACK = '#7a1f1f';
 export const RANK_BAR_DEFAULT = '#111';
 
+/** The rank bar colour for a given cloth. */
+export function rankBarColor(rank: BeltRankKey): string {
+  return rank === 'black' ? RANK_BAR_BLACK : RANK_BAR_DEFAULT;
+}
+
+/** The woven texture: two opposing diagonal stripe sets at ±63°. The light
+ *  set reads on dark cloth and the dark set reads on a white belt, so one
+ *  texture serves every rank. `scale` divides the period so a belt that is
+ *  transform-scaled up (the promotion ceremony) keeps the same on-screen
+ *  density as the resting belt. */
+export function weaveBackground(scale = 1): string {
+  const a = 3 / scale;
+  const b = 7 / scale;
+  return [
+    `repeating-linear-gradient(63deg, rgba(255,255,255,0.05) 0 ${a}px, transparent ${a}px ${b}px)`,
+    `repeating-linear-gradient(-63deg, rgba(0,0,0,0.16) 0 ${a}px, transparent ${a}px ${b}px)`,
+  ].join(', ');
+}
+
 const ORDINALS = ['first', 'second', 'third', 'fourth'] as const;
 
 /** "Black belt, second stripe" — the live name shown on the sheet. */

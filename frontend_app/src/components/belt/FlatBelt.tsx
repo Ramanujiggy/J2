@@ -19,7 +19,7 @@
 // switches the geometry. Interactive tape slots are the sheet's job and
 // arrive through `renderStripes`.
 
-import { BELT_CLOTH, RANK_BAR_BLACK, RANK_BAR_DEFAULT, type BeltRankKey } from '../../lib/beltCloth.ts';
+import { BELT_CLOTH, rankBarColor, weaveBackground, type BeltRankKey } from '../../lib/beltCloth.ts';
 
 export type BeltSize = 'rest' | 'sheet';
 
@@ -28,10 +28,7 @@ const GEOM = {
   sheet: { height: 58, radius: 7, barRight: 64, barWidth: 150, stripeW: 11, stripeX: (i: number) => 22 + i * 25, stitch: 8 },
 } as const;
 
-const WEAVE_BG = [
-  'repeating-linear-gradient(63deg, rgba(255,255,255,0.05) 0 3px, transparent 3px 7px)',
-  'repeating-linear-gradient(-63deg, rgba(0,0,0,0.16) 0 3px, transparent 3px 7px)',
-].join(', ');
+const WEAVE_BG = weaveBackground();
 
 /** The thickness — a light catch along the top, a heavier shadow beneath. */
 const INSETS = 'inset 0 2px 0 rgba(255,255,255,0.05), inset 0 -3px 2px rgba(0,0,0,0.35)';
@@ -63,7 +60,7 @@ export default function FlatBelt({
 }: Props) {
   const g = GEOM[size];
   const cloth = BELT_CLOTH[rank];
-  const barColor = rank === 'black' ? RANK_BAR_BLACK : RANK_BAR_DEFAULT;
+  const barColor = rankBarColor(rank);
   const clamped = Math.max(0, Math.min(4, stripes));
 
   const Tag = onClick ? 'button' : 'div';
