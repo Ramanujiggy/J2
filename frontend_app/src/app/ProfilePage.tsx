@@ -15,6 +15,7 @@ import PageContent from '../components/PageContent.tsx';
 import { type BeltRank } from '../components/BeltBar.tsx';
 import FlatBelt from '../components/belt/FlatBelt.tsx';
 import PromotionSheet from '../components/belt/PromotionSheet.tsx';
+import PromotionRevealSheet from '../components/belt/PromotionRevealSheet.tsx';
 import { beltDisplayName, isBeltRank } from '../lib/beltCloth.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
@@ -98,6 +99,8 @@ export default function ProfilePage() {
   const [beltSaving, setBeltSaving] = useState(false);
   /** The promotion sheet, opened by tapping the belt (mobile + desktop details). */
   const [sheetOpen, setSheetOpen] = useState(false);
+  /** The promotion just tied on — drives the ceremony sheet. */
+  const [reveal, setReveal] = useState<{ rank: string; stripes: number; promotedAt: string } | null>(null);
 
   // Promotion flow — the sheet commits straight to belt_history and
   // syncs the profile's own rank/stripes, so the rail label and every other
@@ -123,7 +126,6 @@ export default function ProfilePage() {
       setForm(f => ({ ...f, belt_rank: next.rank as BeltRank, stripes: next.stripes }));
       refetchBeltHistory();
       await refreshProfile();
-      toast({ title: 'Tied on. It’s in your journal now — and it will come back on the anniversary.' });
     } catch {
       toast({ title: 'Could not record that promotion.', variant: 'destructive' });
     } finally {
@@ -880,7 +882,15 @@ export default function ProfilePage() {
         academy={form.home_gym_name || null}
         saving={beltSaving}
         onClose={() => setSheetOpen(false)}
-        onCommit={next => { setSheetOpen(false); void handleRecordPromotion(next); }}
+        onCommit={next => { setSheetOpen(false); setReveal(next); void handleRecordPromotion(next); }}
+      />
+      <PromotionRevealSheet
+        open={reveal !== null}
+        rank={reveal && isBeltRank(reveal.rank) ? reveal.rank : 'white'}
+        stripes={reveal?.stripes ?? 0}
+        promotedAt={reveal?.promotedAt ?? null}
+        academy={form.home_gym_name || null}
+        onClose={() => setReveal(null)}
       />
     </div>
   );

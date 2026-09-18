@@ -5,6 +5,10 @@
 // one dashed ghost slot waits at the next position), and the cloth
 // swatches change rank. Nothing is committed until "Tie it on".
 //
+// The ceremony itself lives in PromotionRevealSheet: on commit this sheet
+// closes and the parent opens the reveal, where the belt ties on at full
+// width. Editing and celebrating are different moments.
+//
 // Committing writes a belt_history row, which is what puts the promotion
 // into the journal stream — see lib/journalStream.ts. That is the point of
 // the flow: the promotion becomes part of the corpus and comes back on its
@@ -14,7 +18,6 @@
 
 import { useEffect, useState } from 'react';
 import FlatBelt, { stripeLeft, stripeWidth } from './FlatBelt.tsx';
-import BeltBar from '../BeltBar.tsx';
 import {
   BELT_CLOTH, BELT_RANK_ORDER, beltDisplayName, type BeltRankKey,
 } from '../../lib/beltCloth.ts';
@@ -51,8 +54,6 @@ export default function PromotionSheet({
   const [draftStripes, setDraftStripes] = useState(stripes);
   /** Index of a stripe just added — plays the tape strike once. */
   const [freshStripe, setFreshStripe] = useState<number | null>(null);
-  /** The tie-on ceremony, played once on commit rather than on page load. */
-  const [tying, setTying] = useState(false);
 
   const trapRef = useFocusTrap<HTMLDivElement>(open, onClose);
 
@@ -63,7 +64,6 @@ export default function PromotionSheet({
     setDraftRank(rank);
     setDraftStripes(stripes);
     setFreshStripe(null);
-    setTying(false);
   }, [open, rank, stripes]);
 
   if (!open) return null;
@@ -89,20 +89,13 @@ export default function PromotionSheet({
 
   const commit = () => {
     if (!changed) { onClose(); return; }
-    if (REDUCED) { onCommit({ rank: draftRank, stripes: draftStripes, promotedAt }); return; }
-    // Let the belt tie itself on, then hand off. This is the one place the
-    // ceremony plays — it means something here because it doesn't fire
-    // anywhere else.
-    setTying(true);
-    window.setTimeout(() => {
-      onCommit({ rank: draftRank, stripes: draftStripes, promotedAt });
-    }, 1500);
+    onCommit({ rank: draftRank, stripes: draftStripes, promotedAt });
   };
 
   return (
     <div
       role="presentation"
-      onClick={e => { if (e.target === e.currentTarget && !tying) onClose(); }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
       className="animate-j2-backdrop-in"
       style={{
         position: 'fixed', inset: 0, zIndex: 60,
@@ -138,14 +131,7 @@ export default function PromotionSheet({
           {name}
         </div>
 
-        {tying ? (
-          // The ceremony: the belt slides in and ties itself. Same component
-          // that used to sit in the rail on every page load.
-          <div style={{ marginTop: 24, height: 58, display: 'flex', alignItems: 'center' }}>
-            <BeltBar rank={draftRank} stripes={draftStripes} />
-          </div>
-        ) : (
-          <div style={{ marginTop: 24 }}>
+        <div style={{ marginTop: 24 }}>
             <FlatBelt
               rank={draftRank}
               stripes={draftStripes}
@@ -188,13 +174,10 @@ export default function PromotionSheet({
                 </>
               )}
             />
-          </div>
-        )}
+        </div>
 
         <div style={{ fontSize: 11.5, color: TEXT_TERTIARY, marginTop: 10 }}>
-          {tying
-            ? 'Tying it on…'
-            : `${POINTER_VERB} the bar to add tape${draftStripes < 4 ? ' — one slot waits.' : '.'}`}
+          {POINTER_VERB} the bar to add tape{draftStripes < 4 ? ' — one slot waits.' : '.'}
         </div>
 
         {/* Cloth swatches */}
@@ -207,13 +190,13 @@ export default function PromotionSheet({
               title={`${k[0]!.toUpperCase()}${k.slice(1)}`}
               aria-label={`${k[0]!.toUpperCase()}${k.slice(1)} belt`}
               aria-pressed={draftRank === k}
-              disabled={tying}
+              disabled={saving}
               style={{
                 flex: 1, height: 30, borderRadius: 6,
                 background: BELT_CLOTH[k],
                 border: '1px solid rgba(255,255,255,0.12)',
                 boxShadow: draftRank === k ? `0 0 0 2px ${COPPER}` : 'none',
-                cursor: tying ? 'default' : 'pointer',
+                cursor: saving ? 'default' : 'pointer',
               }}
             />
           ))}
@@ -238,7 +221,7 @@ export default function PromotionSheet({
           <button
             type="button"
             onClick={onClose}
-            disabled={tying || saving}
+            disabled={saving}
             style={{
               flex: 1, height: 46, borderRadius: 13,
               border: '1px solid rgba(255,255,255,0.1)',
@@ -251,16 +234,16 @@ export default function PromotionSheet({
           <button
             type="button"
             onClick={commit}
-            disabled={tying || saving}
+            disabled={saving}
             style={{
               flex: 1, height: 46, borderRadius: 13,
               background: COPPER, color: '#12130e', border: 'none',
               fontSize: 14, fontWeight: 700,
-              cursor: tying || saving ? 'default' : 'pointer',
-              opacity: tying || saving ? 0.7 : 1,
+              cursor: saving ? 'default' : 'pointer',
+              opacity: saving ? 0.7 : 1,
             }}
           >
-            {tying || saving ? 'Tying it on…' : 'Tie it on'}
+            {saving ? 'Tying it on…' : 'Tie it on'}
           </button>
         </div>
       </div>

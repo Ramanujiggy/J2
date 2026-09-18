@@ -15,6 +15,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import FlatBelt from './belt/FlatBelt.tsx';
 import PromotionSheet from './belt/PromotionSheet.tsx';
+import PromotionRevealSheet from './belt/PromotionRevealSheet.tsx';
 import SealStamp from './seal/SealStamp.tsx';
 import HomePortrait from './HomePortrait.tsx';
 import { STAMP_DIES, bandDate } from '../lib/stampDies.ts';
@@ -78,6 +79,8 @@ export default function ProfileDesktop({
 }: Props) {
   const navigate = useNavigate();
   const [sheetOpen, setSheetOpen] = useState(false);
+  /** The promotion just tied on — drives the ceremony sheet. */
+  const [reveal, setReveal] = useState<{ rank: BeltRankKey; stripes: number; promotedAt: string } | null>(null);
 
   const rank: BeltRankKey = isBeltRank(beltRank) ? beltRank : 'white';
 
@@ -260,7 +263,15 @@ export default function ProfileDesktop({
         academy={academy}
         saving={savingPromotion}
         onClose={() => setSheetOpen(false)}
-        onCommit={next => { setSheetOpen(false); onRecordPromotion(next); }}
+        onCommit={next => { setSheetOpen(false); setReveal(next); onRecordPromotion(next); }}
+      />
+      <PromotionRevealSheet
+        open={reveal !== null}
+        rank={reveal?.rank ?? rank}
+        stripes={reveal?.stripes ?? stripes}
+        promotedAt={reveal?.promotedAt ?? null}
+        academy={academy}
+        onClose={() => setReveal(null)}
       />
     </div>
   );

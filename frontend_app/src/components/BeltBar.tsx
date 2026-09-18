@@ -49,6 +49,9 @@ const TAIL_W    = 10;
 const TAIL_H    = 28;
 const PATCH_PCT = 62;  // patch zone height as % of tail
 const TIP_PCT   =  9;  // dark tip at the very bottom (always near-black)
+/** Total box height in rail pixels (belt + tails + top margin) — lets a
+ *  consumer that transform-scales the bar reserve the right space. */
+export const BELT_BAR_HEIGHT = BELT_H + TAIL_H + 3;
 
 function BeltBarInner({
   beltColor,
