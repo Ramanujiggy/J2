@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en-us">
+	<head>
+		<meta charset="utf-8">
+		<title>GrappleMap Editor</title>
+		<link rel='stylesheet' type='text/css' href='editor.css'/>
+	</head>
+	<body>
+
+<!--    <div class="emscripten" id="status">Downloading...</div>-->
+<!--
+<span id='controls'>
+  <span><input type="checkbox" id="resize">Resize canvas</span>
+  <span><input type="checkbox" id="pointerLock" checked>Lock/hide mouse pointer &nbsp;&nbsp;&nbsp;</span>
+  <span><input type="button" value="Fullscreen" onclick="Module.requestFullscreen(document.getElementById('pointerLock').checked, 
+                                                                            document.getElementById('resize').checked)">
+  </span>
+</span>
+	-->
+<!--
+		<div class="emscripten">
+			<progress value="0" max="100" id="progress" hidden=1></progress>
+		</div>
+-->
+
+		<div class='canvas_container'>
+		<!--			<div class="spinner" id='spinner'></div> -->
+			<canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()">
+			</canvas>
+		</div>
+
+		<div class='sidebar'>
+			<h1><a href='https://github.com/Eelis/GrappleMap/'>GrappleMap</a> Editor</h1>
+
+			(<a target='_blank' href='https://github.com/Eelis/GrappleMap/blob/master/doc/web-editor.md'>Help</a>)
+
+			<div class='selection_display'>
+				<div style='margin-bottom:1em'><b>Path</b></div>
+				<div id='selection_body'>
+				</div>
+			</div>
+
+			<div id='info_modified'></div>
+
+			<table id='browse_controls' class='mode_table'>
+				<tr>
+					<td style='width:33%;text-align:center;background:skyblue'>
+						<b>Browse</b>
+					</td>
+					<td style='width:33%;text-align:center;background:palegreen'>
+						<button onclick='mode_change("playback")'>Playback</button>
+					</td>
+					<td style='width:33%;text-align:center;background:lightcoral'>
+						<button onclick='mode_change("edit")'>Edit</button>
+					</td>
+				</tr>
+				<tr>
+					<td colspan='3' style='background:skyblue'>
+						<ul style='margin:0'>
+							<li><button onclick='browseto()'>Go to</button></li>
+							<li><input type='checkbox' checked onchange='Module.confine(this.checked)'> Confine to path</li>
+							<li><button onclick='Module.mirror_view()'>Mirror view</button></li>
+							<li>Load database: <input type='file' id='fileinput' onchange='loadDB(this.files[0])'></li>
+						</ul>
+					</td>
+				</tr>
+			</table>
+
+			<table id='playback_controls' class='mode_table' style='display:none'>
+				<tr>
+					<td style='width:33%;text-align:center;background:skyblue'>
+						<button onclick='mode_change("browse")'>Browse</button>
+					</td>
+					<td style='width:33%;text-align:center;background:palegreen'>
+						<b>Playback</b>
+					</td>
+					<td style='width:33%;text-align:center;background:lightcoral'>
+						<button onclick='mode_change("edit")'>Edit</button>
+					</td>
+				</tr>
+				<tr>
+					<td colspan='3' style='background:palegreen'>
+						&nbsp;
+					</td>
+				</tr>
+			</table>
+
+			<table id='edit_controls' class='mode_table' style='display:none'>
+				<tr>
+					<td style='width:33%;text-align:center;background:skyblue'>
+						<button onclick='mode_change("browse")'>Browse</button>
+					</td>
+					<td style='width:33%;text-align:center;background:palegreen'>
+						<button onclick='mode_change("playback")'>Playback</button>
+					</td>
+					<td style='width:33%;text-align:center;background:lightcoral'>
+						<b>Edit</b>
+					</td>
+				</tr>
+				<tr>
+					<td colspan='3' style='background:lightcoral'>
+						<table style='margin:auto;border-spacing:0'>
+							<tr>
+								<td style='vertical-align:top'>
+									Transition:<br>
+									<ul style='padding-top:0;margin-top:0;padding-left:1.5em;'>
+										<li><button
+											title='Split the current transition at current keyframe, which becomes a connecting node between the two resulting transitions. Does nothing if not currently positioned at intermediate keyframe.'
+											onclick='Module.split_seq()'>Split</button></li>
+										<li><button
+											title='Create a new transition that ends at the start of the current path and starts from a chosen position.'
+											onclick='prepend_new()'>Prepend New</button></li>
+										<li><button
+											title='Create a new transition that starts from the end end of the current path and ends at a chosen position.'
+											onclick='append_new()'>Append New</button></li>
+									</ul>
+									Frame:<br>
+									<ul style='padding-top:0;margin-top:0;padding-left:1.5em;'>
+										<li><button
+											title='Insert a new keyframe at the current position.'
+											onclick='Module.insert_keyframe()'>Insert</button></li>
+										<li><button
+											title='Delete current keyframe from current transition, possibly disconnecting the latter from a connecting node.'
+											onclick='Module.delete_keyframe()'>Delete</button></li>
+										<li><button onclick='Module.swap_players()'>Swap players</button></li>
+										<li><button onclick='Module.mirror_frame()'>Mirror</button></li>
+									</ul>
+									Transform:<br>
+									<input id='translate_item' name='transform' type='radio' checked
+										onclick='Module.transform("translate")'> translate<br>
+									<input id='rotate_item' name='transform' type='radio'
+										onclick='rotate_item_clicked()'> rotate<br>
+								</td>
+								<td style='width:1em'></td>
+								<td style='vertical-align:top'>
+										Manipulate:<br>
+										<input id='single_joint' name='joints_to_edit' type='radio' checked
+											onclick='single_joint_clicked()'> single joint<br>
+										<input name='joints_to_edit' type='radio'
+											onclick='Module.joints_to_edit("whole_player")'> whole player<br>
+										<input id='both_players' name='joints_to_edit' type='radio'
+											onclick='Module.joints_to_edit("both_players")'> both players
+									</p>
+									<p>
+										Confine to:<br>
+										<input type='checkbox'
+											onchange='Module.confine_horizontal(this.checked)'> horizontal edits<br>
+										<input id='interpolate_checkbox' type='checkbox'
+											onchange='Module.confine_interpolation(this.checked)'> linear interpolations<br>
+										<input type='checkbox' checked
+											onchange='Module.confine_local_edits(this.checked)'> local edits
+									</p>
+									<p>
+										Database:<br>
+										&ensp;
+										<button id='save_button' onclick='make_save_link()'>Save</button>
+										<a id='save_link' target='_blank' download='GrappleMap.txt'></a><br>
+										&ensp;
+										<button onclick='Module.undo()'>Undo last change</button>
+									</p>
+								</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+			</table>
+
+					<!--
+					<p><b>Mouse controls:</b></p>
+					<table class='controlhelp' style='margin:0px'>
+						<tr><td>Right click + drag joint</td><td>-</td><td>Browse through current transition</td></tr>
+						<tr><td>Left click + drag joint</td><td>-</td><td>Update joint position in keyframe (edit mode only)</td></tr>
+						<tr><td>Middle click + drag anywhere</td><td>-</td><td>Rotate camera</td></tr>
+					</table>
+					-->
+
+			<!--<textarea id="output" rows="4" style='width:100%;display:none'></textarea>-->
+
+			<div class='metadata_box'>
+				<div style='margin-bottom:1em'><b>Metadata</b></div>
+				<div style='margin-bottom:0.5em' id='num_box'></div>
+				<textarea readonly rows='6'
+					id='metadata'
+					onfocus='Module.ignore_keyboard(true);'
+					onblur='Module.ignore_keyboard(false);'
+					style='width:90%;white-space:pre;background:#CA65E3'>
+				</textarea>
+				<button
+					style='margin-left:1em;display:none'
+					id='metadata_save_button'
+					onclick='save_metadata()'>Save</button>
+			</div>
+		</div>
+
+		<script src='editor.js'></script>
+		<script src='libgrapplemap.js'></script>
+	</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang='en'>
+	<head>
+		<title>GrappleMap Search</title>
+		<meta charset="UTF-8">
+		<link rel="stylesheet" type="text/css" href="graphdisplay.css">
+		<style>
+			a{text-decoration:none}
+		</style>
+		<script src='https://d3js.org/d3.v3.min.js' charset='utf-8'></script>
+		<script src='gm.js'></script>
+		<script src='config.js'></script>
+	</head>
+	<body style='margin:0px;text-align:center;overflow:scroll'>
+
+		<h1><a target='_blank' href='https://github.com/Eelis/GrappleMap/'>GrappleMap</a></h1>
+
+		<h2>Search</h2>
+		<div style='border:1px solid black;display:inline-block;text-align:left;padding:15px'>
+			Show positions and transitions that have <em>all of</em> these tags:
+			<ul id='include_tags'></ul>
+			<span id='nonelabel'>and <em>none of</em> these tags:</span>
+			<ul id='exclude_tags'></ul>
+			and these substrings:&nbsp;
+			<input id='substrs_box' type='text' oninput='on_substrs();'>
+		</div>
+
+		<br><br><hr>
+		<span style='border:1px solid black;display:inline-block;padding:5px' id='view_controls'></span>
+
+		<table style='width:100%'>
+			<tr>
+				<td style='vertical-align:top;width:60%'>
+					<h2>Positions (<span id='pos_count_label'></span>)</h2>
+					<div id='position_pics'></div>
+				</td>
+				<td style='vertical-align:top;width:40%'>
+					<h2>Transitions (<span id='trans_count_label'></span>)</h2>
+					<div id='transition_pics'></div>
+				</td>
+			</tr>
+		</table>
+
+		<br><br>
+		<div id='neighbourhood'>
+			<div id='infos' style='position:absolute;left:40%;width:60%;height:100%;text-align:left'>
+			</div>
+
+			<div style='position:absolute;width:40%;height:100%;padding:0;margin:0'>
+				<canvas style='width:100%;height:100%' id='canvas'>
+				</canvas>
+			</div>
+			<div style='position:absolute;color:white;padding:1em'>
+				View: &nbsp;<select id='view_select' onchange='Module.set_view(Number(this.value))'>
+					<option value="2">external</option>
+					<option value="0">red</option>
+					<option value="1">blue</option>
+				</select>
+				<button onclick='Module.cursor_canvas_mirror_view()'>mirror</button>
+				<!--
+				&nbsp;(<a href='#' onclick='goto_explorer();return false;'>explorer</a>) -->
+			</div>
+
+			<div style='position:absolute;width:5%;left:35%;height:100%;background:linear-gradient(to right,rgba(255,0,0,0),rgba(255,255,255,1))'>
+			</div>
+
+			<div style='position:absolute;width:60%;height:100%;left:40%'>
+				<svg id="mynetwork" style='width:100%;height:100%'>
+					<g id="links"></g>
+					<g id="nodes"></g>
+					<g id="labels"></g>
+				</svg>
+			</div>
+
+			<div style='position:absolute;width:100%;height:10px;padding:0;margin:0;border-top:1px solid black'>
+			</div>
+
+		</div>
+
+		<p id='no_neighbourhood'></p>
+
+		<script src='search.js'></script>
+		<script src='libgrapplemap.js'></script>
+	</body>
+</html>
