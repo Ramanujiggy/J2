@@ -1,0 +1,142 @@
+documentation:
+- readme
+- edit guidelines
+- database format
+
+db:
+- cage/fence
+- understand that for left-right symmetric positions, outgoing transition can follow incoming transitions in either mirrored or non-mirrored form (alternatively, we could have zero-length mirror transitions in these positions)
+
+editor:
+- more useful console output
+- editing selected joints as a group
+- draw torso with a single shape
+- neck sticks out of sides of head
+- add diagnostics for transitions or transition sequences that:
+  * don't respect inertia
+  * ice skate or hover
+  * rotate joints in unnatural ways
+  * move limbs through eachother
+- maybe visually indicate where a body's structural mechanics are weak, which directions it could be off-balanced, etc
+
+glfw frontend:
+- in edit mode, auto-hide limbs that obstruct the edited joint
+- make rotation commands rotate around center between players, not area center
+- respect 'draggable' again(?)
+- test clipboard
+- restore remaining disabled commands
+- make dependency on Vrui (for video playback) optional (because we eventually want to target WebAssembly, where glfw is likely available but Vrui likely isn't)
+- fix bad pixels at bottom of video monitor
+- sometimes video frames seem to appear in duplicate
+- use mouse to enter reorientations
+- edit-dragger doesn't handle mirrored reorientations (i think)
+
+vrui frontend:
+- limb editing
+- integrate more tools into vr space: web browser, text editor, ...
+- define tools properly
+- position-in-sequence labels
+- interface for inserting new transitions
+- graph display
+- update menu entries (e.g. disable "remove keyframe" when not at keyframe)
+- write tutorial
+- allow dynamically unmapping tools
+- support desktop mode where cursor is a ray
+- video player reorientation, ideally using ordinary window decorations
+- re-sync/seek video after adding/removing keyframes
+- dialogs often open in weird place
+- make microplayback slider more managable
+- different idiom for microplayback: zoom mode. in zoom mode, the normal
+  slider is replaced with the microplayback slider
+- quickly record frames in non-real-time when zoom mode is entered,
+  so that zoomed seeking works without preconditions
+- reuse VideoPlayer and VideoMonitor in VruiXine
+- reorienting first/last segment doesn't (always) work
+
+playback:
+- make {pre,post}fix length for demo mode configurable
+- experiment with alternative ways to smooth animation, e.g. bezier curves. this should especially
+  reduce the corner cutting of the current drag-based smoothing
+
+vr playback:
+- first person view
+- dialog with options for things like "cycle through entries/continuations"
+
+position pages:
+- find a better tool/library for generating gifs (need more speed and compression) (Magick++ seems worth a try even though it's also ImageMagick..)
+- maybe embed videos encoded with e.g. x264?
+- nice urls for position pages
+- investigate graphviz alternatives
+- experiment with other/more colors
+- in the graphs, it would be good to be able to tell really long and really short transitions apart
+- make transition labels in graphviz graphs into composer links
+- generate pics/diagrams in subdir
+
+search page:
+- only warp if node is unreachable
+- extended info mode
+- left/right keys should work in substring text box
+- removing tag sometimes doesn't update query properly when there's substrings
+
+explorer:
+- find a way to get mouse events through to babylon, or at least mention that arrow keys rotate camera
+- clickable position links?
+- make sure selected node doesn't get lost when neighbours are unselected or killed
+- when turning off edit mode, transition to selected node if necessary
+- in edit mode, auto-kill distant nodes, so that you can keep exploring just by opening nodes
+- find solution for multiple transitions between pair of nodes
+- make zooming with scrollwheel work
+- if nodes form a chain, make composer link load it as a drill
+- show bidirectional transitions with bidirectional arrows
+- when the cursor is over a transition, indicate the point on the line closest to the cursor, and guide the animation towards the exact interpolated position, so that moving the mouse smoothly animates smoothly
+- see if using babylon's canvas2d for the graph helps
+
+composer:
+- speed dial
+- fps and other metrics display
+- leave animation undisturbed when manipulating drill
+- first person camera jerky when sliding
+- better layout for info checkbox and explorer link
+
+new tools:
+- diff, to visualize changes made to transitions
+
+misc:
+- mobile-friendly versions of things
+- clean up code (a lot)
+- get webserver to compress transitions (saves 70%)
+- for each transition, generate a file containing its frames, so that the web pages can request only what they need instead of loading everything
+- generate lightweight db summary file that only contains position data for nodes, for use by e.g. search page
+- precompile util.hpp
+
+binary packages:
+- maybe make a dockerfile for the crosscompile env
+- unrecognized options turn into hard crashes on win32, so it looks like exception handling isn't working
+- generate apple stuff
+- get ftgl to work (or something else for text)
+
+web editor:
+- 1st person view
+- moving mouse off canvas while buttons pressed badly handled
+- redo
+- draw connecting nodes distinctly
+- see if updating the metadata boxes can be done with less stuttering if
+  it's done as updating in a fixed-width div instead of with innerHTML
+- disable splittrans/deleteframe/etc buttons when unavailable
+- drag&drop db file selection
+- blending/antialiasing/smoothing
+- maybe make lines camera-facing so they need fewer triangles
+- random path button
+- handle reverse steps correctly in indicators and elsewhere
+- document zoom keys or add gui element
+- make mouse/rotation speed configurable
+- if confine is true and position is at sequence being removed from selection, move current position
+- visually indicate when multiple joints are being manipulated
+- when naming previously unnamed position, rearrange position numbers as if db were reloaded
+- make testcase for glfwInit breaking backspace in textarea and report
+- figure out how to stop canvas from getting /any/ keyboard input when other gui elements are focused
+- proper approach to shortcut keys
+- clipboard
+- synchronized video playback
+- increase modification tracking granularity: show which individual positions inside transitions were changed
+- prevent the same transition from appearing twice in the path

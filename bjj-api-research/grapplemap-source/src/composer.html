@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang='en'>
+	<head>
+		<title>Drill Composer</title>
+		<meta charset='UTF-8'/>
+		<script src='../babylon.js'></script>
+		<script src='../gm.js'></script>
+		<script src='../graphdisplay.js'></script>
+		<style>
+			html, body {
+				width: 100%;
+				height: 100%;
+				margin: 0;
+				padding: 0;
+			}
+			a{text-decoration:none}
+			.panel {
+				position:absolute;
+				top:0px;
+				padding:0px;
+				right:0px;
+			}
+		</style>
+	</head>
+	<body style='line-height:150%;width:100%'>
+
+		<canvas style='position:fixed;width:70%;height:100%;margin:0px;border-right:1px solid black' id='renderCanvas'></canvas>
+
+		<div id='panel' class='panel' style='width:30%'>
+		<div style='padding:30px'>
+
+			<div style='text-align:center'>
+				<h1><a href='https://github.com/Eelis/GrappleMap/'>GrappleMap</a></h1>
+				<h2>Drill Composer</h2>
+			</div>
+
+			<hr>
+
+			<p>
+				View: &nbsp;<select id='view_select' onchange='on_view_change()'>
+					<option value="external">external</option>
+					<option value="0">red</option>
+					<option value="1">blue</option>
+				</select>
+				<button onclick='on_mirror_button_clicked()'>mirror</button>
+				<button onclick='on_pause_button_clicked()' id='pause_button'>pause</button>
+				<button onclick='random_drill()'>random drill</button>
+				&ensp;
+				(<a id='explorer_link'>explorer</a>)
+				<input type='checkbox' id='info_mode_checkbox' onchange='on_info_change()'> info
+			</p>
+			<input type="range" min=0 max=100 step=1 id="slider" style='width:100%'
+				oninput='on_slide()' onmouseover='sliding=true' onmouseleave='sliding=false'>
+			<br>
+			<br>
+			<div id='controls' style='padding:15px'></div><br>
+
+			<table>
+				<tr>
+					<td style='width:50%;vertical-align:top;padding-right:5px'>
+						<div id='pre_choices_label'>Prepend transition:</div>
+						<div id='pre_choices' style='margin-left:15px'></div>
+					</td>
+					<td style='width:50%;vertical-align:top;padding-left:5px'>
+						<div id='post_choices_label'>Append transition:</div>
+						<div id='post_choices' style='margin-left:15px'></div>
+					</td>
+				</tr>
+			</table>
+
+		</div>
+		</div>
+
+		<script src='composer.js'></script>
+		<script src='libgrapplemap.js'></script>
+	</body>
+</html>

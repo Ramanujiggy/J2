@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang='en'>
+	<head>
+		<title>GrappleMap Explorer</title>
+		<meta charset="UTF-8">
+		<link rel="stylesheet" type="text/css" href="../graphdisplay.css">
+		<style>
+			a{text-decoration:none}
+			.panel {
+				position:absolute;
+				top:0px;
+				left:0px;
+				border-right:1px solid black;
+				border-bottom:1px solid black;
+				background:white;
+				padding-left:30px;
+				padding-right:30px;
+				padding-bottom:10px;
+				text-align: center;
+			}
+			html, body {
+				overflow: hidden;
+				width: 100%;
+				height: 100%;
+				margin: 0;
+				padding: 0;
+			}
+		</style>
+		<script>
+			function v3(x,y,z){return [x,y,z];}
+		</script>
+		<script src='https://d3js.org/d3.v3.min.js' charset='utf-8'></script>
+		<script src='../babylon.js'></script>
+		<script src='../gm.js'></script>
+		<script src='../graphdisplay.js'></script>
+	</head>
+	<body>
+		<svg id="mynetwork" style='position:absolute;width:100%;height:100%;background:rgba(255,255,255,0.45)'>
+			<g id="links"></g>
+			<g id="nodes"></g>
+			<g id="labels"></g>
+		</svg>
+
+		<div id='infos'></div>
+
+		<canvas style='width:100%;height:100%' id='renderCanvas'></canvas>
+
+		<div class='panel'>
+			<h1><a target='_blank' href='https://github.com/Eelis/GrappleMap/'>GrappleMap</a></h1>
+			<h2>Explorer</h2>
+			<hr>
+			<p>Drag nodes to unclutter.</p>
+			<hr>
+			<p>
+				View: &nbsp;<select id='view_select' onchange='on_view_change()'>
+					<option value="external">external</option>
+					<option value="0">red</option>
+					<option value="1">blue</option>
+				</select>
+				<button onclick='on_mirror_button_clicked()'>mirror</button>
+			</p>
+			<input type="range" min=0 max=40 step=1 id="rotation_slider" style='width:100%' oninput='on_rotate()'>
+			<p>
+				Open in: <a id='search_link'>search</a>, <a id='composer_link'>composer</a>
+			</p>
+			<hr>
+			<p><input type='checkbox' id='edit_mode_checkbox' onchange='on_edit()'> Edit node selection</p>
+			<p id='click_instruction' style='display:none'>Click on nodes to<br>add/remove them.</p>
+		</div>
+
+		<script src='explorer.js'></script>
+		<script src='libgrapplemap.js'></script>
+	</body>
+</html>
