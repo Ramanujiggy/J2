@@ -24,8 +24,6 @@ import { useBeltHistory } from '../hooks/useBeltHistory.ts';
 import { getStorageEstimate, type StorageEstimate } from '../lib/videoStore.ts';
 import { formatBytes } from '../lib/videoUtils.ts';
 import { Library, ChevronRight, Bell, Award } from 'lucide-react';
-import PrismSkinToggle, { readPrismSkin, PRISM_SKIN_LABEL } from '../components/PrismSkinToggle.tsx';
-import PrismSkinSheet from '../components/PrismSkinSheet.tsx';
 import ProfileDesktop from '../components/ProfileDesktop.tsx';
 import ProfileDetailsSheet, { type ProfileDetails } from '../components/ProfileDetailsSheet.tsx';
 import { useGymAutocomplete, MAPS_KEY } from '../hooks/useGymAutocomplete.ts';
@@ -176,9 +174,6 @@ export default function ProfilePage() {
 
   /** Desktop only — the "Your details" sheet, opened from housekeeping or the name. */
   const [detailsOpen, setDetailsOpen] = useState(false);
-  /** Desktop only — the "Prism style" sheet; the row shows the current pick. */
-  const [prismOpen, setPrismOpen] = useState(false);
-  const [prismSkin, setPrismSkin] = useState(readPrismSkin);
   const [importOpen, setImportOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [existingDates, setExistingDates] = useState<Set<string>>(new Set());
@@ -350,11 +345,6 @@ export default function ProfilePage() {
                     </span>
                   ),
                 },
-                {
-                  title: 'Prism style',
-                  subtitle: `${PRISM_SKIN_LABEL[prismSkin]} · how the focus prism looks when you log a session.`,
-                  onClick: () => setPrismOpen(true),
-                },
               ],
             },
             {
@@ -384,11 +374,6 @@ export default function ProfilePage() {
         {reportOpen && (
           <ReportProblemModal onClose={() => setReportOpen(false)} />
         )}
-        <PrismSkinSheet
-          open={prismOpen}
-          onClose={() => setPrismOpen(false)}
-          onChange={setPrismSkin}
-        />
         <ProfileDetailsSheet
           open={detailsOpen}
           details={{
@@ -632,13 +617,6 @@ export default function ProfilePage() {
           </button>
         </div>
 
-        {/* Appearance — prism skin */}
-        <div
-          className={`rounded-2xl ${isDesktop ? 'p-7' : 'mt-4 p-5'}`}
-          style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}
-        >
-          <PrismSkinToggle />
-        </div>
 
         {/* Move Library section */}
         <div
