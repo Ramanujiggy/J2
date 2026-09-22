@@ -1,7 +1,7 @@
 // ProfileDesktop — the account screen, and the only screen with counts.
 //
 // Left: who you are, the belt (click it to record a promotion), the
-// promotions you've recorded, the collection, and a door to Atlas.
+// promotions you've recorded, and the collection.
 // Right: housekeeping — the settings that are chores, kept as quiet rows
 // so they never compete with the belt.
 //
@@ -18,11 +18,10 @@ import PromotionSheet from './belt/PromotionSheet.tsx';
 import PromotionRevealSheet from './belt/PromotionRevealSheet.tsx';
 import PromotionList from './belt/PromotionList.tsx';
 import SealStamp from './seal/SealStamp.tsx';
-import HomePortrait from './HomePortrait.tsx';
 import { STAMP_DIES, bandDate } from '../lib/stampDies.ts';
 import { beltDisplayName, isBeltRank, type BeltRankKey } from '../lib/beltCloth.ts';
 import { PALE_YELLOW, FONT_EDITORIAL, STATUS_ERROR, STATUS_ERROR_BG, STATUS_ERROR_BORDER } from '../lib/theme.ts';
-import type { BeltHistoryEntry, EarnedStamp, PillarDistribution } from '../types/api.ts';
+import type { BeltHistoryEntry, EarnedStamp } from '../types/api.ts';
 
 const TEXT_SECONDARY = 'rgba(255,255,255,0.66)';
 const TEXT_TERTIARY  = 'rgba(255,255,255,0.46)';
@@ -63,8 +62,6 @@ interface Props {
   trainingSince?: string | null;
   beltEntries: BeltHistoryEntry[];
   stamps: Map<string, EarnedStamp>;
-  portraitShapes: PillarDistribution[];
-  sessionCount: number;
   savingPromotion?: boolean;
   onRecordPromotion: (next: { rank: BeltRankKey; stripes: number; promotedAt: string }) => void;
   onRemovePromotion: (id: string) => void;
@@ -76,7 +73,7 @@ interface Props {
 
 export default function ProfileDesktop({
   name, beltRank, stripes, academy, trainingSince,
-  beltEntries, stamps, portraitShapes, sessionCount,
+  beltEntries, stamps,
   savingPromotion, onRecordPromotion, onRemovePromotion, removingPromotionId, onEditDetails, housekeeping,
 }: Props) {
   const navigate = useNavigate();
@@ -200,12 +197,6 @@ export default function ProfileDesktop({
               : `${earned.map(s => STAMP_DIES[s.die_key]?.name ?? s.die_key).join(' · ')}. The others are not yet yours to know about.`}
           </div>
 
-          {/* Door to Atlas */}
-          {portraitShapes.length > 0 && (
-            <div style={{ marginTop: 30, paddingTop: 20, borderTop: HAIRLINE }}>
-              <HomePortrait shapes={portraitShapes} sessionCount={sessionCount} variant="desk" />
-            </div>
-          )}
         </div>
 
         {/* ── Housekeeping ─────────────────────────────────────────── */}
