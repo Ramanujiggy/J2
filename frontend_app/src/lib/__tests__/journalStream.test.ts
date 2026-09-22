@@ -87,6 +87,34 @@ describe('buildStream', () => {
     expect(written!.text).toBe('Marco tied it on.');
   });
 
+  it('promotion rows carry the promotion so the page can open its entry', () => {
+    const [bare] = buildStream({ ...EMPTY, promotions: [promotion('p1', '2026-07-25')] });
+    expect(bare!.promotion?.id).toBe('p1');
+    expect(bare!.href).toBeNull();
+    expect(bare!.meta).toEqual(['Write about it']);
+
+    const [written] = buildStream({
+      ...EMPTY,
+      promotions: [promotion('p2', '2026-07-25', { notes: 'Marco tied it on.' })],
+    });
+    expect(written!.meta).toEqual(['Recorded']);
+  });
+
+  it("a class linked to a promotion names the belt in its meta; others don't", () => {
+    const items = buildStream({
+      ...EMPTY,
+      sessions: [
+        session({ id: 's1', date: '2026-07-25', notes: 'x' }),
+        session({ id: 's2', date: '2026-07-24', notes: 'y' }),
+      ],
+      promotions: [promotion('p1', '2026-07-25', { stripes: 1, session_id: 's1' })],
+    });
+    const linked = items.find(i => i.id === 'session-s1')!;
+    const other  = items.find(i => i.id === 'session-s2')!;
+    expect(linked.meta.at(-1)).toBe('Black belt, first stripe, tied on');
+    expect(other.meta.some(m => m.includes('tied on'))).toBe(false);
+  });
+
   it('orders same-day items by kind so the list does not shuffle between fetches', () => {
     const items = buildStream({
       ...EMPTY,

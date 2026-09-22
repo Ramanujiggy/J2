@@ -16,6 +16,9 @@
 
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import PromotionEntrySheet from './belt/PromotionEntrySheet.tsx';
+import { api } from '../lib/api.ts';
+import { toast } from '../hooks/use-toast.ts';
 import {
   buildStream, filterStream, groupByMonth, yearBlocks, typeLabel,
   type StreamChip, type StreamItem,
@@ -66,10 +69,12 @@ interface Props {
   academy?: string | null;
   /** Opens a session row. Desktop routes to /journal/:id. */
   onOpenSession: (session: SessionSummary) => void;
+  /** A promotion's words were saved — the parent refetches belt history. */
+  onPromotionSaved?: () => void;
 }
 
 export default function JournalDesktop({
-  sessions, notes, intentions, promotions, activeIntention, academy, onOpenSession,
+  sessions, notes, intentions, promotions, activeIntention, academy, onOpenSession, onPromotionSaved,
 }: Props) {
   const navigate = useNavigate();
   const [chip, setChip] = useState<StreamChip>('All');
@@ -85,8 +90,25 @@ export default function JournalDesktop({
   // how you leave where you are, so it must not shrink as you search.
   const years   = useMemo(() => yearBlocks(stream), [stream]);
 
+  // A promotion row opens its own entry: prose only, no training fields.
+  const [openPromotion, setOpenPromotion] = useState<BeltHistoryEntry | null>(null);
+  const [savingPromotion, setSavingPromotion] = useState(false);
+  const savePromotion = async (id: string, text: string) => {
+    setSavingPromotion(true);
+    try {
+      await api.patch(`/api/belt-history/${id}`, { notes: text || null });
+      setOpenPromotion(null);
+      onPromotionSaved?.();
+    } catch {
+      toast({ title: 'Could not save that entry.', variant: 'destructive' });
+    } finally {
+      setSavingPromotion(false);
+    }
+  };
+
   const openItem = (item: StreamItem) => {
     if (item.kind === 'session' && item.session) { onOpenSession(item.session); return; }
+    if (item.kind === 'promotion' && item.promotion) { setOpenPromotion(item.promotion); return; }
     if (item.href) navigate(item.href);
   };
 
@@ -277,6 +299,15 @@ export default function JournalDesktop({
           </div>
         </div>
       </div>
+
+      <PromotionEntrySheet
+        open={openPromotion !== null}
+        promotion={openPromotion}
+        academy={academy}
+        saving={savingPromotion}
+        onClose={() => setOpenPromotion(null)}
+        onSave={(id, text) => { void savePromotion(id, text); }}
+      />
     </div>
   );
 }

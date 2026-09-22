@@ -46,6 +46,8 @@ export interface StreamItem {
   href: string | null;
   /** Present on session rows, so callers can open the detail modal. */
   session?: SessionSummary;
+  /** Present on promotion rows, so callers can open the promotion entry. */
+  promotion?: BeltHistoryEntry;
 }
 
 const EXCERPT_MAX = 150;
@@ -118,16 +120,22 @@ export function buildStream({
 
   const intentionStart = activeIntention ? activeIntention.week_start.slice(0, 10) : null;
 
+  // Promotions linked to a class (mig 039), so that class's row can say so.
+  const promotionBySession = new Map<string, BeltHistoryEntry>();
+  for (const p of promotions) if (p.session_id) promotionBySession.set(p.session_id, p);
+
   for (const s of sessions) {
     const dateKey = dateKeyOf(typeof s.date === 'string' ? s.date : String(s.date));
     const written = s.notes?.trim();
     const { text, truncated } = written
       ? excerpt(written)
       : { text: 'Logged, but nothing written yet.', truncated: false };
+    const linked = promotionBySession.get(s.id);
     const meta = [
       [GI_LABEL[s.gi_nogi] ?? '', s.session_type === 'drilling' ? 'drilling' : 'class']
         .filter(Boolean).join(' '),
       HOUR_FMT(s.duration),
+      linked ? `${beltName(linked.belt_rank, linked.stripes)}, tied on` : '',
     ].filter(Boolean);
     items.push({
       id: `session-${s.id}`,
@@ -170,6 +178,9 @@ export function buildStream({
     });
   }
 
+  // A promotion is a journal entry in its own right: its own words, written
+  // in PromotionEntrySheet. Rows carry `promotion` so the page can open that
+  // sheet — a promotion with no words yet still opens it, to write them.
   for (const p of promotions) {
     const name = beltName(p.belt_rank, p.stripes);
     const written = p.notes?.trim();
@@ -187,8 +198,9 @@ export function buildStream({
       dateKey: dateKeyOf(p.promoted_at),
       text,
       truncated,
-      meta: ['Recorded'],
-      href: '/profile',
+      meta: [written ? 'Recorded' : 'Write about it'],
+      href: null,
+      promotion: p,
     });
   }
 

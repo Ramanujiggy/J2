@@ -72,7 +72,7 @@ export default function JournalIndexPage() {
   // pass — see components/JournalDesktop.tsx.
   const { notes: trainingNotes } = useTrainingNotes();
   const { intentions } = useActiveIntention();
-  const { entries: promotions } = useBeltHistory();
+  const { entries: promotions, refetch: refetchPromotions } = useBeltHistory();
 
   const todayStr = toDateString(new Date());
   const activeIntention = intentions.find(i => {
@@ -154,6 +154,7 @@ export default function JournalIndexPage() {
           promotions={promotions}
           activeIntention={activeIntention}
           onOpenSession={s => navigate(`/journal/${s.id}`)}
+          onPromotionSaved={refetchPromotions}
         />
       </PageContent>
     );

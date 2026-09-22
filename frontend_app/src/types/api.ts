@@ -411,6 +411,8 @@ export interface BeltHistoryEntry {
   stripes: number;
   promoted_at: string;
   notes: string | null;
+  /** The training entry logged the same day, when there is one (mig 039). */
+  session_id?: string | null;
 }
 
 export interface BeltHistoryResponse {
