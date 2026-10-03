@@ -1,41 +1,35 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
+import { PROFILE_ORIGIN } from '../lib/navOrigin.ts';
 
 import { api } from '../lib/api.ts';
 import { useAuth } from '../context/AuthContext.tsx';
-import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, SURFACE_2, SURFACE_2_BORDER, SURFACE_3, COPPER } from '../lib/theme.ts';
+import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, SURFACE_2, SURFACE_2_BORDER, COPPER, STATUS_ERROR, STATUS_ERROR_BG, STATUS_ERROR_BORDER } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import CsvImportModal from '../components/CsvImportModal.tsx';
 import ReportProblemModal from '../components/ReportProblemModal.tsx';
 import { exportSessionsCsv, exportIntentionsCsv } from '../lib/csvExport.ts';
 import type { SessionSummary, Intention } from '../types/api.ts';
 import PageContent from '../components/PageContent.tsx';
-import { type BeltRank, BELT_COLORS } from '../components/BeltBar.tsx';
+import { type BeltRank } from '../components/BeltBar.tsx';
+import FlatBelt from '../components/belt/FlatBelt.tsx';
+import PromotionSheet from '../components/belt/PromotionSheet.tsx';
+import PromotionRevealSheet from '../components/belt/PromotionRevealSheet.tsx';
+import PromotionList, { formatPromotionMonth } from '../components/belt/PromotionList.tsx';
+import { isBeltRank } from '../lib/beltCloth.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../components/ui/select.tsx';
 import { toast } from '../hooks/use-toast.ts';
 import { useBeltHistory } from '../hooks/useBeltHistory.ts';
 import { getStorageEstimate, type StorageEstimate } from '../lib/videoStore.ts';
 import { formatBytes } from '../lib/videoUtils.ts';
-import { Library, ChevronRight, Bell } from 'lucide-react';
-
-const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
-
-const BELT_RANKS: { value: BeltRank; label: string }[] = [
-  { value: 'white',  label: 'White'  },
-  { value: 'blue',   label: 'Blue'   },
-  { value: 'purple', label: 'Purple' },
-  { value: 'brown',  label: 'Brown'  },
-  { value: 'black',  label: 'Black'  },
-];
+import { Library, ChevronRight, Bell, Award } from 'lucide-react';
+import PrismSkinToggle, { readPrismSkin, PRISM_SKIN_LABEL } from '../components/PrismSkinToggle.tsx';
+import PrismSkinSheet from '../components/PrismSkinSheet.tsx';
+import ProfileDesktop from '../components/ProfileDesktop.tsx';
+import ProfileDetailsSheet, { type ProfileDetails } from '../components/ProfileDetailsSheet.tsx';
+import { useGymAutocomplete, MAPS_KEY } from '../hooks/useGymAutocomplete.ts';
+import { useStamps } from '../hooks/useStamps.ts';
 
 interface ProfileData {
   name: string;
@@ -48,6 +42,7 @@ interface ProfileData {
 
 interface ProfileResponse {
   profile: {
+    email?: string | null;
     name: string | null;
     belt_rank: string | null;
     stripes: number;
@@ -74,7 +69,6 @@ export default function ProfilePage() {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const gymInputRef = useRef<HTMLInputElement>(null);
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
   const [form, setForm] = useState<ProfileData>({
     name: '',
@@ -85,50 +79,102 @@ export default function ProfilePage() {
     home_gym_place_id: '',
   });
   const [intentionsEnabled, setIntentionsEnabled] = useState(true);
+  /** Sign-in email, shown read-only on "Your details". */
+  const [email, setEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   // Belt history
   const { entries: beltEntries, refetch: refetchBeltHistory } = useBeltHistory();
-  const [beltFormOpen, setBeltFormOpen] = useState(false);
-  const [beltForm, setBeltForm] = useState({ belt_rank: 'blue' as string, stripes: 0, promoted_at: '', notes: '' });
-  const [beltSaving, setBeltSaving] = useState(false);
-  const [beltDeleting, setBeltDeleting] = useState<string | null>(null);
 
-  const handleAddBeltEntry = async () => {
-    if (!beltForm.promoted_at) return;
+  // Desktop identity surface — the collection.
+  const { stamps } = useStamps();
+  const [beltSaving, setBeltSaving] = useState(false);
+  /** The promotion sheet, opened by tapping the belt (mobile + desktop details). */
+  const [sheetOpen, setSheetOpen] = useState(false);
+  /** The promotion just tied on — drives the ceremony sheet. */
+  const [reveal, setReveal] = useState<{ rank: string; stripes: number; promotedAt: string } | null>(null);
+
+  // Promotion flow — the sheet commits straight to belt_history and
+  // syncs the profile's own rank/stripes, so the rail label and every other
+  // belt surface follow. The new row also becomes a Promotion in the journal
+  // stream (derived, see lib/journalStream.ts) — which is the point: the
+  // promotion joins the corpus and can come back on its anniversary.
+  const handleRecordPromotion = async (
+    next: { rank: string; stripes: number; promotedAt: string },
+  ) => {
     setBeltSaving(true);
     try {
       await api.post('/api/belt-history', {
-        belt_rank: beltForm.belt_rank,
-        stripes: beltForm.stripes,
-        promoted_at: beltForm.promoted_at,
-        notes: beltForm.notes.trim() || null,
+        belt_rank: next.rank,
+        stripes: next.stripes,
+        promoted_at: next.promotedAt,
+        notes: null,
       });
+      await api.put('/api/profile', {
+        ...form,
+        belt_rank: next.rank,
+        stripes: next.stripes,
+      });
+      setForm(f => ({ ...f, belt_rank: next.rank as BeltRank, stripes: next.stripes }));
       refetchBeltHistory();
-      setBeltForm({ belt_rank: 'blue', stripes: 0, promoted_at: '', notes: '' });
-      setBeltFormOpen(false);
-      toast({ title: 'Promotion recorded.' });
+      await refreshProfile();
     } catch {
-      toast({ title: 'Failed to save promotion.', variant: 'destructive' });
+      toast({ title: 'Could not record that promotion.', variant: 'destructive' });
     } finally {
       setBeltSaving(false);
     }
   };
 
-  const handleDeleteBeltEntry = async (id: string) => {
-    setBeltDeleting(id);
+  /** Removing a promotion. If it was the current position, the profile's
+   *  own rank/stripes fall back to the next one on the ladder so every belt
+   *  surface (rail label, identity screen, reveal) follows. */
+  const [removingPromotionId, setRemovingPromotionId] = useState<string | null>(null);
+  const handleRemovePromotion = async (id: string) => {
+    if (removingPromotionId) return;
+    setRemovingPromotionId(id);
     try {
       await api.delete(`/api/belt-history/${id}`);
+      const wasCurrent = beltEntries[0]?.id === id;
+      const next = beltEntries.find(e => e.id !== id) ?? null;
+      if (wasCurrent && next) {
+        await api.put('/api/profile', { ...form, belt_rank: next.belt_rank, stripes: next.stripes });
+        setForm(f => ({ ...f, belt_rank: next.belt_rank as BeltRank, stripes: next.stripes }));
+        await refreshProfile();
+      }
       refetchBeltHistory();
-      toast({ title: 'Promotion removed.' });
     } catch {
-      toast({ title: 'Failed to delete.', variant: 'destructive' });
+      toast({ title: 'Could not remove that promotion.', variant: 'destructive' });
     } finally {
-      setBeltDeleting(null);
+      setRemovingPromotionId(null);
     }
   };
+
+  /** Housekeeping's one-tap export — both CSVs, your words are yours. */
+  const handleExportAll = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const [sessionsRes, intentionsRes] = await Promise.all([
+        api.get<{ sessions: SessionSummary[] }>('/api/sessions'),
+        api.get<{ intentions: Intention[] }>('/api/intentions'),
+      ]);
+      await exportSessionsCsv(sessionsRes.sessions ?? []);
+      exportIntentionsCsv(intentionsRes.intentions ?? []);
+      toast({ title: 'Exported. Check your downloads.' });
+    } catch {
+      toast({ title: 'Could not export right now.', variant: 'destructive' });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  /** Desktop only — the "Your details" sheet, opened from housekeeping or the name. */
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  /** Desktop only — the "Prism style" sheet; the row shows the current pick. */
+  const [prismOpen, setPrismOpen] = useState(false);
+  const [prismSkin, setPrismSkin] = useState(readPrismSkin);
   const [importOpen, setImportOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [existingDates, setExistingDates] = useState<Set<string>>(new Set());
@@ -154,6 +200,7 @@ export default function ProfilePage() {
             home_gym_place_id: p.home_gym_place_id ?? '',
           });
           setIntentionsEnabled(p.intentions_enabled ?? true);
+          setEmail(p.email ?? null);
         }
       })
       .catch(() => {})
@@ -163,34 +210,27 @@ export default function ProfilePage() {
   useEffect(() => { fetchProfile(); }, [fetchProfile]);
   useOnlineRefetch(fetchProfile);
 
-  // Initialise Google Places Autocomplete for the gym input
-  const initAutocomplete = useCallback(async () => {
-    if (!MAPS_KEY || !gymInputRef.current) return;
+  // Google Places on the mobile form's gym input. Desktop edits the gym in
+  // the details sheet, which attaches its own.
+  useGymAutocomplete(gymInputRef, !loading && !isDesktop, place => {
+    setForm(prev => ({
+      ...prev,
+      home_gym_name: place.home_gym_name ?? prev.home_gym_name,
+      home_gym_address: place.home_gym_address,
+      home_gym_place_id: place.home_gym_place_id,
+    }));
+  });
 
-    setOptions({ key: MAPS_KEY, v: 'weekly' });
-    const { Autocomplete } = await importLibrary('places') as google.maps.PlacesLibrary;
-
-    autocompleteRef.current = new Autocomplete(gymInputRef.current, {
-      types: ['establishment'],
-      fields: ['name', 'formatted_address', 'place_id'],
-    });
-
-    autocompleteRef.current.addListener('place_changed', () => {
-      const place = autocompleteRef.current!.getPlace();
-      setForm(prev => ({
-        ...prev,
-        home_gym_name: place.name ?? prev.home_gym_name,
-        home_gym_address: place.formatted_address ?? '',
-        home_gym_place_id: place.place_id ?? '',
-      }));
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!loading) {
-      initAutocomplete();
-    }
-  }, [loading, initAutocomplete]);
+  /** The profile PUT is whole-object, so every save sends the full form. */
+  const putProfile = (intentions: boolean) => api.put('/api/profile', {
+    name: form.name || null,
+    belt_rank: form.belt_rank,
+    stripes: form.stripes,
+    home_gym_name: form.home_gym_name || null,
+    home_gym_address: form.home_gym_address || null,
+    home_gym_place_id: form.home_gym_place_id || null,
+    intentions_enabled: intentions,
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -198,15 +238,7 @@ export default function ProfilePage() {
     setSaving(true);
 
     try {
-      await api.put('/api/profile', {
-        name: form.name || null,
-        belt_rank: form.belt_rank,
-        stripes: form.stripes,
-        home_gym_name: form.home_gym_name || null,
-        home_gym_address: form.home_gym_address || null,
-        home_gym_place_id: form.home_gym_place_id || null,
-        intentions_enabled: intentionsEnabled,
-      });
+      await putProfile(intentionsEnabled);
       refreshProfile();
       toast({ variant: 'success', title: 'Profile saved.' });
     } catch (err) {
@@ -218,32 +250,161 @@ export default function ProfilePage() {
     }
   };
 
+  /** "Your details" sheet (desktop) — name and gym, saved together. */
+  const handleSaveDetails = async (next: ProfileDetails) => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await api.put('/api/profile', {
+        name: next.name || null,
+        belt_rank: form.belt_rank,
+        stripes: form.stripes,
+        home_gym_name: next.home_gym_name || null,
+        home_gym_address: next.home_gym_address || null,
+        home_gym_place_id: next.home_gym_place_id || null,
+        intentions_enabled: intentionsEnabled,
+      });
+      setForm(f => ({ ...f, ...next }));
+      setDetailsOpen(false);
+      refreshProfile();
+      toast({ variant: 'success', title: 'Profile saved.' });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to save profile.';
+      toast({ variant: 'destructive', title: 'Could not save profile.', description: msg });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  /** Desktop housekeeping toggle — there is no Save button on the identity
+   *  screen, so the switch persists on its own and rolls back on failure. */
+  const handleToggleIntentions = async () => {
+    if (saving) return;
+    const next = !intentionsEnabled;
+    setIntentionsEnabled(next);
+    setSaving(true);
+    try {
+      await putProfile(next);
+      refreshProfile();
+    } catch (err) {
+      setIntentionsEnabled(!next);
+      const msg = err instanceof Error ? err.message : 'Failed to save profile.';
+      toast({ variant: 'destructive', title: 'Could not save setting.', description: msg });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ── Desktop: identity first, chores in the margin ───────────────────────
+  // Name, gym and sign-in live in the "Your details" sheet; the belt has its
+  // own sheet. The full form below is the mobile profile only.
+  if (isDesktop) {
+    return (
+      <>
+        <ProfileDesktop
+          name={form.name || null}
+          beltRank={form.belt_rank}
+          stripes={form.stripes}
+          academy={form.home_gym_name || null}
+          beltEntries={beltEntries}
+          stamps={stamps}
+          savingPromotion={beltSaving}
+          onRecordPromotion={handleRecordPromotion}
+          onRemovePromotion={id => { void handleRemovePromotion(id); }}
+          removingPromotionId={removingPromotionId}
+          onEditDetails={() => setDetailsOpen(true)}
+          housekeeping={[
+            {
+              heading: 'Housekeeping',
+              rows: [
+                { title: 'Your details', subtitle: 'Name, belt, home gym.', onClick: () => setDetailsOpen(true) },
+                { title: 'Class times & notifications', subtitle: 'Three quiet pings around each class.', onClick: () => navigate('/profile/classes') },
+                { title: 'Move library', subtitle: 'Your own clips and the techniques you keep.', onClick: () => navigate('/library', { state: PROFILE_ORIGIN }) },
+              ],
+            },
+            {
+              heading: 'Preferences',
+              rows: [
+                {
+                  title: 'Training intentions',
+                  subtitle: 'Track weekly focus and journal your intentions.',
+                  onClick: () => { void handleToggleIntentions(); },
+                  control: (
+                    <span
+                      role="switch"
+                      aria-checked={intentionsEnabled}
+                      aria-label="Training intentions"
+                      className="rounded-full relative flex-shrink-0 w-12 h-6 transition-colors"
+                      style={{ display: 'block', backgroundColor: intentionsEnabled ? 'rgba(218,116,34,0.85)' : 'rgba(255,255,255,0.10)' }}
+                    >
+                      <span
+                        className="absolute top-0.5 rounded-full bg-white transition-transform w-5 h-5"
+                        style={{ transform: intentionsEnabled ? 'translateX(26px)' : 'translateX(2px)' }}
+                      />
+                    </span>
+                  ),
+                },
+                {
+                  title: 'Prism style',
+                  subtitle: `${PRISM_SKIN_LABEL[prismSkin]} · how the focus prism looks when you log a session.`,
+                  onClick: () => setPrismOpen(true),
+                },
+              ],
+            },
+            {
+              heading: 'Your data',
+              rows: [
+                { title: 'Import training history', subtitle: 'Upload a CSV of past sessions.', onClick: () => setImportOpen(true) },
+                { title: 'Export everything', subtitle: 'Sessions and intentions as CSV — your words are yours.', onClick: () => { void handleExportAll(); } },
+              ],
+            },
+            {
+              heading: 'Account',
+              rows: [
+                ...(isAdmin ? [{ title: 'Admin dashboard', subtitle: 'Users, reports, and production design.', onClick: () => navigate('/admin') }] : []),
+                { title: 'Report a problem', subtitle: 'Two fields; debug context attaches itself.', onClick: () => setReportOpen(true) },
+                { title: 'Log out', subtitle: 'Sign out of Journada on this device.', onClick: () => { logout(); navigate('/'); }, tone: 'danger' as const },
+              ],
+            },
+          ]}
+        />
+        {importOpen && (
+          <CsvImportModal
+            existingDates={existingDates}
+            onClose={() => setImportOpen(false)}
+            onImported={() => { setImportOpen(false); refreshProfile(); }}
+          />
+        )}
+        {reportOpen && (
+          <ReportProblemModal onClose={() => setReportOpen(false)} />
+        )}
+        <PrismSkinSheet
+          open={prismOpen}
+          onClose={() => setPrismOpen(false)}
+          onChange={setPrismSkin}
+        />
+        <ProfileDetailsSheet
+          open={detailsOpen}
+          details={{
+            name: form.name,
+            home_gym_name: form.home_gym_name,
+            home_gym_address: form.home_gym_address,
+            home_gym_place_id: form.home_gym_place_id,
+          }}
+          email={email}
+          saving={saving}
+          onClose={() => setDetailsOpen(false)}
+          onSave={next => { void handleSaveDetails(next); }}
+        />
+      </>
+    );
+  }
+
   return (
     <div className="flex flex-col">
 
       <main className={`flex-1 ${isDesktop ? 'j2-page-container' : 'w-full mx-auto max-w-xl px-4 sm:px-6'}`} style={isDesktop ? { paddingTop: 48, paddingBottom: 48 } : { paddingTop: 24, paddingBottom: 24 }}>
-        {/* Editorial header — desktop */}
-        {isDesktop ? (
-          <div className="mb-10">
-            <p className="j2-label-copper" style={{ marginBottom: 12 }}>
-              ◇ Your information
-            </p>
-            <h1
-              className="j2-serif-display j2-heading-glow"
-              style={{ fontSize: 84, lineHeight: 1, margin: 0, letterSpacing: '-0.01em' }}
-            >
-              Profile
-            </h1>
-            <p
-              className="j2-serif-italic"
-              style={{ marginTop: 18, fontSize: 20, color: 'rgba(255,255,255,0.55)', lineHeight: 1.4 }}
-            >
-              Identity, rank, and the data behind your journey.
-            </p>
-          </div>
-        ) : (
-          <h2 className="text-lg font-display font-semibold text-white mb-6">Your Profile</h2>
-        )}
+        <h2 className="text-lg font-display font-semibold text-white mb-6">Your Profile</h2>
 
         <PageContent ready={!loading} loadingMessages={['Taping fingers...']}>
           <div className={isDesktop ? 'grid grid-cols-12 gap-8 items-start' : 'space-y-4'}>
@@ -258,6 +419,9 @@ export default function ProfilePage() {
             const inputCls = isDesktop
               ? `${inputClsDesktop} j2-copper-focus`
               : inputClsMobile;
+            // The most recent promotion is what the belt was "tied on".
+            const tiedOn = beltEntries[0]?.promoted_at ?? null;
+            const tiedOnLabel = tiedOn ? formatPromotionMonth(tiedOn) : null;
             return (
           <form onSubmit={handleSubmit} className={`space-y-6 rounded-2xl ${isDesktop ? 'p-10' : 'p-6'}`} style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}>
 
@@ -276,180 +440,30 @@ export default function ProfilePage() {
               />
             </div>
 
-            {/* Belt rank */}
+            {/* The belt — the same flat belt as the desktop identity page.
+                Tap it to open the promotion sheet; nothing here is part of
+                the form's Save, the sheet commits on its own. */}
             <div>
-              <label className={labelCls} style={labelStyle}>Belt Rank</label>
-              <Select
-                value={form.belt_rank ?? ''}
-                onValueChange={val => setForm(prev => ({
-                  ...prev,
-                  belt_rank: (val as BeltRank) || null,
-                  stripes: val ? prev.stripes : 0,
-                }))}
-              >
-                <SelectTrigger
-                  className={
-                    isDesktop
-                      ? 'w-full text-[15px] text-white rounded-xl h-[52px] px-4 j2-copper-focus'
-                      : 'w-full bg-white/10 border-white/10 text-white focus:ring-brand-orange'
-                  }
-                >
-                  <SelectValue placeholder="— Select belt rank —" />
-                </SelectTrigger>
-                <SelectContent>
-                  {BELT_RANKS.map(({ value, label }) => (
-                    <SelectItem key={value} value={value}>{label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+              <label className={labelCls} style={labelStyle}>Belt</label>
+              <FlatBelt
+                rank={isBeltRank(form.belt_rank) ? form.belt_rank : 'white'}
+                stripes={form.stripes}
+                onClick={() => setSheetOpen(true)}
+                title="Record a promotion"
+              />
+              <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.46)', marginTop: 10 }}>
+                {tiedOnLabel ? `Tied on ${tiedOnLabel} · ` : ''}
+                {isDesktop ? 'click' : 'tap'} the belt to record a promotion
+              </p>
 
-            {/* Stripes */}
-            {form.belt_rank && (
-              <div>
-                <label className={labelCls} style={labelStyle}>Stripes</label>
-                <div className={`flex ${isDesktop ? 'gap-3' : 'gap-2'}`}>
-                  {[0, 1, 2, 3, 4].map(n => {
-                    const active = form.stripes === n;
-                    if (isDesktop) {
-                      return (
-                        <button
-                          key={n}
-                          type="button"
-                          onClick={() => setForm(prev => ({ ...prev, stripes: n }))}
-                          className="rounded-xl text-[15px] font-semibold transition-all cursor-pointer flex-1"
-                          style={{
-                            height: 52,
-                            backgroundColor: active ? 'rgba(218,116,34,0.18)' : SURFACE_3,
-                            border: active ? `1px solid ${COPPER}` : '1px solid rgba(255,255,255,0.08)',
-                            color: active ? COPPER : 'rgba(255,255,255,0.55)',
-                            boxShadow: active ? `0 0 14px rgba(218,116,34,0.22)` : 'none',
-                          }}
-                        >
-                          {n}
-                        </button>
-                      );
-                    }
-                    return (
-                      <button
-                        key={n}
-                        type="button"
-                        onClick={() => setForm(prev => ({ ...prev, stripes: n }))}
-                        className={`w-11 h-11 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
-                          active
-                            ? 'bg-brand-orange text-white'
-                            : 'bg-white/10 text-white/60 hover:bg-white/20'
-                        }`}
-                      >
-                        {n}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Belt Timeline */}
-            <div style={{ marginTop: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)' }}>
-                  Belt Timeline
-                </span>
-                <span style={{ flex: 1, height: 1, backgroundColor: 'rgba(196,145,95,0.25)', borderRadius: 1 }} />
-              </div>
-
-              {beltEntries.length === 0 && !beltFormOpen && (
-                <p style={{ fontSize: 13, fontStyle: 'italic', color: 'rgba(255,255,255,0.35)', marginBottom: 10 }}>
-                  No promotions recorded yet. Add your belt history to see milestones on the calendar.
-                </p>
-              )}
-
-              {beltEntries.map(entry => (
-                <div key={entry.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: BELT_COLORS[entry.belt_rank as BeltRank] ?? COPPER, flexShrink: 0 }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.80)' }}>
-                      {entry.belt_rank.charAt(0).toUpperCase() + entry.belt_rank.slice(1)} Belt
-                      {entry.stripes > 0 && <span style={{ color: 'rgba(255,255,255,0.45)' }}> · {entry.stripes} stripe{entry.stripes !== 1 ? 's' : ''}</span>}
-                    </div>
-                    {entry.notes && (
-                      <div style={{ fontSize: 12, fontStyle: 'italic', color: 'rgba(255,255,255,0.30)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        "{entry.notes}"
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>
-                    {new Date(entry.promoted_at + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteBeltEntry(entry.id)}
-                    disabled={beltDeleting === entry.id}
-                    style={{ fontSize: 14, color: 'rgba(255,255,255,0.20)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px' }}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-
-              {beltFormOpen ? (
-                <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <select
-                      value={beltForm.belt_rank}
-                      onChange={e => setBeltForm(f => ({ ...f, belt_rank: e.target.value }))}
-                      style={{ flex: 1, fontSize: 13, padding: '8px 10px', borderRadius: 8, backgroundColor: SURFACE_3, border: '1px solid rgba(255,255,255,0.08)', color: 'white' }}
-                    >
-                      {BELT_RANKS.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
-                    </select>
-                    <select
-                      value={beltForm.stripes}
-                      onChange={e => setBeltForm(f => ({ ...f, stripes: Number(e.target.value) }))}
-                      style={{ width: 60, fontSize: 13, padding: '8px 6px', borderRadius: 8, backgroundColor: SURFACE_3, border: '1px solid rgba(255,255,255,0.08)', color: 'white' }}
-                    >
-                      {[0,1,2,3,4].map(n => <option key={n} value={n}>{n} str</option>)}
-                    </select>
-                  </div>
-                  <input
-                    type="date"
-                    value={beltForm.promoted_at}
-                    onChange={e => setBeltForm(f => ({ ...f, promoted_at: e.target.value }))}
-                    style={{ fontSize: 13, padding: '8px 10px', borderRadius: 8, backgroundColor: SURFACE_3, border: '1px solid rgba(255,255,255,0.08)', color: 'white', colorScheme: 'dark' }}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Notes (optional)"
-                    value={beltForm.notes}
-                    onChange={e => setBeltForm(f => ({ ...f, notes: e.target.value }))}
-                    style={{ fontSize: 13, padding: '8px 10px', borderRadius: 8, backgroundColor: SURFACE_3, border: '1px solid rgba(255,255,255,0.08)', color: 'white' }}
-                  />
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button
-                      type="button"
-                      onClick={handleAddBeltEntry}
-                      disabled={beltSaving || !beltForm.promoted_at}
-                      style={{ flex: 1, fontSize: 13, fontWeight: 600, padding: '8px 0', borderRadius: 8, border: `1px solid ${COPPER}`, color: COPPER, backgroundColor: 'rgba(196,145,95,0.06)', cursor: 'pointer' }}
-                    >
-                      {beltSaving ? 'Saving…' : '+ Add Promotion'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setBeltFormOpen(false)}
-                      style={{ fontSize: 13, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.45)', backgroundColor: 'transparent', cursor: 'pointer' }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setBeltFormOpen(true)}
-                  style={{ marginTop: 8, fontSize: 13, fontWeight: 600, color: COPPER, background: 'none', border: 'none', borderBottom: `1px solid rgba(196,145,95,0.3)`, padding: 0, cursor: 'pointer' }}
-                >
-                  + Add promotion →
-                </button>
-              )}
+              {/* Promotions recorded so far — newest first, one row per
+                  position, removable for corrections. */}
+              <PromotionList
+                entries={beltEntries}
+                onRemove={id => { void handleRemovePromotion(id); }}
+                removingId={removingPromotionId}
+                style={{ marginTop: 12 }}
+              />
             </div>
 
             {/* Home gym */}
@@ -490,7 +504,9 @@ export default function ProfilePage() {
               )}
             </div>
 
-            {/* Features */}
+            {/* Features — mobile only; desktop keeps this as a
+                housekeeping toggle on the identity screen. */}
+            {!isDesktop && (
             <div
               className={`rounded-xl ${isDesktop ? 'px-5 py-4 space-y-4' : 'px-4 py-3 space-y-3'}`}
               style={{ backgroundColor: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}` }}
@@ -525,8 +541,9 @@ export default function ProfilePage() {
                 </div>
               </label>
             </div>
+            )}
 
-            {error && <p className="text-red-400 text-sm">{error}</p>}
+            {error && <p className="text-error text-sm">{error}</p>}
 
             {isDesktop ? (
               <button
@@ -558,8 +575,10 @@ export default function ProfilePage() {
           })()}
             </div>
 
-            {/* Sidebar column — Library, Import, Export */}
-            <div className={isDesktop ? 'col-span-5 space-y-4' : 'contents'}>
+            {/* Sidebar — mobile only. Desktop's identity screen already
+                carries every one of these as a housekeeping row. */}
+            {!isDesktop && (
+            <div className="contents">
 
         {/* Class times & notifications */}
         <div
@@ -584,6 +603,37 @@ export default function ProfilePage() {
           </button>
         </div>
 
+        {/* Collection section */}
+        <div
+          className={`rounded-2xl ${isDesktop ? 'p-7' : 'mt-4 p-5'}`}
+          style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}
+        >
+          <button
+            type="button"
+            onClick={() => navigate('/profile/collection')}
+            className="w-full flex items-center justify-between gap-3 touch-manipulation j2-press"
+          >
+            <div className="flex items-center gap-3 text-left">
+              <Award size={22} strokeWidth={1.5} style={{ color: 'rgba(196,145,95,0.85)', flexShrink: 0 }} />
+              <div>
+                <p className="text-sm font-semibold text-white">Collection</p>
+                <p className="text-xs text-white/40">
+                  Keepsake stamps struck for the moments you marked.
+                </p>
+              </div>
+            </div>
+            <ChevronRight size={18} strokeWidth={2} style={{ color: 'rgba(255,255,255,0.30)', flexShrink: 0 }} />
+          </button>
+        </div>
+
+        {/* Appearance — prism skin */}
+        <div
+          className={`rounded-2xl ${isDesktop ? 'p-7' : 'mt-4 p-5'}`}
+          style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW }}
+        >
+          <PrismSkinToggle />
+        </div>
+
         {/* Move Library section */}
         <div
           className={`rounded-2xl ${isDesktop ? 'p-7' : 'mt-4 p-5'}`}
@@ -591,7 +641,7 @@ export default function ProfilePage() {
         >
           <button
             type="button"
-            onClick={() => navigate('/library')}
+            onClick={() => navigate('/library', { state: PROFILE_ORIGIN })}
             className="w-full flex items-center justify-between gap-3 touch-manipulation j2-press"
           >
             <div className="flex items-center gap-3 text-left">
@@ -754,113 +804,66 @@ export default function ProfilePage() {
         </div>
 
             </div>
+            )}
           </div>
         </PageContent>
 
-        {/* ── Admin + support actions ──────────────────────────────────
-            Admin Dashboard link only renders for users with is_admin = true
-            (mig 023). Report a Problem is visible for any authed user; the
-            modal silently auto-attaches debug context so the admin gets
-            full triage info from a 2-field form. */}
-        <div className={`${isDesktop ? 'mt-10' : 'mt-6'} flex flex-col items-center`} style={{ gap: 12 }}>
-          {isAdmin && (
-            <button
-              onClick={() => navigate('/admin')}
-              className={isDesktop ? 'rounded-xl transition-all' : 'w-full rounded-xl transition-all touch-manipulation j2-press'}
-              style={isDesktop ? {
-                padding: '12px 32px',
-                fontSize: 14,
-                fontWeight: 600,
-                color: COPPER,
-                backgroundColor: 'rgba(196,145,95,0.10)',
-                border: '1px solid rgba(196,145,95,0.30)',
-              } : {
-                height: 48,
-                fontSize: 14,
-                fontWeight: 600,
-                color: COPPER,
-                backgroundColor: 'rgba(196,145,95,0.12)',
-                border: '1px solid rgba(196,145,95,0.30)',
-              }}
-              onMouseEnter={isDesktop ? (e => {
-                e.currentTarget.style.backgroundColor = 'rgba(196,145,95,0.18)';
-                e.currentTarget.style.borderColor = 'rgba(196,145,95,0.55)';
-              }) : undefined}
-              onMouseLeave={isDesktop ? (e => {
-                e.currentTarget.style.backgroundColor = 'rgba(196,145,95,0.10)';
-                e.currentTarget.style.borderColor = 'rgba(196,145,95,0.30)';
-              }) : undefined}
-            >
-              ◇ Admin Dashboard
-            </button>
-          )}
+        {/* ── Admin + support actions — mobile only ─────────────────────
+            Desktop carries these as the "Account" housekeeping group on the
+            identity screen. Admin Dashboard only renders for users with
+            is_admin = true (mig 023). Report a Problem is visible for any
+            authed user; the modal silently auto-attaches debug context so
+            the admin gets full triage info from a 2-field form. */}
+        {!isDesktop && (
+          <>
+            <div className="mt-6 flex flex-col items-center" style={{ gap: 12 }}>
+              {isAdmin && (
+                <button
+                  onClick={() => navigate('/admin')}
+                  className="w-full rounded-xl transition-all touch-manipulation j2-press"
+                  style={{
+                    height: 48,
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: COPPER,
+                    backgroundColor: 'rgba(196,145,95,0.12)',
+                    border: '1px solid rgba(196,145,95,0.30)',
+                  }}
+                >
+                  ◇ Admin Dashboard
+                </button>
+              )}
 
-          <button
-            onClick={() => setReportOpen(true)}
-            className={isDesktop ? 'text-sm rounded-xl transition-colors' : 'w-full text-sm rounded-xl transition-colors touch-manipulation j2-press'}
-            style={isDesktop ? {
-              padding: '12px 32px',
-              color: 'rgba(255,255,255,0.55)',
-              backgroundColor: 'transparent',
-              border: '1px solid rgba(255,255,255,0.10)',
-            } : {
-              height: 44,
-              color: 'rgba(255,255,255,0.65)',
-              backgroundColor: 'transparent',
-              border: '1px solid rgba(255,255,255,0.12)',
-            }}
-            onMouseEnter={isDesktop ? (e => {
-              e.currentTarget.style.color = COPPER;
-              e.currentTarget.style.borderColor = 'rgba(196,145,95,0.40)';
-            }) : undefined}
-            onMouseLeave={isDesktop ? (e => {
-              e.currentTarget.style.color = 'rgba(255,255,255,0.55)';
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)';
-            }) : undefined}
-          >
-            Report a problem
-          </button>
-        </div>
+              <button
+                onClick={() => setReportOpen(true)}
+                className="w-full text-sm rounded-xl transition-colors touch-manipulation j2-press"
+                style={{
+                  height: 44,
+                  color: 'rgba(255,255,255,0.65)',
+                  backgroundColor: 'transparent',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                }}
+              >
+                Report a problem
+              </button>
+            </div>
 
-        <div className={`flex justify-center ${isDesktop ? 'mt-8' : 'mt-6'}`}>
-          {isDesktop ? (
-            <button
-              onClick={() => { logout(); navigate('/'); }}
-              className="text-sm font-semibold uppercase tracking-[0.14em] rounded-xl transition-all"
-              style={{
-                padding: '14px 32px',
-                color: 'rgba(248,113,113,0.85)',
-                backgroundColor: 'rgba(248,113,113,0.06)',
-                border: '1px solid rgba(248,113,113,0.25)',
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.backgroundColor = 'rgba(248,113,113,0.12)';
-                e.currentTarget.style.borderColor = 'rgba(248,113,113,0.45)';
-                e.currentTarget.style.color = 'rgba(248,113,113,1)';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.backgroundColor = 'rgba(248,113,113,0.06)';
-                e.currentTarget.style.borderColor = 'rgba(248,113,113,0.25)';
-                e.currentTarget.style.color = 'rgba(248,113,113,0.85)';
-              }}
-            >
-              Log out
-            </button>
-          ) : (
-            <button
-              onClick={() => { logout(); navigate('/'); }}
-              className="w-full text-sm font-semibold rounded-xl transition-all touch-manipulation j2-press"
-              style={{
-                height: 48,
-                color: 'rgba(248,113,113,0.95)',
-                backgroundColor: 'rgba(248,113,113,0.10)',
-                border: '1px solid rgba(248,113,113,0.30)',
-              }}
-            >
-              Log out
-            </button>
-          )}
-        </div>
+            <div className="flex justify-center mt-6">
+              <button
+                onClick={() => { logout(); navigate('/'); }}
+                className="w-full text-sm font-semibold rounded-xl transition-all touch-manipulation j2-press"
+                style={{
+                  height: 48,
+                  color: STATUS_ERROR,
+                  backgroundColor: STATUS_ERROR_BG,
+                  border: `1px solid ${STATUS_ERROR_BORDER}`,
+                }}
+              >
+                Log out
+              </button>
+            </div>
+          </>
+        )}
       </main>
 
       {importOpen && (
@@ -874,6 +877,24 @@ export default function ProfilePage() {
       {reportOpen && (
         <ReportProblemModal onClose={() => setReportOpen(false)} />
       )}
+
+      <PromotionSheet
+        open={sheetOpen}
+        rank={isBeltRank(form.belt_rank) ? form.belt_rank : 'white'}
+        stripes={form.stripes}
+        academy={form.home_gym_name || null}
+        saving={beltSaving}
+        onClose={() => setSheetOpen(false)}
+        onCommit={next => { setSheetOpen(false); setReveal(next); void handleRecordPromotion(next); }}
+      />
+      <PromotionRevealSheet
+        open={reveal !== null}
+        rank={reveal && isBeltRank(reveal.rank) ? reveal.rank : 'white'}
+        stripes={reveal?.stripes ?? 0}
+        promotedAt={reveal?.promotedAt ?? null}
+        academy={form.home_gym_name || null}
+        onClose={() => setReveal(null)}
+      />
     </div>
   );
 }

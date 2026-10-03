@@ -13,7 +13,7 @@
 // Extracted from IntentionsPage.tsx during the 2026-05-09 refactor pass.
 
 import { CalendarDays, Layers } from 'lucide-react';
-import { COPPER, PALE_YELLOW, SURFACE_2 } from '../../lib/theme.ts';
+import { COPPER, COPPER_BORDER, PALE_YELLOW, SURFACE_2 } from '../../lib/theme.ts';
 import {
   ALL_PILLARS, FOCUS_COLORS, PILLAR_LABEL,
   type FocusFilter, type IntentionsLayout,
@@ -218,7 +218,7 @@ export function DesktopLayoutToggle({
               background: active ? 'rgba(196,145,95,0.18)' : 'transparent',
               border: active ? `1px solid ${COPPER}` : '1px solid transparent',
               color: active ? PALE_YELLOW : 'rgba(255,255,255,0.55)',
-              boxShadow: active ? '0 0 0 1px rgba(196,145,95,0.10), 0 6px 18px -10px rgba(196,145,95,0.45)' : 'none',
+              boxShadow: active ? `0 0 0 1px rgba(196,145,95,0.10), 0 6px 18px -10px ${COPPER_BORDER}` : 'none',
               cursor: 'pointer',
               transition: 'background 180ms ease, color 180ms ease, border-color 180ms ease',
             }}

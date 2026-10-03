@@ -197,7 +197,7 @@ export default function TimeRangeBar({ value, onChange, customRange, onCustomRan
             </div>
 
             {draftStart && draftEnd && draftStart > draftEnd && (
-              <p className="text-xs text-red-400 mt-2">End must be after start.</p>
+              <p className="text-xs text-error mt-2">End must be after start.</p>
             )}
 
             <div className="flex items-center justify-between mt-5">

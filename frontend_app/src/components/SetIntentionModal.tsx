@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.ts';
-import { PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3, COPPER } from '../lib/theme.ts';
+import { CARD_BG, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3, COPPER } from '../lib/theme.ts';
 import { vibrate } from '../lib/haptics.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import FocusAreaChips from './FocusAreaChips.tsx';
@@ -159,7 +159,7 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
       <div
         className="w-full sm:max-w-sm md:max-w-lg lg:max-w-2xl xl:max-w-3xl 2xl:max-w-4xl rounded-2xl overflow-hidden animate-j2-modal-in"
         style={{
-          backgroundColor: '#152E22',
+          backgroundColor: CARD_BG,
           border: '1px solid rgba(255,255,255,0.10)',
           maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem)',
           overflowY: 'auto',
@@ -353,7 +353,7 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
               </button>
             )}
 
-            {error && <p className="text-xs text-red-400">{error}</p>}
+            {error && <p className="text-xs text-error">{error}</p>}
 
             {/* ── Action row ────────────────────────────────── */}
             <div

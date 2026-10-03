@@ -36,9 +36,9 @@ const toastVariants = cva(
   {
     variants: {
       variant: {
-        default: "j2-toast-default border border-[rgba(196,145,95,0.45)] bg-[#152E22] text-[#F2E4A8] shadow-[0_2px_4px_rgba(0,0,0,0.15),0_8px_24px_rgba(0,0,0,0.35)]",
-        success: "j2-toast-success border border-[rgba(168,185,122,0.40)] bg-[#152E22] text-[#F2E4A8] shadow-[0_2px_4px_rgba(0,0,0,0.15),0_8px_24px_rgba(0,0,0,0.35)]",
-        destructive: "j2-toast-destructive destructive group border border-[rgba(224,117,96,0.45)] bg-[#152E22] text-[#F2E4A8] shadow-[0_2px_4px_rgba(0,0,0,0.15),0_8px_24px_rgba(0,0,0,0.35)]",
+        default: "j2-toast-default border border-brand-copper-border bg-brand-card text-brand-champagne shadow-[0_2px_4px_rgba(0,0,0,0.15),0_8px_24px_rgba(0,0,0,0.35)]",
+        success: "j2-toast-success border border-[rgba(168,185,122,0.40)] bg-brand-card text-brand-champagne shadow-[0_2px_4px_rgba(0,0,0,0.15),0_8px_24px_rgba(0,0,0,0.35)]",
+        destructive: "j2-toast-destructive destructive group border border-[rgba(224,117,96,0.45)] bg-brand-card text-brand-champagne shadow-[0_2px_4px_rgba(0,0,0,0.15),0_8px_24px_rgba(0,0,0,0.35)]",
       },
     },
     defaultVariants: {
@@ -84,7 +84,7 @@ const ToastClose = React.forwardRef<
   <ToastPrimitives.Close
     ref={ref}
     className={cn(
-      "absolute right-2 top-2 rounded-md p-1 opacity-0 transition-opacity focus:opacity-100 focus:outline-none group-hover:opacity-100 text-[rgba(242,228,168,0.5)] hover:text-[#F2E4A8]",
+      "absolute right-2 top-2 rounded-md p-1 opacity-0 transition-opacity focus:opacity-100 focus:outline-none group-hover:opacity-100 text-[rgba(242,228,168,0.5)] hover:text-brand-champagne",
       className
     )}
     toast-close=""
@@ -101,7 +101,7 @@ const ToastTitle = React.forwardRef<
 >(({ className, style, ...props }, ref) => (
   <ToastPrimitives.Title
     ref={ref}
-    className={cn("text-sm font-semibold text-[#F2E4A8]", className)}
+    className={cn("text-sm font-semibold text-brand-champagne", className)}
     style={{ textShadow: '0 0 12px rgba(242,228,168,0.28), 0 0 28px rgba(242,228,168,0.13)', ...style }}
     {...props}
   />

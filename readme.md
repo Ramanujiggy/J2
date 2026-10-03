@@ -35,7 +35,7 @@ J2/
 │   │   ├── config/db.ts      pg pool + query helper
 │   │   ├── controllers/      authController, sessionController, profileController, intentionController
 │   │   ├── middleware/       authMiddleware (JWT verification)
-│   │   ├── migrations/       001–005 numbered SQL files (run manually in Supabase SQL Editor)
+│   │   ├── migrations/       Numbered SQL files, auto-applied on startup by runMigrations() (tracked in schema_migrations)
 │   │   ├── models/           userModel, sessionModel, profileModel, intentionModel, passwordResetModel
 │   │   ├── routes/           authRoutes, sessionRoutes, profileRoutes, intentionRoutes
 │   │   └── services/         emailService (password reset emails)

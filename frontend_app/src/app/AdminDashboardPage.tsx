@@ -20,6 +20,7 @@ import { api, ApiError } from '../lib/api.ts';
 import {
     PALE_YELLOW, COPPER, CARD_BG, CARD_GLOW, CARD_GLOW_BORDER,
     SURFACE_2, SURFACE_2_BORDER, FONT_EDITORIAL, GLOW_SOFT,
+    STATUS_ERROR, STATUS_ERROR_BG, STATUS_ERROR_BORDER,
 } from '../lib/theme.ts';
 import type {
     AdminStats, AdminStatsResponse,
@@ -218,11 +219,11 @@ export default function AdminDashboardPage() {
                 {error && (
                     <div
                         style={{
-                            backgroundColor: 'rgba(248,113,113,0.10)',
-                            border: '1px solid rgba(248,113,113,0.25)',
+                            backgroundColor: STATUS_ERROR_BG,
+                            border: `1px solid ${STATUS_ERROR_BORDER}`,
                             borderRadius: 12,
                             padding: '12px 16px',
-                            color: 'rgba(248,113,113,0.95)',
+                            color: STATUS_ERROR,
                             fontSize: 14,
                             marginBottom: 24,
                         }}
@@ -399,7 +400,7 @@ export default function AdminDashboardPage() {
                     <SectionLabel compact={!isDesktop}>System</SectionLabel>
                     <div style={{ marginTop: 14, fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.7 }}>
                         <div>App version: <span style={{ color: PALE_YELLOW }}>{(import.meta as { env?: { VITE_APP_VERSION?: string } }).env?.VITE_APP_VERSION ?? 'dev'}</span></div>
-                        <div>API connected: <span style={{ color: error ? '#F87171' : '#52B56C' }}>{error ? 'failed' : 'ok'}</span></div>
+                        <div>API connected: <span style={{ color: error ? STATUS_ERROR : '#52B56C' }}>{error ? 'failed' : 'ok'}</span></div>
                         <div>Loaded at: <span style={{ color: PALE_YELLOW }}>{new Date().toLocaleString()}</span></div>
                     </div>
                 </Card>
@@ -432,7 +433,7 @@ export default function AdminDashboardPage() {
                                     flexShrink: 0,
                                     color: r.method === 'GET' ? '#52B56C'
                                         : r.method === 'POST' ? COPPER
-                                        : r.method === 'DELETE' ? '#F87171'
+                                        : r.method === 'DELETE' ? STATUS_ERROR
                                         : PALE_YELLOW,
                                 }}>
                                     {r.method}

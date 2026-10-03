@@ -10,15 +10,6 @@ import type { Pillar } from '../types/api.ts';
 
 // ── Drill / constraint focus → pillar tag mapping ────────────────────────
 
-const FOCUS_TO_TAG: Record<string, string> = {
-  'Guard':          'guard',
-  'Stand-up':       'standup',
-  'Dynamic Pins':   'pins',
-  'Guard Passing':  'passing',
-  'Submissions':    'submissions',
-  'Guard Retention':'guard',
-};
-
 // Pillar → focus label used in the roulette card (mirrors the existing
 // drill `focus` field). Cross-pillar constraints (parent_pillar = NULL)
 // label as "Cross-Pillar" since the pool no longer ships hand-picked focus
@@ -52,14 +43,7 @@ const CLOSE_CURVE = 'cubic-bezier(0.4, 0, 0.6, 1)';     // smooth ease-in-out
 // ── Component ────────────────────────────────────────────────────────────
 
 // onLogPick fires when the user commits to logging from either pool. The
-// preset shape mirrors LogSessionForm's `default*` props — the consumer
-// (PathAheadPage) routes it into the modal state.
-interface LogDrillPreset { pool: 'drill'; heading: string; sessionType: 'drilling'; subSkillTag: string }
-interface LogConstraintPreset { pool: 'constraint'; heading?: string; sessionType: 'cla'; constraintName: string }
-type LogPickPreset = LogDrillPreset | LogConstraintPreset;
-
 interface Props {
-  onLogDrill: (preset: LogPickPreset) => void;
   fabPosition?: 'fixed' | 'inline';
 }
 
@@ -95,17 +79,14 @@ export default function RepRouletteFab(props: Props) {
   return <RepRouletteFabImpl {...props} />;
 }
 
-function runTickerReel(
+function buildTickerCandidates(
   poolItems: readonly { name: string }[],
   finalIndex: number,
-  onTick: (name: string) => void,
-  onLand: () => void,
-) {
-  const intervals = [50, 70, 100, 140, 180];
+): string[] {
   const finalName = poolItems[finalIndex].name;
   const candidates: string[] = [];
   const poolLen = poolItems.length;
-  if (poolLen <= 1) { onLand(); return; }
+  if (poolLen <= 1) return [];
   const maxAttempts = poolLen * 3;
   let attempts = 0;
   while (candidates.length < Math.min(5, poolLen - 1) && attempts < maxAttempts) {
@@ -114,6 +95,15 @@ function runTickerReel(
     if (name !== finalName && !candidates.includes(name)) candidates.push(name);
     attempts++;
   }
+  return candidates;
+}
+
+function runTickerReel(
+  candidates: string[],
+  onTick: (name: string) => void,
+  onLand: () => void,
+) {
+  const intervals = [50, 70, 100, 140, 180];
   if (candidates.length === 0) { onLand(); return; }
   let i = 0;
   function tick() {
@@ -129,7 +119,7 @@ function runTickerReel(
   tick();
 }
 
-function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
+function RepRouletteFabImpl({ fabPosition = 'fixed' }: Props) {
   const [phase, setPhase] = useState<Phase>('fab');
 
   // Pool toggle — drill (existing) or constraint (CLA prompt). Persisted to
@@ -190,6 +180,7 @@ function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
   const [spinning, setSpinning] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [landed, setLanded] = useState(false);
+  const [tickerCandidates, setTickerCandidates] = useState<string[]>([]);
 
   // Active item from the active pool.
   const drill = ROULETTE_DRILLS[drillHistory[drillHistoryIndex]];
@@ -271,11 +262,12 @@ function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
         const current = activeHistory[activeIndex];
         const next = (current + 1 + Math.floor(Math.random() * Math.max(1, activePoolLength - 1))) % activePoolLength;
         const currentPool = pool === 'drill' ? ROULETTE_DRILLS : rouletteConstraints;
+        const candidates = buildTickerCandidates(currentPool as readonly { name: string }[], next);
+        setTickerCandidates(candidates);
         setSpinning(true);
         setLanded(false);
         runTickerReel(
-          currentPool as readonly { name: string }[],
-          next,
+          candidates,
           (name) => setDisplayName(name),
           () => {
             if (pool === 'drill') {
@@ -287,6 +279,7 @@ function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
             }
             setDisplayName(null);
             setSpinning(false);
+            setTickerCandidates([]);
             setLanded(true);
             vibrate(10);
             setTimeout(() => setLanded(false), 350);
@@ -308,11 +301,12 @@ function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
     const currentPool = pool === 'drill' ? ROULETTE_DRILLS : rouletteConstraints;
     const current = activeHistory[activeIndex] ?? 0;
     const next = (current + 1 + Math.floor(Math.random() * Math.max(1, activePoolLength - 1))) % activePoolLength;
+    const candidates = buildTickerCandidates(currentPool as readonly { name: string }[], next);
+    setTickerCandidates(candidates);
     setSpinning(true);
     setLanded(false);
     runTickerReel(
-      currentPool as readonly { name: string }[],
-      next,
+      candidates,
       (name) => setDisplayName(name),
       () => {
         if (pool === 'drill') {
@@ -324,31 +318,13 @@ function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
         }
         setDisplayName(null);
         setSpinning(false);
+        setTickerCandidates([]);
         setLanded(true);
         vibrate(10);
         setTimeout(() => setLanded(false), 350);
       },
     );
   }, [spinning, pool, activeHistory, activeIndex, activePoolLength, drillHistoryIndex, constraintHistoryIndex, rouletteConstraints]);
-
-  const handleLog = () => {
-    if (pool === 'drill') {
-      onLogDrill({
-        pool: 'drill',
-        heading:     FOCUS_TO_TAG[drill.focus],
-        sessionType: 'drilling',
-        subSkillTag: drill.name,
-      });
-    } else if (constraint) {
-      onLogDrill({
-        pool: 'constraint',
-        heading: constraint.focus ? FOCUS_TO_TAG[constraint.focus] : undefined,
-        sessionType: 'cla',
-        constraintName: constraint.name,
-      });
-    }
-    handleClose();
-  };
 
   // ── Derived state ──────────────────────────────────────────────────
 
@@ -446,7 +422,16 @@ function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
           ref={panelRef}
           className="z-50 sm:hidden rounded-2xl"
           style={{
-            width: '100%',
+            // The card MUST be positioned. z-index has no effect on a static
+            // element, so without this the `z-50` above is inert and the
+            // dismiss scrim behind it (position:fixed, z-40) paints on top —
+            // positioned boxes always paint above non-positioned ones. Every
+            // tap then lands on the scrim and closes the card instead of
+            // hitting Reroll.
+            position: 'relative',
+            zIndex: 50,
+            width: 260,
+            minHeight: 186,
             backgroundColor: 'rgba(26,53,40,0.95)',
             border: '1px solid rgba(196,145,95,0.35)',
             backdropFilter: 'blur(12px)',
@@ -476,17 +461,27 @@ function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
             {/* Copper hairline */}
             <div style={{ height: 1, background: 'linear-gradient(to right, rgba(196,145,95,0.4), transparent)', marginBottom: 12 }} />
 
-            {/* Technique */}
+            {/* Technique — grid-stacked so width stays locked to widest candidate during ticker */}
             {item ? (
               <>
                 <div style={{
-                  fontFamily: FONT_EDITORIAL, fontSize: 20, fontWeight: 500, color: PALE_YELLOW, lineHeight: 1.15, marginBottom: 4,
-                  opacity: spinning ? 0.5 : 1,
-                  transform: landed ? 'scale(1.04)' : 'scale(1)',
-                  transition: landed ? 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'transform 0.15s ease',
-                  transformOrigin: 'left center',
+                  display: 'grid',
+                  fontFamily: FONT_EDITORIAL, fontSize: 20, fontWeight: 500, lineHeight: 1.15, marginBottom: 4,
                 }}>
-                  {spinning && displayName ? displayName : item.name}
+                  {tickerCandidates.map(name => (
+                    <span key={name} style={{ gridArea: '1/1', visibility: 'hidden' }}>{name}</span>
+                  ))}
+                  <span style={{ gridArea: '1/1', visibility: 'hidden' }}>{item.name}</span>
+                  <span style={{
+                    gridArea: '1/1',
+                    color: PALE_YELLOW,
+                    opacity: spinning ? 0.5 : 1,
+                    transform: landed ? 'scale(1.04)' : 'scale(1)',
+                    transition: landed ? 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'transform 0.15s ease',
+                    transformOrigin: 'left center',
+                  }}>
+                    {spinning && displayName ? displayName : item.name}
+                  </span>
                 </div>
                 <div style={{
                   fontSize: 11, color: 'rgba(255,255,255,0.38)', marginBottom: 14,
@@ -520,22 +515,6 @@ function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
               >
                 ↻ Reroll
               </button>
-              {item && (
-                <button
-                  onClick={handleLog}
-                  className="touch-manipulation j2-press"
-                  style={{
-                    flex: 1, fontSize: 11, fontWeight: 600,
-                    color: COPPER,
-                    padding: '7px 0', borderRadius: 8,
-                    border: '1px solid rgba(196,145,95,0.3)',
-                    backgroundColor: 'rgba(196,145,95,0.06)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Log this →
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -700,7 +679,9 @@ function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
                 touchAction: 'pan-y',
                 backgroundColor: 'rgba(242,228,168,0.035)',
                 border: '1px solid rgba(242,228,168,0.12)',
-                minHeight: 175,
+                height: 200,
+                display: 'flex',
+                flexDirection: 'column' as const,
               }}
               data-no-page-swipe=""
               onTouchStart={handleTouchStart}
@@ -716,7 +697,13 @@ function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
                 }}>
                   {item ? (
                     <>
-                      <p className="text-lg font-semibold mb-0.5" style={{
+                      <div className="mb-0.5" style={{ display: 'grid' }}>
+                        {tickerCandidates.map(name => (
+                          <span key={name} className="text-lg font-semibold" style={{ gridArea: '1/1', visibility: 'hidden' }}>{name}</span>
+                        ))}
+                        <span className="text-lg font-semibold" style={{ gridArea: '1/1', visibility: 'hidden' }}>{item.name}</span>
+                        <span className="text-lg font-semibold" style={{
+                        gridArea: '1/1',
                         color: 'rgba(242,228,168,0.85)',
                         opacity: spinning ? 0.5 : 1,
                         transform: landed ? 'scale(1.04)' : 'scale(1)',
@@ -724,7 +711,8 @@ function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
                         transformOrigin: 'left center',
                       }}>
                         {spinning && displayName ? displayName : item.name}
-                      </p>
+                      </span>
+                      </div>
                       <p className="text-xs" style={{
                         color: 'rgba(255,255,255,0.45)',
                         opacity: spinning ? 0 : 1,
@@ -740,8 +728,8 @@ function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
                         transition: 'opacity 0.2s ease 0.05s',
                         overflow: 'hidden',
                         display: '-webkit-box',
-                        WebkitBoxOrient: 'vertical',
-                        WebkitLineClamp: 4,
+                        WebkitBoxOrient: 'vertical' as const,
+                        WebkitLineClamp: 3,
                       }}>
                         {item.description}
                       </p>
@@ -752,22 +740,6 @@ function RepRouletteFabImpl({ onLogDrill, fabPosition = 'fixed' }: Props) {
                         }}>
                           ← swipe →
                         </p>
-                        <button
-                          onPointerDown={e => e.stopPropagation()}
-                          onClick={e => { e.stopPropagation(); handleLog(); }}
-                          className="text-xs touch-manipulation j2-press"
-                          style={{
-                            color: 'rgba(196,145,95,0.75)',
-                            padding: '5px 12px',
-                            borderRadius: 8,
-                            border: '1px solid rgba(196,145,95,0.3)',
-                            backgroundColor: 'rgba(196,145,95,0.06)',
-                            letterSpacing: '0.02em',
-                            transition: 'color 150ms ease, border-color 150ms ease',
-                          }}
-                        >
-                          {pool === 'drill' ? 'Log this drill →' : 'Log this round →'}
-                        </button>
                       </div>
                     </>
                   ) : (

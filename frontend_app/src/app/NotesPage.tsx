@@ -7,7 +7,7 @@ import { useUserTags } from '../hooks/useUserTags.ts';
 import SegmentedToggle from '../components/SegmentedToggle.tsx';
 import PageContent from '../components/PageContent.tsx';
 import JournalEmptyState from '../components/JournalEmptyState.tsx';
-import { PALE_YELLOW, GLOW_SOFT, COPPER, FONT_EDITORIAL } from '../lib/theme.ts';
+import { PAGE_BG, PALE_YELLOW, GLOW_SOFT, COPPER, COPPER_BORDER, FONT_EDITORIAL } from '../lib/theme.ts';
 import { toast } from '../hooks/use-toast.ts';
 import { formatDuration } from '../lib/sessionUtils.ts';
 import type { TrainingNote, SessionSummary } from '../types/api.ts';
@@ -233,7 +233,7 @@ export default function NotesPage() {
         style={{
           display: 'flex', flexDirection: 'column',
           height: `calc(${window.innerHeight}px - ${keyboardOffset}px)`,
-          backgroundColor: '#0D1A14',
+          backgroundColor: PAGE_BG,
           padding: '0 20px',
           paddingTop: 'env(safe-area-inset-top, 16px)',
           position: 'fixed', top: 0, left: 0, right: 0,
@@ -490,21 +490,21 @@ export default function NotesPage() {
         }}>
           <button
             onClick={() => { setShowTechniquePicker(v => !v); setShowSessionPicker(false); }}
-            style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 14, color: 'rgba(196,145,95,0.45)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 14, color: COPPER_BORDER, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
           >
             Link technique
           </button>
           <span style={{ color: 'rgba(196,145,95,0.20)', fontSize: 12 }}>·</span>
           <button
             onClick={() => setShowTagInput(true)}
-            style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 14, color: 'rgba(196,145,95,0.45)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 14, color: COPPER_BORDER, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
           >
             Add tag
           </button>
           <span style={{ color: 'rgba(196,145,95,0.20)', fontSize: 12 }}>·</span>
           <button
             onClick={() => { setShowSessionPicker(v => !v); setShowTechniquePicker(false); }}
-            style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 14, color: 'rgba(196,145,95,0.45)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 14, color: COPPER_BORDER, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
           >
             Link session
           </button>
@@ -738,7 +738,7 @@ function NoteRow({ note, onTap, onDelete, searchQuery = '' }: { note: TrainingNo
         display: 'flex', alignItems: 'flex-start', gap: 12,
         padding: '14px 0',
         borderBottom: '1px solid rgba(196,145,95,0.08)',
-        background: '#0D1A14', border: 'none',
+        background: PAGE_BG, border: 'none',
         borderBottomStyle: 'solid', borderBottomWidth: 1, borderBottomColor: 'rgba(196,145,95,0.08)',
         cursor: 'pointer',
         minHeight: 72,

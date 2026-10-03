@@ -14,7 +14,7 @@
 // Extracted from IntentionsPage.tsx during the 2026-05-09 refactor pass.
 
 import { useState } from 'react';
-import { COPPER, FONT_EDITORIAL, PALE_YELLOW } from '../../lib/theme.ts';
+import { COPPER, COPPER_BORDER, FONT_EDITORIAL, PALE_YELLOW } from '../../lib/theme.ts';
 import { MONTH_NAMES } from '../../lib/constants.ts';
 import type { Intention, Pillar } from '../../types/api.ts';
 import {
@@ -334,7 +334,7 @@ function IntentionRow({
       >
         {stats.sessionCount} {stats.sessionCount === 1 ? 'session' : 'sessions'}
         {(intention.user_tag_ids?.length ?? 0) > 0 && (
-          <span style={{ fontSize: 11, color: 'rgba(196,145,95,0.45)', marginLeft: 8 }}>
+          <span style={{ fontSize: 11, color: COPPER_BORDER, marginLeft: 8 }}>
             · {intention.user_tag_ids!.length} tech{intention.user_tag_ids!.length !== 1 ? 's' : ''}
           </span>
         )}

@@ -1,6 +1,8 @@
 import { query } from '../config/db.js';
 
 export interface Profile {
+    /** The sign-in email. Read-only here — changing it is its own flow. */
+    email: string;
     name: string | null;
     belt_rank: string | null;
     stripes: number;
@@ -19,7 +21,7 @@ export interface Profile {
 
 export const getProfile = async (userId: string): Promise<Profile | null> => {
     const result = await query(
-        `SELECT name, belt_rank, stripes, home_gym_name, home_gym_address, home_gym_place_id, intentions_enabled, onboarding_completed_at, is_admin, onboarding_step
+        `SELECT email, name, belt_rank, stripes, home_gym_name, home_gym_address, home_gym_place_id, intentions_enabled, onboarding_completed_at, is_admin, onboarding_step
          FROM users WHERE id = $1`,
         [userId]
     );
@@ -31,7 +33,7 @@ export const getProfile = async (userId: string): Promise<Profile | null> => {
 // onboarding_completed_at is set by its dedicated POST endpoint, and
 // onboarding_step is set by PATCH /profile/onboarding-step. All three are
 // RETURNING'd so the response stays consistent.
-export const updateProfile = async (userId: string, data: Omit<Profile, 'onboarding_completed_at' | 'is_admin' | 'onboarding_step'>): Promise<Profile> => {
+export const updateProfile = async (userId: string, data: Omit<Profile, 'email' | 'onboarding_completed_at' | 'is_admin' | 'onboarding_step'>): Promise<Profile> => {
     const result = await query(
         `UPDATE users
          SET name = $1, belt_rank = $2, stripes = $3,

@@ -9,7 +9,7 @@ import type { SessionSummary } from '../types/api.ts';
 import SessionDetailModal from './SessionDetailModal.tsx';
 import { useBeltHistory } from '../hooks/useBeltHistory.ts';
 import {
-  PALE_YELLOW, GLOW_SOFT, COPPER, FONT_EDITORIAL,
+  PAGE_BG, PALE_YELLOW, GLOW_SOFT, COPPER, FONT_EDITORIAL,
   HEATMAP_HEADER_BG, INT_LABELS,
 } from '../lib/theme.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
@@ -318,7 +318,6 @@ export default function CalendarHeatmapView({
                         fontSize: monthHasData ? 15 : 11,
                         color: isSelected ? COPPER : monthHasData ? 'rgba(242,228,168,0.55)' : 'rgba(242,228,168,0.18)',
                         textAlign: 'right' as const,
-                        paddingRight: 6,
                         background: 'none',
                         border: 'none',
                         cursor: monthHasData ? 'pointer' : 'default',
@@ -405,7 +404,7 @@ export default function CalendarHeatmapView({
         })}
 
         {/* Bottom edge gradient — fades grid into page background */}
-        <div style={{ position: 'sticky', bottom: 0, height: 40, background: 'linear-gradient(to top, #0D1A14 0%, transparent 100%)', pointerEvents: 'none', marginTop: -40 }} />
+        <div style={{ position: 'sticky', bottom: 0, height: 40, background: `linear-gradient(to top, ${PAGE_BG} 0%, transparent 100%)`, pointerEvents: 'none', marginTop: -40 }} />
       </div>
 
       {/* Long-press tooltip */}
@@ -458,7 +457,7 @@ export default function CalendarHeatmapView({
             const dateStr = typeof s.date === 'string' ? s.date.slice(0, 10) : '';
             const d = new Date(dateStr + 'T00:00:00');
             const intensity = Math.max(1, Math.min(5, s.intensity ?? 3));
-            const intColor = INTENSITY_COLOR[intensity] ?? '#A8CB72';
+            const intColor = INTENSITY_COLOR[intensity] ?? '#5E8A5C';
             const primary = s.tags?.[0];
             const focusLabel = primary ? (SKILL_TAGS.find(t => t.value === primary)?.label ?? primary) : 'Open rolling';
             const typeLabel = SESSION_TYPE_LABELS[s.session_type] ?? s.session_type;

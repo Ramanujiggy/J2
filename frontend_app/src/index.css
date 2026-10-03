@@ -61,8 +61,10 @@
     --font-wordmark:  "Cormorant Garamond", "Cormorant", Georgia, serif;
     --font-editorial: "Cormorant Garamond", Georgia, serif;
 
-    /* Layout — desktop rail + context column widths */
-    --rail-w:    280px;
+    /* Layout — desktop rail + context column widths.
+       236px is the desktop handoff's rail; the content column beside it is
+       capped at 1180px by .j2-desk-page. */
+    --rail-w:    236px;
     --context-w: 360px;
 
     /* Surface + border ladder used by desktop cards. Named with -2/-3 suffixes
@@ -78,12 +80,12 @@
     --copper-deep:   #8E6741;
     --champagne:     #F2E4A8;
 
-    /* Intensity scale — 5 levels, used by session density + calendar cells */
-    --int-1: #A8CB72;   /* Drill */
-    --int-2: #7AC374;   /* Light */
-    --int-3: #52B56C;   /* Steady */
-    --int-4: #D4A040;   /* Intense */
-    --int-5: #DA7422;   /* Hard roll */
+    /* Intensity scale — 5 levels, must match INT_COLORS in theme.ts */
+    --int-1: #5E8A5C;   /* Drill: muted moss */
+    --int-2: #7BA177;   /* Light: warmer moss */
+    --int-3: #A8B97A;   /* Steady: champagne-touched green */
+    --int-4: #D4B86A;   /* Intense: champagne gold */
+    --int-5: #C4915F;   /* Hard roll: copper */
 
     /* Glow shadows — applied via text-shadow on champagne headings */
     --glow-title:  0 0 14px rgba(242,228,168,0.45), 0 0 32px rgba(242,228,168,0.20);
@@ -208,6 +210,145 @@
   margin-right: auto;
   padding-left: 64px;
   padding-right: 64px;
+}
+
+/* ────────────────────────────────────────────────────────────────────
+ * Desktop handoff page column. Every desktop screen (Today, Journal,
+ * Intentions, Atlas, Profile) sits in this box: 1180px cap, generous
+ * gutters, and a short fade-in on mount.
+ *
+ * 1250px is the desktop handoff's own column breakpoint — distinct from
+ * the app's 1024px desktop/mobile switch (useIsDesktop). Below 1250 the
+ * multi-column desks wrap; below 1024 we're on the mobile shell entirely.
+ * ──────────────────────────────────────────────────────────────────── */
+.j2-desk-page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 52px 64px 90px;
+  animation: j2-desk-in 0.22s ease;
+}
+
+@keyframes j2-desk-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (max-width: 1250px) {
+  .j2-desk-page { padding: 44px 36px 80px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .j2-desk-page { animation: none; }
+}
+
+/* ────────────────────────────────────────────────────────────────────
+ * Today's desk — the main prose column beside a narrower margin column,
+ * the way an annotated page reads. Below 1250px the margin drops beneath
+ * the prose and lays its blocks out side by side, so the prose column
+ * never gets squeezed: words win the space fight.
+ * ──────────────────────────────────────────────────────────────────── */
+.j2-desk {
+  display: flex;
+  gap: 72px;
+  justify-content: center;
+}
+.j2-desk-main   { flex: 0 1 620px; min-width: 0; }
+.j2-desk-margin { flex: 0 1 296px; min-width: 220px; padding-top: 86px; }
+
+@media (max-width: 1250px) {
+  .j2-desk { flex-wrap: wrap; gap: 0 40px; justify-content: flex-start; }
+  .j2-desk-main   { flex: 1 1 460px; }
+  .j2-desk-margin {
+    flex: 1 1 100%;
+    padding-top: 10px;
+    display: flex;
+    gap: 40px;
+  }
+  .j2-desk-margin > * { flex: 1; }
+}
+
+/* ────────────────────────────────────────────────────────────────────
+ * Journal — the stream beside the year scrubber. Below 1250px the
+ * scrubber collapses beneath the stream as a horizontal band of years
+ * rather than squeezing the prose.
+ * ──────────────────────────────────────────────────────────────────── */
+.j2-journal-body { display: flex; gap: 64px; }
+.j2-journal-scrub { width: 230px; flex: none; padding-top: 8px; }
+.j2-journal-row:hover .j2-journal-x { color: rgba(255,255,255,0.92); }
+
+@media (max-width: 1250px) {
+  .j2-journal-body { flex-direction: column; gap: 0; }
+  .j2-journal-scrub {
+    width: auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 32px;
+    margin-top: 38px;
+    padding-top: 0;
+    border-top: 1px solid rgba(196,145,95,0.2);
+  }
+  .j2-journal-scrub > *:first-child { flex: 1 1 100%; margin: 14px 0 0; }
+  .j2-journal-scrub > div:not(:first-child) { flex: 1 1 160px; border-top: none; padding: 12px 0 0; }
+  .j2-journal-scrubnote { display: none; }
+}
+
+/* ────────────────────────────────────────────────────────────────────
+ * Profile — identity column beside the housekeeping column.
+ * ──────────────────────────────────────────────────────────────────── */
+.j2-profile-body { display: flex; gap: 72px; }
+.j2-profile-main { flex: 1 1 560px; max-width: 560px; min-width: 0; }
+.j2-profile-side { flex: 0 1 360px; min-width: 300px; padding-top: 96px; }
+.j2-hk-row:hover { border-color: rgba(255,255,255,0.14); }
+
+@media (max-width: 1250px) {
+  .j2-profile-body { flex-wrap: wrap; gap: 40px; }
+  .j2-profile-main { flex: 1 1 100%; max-width: none; }
+  .j2-profile-side { flex: 1 1 100%; padding-top: 0; }
+}
+
+/* ────────────────────────────────────────────────────────────────────
+ * Intentions — the intention beside its thread, split by a copper
+ * hairline that fades out at both ends. Below 1250px the columns stack
+ * and the rule hides (a horizontal hairline there would read as a
+ * divider between sections, which is not what it means).
+ * ──────────────────────────────────────────────────────────────────── */
+.j2-intentions-body { display: flex; gap: 56px; }
+.j2-intentions-col  { flex: 0 1 520px; min-width: 0; }
+.j2-intentions-rule {
+  width: 1px;
+  flex: none;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(196,145,95,0.24) 15%,
+    rgba(196,145,95,0.24) 85%,
+    transparent
+  );
+}
+
+@media (max-width: 1250px) {
+  .j2-intentions-body { flex-wrap: wrap; }
+  .j2-intentions-col  { flex: 1 1 420px; }
+  .j2-intentions-rule { display: none; }
+}
+
+/* The promotion sheet's waiting tape slot — fills on hover so the empty
+   position reads as somewhere tape can go, not as damage. */
+.j2-tape-slot:hover { background: rgba(255,255,255,0.14); }
+
+/* Rail masthead wave — the seigaiha at full copper strength, masked so it
+   fades out before it reaches the nav. Distinct from .j2-seigaiha-bg (the
+   fixed, dimmer, page-wide backdrop): this one is bounded by the 118px
+   masthead and does not drift. */
+.j2-rail-wave {
+  position: absolute;
+  inset: 0;
+  opacity: 0.75;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='40' viewBox='0 0 80 40'><g fill='none' stroke='%23C4915F' stroke-width='1' opacity='0.6'><circle cx='0' cy='40' r='36'/><circle cx='0' cy='40' r='26'/><circle cx='0' cy='40' r='16'/><circle cx='0' cy='40' r='6'/><circle cx='40' cy='40' r='36'/><circle cx='40' cy='40' r='26'/><circle cx='40' cy='40' r='16'/><circle cx='40' cy='40' r='6'/><circle cx='80' cy='40' r='36'/><circle cx='80' cy='40' r='26'/><circle cx='80' cy='40' r='16'/><circle cx='80' cy='40' r='6'/><circle cx='20' cy='20' r='36'/><circle cx='20' cy='20' r='26'/><circle cx='20' cy='20' r='16'/><circle cx='20' cy='20' r='6'/><circle cx='60' cy='20' r='36'/><circle cx='60' cy='20' r='26'/><circle cx='60' cy='20' r='16'/><circle cx='60' cy='20' r='6'/></g></svg>");
+  background-size: 80px 40px;
+  mask-image: linear-gradient(to bottom, #000 30%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, #000 30%, transparent);
+  pointer-events: none;
 }
 
 /* ────────────────────────────────────────────────────────────────────
@@ -484,3 +625,26 @@
 .j2-toast-destructive::before { background: #E07560; }
 
 
+
+/* ────────────────────────────────────────────────────────────────────
+ * Atlas — the instrument beside its verdict. The row wraps rather than
+ * clipping, so the sentence stacks under the radar on a narrow desk.
+ * ──────────────────────────────────────────────────────────────────── */
+.j2-atlas-inst {
+  display: flex;
+  gap: 56px;
+  margin-top: 34px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.j2-atlas-smgrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px 14px;
+  margin-top: 30px;
+}
+
+@media (max-width: 1250px) {
+  .j2-atlas-smgrid { grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); }
+}

@@ -8,6 +8,7 @@ export type PillarDistribution = Partial<Record<Pillar, number>>;
 // `competition_training` is preserved as a legacy value; new sessions use
 // `class | drilling | cla` (Constraints-Led Approach).
 export type SessionType = 'class' | 'drilling' | 'competition_training' | 'cla';
+export type GiNoGi = 'gi' | 'no_gi' | 'both';
 
 export interface SessionSummary {
   id: string;
@@ -40,6 +41,8 @@ export interface SessionSummary {
   // migration 016 — freetext partner names. Will grow to user_partners refs
   // in the Journada 2.0 social layer.
   partners?: string[] | null;
+  // migration 037 — stamps struck on this session (Boa, future dies).
+  stamps?: { die_key: string; struck_at: string }[];
 }
 
 export type Affinity = 'go_to' | 'learning' | 'shelved';
@@ -408,10 +411,25 @@ export interface BeltHistoryEntry {
   stripes: number;
   promoted_at: string;
   notes: string | null;
+  /** The training entry logged the same day, when there is one (mig 039). */
+  session_id?: string | null;
 }
 
 export interface BeltHistoryResponse {
   belt_history: BeltHistoryEntry[];
+}
+
+// Aggregated per-die stamp record (one entry per die the user has struck).
+// `count` drives the reveal sheet's "Nth time"; first/last are ISO timestamps.
+export interface EarnedStamp {
+  die_key: string;
+  count: number;
+  first_struck_at: string;
+  last_struck_at: string;
+}
+
+export interface StampsResponse {
+  stamps: EarnedStamp[];
 }
 
 export interface TrainingNote {

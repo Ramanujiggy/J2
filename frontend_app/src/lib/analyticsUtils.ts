@@ -197,7 +197,7 @@ function isoWeekKey(dateStr: string): string {
   return `${d.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
 }
 
-function sessionTouchesHeading(s: SessionSummary, heading: string): boolean {
+export function sessionTouchesHeading(s: SessionSummary, heading: string): boolean {
   // Distribution-first: if the session has pillar_distribution, the heading
   // counts when its weight is > 0. Else legacy: heading field or tags array.
   const dist = (s as unknown as { pillar_distribution?: Record<string, number> | null }).pillar_distribution;

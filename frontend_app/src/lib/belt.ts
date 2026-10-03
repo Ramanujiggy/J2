@@ -1,5 +1,5 @@
 // Shared BJJ belt types, colour constants, and texture helpers.
-// Used by both BeltBar (header) and BeltLoader (loading screen).
+// Used by BeltBar (header), BeltDateBanner, and LogSessionMobileHeader.
 
 export type BeltRank = 'white' | 'blue' | 'purple' | 'brown' | 'black';
 

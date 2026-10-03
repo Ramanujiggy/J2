@@ -4,7 +4,7 @@ import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
 import TrainingHeatmap from '../components/TrainingHeatmap.tsx';
 import CalendarHeatmapView from '../components/CalendarHeatmapView.tsx';
-import LogSessionForm from '../components/LogSessionForm.tsx';
+import CaptureComposer from '../components/composer/CaptureComposer.tsx';
 import ErrorBoundary from '../components/ErrorBoundary.tsx';
 import { LayoutGrid, CalendarDays, Search, X } from 'lucide-react';
 import SessionSearchPanel from '../components/SessionSearchPanel.tsx';
@@ -45,7 +45,7 @@ export default function CalendarPage() {
   };
 
   const currentYear = new Date().getFullYear();
-  // Stable callbacks for TrainingHeatmap/CalendarHeatmap (per Tier 3 perf audit:
+  // Stable callbacks for CalendarHeatmapView (per Tier 3 perf audit:
   // inline arrow props defeat React.memo on the heatmap children).
   const handleGoToToday  = useCallback(() => setDisplayYear(currentYear), [currentYear]);
   const handleLogSession = useCallback((dateKey: string) => setLogDate(dateKey), []);
@@ -97,7 +97,7 @@ export default function CalendarPage() {
           onClick={e => e.stopPropagation()}
           className="w-full sm:max-w-lg lg:max-w-5xl animate-j2-modal-in"
         >
-          <LogSessionForm
+          <CaptureComposer
             onSuccess={() => { fetchAll(); setLogDate(null); }}
             onCancel={() => setLogDate(null)}
             defaultDate={logDate}
@@ -196,7 +196,7 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {fetchError && <p className="text-sm text-red-400">{fetchError}</p>}
+      {fetchError && <p className="text-sm text-error">{fetchError}</p>}
 
       {searchOpen ? (
         <SessionSearchPanel

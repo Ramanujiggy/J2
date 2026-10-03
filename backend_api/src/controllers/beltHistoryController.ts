@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
-import { getHistory, addEntry, deleteEntry } from '../models/beltHistoryModel.js';
+import { getHistory, addEntry, deleteEntry, updateNotes } from '../models/beltHistoryModel.js';
 
 const BELT_RANKS = ['white', 'blue', 'purple', 'brown', 'black'] as const;
 
@@ -9,6 +9,10 @@ const CreateSchema = z.object({
   stripes: z.number().int().min(0).max(4).default(0),
   promoted_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   notes: z.string().max(500).nullable().optional(),
+});
+
+const NotesSchema = z.object({
+  notes: z.string().max(2000).nullable(),
 });
 
 export async function listBeltHistory(req: Request, res: Response) {
@@ -40,6 +44,31 @@ export async function createBeltHistory(req: Request, res: Response) {
     res.status(201).json({ entry });
   } catch (err) {
     console.error('createBeltHistory error:', err);
+    res.status(500).json({ error: 'Failed to save belt history entry.' });
+  }
+}
+
+/** PATCH /api/belt-history/:id — the promotion's own journal words. */
+export async function updateBeltHistoryNotes(req: Request, res: Response) {
+  const id = req.params.id;
+  if (!id) {
+    res.status(400).json({ error: 'Missing id.' });
+    return;
+  }
+  const parsed = NotesSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.flatten().fieldErrors });
+    return;
+  }
+  try {
+    const entry = await updateNotes(req.user!.id, id, parsed.data.notes || null);
+    if (!entry) {
+      res.status(404).json({ error: 'Belt history entry not found.' });
+      return;
+    }
+    res.json({ entry });
+  } catch (err) {
+    console.error('updateBeltHistoryNotes error:', err);
     res.status(500).json({ error: 'Failed to save belt history entry.' });
   }
 }

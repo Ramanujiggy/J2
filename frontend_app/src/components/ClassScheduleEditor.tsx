@@ -269,7 +269,7 @@ function Phrase({ active, onClick, children }: PhraseProps) {
         fontFamily: FONT_EDITORIAL,
         fontSize: 'inherit',
         padding: '0 4px',
-        borderBottom: `1.5px solid ${active ? COPPER : 'rgba(196,145,95,0.45)'}`,
+        borderBottom: `1.5px solid ${active ? COPPER : COPPER_BORDER}`,
         cursor: 'pointer',
         lineHeight: 1.2,
       }}

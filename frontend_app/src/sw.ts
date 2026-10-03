@@ -15,6 +15,22 @@ declare const self: ServiceWorkerGlobalScope & {
   __WB_MANIFEST: Array<{ url: string; revision: string | null }>;
 };
 
+// ── Activate immediately ───────────────────────────────────────────────────
+// Without these, a new SW waits in "waiting" state until ALL tabs close.
+// PWA users (especially iOS) may never close the app, so they'd be stuck
+// on stale cached assets permanently.
+self.addEventListener('install', () => { self.skipWaiting(); });
+self.addEventListener('activate', (event) => { event.waitUntil(self.clients.claim()); });
+
+// Belt-and-suspenders: also handle the SKIP_WAITING message from
+// registerSW({ onNeedRefresh }) in case the install listener above
+// fires before the client sends the message.
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 // ── Precache + Workbox routing ──────────────────────────────────────────────
 
 cleanupOutdatedCaches();

@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { query } from '../config/db.js';
 import { createSession, getSessionsByUser, searchSessions, updateSession as updateSessionModel, deleteSession as deleteSessionModel, bulkInsertSessions, type SessionFilter, type BulkSessionInput, type PillarDistribution } from '../models/sessionModel.js';
 import { getUserTagsByIds } from '../models/userTagModel.js';
+import { linkSessionToPromotions } from '../models/beltHistoryModel.js';
 import { filterExistingCanonicalIds } from '../models/canonicalPositionModel.js';
 import { filterExistingCanonicalConstraintIds } from '../models/canonicalConstraintModel.js';
 import { getUserConstraintsByIds } from '../models/userConstraintModel.js';
@@ -281,6 +282,15 @@ export const logSession = async (req: Request, res: Response): Promise<void> => 
             canonicalConstraintIds, userConstraintIds,
             sanitizePartners(partners),
         );
+        // A promotion recorded for this day belongs with this entry (mig
+        // 039). Best-effort: the session is already saved, so a link failure
+        // must not fail the request.
+        try {
+            if (session.id) await linkSessionToPromotions(userId, session.id, date);
+        } catch (linkErr) {
+            console.error('belt-history link failed (non-fatal):', linkErr);
+        }
+
         res.status(201).json({ message: 'Session logged.', session, session_count: session.session_count });
     } catch (err) {
         console.error('❌ Error logging session:', err);
