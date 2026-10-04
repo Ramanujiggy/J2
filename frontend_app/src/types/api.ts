@@ -71,6 +71,34 @@ export interface UserTag {
   video_status_message?: string | null;
 }
 
+// ── Session videos + position segments (migration 040) ────────────────────
+
+export interface SessionVideo {
+  id: string;
+  session_id: string;
+  user_id: string;
+  created_at: string;
+  video_status: VideoStatus | null;
+  video_storage_key: string | null;
+  video_byte_size: number | null;
+  video_status_message: string | null;
+  video_thumbnail: string | null;
+  video_duration_seconds: number | null;
+  video_notes: string | null;
+}
+
+export interface PositionSegment {
+  id: string;
+  video_id: string;
+  user_id: string;
+  start_sec: number;
+  end_sec: number;
+  position_label: string;
+  source: 'manual' | 'model';
+  confirmed: boolean;
+  created_at: string;
+}
+
 export interface CanonicalPosition {
   id: string;
   name: string;

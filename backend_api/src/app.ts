@@ -23,6 +23,7 @@ import adminRoutes from './routes/adminRoutes.js';
 import beltHistoryRoutes from './routes/beltHistoryRoutes.js';
 import trainingNoteRoutes from './routes/trainingNoteRoutes.js';
 import stampRoutes from './routes/stampRoutes.js';
+import sessionVideoRoutes from './routes/sessionVideoRoutes.js';
 // db import triggers pool connection test on startup
 import { query } from './config/db.js';
 
@@ -190,6 +191,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/belt-history', beltHistoryRoutes);
 app.use('/api/notes', trainingNoteRoutes);
 app.use('/api/stamps', stampRoutes);
+app.use('/api/sessions/:sessionId/videos', sessionVideoRoutes);
 
 
 // Catch-all JSON error handler — must be registered after all routes.
