@@ -10,7 +10,8 @@ const ACCEPTED_VIDEO_PREFIXES = ['video/'];
 export const mintVideoUploadUrl = async (req: Request, res: Response) => {
     try {
         const userId = req.user!.id;
-        const { sessionId } = req.params;
+        const sessionId = req.params['sessionId'];
+        if (!sessionId) return res.status(400).json({ message: 'sessionId is required.' });
 
         const { content_type, ext } = req.body ?? {};
         if (typeof content_type !== 'string' || !ACCEPTED_VIDEO_PREFIXES.some(p => content_type.startsWith(p))) {
@@ -20,7 +21,6 @@ export const mintVideoUploadUrl = async (req: Request, res: Response) => {
             return res.status(400).json({ message: 'ext must be a short file extension string.' });
         }
 
-        // Create the session_videos row first so we have a stable id for the storage key.
         const video = await sessionVideoModel.createSessionVideo(userId, sessionId);
         const storageKey = r2.rawSessionVideoKey(userId, video.id, ext);
         const { uploadUrl, expiresAt } = await r2.mintPutUrl(storageKey, content_type);
@@ -35,7 +35,8 @@ export const mintVideoUploadUrl = async (req: Request, res: Response) => {
 export const completeVideoUpload = async (req: Request, res: Response) => {
     try {
         const userId = req.user!.id;
-        const { videoId } = req.params;
+        const videoId = req.params['videoId'];
+        if (!videoId) return res.status(400).json({ message: 'videoId is required.' });
 
         const { raw_storage_key, byte_size, video_thumbnail, video_duration_seconds } = req.body ?? {};
 
@@ -75,7 +76,8 @@ export const completeVideoUpload = async (req: Request, res: Response) => {
 export const listVideos = async (req: Request, res: Response) => {
     try {
         const userId = req.user!.id;
-        const { sessionId } = req.params;
+        const sessionId = req.params['sessionId'];
+        if (!sessionId) return res.status(400).json({ message: 'sessionId is required.' });
         const videos = await sessionVideoModel.listSessionVideos(userId, sessionId);
         res.status(200).json({ videos });
     } catch (err) {
@@ -87,7 +89,8 @@ export const listVideos = async (req: Request, res: Response) => {
 export const getVideoPlaybackUrl = async (req: Request, res: Response) => {
     try {
         const userId = req.user!.id;
-        const { videoId } = req.params;
+        const videoId = req.params['videoId'];
+        if (!videoId) return res.status(400).json({ message: 'videoId is required.' });
 
         const video = await sessionVideoModel.findSessionVideoById(userId, videoId);
         if (!video) return res.status(404).json({ message: 'Video not found.' });
@@ -110,7 +113,8 @@ export const getVideoPlaybackUrl = async (req: Request, res: Response) => {
 export const retryVideoTranscode = async (req: Request, res: Response) => {
     try {
         const userId = req.user!.id;
-        const { videoId } = req.params;
+        const videoId = req.params['videoId'];
+        if (!videoId) return res.status(400).json({ message: 'videoId is required.' });
         const video = await sessionVideoModel.requeueFailedTranscode(userId, videoId);
         if (!video) return res.status(404).json({ message: 'Video not found or not retryable.' });
         res.status(200).json({ video });
@@ -123,10 +127,10 @@ export const retryVideoTranscode = async (req: Request, res: Response) => {
 export const deleteVideo = async (req: Request, res: Response) => {
     try {
         const userId = req.user!.id;
-        const { videoId } = req.params;
+        const videoId = req.params['videoId'];
+        if (!videoId) return res.status(400).json({ message: 'videoId is required.' });
         const result = await sessionVideoModel.deleteSessionVideo(userId, videoId);
         if (!result) return res.status(404).json({ message: 'Video not found.' });
-        // Best-effort R2 cleanup.
         if (result.rawKey) r2.deleteObject(result.rawKey).catch(() => {});
         if (result.encodedKey) r2.deleteObject(result.encodedKey).catch(() => {});
         res.status(200).json({ ok: true });
@@ -141,7 +145,8 @@ export const deleteVideo = async (req: Request, res: Response) => {
 export const getSegments = async (req: Request, res: Response) => {
     try {
         const userId = req.user!.id;
-        const { videoId } = req.params;
+        const videoId = req.params['videoId'];
+        if (!videoId) return res.status(400).json({ message: 'videoId is required.' });
         const segments = await sessionVideoModel.getSegments(userId, videoId);
         res.status(200).json({ segments });
     } catch (err) {
@@ -153,9 +158,9 @@ export const getSegments = async (req: Request, res: Response) => {
 export const saveSegments = async (req: Request, res: Response) => {
     try {
         const userId = req.user!.id;
-        const { videoId } = req.params;
+        const videoId = req.params['videoId'];
+        if (!videoId) return res.status(400).json({ message: 'videoId is required.' });
 
-        // Verify ownership.
         const video = await sessionVideoModel.findSessionVideoById(userId, videoId);
         if (!video) return res.status(404).json({ message: 'Video not found.' });
 
