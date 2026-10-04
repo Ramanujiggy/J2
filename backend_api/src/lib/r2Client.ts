@@ -219,3 +219,22 @@ export function verifyKeyOwnedBy(storageKey: string, userId: string): boolean {
     return storageKey.startsWith(`raw/${userId}/`)
         || storageKey.startsWith(`encoded/${userId}/`);
 }
+
+// ── Session video key generators ──────────────────────────────────────────
+// Separate prefix (session-raw / session-encoded) keeps technique-library
+// objects and session-footage objects cleanly partitioned in the bucket.
+
+export function rawSessionVideoKey(userId: string, videoId: string, ext: string): string {
+    const cleanExt = ext.replace(/^\./, '').toLowerCase().slice(0, 8) || 'bin';
+    const ts = Date.now();
+    return `session-raw/${userId}/${videoId}-${ts}.${cleanExt}`;
+}
+
+export function encodedSessionVideoKey(userId: string, videoId: string): string {
+    return `session-encoded/${userId}/${videoId}.mp4`;
+}
+
+export function verifySessionVideoKeyOwnedBy(storageKey: string, userId: string): boolean {
+    return storageKey.startsWith(`session-raw/${userId}/`)
+        || storageKey.startsWith(`session-encoded/${userId}/`);
+}

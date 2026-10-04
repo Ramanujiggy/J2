@@ -19,6 +19,7 @@ import { useUserConstraints } from '../hooks/useUserConstraints.ts';
 import { useCanonicalConstraints } from '../hooks/useCanonicalConstraints.ts';
 import { useSessions } from '../context/SessionsContext.tsx';
 import MarginNotesEntry from './composer/MarginNotesEntry.tsx';
+import SessionVideoBlock from './SessionVideoBlock.tsx';
 import { buildSessionPayload, type SessionDraft } from '../lib/sessionPayload.ts';
 import type { Kernel } from '../lib/composerKernel.ts';
 import type { SessionSummary } from './TrainingHeatmap.tsx';
@@ -250,6 +251,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                 sessionIndex={sessionIndex}
                 onNavigate={onNavigate}
               />
+              <SessionVideoBlock sessionId={session.id} />
             </div>
           </div>
 

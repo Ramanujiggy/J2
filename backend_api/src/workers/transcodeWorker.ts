@@ -28,6 +28,7 @@ import { pipeline } from 'node:stream/promises';
 import { randomUUID } from 'node:crypto';
 
 import * as userTagModel from '../models/userTagModel.js';
+import * as sessionVideoModel from '../models/sessionVideoModel.js';
 import * as r2 from '../lib/r2Client.js';
 import { transcodeToH264Mp4, probeFfmpeg } from '../lib/transcode.js';
 
@@ -103,38 +104,42 @@ function scheduleNextTick(delayMs: number): void {
  */
 async function tickOnce(): Promise<void> {
     if (stopped) return;
-    let claimedTagId: string | null = null;
+    let claimedId: string | null = null;
+    let claimedKind: 'tag' | 'session_video' | null = null;
     let nextDelayMs = POLL_INTERVAL_MS;
 
     try {
-        const job = await userTagModel.claimNextTranscodeJob();
-        if (!job) {
-            // Queue empty — nothing changes; idle cadence is the default.
-            return;
+        // Check both queues; technique-library tags take priority (they're
+        // typically short clips and have been waiting since before session
+        // videos were added).
+        const tagJob = await userTagModel.claimNextTranscodeJob();
+        if (tagJob) {
+            claimedId = tagJob.id;
+            claimedKind = 'tag';
+            nextDelayMs = ACTIVE_INTERVAL_MS;
+            await processTagJob(tagJob);
+        } else {
+            const svJob = await sessionVideoModel.claimNextTranscodeJob();
+            if (svJob) {
+                claimedId = svJob.id;
+                claimedKind = 'session_video';
+                nextDelayMs = ACTIVE_INTERVAL_MS;
+                await processSessionVideoJob(svJob);
+            }
+            // else: both queues empty — idle cadence is the default.
         }
-        claimedTagId = job.id;
-        nextDelayMs = ACTIVE_INTERVAL_MS;  // we processed work; chain quickly
-        await processJob(job);
     } catch (err) {
-        // Any error inside processJob is already converted to a 'failed'
-        // status update inside that function. An error THIS layer catches
-        // is something unexpected (typically a DB connection issue from
-        // claimNextTranscodeJob itself) — log, back off, keep the worker alive.
-        console.error(`❌ Transcode worker tick error${claimedTagId ? ` (tag ${claimedTagId})` : ''}:`, err);
+        console.error(`❌ Transcode worker tick error${claimedId ? ` (${claimedKind} ${claimedId})` : ''}:`, err);
         nextDelayMs = ERROR_BACKOFF_MS;
-
-        // Defensive: if claim succeeded but processJob threw without going
-        // through its own failure path, mark the job failed so it doesn't
-        // sit in 'processing' forever. The 15-min stale guard would
-        // eventually rescue it, but explicit is better.
-        if (claimedTagId) {
+        if (claimedId) {
             try {
-                await userTagModel.markTranscodeFailed(
-                    claimedTagId,
-                    err instanceof Error ? err.message : String(err),
-                );
+                if (claimedKind === 'tag') {
+                    await userTagModel.markTranscodeFailed(claimedId, err instanceof Error ? err.message : String(err));
+                } else if (claimedKind === 'session_video') {
+                    await sessionVideoModel.markTranscodeFailed(claimedId, err instanceof Error ? err.message : String(err));
+                }
             } catch {
-                // best-effort — DB might still be down
+                // best-effort
             }
         }
     } finally {
@@ -142,61 +147,75 @@ async function tickOnce(): Promise<void> {
     }
 }
 
-/**
- * Run one job to completion. Either flips the row to 'ready' (on success)
- * or 'failed' (on any error). Cleans up temp files in both paths.
- */
-async function processJob(job: { id: string; user_id: string; video_raw_storage_key?: string | null }): Promise<void> {
+async function processTagJob(job: { id: string; user_id: string; video_raw_storage_key?: string | null }): Promise<void> {
     const rawKey = job.video_raw_storage_key;
     if (!rawKey) {
-        // Defensive: claim returned a row without a raw key. Shouldn't
-        // happen given the WHERE clause, but mark failed so we don't loop.
         await userTagModel.markTranscodeFailed(job.id, 'Internal error: claimed job has no raw_storage_key.');
         return;
     }
+    await runTranscode({
+        id: job.id,
+        userId: job.user_id,
+        rawKey,
+        encodedKey: r2.encodedStorageKey(job.user_id, job.id),
+        onReady: (encodedKey, size) => userTagModel.markTranscodeReady(job.id, encodedKey, size),
+        onFailed: (msg) => userTagModel.markTranscodeFailed(job.id, msg),
+        label: `tag ${job.id}`,
+    });
+}
 
-    // Generate temp paths. Random suffix avoids collisions across overlapping
-    // jobs (single-process today, but cheap insurance for future parallelism).
-    const tag = `${job.id}-${randomUUID().slice(0, 8)}`;
+async function processSessionVideoJob(job: { id: string; user_id: string; video_raw_storage_key?: string | null }): Promise<void> {
+    const rawKey = job.video_raw_storage_key;
+    if (!rawKey) {
+        await sessionVideoModel.markTranscodeFailed(job.id, 'Internal error: claimed job has no raw_storage_key.');
+        return;
+    }
+    await runTranscode({
+        id: job.id,
+        userId: job.user_id,
+        rawKey,
+        encodedKey: r2.encodedSessionVideoKey(job.user_id, job.id),
+        onReady: (encodedKey, size) => sessionVideoModel.markTranscodeReady(job.id, encodedKey, size),
+        onFailed: (msg) => sessionVideoModel.markTranscodeFailed(job.id, msg),
+        label: `session video ${job.id}`,
+    });
+}
+
+async function runTranscode(opts: {
+    id: string;
+    userId: string;
+    rawKey: string;
+    encodedKey: string;
+    onReady: (encodedKey: string, size: number) => Promise<unknown>;
+    onFailed: (msg: string) => Promise<unknown>;
+    label: string;
+}): Promise<void> {
+    const tag = `${opts.id}-${randomUUID().slice(0, 8)}`;
     const rawTempPath = path.join(tmpdir(), `j2-raw-${tag}`);
     const encodedTempPath = path.join(tmpdir(), `j2-enc-${tag}.mp4`);
 
     try {
-        // 1. Download raw → temp file via streaming pipeline. Avoids buffering
-        //    the entire video in memory.
-        const stream = await r2.getObjectStream(rawKey);
+        const stream = await r2.getObjectStream(opts.rawKey);
         await pipeline(stream, createWriteStream(rawTempPath));
 
-        // 2. Run ffmpeg. Throws on non-zero exit code.
-        await transcodeToH264Mp4({
-            inputPath: rawTempPath,
-            outputPath: encodedTempPath,
-        });
+        await transcodeToH264Mp4({ inputPath: rawTempPath, outputPath: encodedTempPath });
 
-        // 3. Stat encoded for byte size + read into buffer for upload.
         const encodedStat = await fs.stat(encodedTempPath);
         const encodedBytes = await fs.readFile(encodedTempPath);
 
-        // 4. Upload encoded → R2 at the canonical encoded key.
-        const encodedKey = r2.encodedStorageKey(job.user_id, job.id);
-        await r2.putObject(encodedKey, encodedBytes, 'video/mp4');
+        await r2.putObject(opts.encodedKey, encodedBytes, 'video/mp4');
+        await opts.onReady(opts.encodedKey, encodedStat.size);
 
-        // 5. DB: flip status to ready + record storage key + size.
-        await userTagModel.markTranscodeReady(job.id, encodedKey, encodedStat.size);
-
-        // 6. Best-effort cleanup of the raw object. Don't fail the whole
-        //    job if R2 hiccups here — we already have the encoded variant.
         try {
-            await r2.deleteObject(rawKey);
+            await r2.deleteObject(opts.rawKey);
         } catch (err) {
-            console.error(`⚠️  Failed to delete raw object ${rawKey} after successful encode:`, err);
+            console.error(`⚠️  Failed to delete raw object ${opts.rawKey} after successful encode:`, err);
         }
     } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        console.error(`❌ Transcode failed for tag ${job.id}:`, message);
-        await userTagModel.markTranscodeFailed(job.id, message);
+        console.error(`❌ Transcode failed for ${opts.label}:`, message);
+        await opts.onFailed(message);
     } finally {
-        // Cleanup temp files. fs.rm with force=true is idempotent.
         await fs.rm(rawTempPath,     { force: true }).catch(() => {});
         await fs.rm(encodedTempPath, { force: true }).catch(() => {});
     }
