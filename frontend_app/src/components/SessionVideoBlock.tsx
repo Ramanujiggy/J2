@@ -9,21 +9,23 @@
 // tag mode — no extra modal.
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { api } from '../lib/api.ts';
 import { validateVideoFile, probeVideo, extractThumbnail, formatDurationMMSS } from '../lib/videoUtils.ts';
 import { uploadToR2 } from '../lib/videoUploader.ts';
 import {
   BRAND_ORANGE, COPPER, PALE_YELLOW, SAGE, SURFACE_2, SURFACE_3,
-  SURFACE_2_BORDER, STATUS_ERROR, CARD_BG,
+  SURFACE_2_BORDER, STATUS_ERROR, CARD_BG, PAGE_BG,
 } from '../lib/theme.ts';
 import type { SessionVideo, PositionSegment } from '../types/api.ts';
 import PositionTagger, { POSITION_COLOR, POSITION_DEFS } from './PositionTagger.tsx';
 
 interface Props {
   sessionId: string;
+  sessionLabel?: string;
 }
 
-export default function SessionVideoBlock({ sessionId }: Props) {
+export default function SessionVideoBlock({ sessionId, sessionLabel }: Props) {
   const [videos, setVideos] = useState<SessionVideo[]>([]);
   const [segments, setSegments] = useState<Record<string, PositionSegment[]>>({});
   const [loading, setLoading] = useState(true);
@@ -134,61 +136,125 @@ export default function SessionVideoBlock({ sessionId }: Props) {
 
   if (loading) return null;
 
+  // Resolve the active tagger video for the portal overlay.
+  const taggingVideo = taggingVideoId ? videos.find(v => v.id === taggingVideoId) : null;
+  const taggingPlaybackUrl = taggingVideoId ? (playbackUrls[taggingVideoId] ?? null) : null;
+  const taggingDur = taggingVideo?.video_duration_seconds ?? 0;
+
   return (
-    <div style={{ marginTop: 24 }}>
-      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: COPPER, marginBottom: 12 }}>
-        Footage
+    <>
+      <div style={{ marginTop: 24 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: COPPER, marginBottom: 12 }}>
+          Footage
+        </div>
+
+        {/* Existing videos — tagging mode is handled by the portal overlay */}
+        {videos.map(v => (
+          <VideoCard
+            key={v.id}
+            video={v}
+            playbackUrl={playbackUrls[v.id] ?? null}
+            segments={segments[v.id] ?? []}
+            isTagging={false}
+            savingSegments={false}
+            onTagClick={() => setTaggingVideoId(v.id)}
+            onCancelTag={() => setTaggingVideoId(null)}
+            onSaveSegments={(segs) => saveSegments(v.id, segs)}
+            onDelete={() => deleteVideo(v.id)}
+            onRetry={async () => { await api.post(`/api/sessions/${sessionId}/videos/${v.id}/retry`, {}); loadVideos(); }}
+          />
+        ))}
+
+        {/* Upload zone */}
+        {uploadProgress !== null ? (
+          <div style={{ padding: '16px 0', textAlign: 'center' }}>
+            <div style={{ fontSize: 12, color: PALE_YELLOW, marginBottom: 6 }}>Uploading… {uploadProgress}%</div>
+            <div style={{ height: 4, background: SURFACE_2, borderRadius: 2, overflow: 'hidden' }}>
+              <div style={{ height: '100%', background: BRAND_ORANGE, width: `${uploadProgress}%`, transition: 'width 0.2s' }} />
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              width: '100%', padding: '14px 0', marginTop: videos.length > 0 ? 10 : 0,
+              background: SURFACE_2, border: `1px dashed ${SURFACE_2_BORDER}`, borderRadius: 10,
+              color: 'rgba(255,255,255,0.4)', fontSize: 13, cursor: 'pointer',
+            }}
+          >
+            + Attach footage
+          </button>
+        )}
+
+        {uploadError && <p style={{ fontSize: 12, color: STATUS_ERROR, marginTop: 6 }}>{uploadError}</p>}
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="video/*"
+          capture="environment"
+          style={{ display: 'none' }}
+          onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''; }}
+        />
       </div>
 
-      {/* Existing videos */}
-      {videos.map(v => (
-        <VideoCard
-          key={v.id}
-          video={v}
-          playbackUrl={playbackUrls[v.id] ?? null}
-          segments={segments[v.id] ?? []}
-          isTagging={taggingVideoId === v.id}
-          savingSegments={savingSegments}
-          onTagClick={() => setTaggingVideoId(v.id)}
-          onCancelTag={() => setTaggingVideoId(null)}
-          onSaveSegments={(segs) => saveSegments(v.id, segs)}
-          onDelete={() => deleteVideo(v.id)}
-          onRetry={async () => { await api.post(`/api/sessions/${sessionId}/videos/${v.id}/retry`, {}); loadVideos(); }}
-        />
-      ))}
-
-      {/* Upload zone */}
-      {uploadProgress !== null ? (
-        <div style={{ padding: '16px 0', textAlign: 'center' }}>
-          <div style={{ fontSize: 12, color: PALE_YELLOW, marginBottom: 6 }}>Uploading… {uploadProgress}%</div>
-          <div style={{ height: 4, background: SURFACE_2, borderRadius: 2, overflow: 'hidden' }}>
-            <div style={{ height: '100%', background: BRAND_ORANGE, width: `${uploadProgress}%`, transition: 'width 0.2s' }} />
-          </div>
-        </div>
-      ) : (
-        <button
-          onClick={() => fileInputRef.current?.click()}
+      {/* Full-screen tagging overlay — mounts above the session modal (z-index 60) */}
+      {taggingVideoId && createPortal(
+        <div
+          data-no-page-swipe=""
           style={{
-            width: '100%', padding: '14px 0', marginTop: videos.length > 0 ? 10 : 0,
-            background: SURFACE_2, border: `1px dashed ${SURFACE_2_BORDER}`, borderRadius: 10,
-            color: 'rgba(255,255,255,0.4)', fontSize: 13, cursor: 'pointer',
+            position: 'fixed', inset: 0, zIndex: 60,
+            background: PAGE_BG,
+            display: 'flex', flexDirection: 'column',
+            paddingTop: 'env(safe-area-inset-top, 0px)',
+            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
           }}
         >
-          + Attach footage
-        </button>
+          {/* Session strip */}
+          <div style={{
+            height: 52, flexShrink: 0,
+            display: 'flex', alignItems: 'center',
+            padding: '0 16px', gap: 12,
+            borderBottom: '1px solid rgba(255,255,255,0.08)',
+          }}>
+            <button
+              onClick={() => setTaggingVideoId(null)}
+              className="touch-manipulation"
+              style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            >
+              ‹ Done
+            </button>
+            <span style={{
+              flex: 1, textAlign: 'center',
+              fontSize: 12, color: PALE_YELLOW, letterSpacing: '0.04em',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
+              {sessionLabel}
+            </span>
+            <span style={{ width: 52 }} aria-hidden />
+          </div>
+
+          {/* Tagger body */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px 24px' }}>
+            {taggingPlaybackUrl ? (
+              <PositionTagger
+                videoUrl={taggingPlaybackUrl}
+                durationSecs={taggingDur}
+                initialSegments={segments[taggingVideoId] ?? []}
+                onSave={(segs) => saveSegments(taggingVideoId, segs)}
+                onCancel={() => setTaggingVideoId(null)}
+                saving={savingSegments}
+              />
+            ) : (
+              <div style={{ padding: '40px 0', textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>
+                Loading video…
+              </div>
+            )}
+          </div>
+        </div>,
+        document.body
       )}
-
-      {uploadError && <p style={{ fontSize: 12, color: STATUS_ERROR, marginTop: 6 }}>{uploadError}</p>}
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="video/*"
-        capture="environment"
-        style={{ display: 'none' }}
-        onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''; }}
-      />
-    </div>
+    </>
   );
 }
 
