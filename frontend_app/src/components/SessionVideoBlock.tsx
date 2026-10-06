@@ -9,6 +9,7 @@
 // modal — PositionTagger is not rendered inline.
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import { createPortal } from 'react-dom';
 import { api } from '../lib/api.ts';
 import { validateVideoFile, probeVideo, extractThumbnail, formatDurationMMSS } from '../lib/videoUtils.ts';
@@ -34,7 +35,15 @@ export default function SessionVideoBlock({ sessionId, sessionLabel }: Props) {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [playbackUrls, setPlaybackUrls] = useState<Record<string, string>>({});
   const [taggingVideoId, setTaggingVideoId] = useState<string | null>(null);
+  const [isClosing, setIsClosing] = useState(false);
   const [savingSegments, setSavingSegments] = useState(false);
+
+  const openTagger = (videoId: string) => {
+    setIsClosing(false);
+    setTaggingVideoId(videoId);
+  };
+  const closeTagger = () => setIsClosing(true);
+  const finalizeClose = () => { setIsClosing(false); setTaggingVideoId(null); };
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -130,7 +139,7 @@ export default function SessionVideoBlock({ sessionId, sessionLabel }: Props) {
         { segments: segs },
       );
       setSegments(prev => ({ ...prev, [videoId]: data.segments }));
-      setTaggingVideoId(null);
+      closeTagger();
     } catch { /* silent */ }
     setSavingSegments(false);
   };
@@ -158,7 +167,7 @@ export default function SessionVideoBlock({ sessionId, sessionLabel }: Props) {
             segments={segments[v.id] ?? []}
             isTagging={false}
             savingSegments={false}
-            onTagClick={() => setTaggingVideoId(v.id)}
+            onTagClick={() => openTagger(v.id)}
             onCancelTag={() => setTaggingVideoId(null)}
             onSaveSegments={(segs) => saveSegments(v.id, segs)}
             onDelete={() => deleteVideo(v.id)}
@@ -199,60 +208,74 @@ export default function SessionVideoBlock({ sessionId, sessionLabel }: Props) {
         />
       </div>
 
-      {/* Full-screen tagging overlay — mounts above the session modal (z-index 60) */}
+      {/* Full-screen tagging overlay — animated slide-up portal above the session modal */}
       {taggingVideoId && createPortal(
-        <div
-          data-no-page-swipe=""
-          style={{
-            position: 'fixed', inset: 0, zIndex: 60,
-            background: PAGE_BG,
-            display: 'flex', flexDirection: 'column',
-            paddingTop: 'env(safe-area-inset-top, 0px)',
-            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-          }}
-        >
-          {/* Session strip */}
-          <div style={{
-            height: 52, flexShrink: 0,
-            display: 'flex', alignItems: 'center',
-            padding: '0 16px', gap: 12,
-            borderBottom: '1px solid rgba(255,255,255,0.08)',
-          }}>
-            <button
-              onClick={() => setTaggingVideoId(null)}
-              className="touch-manipulation"
-              style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)', background: 'none', border: 'none', cursor: 'pointer', padding: '14px 8px', minHeight: 44 }}
+        <>
+          <style>{`
+            @keyframes taggerSlideUp   { from { transform: translateY(100%) } to { transform: translateY(0) } }
+            @keyframes taggerSlideDown { from { transform: translateY(0) }    to { transform: translateY(100%) } }
+          `}</style>
+          <div
+            data-no-page-swipe=""
+            style={{
+              position: 'fixed', inset: 0, zIndex: 60,
+              background: PAGE_BG,
+              display: 'flex', flexDirection: 'column',
+              paddingTop: 'env(safe-area-inset-top, 0px)',
+              paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+              animation: isClosing
+                ? 'taggerSlideDown 280ms ease-in forwards'
+                : 'taggerSlideUp 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
+            }}
+            onAnimationEnd={() => { if (isClosing) finalizeClose(); }}
+          >
+            {/* Session strip — tap anywhere to close and return to session */}
+            <div
+              onClick={closeTagger}
+              style={{
+                height: 52, flexShrink: 0,
+                display: 'flex', alignItems: 'center',
+                padding: '0 16px', gap: 12,
+                borderBottom: '1px solid rgba(255,255,255,0.08)',
+                cursor: 'pointer',
+              }}
             >
-              ‹ Done
-            </button>
-            <span style={{
-              flex: 1, textAlign: 'center',
-              fontSize: 12, color: PALE_YELLOW, letterSpacing: '0.04em',
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}>
-              {sessionLabel}
-            </span>
-            <span style={{ width: 52 }} aria-hidden />
-          </div>
+              <button
+                onClick={closeTagger}
+                className="touch-manipulation"
+                style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)', background: 'none', border: 'none', cursor: 'pointer', padding: '14px 8px', minHeight: 44 }}
+              >
+                ‹ Done
+              </button>
+              <span style={{
+                flex: 1, textAlign: 'center',
+                fontSize: 12, color: PALE_YELLOW, letterSpacing: '0.04em',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
+                {sessionLabel}
+              </span>
+              <span style={{ width: 52 }} aria-hidden />
+            </div>
 
-          {/* Tagger body */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 24px' }}>
-            {taggingPlaybackUrl ? (
-              <PositionTagger
-                videoUrl={taggingPlaybackUrl}
-                durationSecs={taggingDur}
-                initialSegments={(segments[taggingVideoId] ?? []) as DraftSegment[]}
-                onSave={(segs) => saveSegments(taggingVideoId, segs)}
-                onCancel={() => setTaggingVideoId(null)}
-                saving={savingSegments}
-              />
-            ) : (
-              <div style={{ padding: '40px 0', textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>
-                Loading video…
-              </div>
-            )}
+            {/* Tagger body */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 24px' }}>
+              {taggingPlaybackUrl ? (
+                <PositionTagger
+                  videoUrl={taggingPlaybackUrl}
+                  durationSecs={taggingDur}
+                  initialSegments={(segments[taggingVideoId] ?? []) as DraftSegment[]}
+                  onSave={(segs) => saveSegments(taggingVideoId, segs)}
+                  onCancel={closeTagger}
+                  saving={savingSegments}
+                />
+              ) : (
+                <div style={{ padding: '40px 0', textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>
+                  Loading video…
+                </div>
+              )}
+            </div>
           </div>
-        </div>,
+        </>,
         document.body
       )}
     </>
@@ -276,10 +299,18 @@ function VideoCard({
   onDelete: () => void;
   onRetry: () => void;
 }) {
+  const isDesktop = useIsDesktop();
   const dur = video.video_duration_seconds ?? 0;
+  const tappable = !isDesktop && video.video_status === 'ready';
 
   return (
-    <div style={{ background: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}`, borderRadius: 12, padding: 14, marginBottom: 10 }}>
+    <div
+      onClick={tappable ? onTagClick : undefined}
+      style={{
+        background: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}`, borderRadius: 12, padding: 14, marginBottom: 10,
+        cursor: tappable ? 'pointer' : undefined,
+      }}
+    >
 
       {/* Status: processing */}
       {video.video_status === 'processing' && (
@@ -305,10 +336,15 @@ function VideoCard({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{formatDurationMMSS(dur)}</span>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={onTagClick} style={{ fontSize: 12, color: BRAND_ORANGE, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
-                {segments.length > 0 ? 'Re-tag' : 'Tag positions'}
-              </button>
-              <button onClick={onDelete} style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', background: 'none', border: 'none', cursor: 'pointer' }}>
+              {isDesktop && (
+                <button onClick={onTagClick} style={{ fontSize: 12, color: BRAND_ORANGE, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
+                  {segments.length > 0 ? 'Re-tag' : 'Tag positions'}
+                </button>
+              )}
+              <button
+                onClick={e => { e.stopPropagation(); onDelete(); }}
+                style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', background: 'none', border: 'none', cursor: 'pointer' }}
+              >
                 Remove
               </button>
             </div>
@@ -328,7 +364,7 @@ function VideoCard({
         </>
       )}
 
-      {/* Tagging mode */}
+      {/* Tagging mode (legacy inline path — superseded by portal overlay) */}
       {video.video_status === 'ready' && isTagging && playbackUrl && (
         <PositionTagger
           videoUrl={playbackUrl}
