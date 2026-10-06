@@ -5,8 +5,8 @@
 //   loading → upload progress / transcode spinner
 //   ready   → video player + position stats + "Tag positions" button
 //
-// The PositionTagger mounts in-place (below the player) when the user enters
-// tag mode — no extra modal.
+// Tagging opens a full-screen portal overlay (z-index 60) above the session
+// modal — PositionTagger is not rendered inline.
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -19,6 +19,7 @@ import {
 } from '../lib/theme.ts';
 import type { SessionVideo, PositionSegment } from '../types/api.ts';
 import PositionTagger, { POSITION_COLOR, POSITION_DEFS } from './PositionTagger.tsx';
+import type { DraftSegment } from './PositionTagger.tsx';
 
 interface Props {
   sessionId: string;
@@ -220,7 +221,7 @@ export default function SessionVideoBlock({ sessionId, sessionLabel }: Props) {
             <button
               onClick={() => setTaggingVideoId(null)}
               className="touch-manipulation"
-              style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)', background: 'none', border: 'none', cursor: 'pointer', padding: '14px 8px', minHeight: 44 }}
             >
               ‹ Done
             </button>
@@ -235,12 +236,12 @@ export default function SessionVideoBlock({ sessionId, sessionLabel }: Props) {
           </div>
 
           {/* Tagger body */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px 24px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 24px' }}>
             {taggingPlaybackUrl ? (
               <PositionTagger
                 videoUrl={taggingPlaybackUrl}
                 durationSecs={taggingDur}
-                initialSegments={segments[taggingVideoId] ?? []}
+                initialSegments={(segments[taggingVideoId] ?? []) as DraftSegment[]}
                 onSave={(segs) => saveSegments(taggingVideoId, segs)}
                 onCancel={() => setTaggingVideoId(null)}
                 saving={savingSegments}

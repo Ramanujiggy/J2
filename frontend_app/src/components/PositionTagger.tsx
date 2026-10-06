@@ -124,7 +124,7 @@ export default function PositionTagger({ videoUrl, durationSecs, initialSegments
         src={videoUrl}
         controls
         playsInline
-        style={{ width: '100%', borderRadius: 10, background: '#000', maxHeight: 280, objectFit: 'contain' }}
+        style={{ width: '100%', borderRadius: 10, background: '#000', maxHeight: 'clamp(140px, 28vh, 280px)', objectFit: 'contain' }}
       />
 
       {/* Timeline bar */}
@@ -195,20 +195,20 @@ export default function PositionTagger({ videoUrl, durationSecs, initialSegments
       <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
         <button
           onClick={() => { setSegments([]); setActivePosition(null); }}
-          style={{ flex: 1, padding: '9px 0', background: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}`, borderRadius: 8, color: 'rgba(255,255,255,0.4)', fontSize: 13, cursor: 'pointer' }}
+          style={{ flex: 1, padding: '12px 0', minHeight: 44, background: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}`, borderRadius: 8, color: 'rgba(255,255,255,0.4)', fontSize: 13, cursor: 'pointer' }}
         >
           Clear
         </button>
         <button
           onClick={onCancel}
-          style={{ flex: 1, padding: '9px 0', background: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}`, borderRadius: 8, color: 'rgba(255,255,255,0.5)', fontSize: 13, cursor: 'pointer' }}
+          style={{ flex: 1, padding: '12px 0', minHeight: 44, background: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}`, borderRadius: 8, color: 'rgba(255,255,255,0.5)', fontSize: 13, cursor: 'pointer' }}
         >
-          Cancel
+          Discard
         </button>
         <button
           onClick={handleSave}
           disabled={saving || segments.length === 0}
-          style={{ flex: 2, padding: '9px 0', background: BRAND_ORANGE, border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: segments.length === 0 ? 'not-allowed' : 'pointer', opacity: segments.length === 0 ? 0.4 : 1 }}
+          style={{ flex: 2, padding: '12px 0', minHeight: 44, background: BRAND_ORANGE, border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: segments.length === 0 ? 'not-allowed' : 'pointer', opacity: segments.length === 0 ? 0.4 : 1 }}
         >
           {saving ? 'Saving…' : 'Save tags'}
         </button>
@@ -232,6 +232,7 @@ function PositionButton({ posKey, label, sub, color, active, onTap }: {
         background: active ? `${color}22` : SURFACE_3,
         cursor: 'pointer',
         textAlign: 'left',
+        touchAction: 'manipulation',
         transition: 'border-color 0.12s, background 0.12s',
       }}
     >
