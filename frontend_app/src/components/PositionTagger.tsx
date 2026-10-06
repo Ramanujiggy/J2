@@ -116,7 +116,7 @@ export default function PositionTagger({ videoUrl, durationSecs, initialSegments
   const totalTagged = timelineSegs.reduce((acc, s) => acc + (s.end_sec - s.start_sec), 0);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minHeight: '100%' }}>
 
       {/* Video */}
       <video
@@ -128,7 +128,7 @@ export default function PositionTagger({ videoUrl, durationSecs, initialSegments
       />
 
       {/* Timeline bar */}
-      <div style={{ position: 'relative', height: 20, borderRadius: 4, overflow: 'hidden', background: 'rgba(255,255,255,0.06)' }}>
+      <div style={{ position: 'relative', height: 24, borderRadius: 4, overflow: 'hidden', background: 'rgba(255,255,255,0.10)' }}>
         {timelineSegs.map((s, i) => (
           <div key={i} style={{
             position: 'absolute',
@@ -157,15 +157,15 @@ export default function PositionTagger({ videoUrl, durationSecs, initialSegments
       )}
 
       {/* Position buttons — 3 columns: top / bottom / neutral */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 6 }}>
+      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
         {/* Column headers */}
-        <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: COPPER, paddingBottom: 2 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: COPPER, paddingBottom: 4 }}>
           Top
         </div>
-        <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: COPPER, paddingBottom: 2 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: COPPER, paddingBottom: 4 }}>
           Bottom
         </div>
-        <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: COPPER, paddingBottom: 2 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: COPPER, paddingBottom: 4 }}>
           Neutral
         </div>
 
