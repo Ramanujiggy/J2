@@ -157,7 +157,7 @@ export default function PositionTagger({ videoUrl, durationSecs, initialSegments
       )}
 
       {/* Position buttons — 3 columns: top / bottom / neutral */}
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
         {/* Column headers */}
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: COPPER, paddingBottom: 4 }}>
           Top
@@ -192,7 +192,7 @@ export default function PositionTagger({ videoUrl, durationSecs, initialSegments
       </div>
 
       {/* Clear + action row */}
-      <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+      <div style={{ display: 'flex', gap: 8, marginTop: 'auto', paddingTop: 12 }}>
         <button
           onClick={() => { setSegments([]); setActivePosition(null); }}
           style={{ flex: 1, padding: '12px 0', minHeight: 44, background: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}`, borderRadius: 8, color: 'rgba(255,255,255,0.4)', fontSize: 13, cursor: 'pointer' }}
