@@ -15,8 +15,8 @@ import { api } from '../lib/api.ts';
 import { validateVideoFile, probeVideo, extractThumbnail, formatDurationMMSS } from '../lib/videoUtils.ts';
 import { uploadToR2 } from '../lib/videoUploader.ts';
 import {
-  BRAND_ORANGE, COPPER, PALE_YELLOW, SAGE, SURFACE_2, SURFACE_3,
-  SURFACE_2_BORDER, STATUS_ERROR, CARD_BG, PAGE_BG,
+  BRAND_ORANGE, COPPER, PALE_YELLOW, SAGE, SURFACE_2,
+  SURFACE_2_BORDER, STATUS_ERROR, PAGE_BG,
 } from '../lib/theme.ts';
 import type { SessionVideo, PositionSegment } from '../types/api.ts';
 import PositionTagger, { POSITION_COLOR, POSITION_DEFS } from './PositionTagger.tsx';
