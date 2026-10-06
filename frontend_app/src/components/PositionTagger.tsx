@@ -11,21 +11,26 @@ import { BRAND_ORANGE, COPPER, PALE_YELLOW, SAGE, SURFACE_2, SURFACE_3, SURFACE_
 // ── Position taxonomy ──────────────────────────────────────────────────────
 
 export const POSITION_DEFS = [
-  // Top
-  { key: 'mount_top',            label: 'Mount',          sub: 'top',     color: '#DA7422' },
-  { key: 'side_control_top',     label: 'Side ctrl',      sub: 'top',     color: '#E8823A' },
-  { key: 'back_top',             label: 'Back',           sub: 'taking',  color: '#C4915F' },
-  { key: 'guard_passing',        label: 'Guard',          sub: 'passing', color: '#D4B86A' },
-  { key: 'half_guard_top',       label: 'Half guard',     sub: 'top',     color: '#A8B97A' },
-  // Bottom
-  { key: 'mount_bottom',         label: 'Mount',          sub: 'bottom',  color: '#5E8A5C' },
-  { key: 'side_control_bottom',  label: 'Side ctrl',      sub: 'bottom',  color: '#7BA177' },
-  { key: 'back_bottom',          label: 'Back',           sub: 'defense', color: '#4A7A78' },
-  { key: 'guard_playing',        label: 'Guard',          sub: 'playing', color: '#3A6A8A' },
-  { key: 'half_guard_bottom',    label: 'Half guard',     sub: 'bottom',  color: '#4A5A8A' },
-  // Neutral
-  { key: 'standing',             label: 'Standing',       sub: '',        color: '#7A7A5A' },
-  { key: 'scramble',             label: 'Scramble',       sub: '',        color: '#9A7A6A' },
+  // Top column
+  { key: 'mount_top',            label: 'Mount',          sub: 'top',     color: '#D45A28', col: 0 },
+  { key: 'side_control_top',     label: 'Side control',   sub: 'top',     color: '#A84488', col: 0 },
+  { key: 'back_top',             label: 'Back',           sub: 'control', color: '#C4915F', col: 0 },
+  { key: 'guard_passing',        label: 'Guard',          sub: 'passing', color: '#6A9A3A', col: 0 },
+  { key: 'half_guard_top',       label: 'Half guard',     sub: 'top',     color: '#D4A840', col: 0 },
+  { key: 'north_south_top',      label: 'North-south',    sub: 'top',     color: '#4890B0', col: 0 },
+  { key: 'knee_on_belly',        label: 'Knee on belly',  sub: 'top',     color: '#CC3A22', col: 0 },
+  // Bottom column
+  { key: 'mount_bottom',         label: 'Mount',          sub: 'bottom',  color: '#5E8A5C', col: 1 },
+  { key: 'side_control_bottom',  label: 'Side control',   sub: 'bottom',  color: '#8A4888', col: 1 },
+  { key: 'back_bottom',          label: 'Back',           sub: 'defense', color: '#4A7A78', col: 1 },
+  { key: 'guard_playing',        label: 'Guard',          sub: 'playing', color: '#2A7A5A', col: 1 },
+  { key: 'half_guard_bottom',    label: 'Half guard',     sub: 'bottom',  color: '#7A8A4A', col: 1 },
+  { key: 'north_south_bottom',   label: 'North-south',    sub: 'bottom',  color: '#4A4A9A', col: 1 },
+  { key: 'knee_on_belly_bottom', label: 'Knee on belly',  sub: 'bottom',  color: '#8A3A3A', col: 1 },
+  // Neutral column
+  { key: 'standing',             label: 'Standing',       sub: '',        color: '#7A7A5A', col: 2 },
+  { key: 'scramble',             label: 'Scramble',       sub: '',        color: '#9A7A6A', col: 2 },
+  { key: 'turtle',               label: 'Turtle',         sub: 'defense', color: '#4A7A6A', col: 2 },
 ] as const;
 
 export type PositionKey = typeof POSITION_DEFS[number]['key'];
@@ -111,7 +116,7 @@ export default function PositionTagger({ videoUrl, durationSecs, initialSegments
   const totalTagged = timelineSegs.reduce((acc, s) => acc + (s.end_sec - s.start_sec), 0);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minHeight: '100%' }}>
 
       {/* Video */}
       <video
@@ -119,11 +124,11 @@ export default function PositionTagger({ videoUrl, durationSecs, initialSegments
         src={videoUrl}
         controls
         playsInline
-        style={{ width: '100%', borderRadius: 10, background: '#000', maxHeight: 280, objectFit: 'contain' }}
+        style={{ width: '100%', borderRadius: 10, background: '#000', maxHeight: 'clamp(140px, 28vh, 280px)', objectFit: 'contain' }}
       />
 
       {/* Timeline bar */}
-      <div style={{ position: 'relative', height: 20, borderRadius: 4, overflow: 'hidden', background: 'rgba(255,255,255,0.06)' }}>
+      <div style={{ position: 'relative', height: 24, borderRadius: 4, overflow: 'hidden', background: 'rgba(255,255,255,0.10)' }}>
         {timelineSegs.map((s, i) => (
           <div key={i} style={{
             position: 'absolute',
@@ -152,58 +157,58 @@ export default function PositionTagger({ videoUrl, durationSecs, initialSegments
       )}
 
       {/* Position buttons — 3 columns: top / bottom / neutral */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 6 }}>
-        {/* Top column header */}
-        <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: COPPER, paddingBottom: 2 }}>
-          You on top
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
+        {/* Column headers */}
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: COPPER, paddingBottom: 4 }}>
+          Top
         </div>
-        <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: COPPER, paddingBottom: 2 }}>
-          You on bottom
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: COPPER, paddingBottom: 4 }}>
+          Bottom
         </div>
-        <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: COPPER, paddingBottom: 2 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: COPPER, paddingBottom: 4 }}>
           Neutral
         </div>
 
         {/* Top positions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-          {POSITION_DEFS.filter(p => p.sub === 'top' || p.sub === 'taking' || p.sub === 'passing').map(p => (
+          {POSITION_DEFS.filter(p => p.col === 0).map(p => (
             <PositionButton key={p.key} posKey={p.key} label={p.label} sub={p.sub} color={p.color} active={activePosition === p.key} onTap={tapPosition} />
           ))}
         </div>
 
         {/* Bottom positions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-          {POSITION_DEFS.filter(p => p.sub === 'bottom' || p.sub === 'defense' || p.sub === 'playing').map(p => (
+          {POSITION_DEFS.filter(p => p.col === 1).map(p => (
             <PositionButton key={p.key} posKey={p.key} label={p.label} sub={p.sub} color={p.color} active={activePosition === p.key} onTap={tapPosition} />
           ))}
         </div>
 
         {/* Neutral */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-          {POSITION_DEFS.filter(p => p.sub === '').map(p => (
-            <PositionButton key={p.key} posKey={p.key} label={p.label} sub={''} color={p.color} active={activePosition === p.key} onTap={tapPosition} />
+          {POSITION_DEFS.filter(p => p.col === 2).map(p => (
+            <PositionButton key={p.key} posKey={p.key} label={p.label} sub={p.sub} color={p.color} active={activePosition === p.key} onTap={tapPosition} />
           ))}
         </div>
       </div>
 
       {/* Clear + action row */}
-      <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+      <div style={{ display: 'flex', gap: 8, marginTop: 'auto', paddingTop: 12 }}>
         <button
           onClick={() => { setSegments([]); setActivePosition(null); }}
-          style={{ flex: 1, padding: '9px 0', background: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}`, borderRadius: 8, color: 'rgba(255,255,255,0.4)', fontSize: 13, cursor: 'pointer' }}
+          style={{ flex: 1, padding: '12px 0', minHeight: 44, background: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}`, borderRadius: 8, color: 'rgba(255,255,255,0.4)', fontSize: 13, cursor: 'pointer' }}
         >
           Clear
         </button>
         <button
           onClick={onCancel}
-          style={{ flex: 1, padding: '9px 0', background: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}`, borderRadius: 8, color: 'rgba(255,255,255,0.5)', fontSize: 13, cursor: 'pointer' }}
+          style={{ flex: 1, padding: '12px 0', minHeight: 44, background: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}`, borderRadius: 8, color: 'rgba(255,255,255,0.5)', fontSize: 13, cursor: 'pointer' }}
         >
-          Cancel
+          Discard
         </button>
         <button
           onClick={handleSave}
           disabled={saving || segments.length === 0}
-          style={{ flex: 2, padding: '9px 0', background: BRAND_ORANGE, border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: segments.length === 0 ? 'not-allowed' : 'pointer', opacity: segments.length === 0 ? 0.4 : 1 }}
+          style={{ flex: 2, padding: '12px 0', minHeight: 44, background: BRAND_ORANGE, border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: segments.length === 0 ? 'not-allowed' : 'pointer', opacity: segments.length === 0 ? 0.4 : 1 }}
         >
           {saving ? 'Saving…' : 'Save tags'}
         </button>
@@ -227,6 +232,7 @@ function PositionButton({ posKey, label, sub, color, active, onTap }: {
         background: active ? `${color}22` : SURFACE_3,
         cursor: 'pointer',
         textAlign: 'left',
+        touchAction: 'manipulation',
         transition: 'border-color 0.12s, background 0.12s',
       }}
     >

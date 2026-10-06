@@ -5,25 +5,29 @@
 //   loading → upload progress / transcode spinner
 //   ready   → video player + position stats + "Tag positions" button
 //
-// The PositionTagger mounts in-place (below the player) when the user enters
-// tag mode — no extra modal.
+// Tagging opens a full-screen portal overlay (z-index 60) above the session
+// modal — PositionTagger is not rendered inline.
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { useIsDesktop } from '../hooks/useIsDesktop.ts';
+import { createPortal } from 'react-dom';
 import { api } from '../lib/api.ts';
 import { validateVideoFile, probeVideo, extractThumbnail, formatDurationMMSS } from '../lib/videoUtils.ts';
 import { uploadToR2 } from '../lib/videoUploader.ts';
 import {
-  BRAND_ORANGE, COPPER, PALE_YELLOW, SAGE, SURFACE_2, SURFACE_3,
-  SURFACE_2_BORDER, STATUS_ERROR, CARD_BG,
+  BRAND_ORANGE, COPPER, PALE_YELLOW, SAGE, SURFACE_2,
+  SURFACE_2_BORDER, STATUS_ERROR, PAGE_BG,
 } from '../lib/theme.ts';
 import type { SessionVideo, PositionSegment } from '../types/api.ts';
 import PositionTagger, { POSITION_COLOR, POSITION_DEFS } from './PositionTagger.tsx';
+import type { DraftSegment } from './PositionTagger.tsx';
 
 interface Props {
   sessionId: string;
+  sessionLabel?: string;
 }
 
-export default function SessionVideoBlock({ sessionId }: Props) {
+export default function SessionVideoBlock({ sessionId, sessionLabel }: Props) {
   const [videos, setVideos] = useState<SessionVideo[]>([]);
   const [segments, setSegments] = useState<Record<string, PositionSegment[]>>({});
   const [loading, setLoading] = useState(true);
@@ -31,7 +35,15 @@ export default function SessionVideoBlock({ sessionId }: Props) {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [playbackUrls, setPlaybackUrls] = useState<Record<string, string>>({});
   const [taggingVideoId, setTaggingVideoId] = useState<string | null>(null);
+  const [isClosing, setIsClosing] = useState(false);
   const [savingSegments, setSavingSegments] = useState(false);
+
+  const openTagger = (videoId: string) => {
+    setIsClosing(false);
+    setTaggingVideoId(videoId);
+  };
+  const closeTagger = () => setIsClosing(true);
+  const finalizeClose = () => { setIsClosing(false); setTaggingVideoId(null); };
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -127,68 +139,146 @@ export default function SessionVideoBlock({ sessionId }: Props) {
         { segments: segs },
       );
       setSegments(prev => ({ ...prev, [videoId]: data.segments }));
-      setTaggingVideoId(null);
+      closeTagger();
     } catch { /* silent */ }
     setSavingSegments(false);
   };
 
   if (loading) return null;
 
+  // Resolve the active tagger video for the portal overlay.
+  const taggingVideo = taggingVideoId ? videos.find(v => v.id === taggingVideoId) : null;
+  const taggingPlaybackUrl = taggingVideoId ? (playbackUrls[taggingVideoId] ?? null) : null;
+  const taggingDur = taggingVideo?.video_duration_seconds ?? 0;
+
   return (
-    <div style={{ marginTop: 24 }}>
-      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: COPPER, marginBottom: 12 }}>
-        Footage
+    <>
+      <div style={{ marginTop: 24 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: COPPER, marginBottom: 12 }}>
+          Footage
+        </div>
+
+        {/* Existing videos — tagging mode is handled by the portal overlay */}
+        {videos.map(v => (
+          <VideoCard
+            key={v.id}
+            video={v}
+            playbackUrl={playbackUrls[v.id] ?? null}
+            segments={segments[v.id] ?? []}
+            isTagging={false}
+            savingSegments={false}
+            onTagClick={() => openTagger(v.id)}
+            onCancelTag={() => setTaggingVideoId(null)}
+            onSaveSegments={(segs) => saveSegments(v.id, segs)}
+            onDelete={() => deleteVideo(v.id)}
+            onRetry={async () => { await api.post(`/api/sessions/${sessionId}/videos/${v.id}/retry`, {}); loadVideos(); }}
+          />
+        ))}
+
+        {/* Upload zone */}
+        {uploadProgress !== null ? (
+          <div style={{ padding: '16px 0', textAlign: 'center' }}>
+            <div style={{ fontSize: 12, color: PALE_YELLOW, marginBottom: 6 }}>Uploading… {uploadProgress}%</div>
+            <div style={{ height: 4, background: SURFACE_2, borderRadius: 2, overflow: 'hidden' }}>
+              <div style={{ height: '100%', background: BRAND_ORANGE, width: `${uploadProgress}%`, transition: 'width 0.2s' }} />
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              width: '100%', padding: '14px 0', marginTop: videos.length > 0 ? 10 : 0,
+              background: SURFACE_2, border: `1px dashed ${SURFACE_2_BORDER}`, borderRadius: 10,
+              color: 'rgba(255,255,255,0.4)', fontSize: 13, cursor: 'pointer',
+            }}
+          >
+            + Attach footage
+          </button>
+        )}
+
+        {uploadError && <p style={{ fontSize: 12, color: STATUS_ERROR, marginTop: 6 }}>{uploadError}</p>}
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="video/*"
+          capture="environment"
+          style={{ display: 'none' }}
+          onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''; }}
+        />
       </div>
 
-      {/* Existing videos */}
-      {videos.map(v => (
-        <VideoCard
-          key={v.id}
-          video={v}
-          playbackUrl={playbackUrls[v.id] ?? null}
-          segments={segments[v.id] ?? []}
-          isTagging={taggingVideoId === v.id}
-          savingSegments={savingSegments}
-          onTagClick={() => setTaggingVideoId(v.id)}
-          onCancelTag={() => setTaggingVideoId(null)}
-          onSaveSegments={(segs) => saveSegments(v.id, segs)}
-          onDelete={() => deleteVideo(v.id)}
-          onRetry={async () => { await api.post(`/api/sessions/${sessionId}/videos/${v.id}/retry`, {}); loadVideos(); }}
-        />
-      ))}
+      {/* Full-screen tagging overlay — animated slide-up portal above the session modal */}
+      {taggingVideoId && createPortal(
+        <>
+          <style>{`
+            @keyframes taggerSlideUp   { from { transform: translateY(100%) } to { transform: translateY(0) } }
+            @keyframes taggerSlideDown { from { transform: translateY(0) }    to { transform: translateY(100%) } }
+          `}</style>
+          <div
+            data-no-page-swipe=""
+            style={{
+              position: 'fixed', inset: 0, zIndex: 60,
+              background: PAGE_BG,
+              display: 'flex', flexDirection: 'column',
+              paddingTop: 'env(safe-area-inset-top, 0px)',
+              paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+              animation: isClosing
+                ? 'taggerSlideDown 280ms ease-in forwards'
+                : 'taggerSlideUp 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
+            }}
+            onAnimationEnd={() => { if (isClosing) finalizeClose(); }}
+          >
+            {/* Session strip — tap anywhere to close and return to session */}
+            <div
+              onClick={closeTagger}
+              style={{
+                height: 52, flexShrink: 0,
+                display: 'flex', alignItems: 'center',
+                padding: '0 16px', gap: 12,
+                borderBottom: '1px solid rgba(255,255,255,0.08)',
+                cursor: 'pointer',
+              }}
+            >
+              <button
+                onClick={closeTagger}
+                className="touch-manipulation"
+                style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)', background: 'none', border: 'none', cursor: 'pointer', padding: '14px 8px', minHeight: 44 }}
+              >
+                ‹ Done
+              </button>
+              <span style={{
+                flex: 1, textAlign: 'center',
+                fontSize: 12, color: PALE_YELLOW, letterSpacing: '0.04em',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
+                {sessionLabel}
+              </span>
+              <span style={{ width: 52 }} aria-hidden />
+            </div>
 
-      {/* Upload zone */}
-      {uploadProgress !== null ? (
-        <div style={{ padding: '16px 0', textAlign: 'center' }}>
-          <div style={{ fontSize: 12, color: PALE_YELLOW, marginBottom: 6 }}>Uploading… {uploadProgress}%</div>
-          <div style={{ height: 4, background: SURFACE_2, borderRadius: 2, overflow: 'hidden' }}>
-            <div style={{ height: '100%', background: BRAND_ORANGE, width: `${uploadProgress}%`, transition: 'width 0.2s' }} />
+            {/* Tagger body */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 24px' }}>
+              {taggingPlaybackUrl ? (
+                <PositionTagger
+                  videoUrl={taggingPlaybackUrl}
+                  durationSecs={taggingDur}
+                  initialSegments={(segments[taggingVideoId] ?? []) as DraftSegment[]}
+                  onSave={(segs) => saveSegments(taggingVideoId, segs)}
+                  onCancel={closeTagger}
+                  saving={savingSegments}
+                />
+              ) : (
+                <div style={{ padding: '40px 0', textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>
+                  Loading video…
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      ) : (
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          style={{
-            width: '100%', padding: '14px 0', marginTop: videos.length > 0 ? 10 : 0,
-            background: SURFACE_2, border: `1px dashed ${SURFACE_2_BORDER}`, borderRadius: 10,
-            color: 'rgba(255,255,255,0.4)', fontSize: 13, cursor: 'pointer',
-          }}
-        >
-          + Attach footage
-        </button>
+        </>,
+        document.body
       )}
-
-      {uploadError && <p style={{ fontSize: 12, color: STATUS_ERROR, marginTop: 6 }}>{uploadError}</p>}
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="video/*"
-        capture="environment"
-        style={{ display: 'none' }}
-        onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''; }}
-      />
-    </div>
+    </>
   );
 }
 
@@ -209,10 +299,18 @@ function VideoCard({
   onDelete: () => void;
   onRetry: () => void;
 }) {
+  const isDesktop = useIsDesktop();
   const dur = video.video_duration_seconds ?? 0;
+  const tappable = !isDesktop && video.video_status === 'ready';
 
   return (
-    <div style={{ background: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}`, borderRadius: 12, padding: 14, marginBottom: 10 }}>
+    <div
+      onClick={tappable ? onTagClick : undefined}
+      style={{
+        background: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}`, borderRadius: 12, padding: 14, marginBottom: 10,
+        cursor: tappable ? 'pointer' : undefined,
+      }}
+    >
 
       {/* Status: processing */}
       {video.video_status === 'processing' && (
@@ -238,10 +336,15 @@ function VideoCard({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{formatDurationMMSS(dur)}</span>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={onTagClick} style={{ fontSize: 12, color: BRAND_ORANGE, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
-                {segments.length > 0 ? 'Re-tag' : 'Tag positions'}
-              </button>
-              <button onClick={onDelete} style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', background: 'none', border: 'none', cursor: 'pointer' }}>
+              {isDesktop && (
+                <button onClick={onTagClick} style={{ fontSize: 12, color: BRAND_ORANGE, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
+                  {segments.length > 0 ? 'Re-tag' : 'Tag positions'}
+                </button>
+              )}
+              <button
+                onClick={e => { e.stopPropagation(); onDelete(); }}
+                style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', background: 'none', border: 'none', cursor: 'pointer' }}
+              >
                 Remove
               </button>
             </div>
@@ -261,7 +364,7 @@ function VideoCard({
         </>
       )}
 
-      {/* Tagging mode */}
+      {/* Tagging mode (legacy inline path — superseded by portal overlay) */}
       {video.video_status === 'ready' && isTagging && playbackUrl && (
         <PositionTagger
           videoUrl={playbackUrl}

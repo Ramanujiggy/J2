@@ -251,7 +251,10 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                 sessionIndex={sessionIndex}
                 onNavigate={onNavigate}
               />
-              <SessionVideoBlock sessionId={session.id} />
+              <SessionVideoBlock
+                sessionId={session.id}
+                sessionLabel={[dateLabel, headingLabel].filter(Boolean).join(' · ')}
+              />
             </div>
           </div>
 
