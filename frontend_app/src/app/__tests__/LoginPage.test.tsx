@@ -1,8 +1,8 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { MemoryRouter } from 'react-router-dom';
 import { api } from '@/lib/api';
+import { renderWithProviders } from '@/test/renderWithProviders';
 import LoginPage from '../LoginPage';
 
 // The page has two "Log In" elements: the tab toggle and the submit button.
@@ -36,12 +36,7 @@ vi.mock('@/lib/api', () => ({
 
 const mockPost = vi.mocked(api.post);
 
-const renderPage = () =>
-  render(
-    <MemoryRouter>
-      <LoginPage />
-    </MemoryRouter>,
-  );
+const renderPage = () => renderWithProviders(<LoginPage />);
 
 describe('LoginPage — auth flow', () => {
   beforeEach(() => {
