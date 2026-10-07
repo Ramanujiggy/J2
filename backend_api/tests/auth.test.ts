@@ -163,14 +163,12 @@ describe('POST /auth/reset-password', () => {
   });
 
   it('returns 400 for an invalid or expired token', async () => {
-    // The controller runs the SELECT inside a transaction directly via
-    // client.query — set up the mock client to return BEGIN ok, then the
-    // SELECT yields no rows (token not found / expired), then ROLLBACK ok.
+    // The controller opens a transaction and looks the token up through the
+    // model with the transaction client — BEGIN/ROLLBACK go through mockClient,
+    // the lookup itself is the mocked model returning null.
     mockClient.query.mockReset();
-    mockClient.query
-      .mockResolvedValueOnce({ rows: [] })          // BEGIN
-      .mockResolvedValueOnce({ rows: [] })          // SELECT — token not found
-      .mockResolvedValueOnce({ rows: [] });         // ROLLBACK
+    mockClient.query.mockResolvedValue({ rows: [] });   // BEGIN / ROLLBACK
+    vi.mocked(passwordResetModel.findValidToken).mockResolvedValue(null);
 
     const res = await request(app).post('/auth/reset-password').send({ token: 'badtoken', newPassword: 'newpassword123' });
     expect(res.status).toBe(400);
@@ -180,10 +178,15 @@ describe('POST /auth/reset-password', () => {
 
   it('returns 200 and marks the token used on success', async () => {
     mockClient.query.mockReset();
-    mockClient.query
-      .mockResolvedValueOnce({ rows: [] })                                                       // BEGIN
-      .mockResolvedValueOnce({ rows: [{ id: 'token-uuid-1', user_id: TEST_USER.id! }] })          // SELECT — valid token
-      .mockResolvedValue({ rows: [] });                                                          // any subsequent (UPDATE/COMMIT)
+    mockClient.query.mockResolvedValue({ rows: [] });   // BEGIN / COMMIT
+    vi.mocked(passwordResetModel.findValidToken).mockResolvedValue({
+      id: 'token-uuid-1',
+      user_id: TEST_USER.id,
+      token: 'hashed',
+      expires_at: new Date(Date.now() + 3_600_000),
+      used: false,
+      created_at: new Date(),
+    });
     vi.mocked(userModel.updatePasswordHash).mockResolvedValue(undefined);
     vi.mocked(passwordResetModel.markTokenUsed).mockResolvedValue(undefined);
 
@@ -191,10 +194,11 @@ describe('POST /auth/reset-password', () => {
     expect(res.status).toBe(200);
     expect(res.body.message).toMatch(/updated successfully/i);
     expect(vi.mocked(passwordResetModel.markTokenUsed)).toHaveBeenCalledWith('token-uuid-1', mockClient);
-    // Verify the raw token is never sent to Postgres — only its SHA-256 hash
+    // Verify the raw token is never looked up — only its SHA-256 hash — and that
+    // the lookup runs on the transaction client with the row locked.
     const expectedHash = crypto.createHash('sha256').update('validtoken').digest('hex');
-    const selectCall = mockClient.query.mock.calls.find(c => String(c[0]).includes('SELECT id, user_id'));
-    expect(selectCall?.[1]).toEqual([expectedHash]);
+    expect(vi.mocked(passwordResetModel.findValidToken)).toHaveBeenCalledWith(expectedHash, mockClient, true);
+    expect(mockClient.query).toHaveBeenCalledWith('COMMIT');
     expect(mockClient.release).toHaveBeenCalled();
   });
 });
