@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-25T19:37:41.850Z",
+  "generatedAt": "2026-10-07T01:41:58.917Z",
   "apiRoutes": [
     {
       "method": "GET",
@@ -111,6 +111,13 @@
       "path": "/api/belt-history/",
       "file": "routes/beltHistoryRoutes.ts",
       "handler": "createBeltHistory",
+      "auth": "user"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/belt-history/:id",
+      "file": "routes/beltHistoryRoutes.ts",
+      "handler": "updateBeltHistoryNotes",
       "auth": "user"
     },
     {
@@ -342,6 +349,62 @@
       "path": "/api/sessions/search",
       "file": "routes/sessionRoutes.ts",
       "handler": "searchSessionsHandler",
+      "auth": "user"
+    },
+    {
+      "method": "GET",
+      "path": "/api/sessions/:sessionId/videos/",
+      "file": "routes/sessionVideoRoutes.ts",
+      "handler": "listVideos",
+      "auth": "user"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/sessions/:sessionId/videos/:videoId",
+      "file": "routes/sessionVideoRoutes.ts",
+      "handler": "deleteVideo",
+      "auth": "user"
+    },
+    {
+      "method": "POST",
+      "path": "/api/sessions/:sessionId/videos/:videoId/retry",
+      "file": "routes/sessionVideoRoutes.ts",
+      "handler": "retryVideoTranscode",
+      "auth": "user"
+    },
+    {
+      "method": "GET",
+      "path": "/api/sessions/:sessionId/videos/:videoId/segments",
+      "file": "routes/sessionVideoRoutes.ts",
+      "handler": "getSegments",
+      "auth": "user"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/sessions/:sessionId/videos/:videoId/segments",
+      "file": "routes/sessionVideoRoutes.ts",
+      "handler": "saveSegments",
+      "auth": "user"
+    },
+    {
+      "method": "POST",
+      "path": "/api/sessions/:sessionId/videos/:videoId/upload-complete",
+      "file": "routes/sessionVideoRoutes.ts",
+      "handler": "completeVideoUpload",
+      "auth": "user"
+    },
+    {
+      "method": "GET",
+      "path": "/api/sessions/:sessionId/videos/:videoId/url",
+      "file": "routes/sessionVideoRoutes.ts",
+      "handler": "getVideoPlaybackUrl",
+      "auth": "user"
+    },
+    {
+      "method": "POST",
+      "path": "/api/sessions/:sessionId/videos/upload-url",
+      "file": "routes/sessionVideoRoutes.ts",
+      "handler": "mintVideoUploadUrl",
       "auth": "user"
     },
     {
@@ -587,14 +650,6 @@
       "title": "024: Fix CLA session_type CHECK constraint"
     },
     {
-      "file": "024_grant_founder_admin.sql",
-      "title": "024: Grant admin to founder"
-    },
-    {
-      "file": "025_cleanup_test_users.sql",
-      "title": "025: Cleanup accumulated test users."
-    },
-    {
       "file": "025_gi_nogi_both.sql",
       "title": "025: Widen gi_nogi CHECK constraints to allow 'both'"
     },
@@ -603,20 +658,12 @@
       "title": "026: Onboarding funnel step"
     },
     {
-      "file": "027_notification_sends.sql",
-      "title": "027: Notification send ledger"
-    },
-    {
       "file": "027_technique_affinity_resonance.sql",
       "title": "027: Technique Library v1 — affinity + cumulative resonance journal."
     },
     {
       "file": "028_video_cloud_storage.sql",
       "title": "028: Video cloud storage — Cloudflare R2 + server-side transcoding."
-    },
-    {
-      "file": "028_widen_enum_check_helper.sql",
-      "title": "028: widen_enum_check() helper"
     },
     {
       "file": "029_class_attendance.sql",
@@ -653,6 +700,34 @@
     {
       "file": "037_stamp_session_id.sql",
       "title": "Ties a struck stamp to a specific session, so a die (Boa, and future dies)"
+    },
+    {
+      "file": "038_belt_history_unique_position.sql",
+      "title": "A promotion is a position on the ladder (rank + stripes), and a person"
+    },
+    {
+      "file": "039_belt_history_session_link.sql",
+      "title": "A promotion is its own journal entry (its `notes` are the user's words"
+    },
+    {
+      "file": "040_session_videos.sql",
+      "title": "040: Session videos + position segments."
+    },
+    {
+      "file": "041_grant_founder_admin.sql",
+      "title": "041: Grant admin to founder"
+    },
+    {
+      "file": "042_cleanup_test_users.sql",
+      "title": "042: Cleanup accumulated test users."
+    },
+    {
+      "file": "043_notification_sends.sql",
+      "title": "043: Notification send ledger"
+    },
+    {
+      "file": "044_widen_enum_check_helper.sql",
+      "title": "044: widen_enum_check() helper"
     }
   ],
   "models": [
@@ -687,6 +762,11 @@
         },
         {
           "name": "notes",
+          "optional": false,
+          "type": "string | null"
+        },
+        {
+          "name": "session_id",
           "optional": false,
           "type": "string | null"
         },
@@ -1122,6 +1202,11 @@
       "name": "Profile",
       "file": "models/profileModel.ts",
       "fields": [
+        {
+          "name": "email",
+          "optional": false,
+          "type": "string"
+        },
         {
           "name": "name",
           "optional": false,
@@ -1562,6 +1647,128 @@
           "name": "offset",
           "optional": true,
           "type": "number"
+        }
+      ]
+    },
+    {
+      "name": "PositionSegment",
+      "file": "models/sessionVideoModel.ts",
+      "fields": [
+        {
+          "name": "id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "video_id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "user_id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "start_sec",
+          "optional": false,
+          "type": "number"
+        },
+        {
+          "name": "end_sec",
+          "optional": false,
+          "type": "number"
+        },
+        {
+          "name": "position_label",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "source",
+          "optional": false,
+          "type": "'manual' | 'model'"
+        },
+        {
+          "name": "confirmed",
+          "optional": false,
+          "type": "boolean"
+        },
+        {
+          "name": "created_at",
+          "optional": false,
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "SessionVideo",
+      "file": "models/sessionVideoModel.ts",
+      "fields": [
+        {
+          "name": "id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "session_id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "user_id",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "created_at",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "video_status",
+          "optional": false,
+          "type": "VideoStatus | null"
+        },
+        {
+          "name": "video_storage_key",
+          "optional": false,
+          "type": "string | null"
+        },
+        {
+          "name": "video_raw_storage_key",
+          "optional": false,
+          "type": "string | null"
+        },
+        {
+          "name": "video_byte_size",
+          "optional": false,
+          "type": "number | null"
+        },
+        {
+          "name": "video_status_message",
+          "optional": false,
+          "type": "string | null"
+        },
+        {
+          "name": "video_processing_started_at",
+          "optional": false,
+          "type": "string | null"
+        },
+        {
+          "name": "video_thumbnail",
+          "optional": false,
+          "type": "string | null"
+        },
+        {
+          "name": "video_duration_seconds",
+          "optional": false,
+          "type": "number | null"
+        },
+        {
+          "name": "video_notes",
+          "optional": false,
+          "type": "string | null"
         }
       ]
     },

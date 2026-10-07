@@ -1,4 +1,8 @@
--- 025: Cleanup accumulated test users.
+-- 042: Cleanup accumulated test users.
+--
+-- Renumbered from 025 (that number was used twice; see RENAMED_MIGRATIONS in
+-- src/app.ts). A one-time data cleanup with no schema dependants, so applying
+-- it later is equivalent — in a fresh database it matches zero rows.
 --
 -- Background: every Playwright spec used to call freshEmail() which
 -- generated a brand-new email per run (csv-{project}-{ts}{rand}

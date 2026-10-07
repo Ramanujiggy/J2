@@ -1,4 +1,7 @@
--- 028: widen_enum_check() helper
+-- 044: widen_enum_check() helper
+--
+-- Renumbered from 028 (that number was used twice; see RENAMED_MIGRATIONS in
+-- src/app.ts). The function has no callers yet, so apply position is free.
 --
 -- Installs a reusable PL/pgSQL function that captures the defensive
 -- "drop every plausible name + re-add canonical" pattern that migrations
@@ -79,4 +82,4 @@ END;
 $$ LANGUAGE plpgsql;
 
 COMMENT ON FUNCTION widen_enum_check(TEXT, TEXT, TEXT[], BOOLEAN) IS
-    'Defensively drop+re-add a single-column enum CHECK constraint. See mig 028.';
+    'Defensively drop+re-add a single-column enum CHECK constraint. See mig 044.';

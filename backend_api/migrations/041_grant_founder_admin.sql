@@ -1,4 +1,8 @@
--- 024: Grant admin to founder
+-- 041: Grant admin to founder
+--
+-- Renumbered from 024 (that number was used twice; see RENAMED_MIGRATIONS in
+-- src/app.ts). Dependency-free beyond users.is_admin from migration 023, so
+-- applying it later in a fresh database is equivalent.
 --
 -- One-time seed migration that flips users.is_admin = true for the founder's
 -- account. Idempotent — re-running is a no-op (WHERE matches exactly one

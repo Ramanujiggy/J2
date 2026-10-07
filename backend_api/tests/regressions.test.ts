@@ -187,8 +187,8 @@ describeRegressions('Regression tests (real-DB, mig 024 + 025 + 027 + 028 + 029)
     }
   }, 30_000);
 
-  // ── mig 027 — notification_sends ledger CHECK constraints ─────────────────
-  it('accepts valid status + category values into notification_sends (mig 027)', async () => {
+  // ── mig 043 — notification_sends ledger CHECK constraints ─────────────────
+  it('accepts valid status + category values into notification_sends (mig 043)', async () => {
     const userId = await createTestUser(pool);
     try {
       const inserted = await pool.query(
@@ -205,7 +205,7 @@ describeRegressions('Regression tests (real-DB, mig 024 + 025 + 027 + 028 + 029)
     }
   }, 30_000);
 
-  it('rejects bad status into notification_sends (mig 027 CHECK)', async () => {
+  it('rejects bad status into notification_sends (mig 043 CHECK)', async () => {
     const userId = await createTestUser(pool);
     try {
       await expect(

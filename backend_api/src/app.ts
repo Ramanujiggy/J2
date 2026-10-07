@@ -25,7 +25,8 @@ import trainingNoteRoutes from './routes/trainingNoteRoutes.js';
 import stampRoutes from './routes/stampRoutes.js';
 import sessionVideoRoutes from './routes/sessionVideoRoutes.js';
 // db import triggers pool connection test on startup
-import { query } from './config/db.js';
+import pool, { query } from './config/db.js';
+import { RENAMED_MIGRATIONS } from './config/migrationRenames.js';
 
 dotenv.config();
 
@@ -46,9 +47,41 @@ if (!process.env.FRONTEND_URL) {
 // Runs numbered SQL files from /migrations/ in order, tracking applied state
 // in a schema_migrations table. Also ensures password_reset_tokens exists
 // (legacy inline migration kept for backward compatibility).
+//
+// Three invariants this runner must hold:
+//   1. It completes BEFORE the server accepts traffic (see server.ts) — a
+//      request must never hit a half-current schema.
+//   2. Any failure exits the process with code 1. Serving against a broken
+//      schema while Railway reports the deploy green is worse than no deploy.
+//   3. Each migration file runs in its own transaction. A multi-statement
+//      file that fails halfway must leave zero partial state, otherwise the
+//      next boot replays it from the top against an already-changed DB.
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = path.resolve(__dirname, '..', 'migrations');
+
+/**
+ * Apply one migration file atomically: the SQL and its `schema_migrations`
+ * bookkeeping row commit together or not at all. Takes a dedicated client
+ * because transactions are per-connection and the shared `query` helper
+ * checks a connection out of the pool per call.
+ */
+async function applyMigration(file: string, sql: string): Promise<void> {
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        await client.query(sql);
+        await client.query('INSERT INTO schema_migrations (name) VALUES ($1)', [file]);
+        await client.query('COMMIT');
+    } catch (err) {
+        // Best-effort rollback: if the connection itself is already broken the
+        // ROLLBACK will fail too, and the original error is the useful one.
+        await client.query('ROLLBACK').catch(() => undefined);
+        throw err;
+    } finally {
+        client.release();
+    }
+}
 
 async function runMigrations() {
     try {
@@ -96,6 +129,19 @@ async function runMigrations() {
             }
         }
 
+        // Renumbered files: mark the new name as applied wherever the old name
+        // already is, so a renumber never replays SQL. Must happen before the
+        // applied set is read below. The old rows are left in place as a
+        // historical record of what this database actually ran.
+        for (const [oldName, newName] of RENAMED_MIGRATIONS) {
+            await query(
+                `INSERT INTO schema_migrations (name)
+                 SELECT $1 WHERE EXISTS (SELECT 1 FROM schema_migrations WHERE name = $2)
+                 ON CONFLICT DO NOTHING`,
+                [newName, oldName],
+            );
+        }
+
         // Find and run numbered migrations
         if (!fs.existsSync(MIGRATIONS_DIR)) {
             console.log('✅ Migrations complete (no migrations directory)');
@@ -113,8 +159,7 @@ async function runMigrations() {
         for (const file of files) {
             if (appliedSet.has(file)) continue;
             const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, file), 'utf-8');
-            await query(sql);
-            await query('INSERT INTO schema_migrations (name) VALUES ($1)', [file]);
+            await applyMigration(file, sql);
             console.log(`  ✅ Applied migration: ${file}`);
             newCount++;
         }
@@ -123,7 +168,11 @@ async function runMigrations() {
             ? `✅ Migrations complete (${newCount} new)`
             : '✅ Migrations complete (all up to date)');
     } catch (err) {
-        console.error('❌ Migration failed:', err);
+        // Fail loud and stop. Returning here would leave the app serving
+        // against a schema it does not match, and the platform would report
+        // the deploy as healthy.
+        console.error('❌ Migration failed — refusing to start:', err);
+        process.exit(1);
     }
 }
 

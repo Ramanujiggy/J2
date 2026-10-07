@@ -1,4 +1,8 @@
--- 027: Notification send ledger
+-- 043: Notification send ledger
+--
+-- Renumbered from 027 (that number was used twice; see RENAMED_MIGRATIONS in
+-- src/app.ts). No migration reads notification_sends, and the scheduler only
+-- touches it at runtime, so applying it later is equivalent.
 --
 -- Logs every web-push send attempt — success, gone (410/404), or other error
 -- — so the scheduler is observable without ad-hoc DB queries. Answers the
