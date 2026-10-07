@@ -1,7 +1,7 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
-import { MemoryRouter } from 'react-router-dom';
 import { api } from '@/lib/api';
+import { renderWithProviders } from '@/test/renderWithProviders';
 import PathAheadPage from '../PathAheadPage';
 
 // ── Module mocks ────────────────────────────────────────────────────────────
@@ -57,11 +57,7 @@ afterEach(() => {
 // Render at /home — RepRouletteFab is route-gated (returns null off /home)
 // so the FAB tests below need this initial entry.
 const renderPage = () =>
-  render(
-    <MemoryRouter initialEntries={['/home']}>
-      <PathAheadPage />
-    </MemoryRouter>,
-  );
+  renderWithProviders(<PathAheadPage />, { routerProps: { initialEntries: ['/home'] } });
 
 // Page-level horizontal swipe-to-navigate was retired (the file used to be
 // named PathAheadPage.swipe.test.tsx and tested gestures on <main>). Week-
