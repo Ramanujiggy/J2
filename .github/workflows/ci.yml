@@ -18,6 +18,23 @@ jobs:
     defaults:
       run:
         working-directory: backend_api
+    # A throwaway Postgres so the real-DB regression suite actually runs. The
+    # suite applies its own migrations (applyMigrations), so an empty DB is
+    # enough. Without this, the suite's prod-safety guard trips and it skips
+    # silently while the job still reports green (JOU-25).
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: journada_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
 
@@ -31,12 +48,19 @@ jobs:
       # skips the Windows-only native binding cleanly on Linux.
       - run: npm ci
 
-      # `npm run build` is `tsc`, but we run tsc on its own so a type error is
-      # reported as a type error, not buried in a build log.
-      - name: Typecheck
-        run: npx tsc --noEmit
+      # The command CLAUDE.md names as the deploy-breaking risk. `npm run build`
+      # is `build:architecture && tsc`: it regenerates data/architecture-manifest.json
+      # and type-checks by emitting. Railway runs this on deploy; gating it here is
+      # the whole point — a broken build must be a red job, not silent old code.
+      - name: Build
+        run: npm run build
 
-      # !cancelled() so a failing typecheck does not hide the test results.
+      # build:architecture is a generator. If its committed output is stale, the
+      # tree is now dirty — turn that drift into a red job instead of silence.
+      - name: Architecture manifest is current
+        run: git diff --exit-code -- data/architecture-manifest.json
+
+      # !cancelled() so a failing build does not hide the test results.
       # Both steps still fail the job.
       - name: Tests
         if: ${{ !cancelled() }}
@@ -67,3 +91,9 @@ jobs:
       - name: Tests
         if: ${{ !cancelled() }}
         run: npx vitest run
+
+      # e2e (`npm run e2e` = playwright test, specs under frontend_app/playwright/)
+      # is intentionally local-only and runs in no CI job: it needs browsers plus a
+      # live frontend + backend + DB to drive, which this lint/test CI does not stand
+      # up. The specs were excluded from vitest in b00a75d (they crash it). Wiring a
+      # dedicated e2e job is tracked as a follow-up, not a silent gap.
