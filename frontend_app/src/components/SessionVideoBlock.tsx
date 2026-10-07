@@ -105,7 +105,7 @@ export default function SessionVideoBlock({ sessionId, sessionLabel }: Props) {
         { content_type: file.type, ext },
       );
 
-      await uploadToR2(mint.uploadUrl, file, file.type, (pct) => setUploadProgress(Math.round(pct * 100)));
+      await uploadToR2(mint.uploadUrl, file, file.type, (p) => setUploadProgress(p.percent));
 
       await api.post(`/api/sessions/${sessionId}/videos/${mint.videoId}/upload-complete`, {
         raw_storage_key: mint.storageKey,

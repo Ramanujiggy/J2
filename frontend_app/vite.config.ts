@@ -35,6 +35,19 @@ export default defineConfig({
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Stable vendor chunks — browsers cache these across deploys until
+          // the library version changes, cutting repeat-visit bundle download.
+          'vendor-react':  ['react', 'react-dom', 'react-router-dom'],
+          'vendor-motion': ['framer-motion'],
+          'vendor-gsap':   ['gsap'],
+        },
+      },
+    },
+  },
   server: {
     port: 3000,
     // proxy API calls to the backend so CORS is not an issue in dev
