@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import CaptureComposer from '../CaptureComposer.tsx';
 
 const postMock = vi.fn().mockResolvedValue({ message: 'Session logged.', session_count: 12 });
@@ -41,6 +42,18 @@ vi.mock('@/hooks/useSpeechTranscript', () => ({
   }),
 }));
 
+const ENTRY_PLACEHOLDER =
+  'What would you like to remember about this session? Type @ to tag a partner.';
+
+// CaptureComposer always mounts SealRevealSheet, which calls useNavigate() — so
+// it needs a router in the tree even though these tests never navigate.
+const renderComposer = (onSuccess: (count?: number) => void) =>
+  render(
+    <MemoryRouter>
+      <CaptureComposer onSuccess={onSuccess} />
+    </MemoryRouter>,
+  );
+
 describe('CaptureComposer', () => {
   beforeEach(() => {
     postMock.mockClear();
@@ -51,20 +64,18 @@ describe('CaptureComposer', () => {
     speechState.transcript = '';
   });
 
-  it('write path: sheet → page → receipt → seal posts a complete session row', async () => {
+  it('write path: sheet → page → save posts a complete session row', async () => {
     const onSuccess = vi.fn();
-    render(<CaptureComposer onSuccess={onSuccess} />);
+    renderComposer(onSuccess);
 
     // Sheet (no schedules mocked → quiet card, speech unsupported → Write CTA)
-    fireEvent.click(await screen.findByText('Write your entry'));
+    fireEvent.click(await screen.findByText('Write your journal'));
 
-    // Page — type an entry that mentions a known technique
-    const box = screen.getByPlaceholderText('What do you want to remember about tonight?');
+    // Page — write the entry and save. There is no longer a Continue/receipt
+    // step between the page and the write: MarginNotesEntry saves directly.
+    const box = screen.getByPlaceholderText(ENTRY_PLACEHOLDER);
     fireEvent.change(box, { target: { value: 'hit the arm weave twice tonight' } });
-    fireEvent.click(screen.getByText('Continue →'));
-
-    // Chip was extracted and pre-confirmed → receipt shows; seal
-    fireEvent.click(screen.getByText('Seal the entry'));
+    fireEvent.click(screen.getByText('◈ Save entry'));
 
     await waitFor(() => expect(postMock).toHaveBeenCalledTimes(1));
     const [url, body] = postMock.mock.calls[0] as [string, Record<string, unknown>];
@@ -79,57 +90,67 @@ describe('CaptureComposer', () => {
     expect(body.session_type).toBe('class');
     expect(body.intensity).toBe(3);          // untouched default
     expect(body.notes).toBe('hit the arm weave twice tonight');
-    expect(body.user_tag_ids).toEqual(['u1']);
-    expect(body.tags).toEqual(['passing']);
-    expect(body.heading).toBe('passing');
-    expect(body.polarity).toBeNull();
-    expect(body.sub_skill_tag).toBe('');
-    expect(body.script_source).toBeNull();
-    expect(body.canonical_position_ids).toEqual([]);
-    expect(body.pillar_distribution).toEqual({ passing: 1 });
-    expect(body.had_primary).toBe(true);
+
+    // Techniques and prism focus are now chosen explicitly (TagPicker /
+    // PrismFocusInput), never inferred from the entry text — so a write that
+    // only types prose carries no pillars. `extractChips` is no longer wired
+    // into any capture surface; src/lib/__tests__/chipExtraction.test.ts still
+    // covers the module itself.
+    expect(body.tags).toEqual([]);
+    expect(body.heading).toBeNull();
+    expect(body.had_primary).toBe(false);
     expect(body.had_deep_work).toBe(false);
-    expect(body.selection_count).toBe(1);
+    expect(body.selection_count).toBe(0);
     expect(body.deep_work_pillars).toEqual([]);
-    expect(body.canonical_constraint_ids).toEqual([]);
-    expect(body.user_constraint_ids).toEqual([]);
-    expect(body.partners).toEqual([]);
+
+    // buildSessionPayload omits untouched optionals (`nonEmpty` / `?? undefined`)
+    // rather than sending empty arrays or explicit nulls, so an entry that never
+    // touched the margin-notes band leaves these keys off the body entirely.
+    expect(body.pillar_distribution).toBeUndefined();
+    expect(body.user_tag_ids).toBeUndefined();
+    expect(body.polarity).toBeUndefined();
+    expect(body.sub_skill_tag).toBeUndefined();
+    expect(body.script_source).toBeUndefined();
+    expect(body.canonical_position_ids).toBeUndefined();
+    expect(body.canonical_constraint_ids).toBeUndefined();
+    expect(body.user_constraint_ids).toBeUndefined();
+    expect(body.partners).toBeUndefined();
     await waitFor(() => expect(onSuccess).toHaveBeenCalledWith(12));
   });
 
-  it('re-extraction on Continue preserves a user un-confirmation instead of re-seeding it (F1)', async () => {
+  // Replaces the old "re-extraction on Continue preserves a user un-confirmation
+  // (F1)" case. That test drove a chip-extraction/receipt step that no longer
+  // exists: the composer stopped auto-seeding technique chips from the entry text
+  // (`extractChips` has no callers), and MarginNotesEntry saves straight from the
+  // page. What is still worth covering on the voice route is that the transcript
+  // survives the record → page handoff and lands in `notes`.
+  it('voice path: sheet → record → page carries the transcript into notes', async () => {
     speechState.supported = true;
     const onSuccess = vi.fn();
-    render(<CaptureComposer onSuccess={onSuccess} />);
+    renderComposer(onSuccess);
 
-    // Sheet — speech supported, so the primary CTA is "Speak"
-    fireEvent.click(await screen.findByText(/Speak your entry/));
+    // Sheet — one CTA whose label flips on speech support (ComposerSheet)
+    fireEvent.click(await screen.findByText(/Journal using voice/));
 
-    // Record stage — stop immediately; extraction #1 fires from the stub's
-    // fixed transcript and pre-confirms the "Arm Weave" user-tag chip.
+    // Record stage — stop immediately; the stub's fixed transcript is in hand.
     fireEvent.click(screen.getByLabelText('Stop recording'));
 
-    // Page — the chip is offered and pre-confirmed; un-confirm it by hand.
-    const chip = await screen.findByRole('button', { name: /Arm Weave/ });
-    expect(chip).toHaveAttribute('aria-pressed', 'true');
-    fireEvent.click(chip);
-    expect(chip).toHaveAttribute('aria-pressed', 'false');
+    // Page — the textarea is pre-filled with what was said.
+    const box = await screen.findByPlaceholderText(ENTRY_PLACEHOLDER);
+    expect(box).toHaveValue('worked the arm weave');
 
-    // Continue re-runs extraction on the same (unedited) text — the merge
-    // must keep the user's un-confirm instead of re-seeding the chip.
-    fireEvent.click(screen.getByText('Continue →'));
-
-    fireEvent.click(screen.getByText('Seal the entry'));
+    fireEvent.click(screen.getByText('◈ Save entry'));
 
     await waitFor(() => expect(postMock).toHaveBeenCalledTimes(1));
     const [, body] = postMock.mock.calls[0] as [string, Record<string, unknown>];
-    expect(body.user_tag_ids).toEqual([]);
+    expect(body.notes).toBe('worked the arm weave');
+    expect(body.user_tag_ids).toBeUndefined();
     expect(body.tags).toEqual([]);
   });
 
   it('mark-attended double-tap fires exactly one save (F3)', async () => {
     const onSuccess = vi.fn();
-    render(<CaptureComposer onSuccess={onSuccess} />);
+    renderComposer(onSuccess);
 
     const btn = await screen.findByText('Just mark attended ✓');
     fireEvent.click(btn);
@@ -143,7 +164,7 @@ describe('CaptureComposer', () => {
   // zero-chip escape hatch must post a genuinely empty, complete session row.
   it('zero-chip mark-attended posts an empty-tags session with kernel defaults', async () => {
     const onSuccess = vi.fn();
-    render(<CaptureComposer onSuccess={onSuccess} />);
+    renderComposer(onSuccess);
 
     fireEvent.click(await screen.findByText('Just mark attended ✓'));
 
@@ -152,7 +173,7 @@ describe('CaptureComposer', () => {
     expect(url).toBe('/api/sessions');
     expect(body.tags).toEqual([]);
     expect(body.heading).toBeNull();
-    expect(body.user_tag_ids).toEqual([]);
+    expect(body.user_tag_ids).toBeUndefined();  // serializer omits empty arrays
     expect(body.notes).toBe('');
     expect(body.duration).toBe(60);   // kernel default — no schedule
     expect(body.gi_nogi).toBe('gi');
@@ -168,13 +189,12 @@ describe('CaptureComposer', () => {
   it('offline save queues the entry and calls onSuccess(undefined) instead of erroring', async () => {
     postMock.mockResolvedValueOnce({ message: 'Queued for sync.', _offline: true });
     const onSuccess = vi.fn();
-    render(<CaptureComposer onSuccess={onSuccess} />);
+    renderComposer(onSuccess);
 
-    fireEvent.click(await screen.findByText('Write your entry'));
-    const box = screen.getByPlaceholderText('What do you want to remember about tonight?');
+    fireEvent.click(await screen.findByText('Write your journal'));
+    const box = screen.getByPlaceholderText(ENTRY_PLACEHOLDER);
     fireEvent.change(box, { target: { value: 'hit the arm weave twice tonight' } });
-    fireEvent.click(screen.getByText('Continue →'));
-    fireEvent.click(screen.getByText('Seal the entry'));
+    fireEvent.click(screen.getByText('◈ Save entry'));
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalledWith(undefined));
     expect(postMock).toHaveBeenCalledTimes(1);

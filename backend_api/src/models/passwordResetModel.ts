@@ -29,10 +29,17 @@ export const createResetToken = async (
     );
 };
 
-// look up a token only if it exists, is not expired, and has not been used
-export const findValidToken = async (token: string, exec: Executor | PoolClient = defaultExec): Promise<PasswordResetToken | null> => {
+// look up a token only if it exists, is not expired, and has not been used.
+// Pass forUpdate inside a transaction to lock the row, so two concurrent resets
+// with the same link cannot both pass this check.
+export const findValidToken = async (
+    token: string,
+    exec: Executor | PoolClient = defaultExec,
+    forUpdate = false
+): Promise<PasswordResetToken | null> => {
     const result = await exec.query(
-        'SELECT * FROM password_reset_tokens WHERE token = $1 AND used = false AND expires_at > NOW()',
+        'SELECT id, user_id, token, expires_at, used, created_at FROM password_reset_tokens WHERE token = $1 AND used = false AND expires_at > NOW()'
+        + (forUpdate ? ' FOR UPDATE' : ''),
         [token]
     );
     return (result.rows[0] as PasswordResetToken | undefined) ?? null;

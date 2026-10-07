@@ -1,0 +1,69 @@
+name: CI
+
+# Every push and every PR. No path filters — a change in one package can break
+# the other through the shared API types in frontend_app/src/types/api.ts.
+on:
+  push:
+  pull_request:
+
+# A new push to the same branch cancels the previous run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: backend_api
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend_api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend_api/package-lock.json
+
+      # package.json marks @rolldown/binding-win32-x64-msvc optional, so this
+      # skips the Windows-only native binding cleanly on Linux.
+      - run: npm ci
+
+      # `npm run build` is `tsc`, but we run tsc on its own so a type error is
+      # reported as a type error, not buried in a build log.
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      # !cancelled() so a failing typecheck does not hide the test results.
+      # Both steps still fail the job.
+      - name: Tests
+        if: ${{ !cancelled() }}
+        run: npx vitest run
+
+  frontend:
+    name: frontend_app
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend_app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend_app/package-lock.json
+
+      - run: npm ci
+
+      # Critical: `npm run build` is `vite build`, which does NOT typecheck.
+      # Without this step a type error ships to production unseen.
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Tests
+        if: ${{ !cancelled() }}
+        run: npx vitest run

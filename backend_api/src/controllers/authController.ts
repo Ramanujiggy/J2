@@ -4,6 +4,7 @@ import type { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import pool from '../config/db.js';
 import * as userModel from '../models/userModel.js';
 import * as passwordResetModel from '../models/passwordResetModel.js';
 import { sendPasswordResetEmail } from '../services/emailService.js';
@@ -168,19 +169,34 @@ export const resetPassword = async (req: Request, res: Response) => {
             return res.status(400).json({ message: 'Password must be at least 8 characters.' });
         }
 
-        const resetToken = await passwordResetModel.findValidToken(hashToken(token));
-        if (!resetToken) {
-            return res.status(400).json({ message: 'This reset link is invalid or has expired.' });
+        // Transaction: locks the token row with FOR UPDATE so two requests carrying
+        // the same reset link serialise. Without it both could read the token as
+        // unused, and a failure after the password write would leave a live link.
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+
+            const resetToken = await passwordResetModel.findValidToken(hashToken(token), client, true);
+            if (!resetToken) {
+                await client.query('ROLLBACK');
+                return res.status(400).json({ message: 'This reset link is invalid or has expired.' });
+            }
+
+            const saltRounds = 12;
+            const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+            await userModel.updatePasswordHash(resetToken.user_id, hashedPassword, client);
+            await passwordResetModel.markTokenUsed(resetToken.id, client);
+
+            await client.query('COMMIT');
+            console.log('✅ Password reset successfully for user:', resetToken.user_id);
+            return res.status(200).json({ message: 'Password updated successfully.' });
+        } catch (txErr) {
+            await client.query('ROLLBACK').catch(() => {});
+            throw txErr;
+        } finally {
+            client.release();
         }
-
-        const saltRounds = 12;
-        const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
-
-        await userModel.updatePasswordHash(resetToken.user_id, hashedPassword);
-        await passwordResetModel.markTokenUsed(resetToken.id);
-
-        console.log('✅ Password reset successfully for user:', resetToken.user_id);
-        return res.status(200).json({ message: 'Password updated successfully.' });
 
     } catch (error) {
         console.error('❌ Error during password reset:', error);
