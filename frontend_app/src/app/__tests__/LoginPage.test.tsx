@@ -101,7 +101,9 @@ describe('LoginPage — auth flow', () => {
     );
   });
 
-  it('registers then auto-logs in and navigates to /home', async () => {
+  // Brand-new accounts go to the guided onboarding flow, not straight to /home
+  // (LoginPage: `navigate(wasRegister ? '/onboarding/name' : '/home')`).
+  it('registers then auto-logs in and navigates to onboarding', async () => {
     mockPost
       .mockResolvedValueOnce({ message: 'User registered successfully.' })
       .mockResolvedValueOnce({ token: 'newtoken', message: 'ok' });
@@ -120,7 +122,7 @@ describe('LoginPage — auth flow', () => {
         email: 'new@test.com',
         password: 'newpass',
       });
-      expect(mockNavigate).toHaveBeenCalledWith('/home');
+      expect(mockNavigate).toHaveBeenCalledWith('/onboarding/name');
     });
   });
 
@@ -132,7 +134,7 @@ describe('LoginPage — auth flow', () => {
     await user.type(screen.getByPlaceholderText(/you@example\.com/i), 'user@test.com');
     await user.click(screen.getByRole('button', { name: /send reset link/i }));
     await waitFor(() =>
-      expect(screen.getByText(/reset link has been sent/i)).toBeInTheDocument(),
+      expect(screen.getByText(/a reset link is on its way/i)).toBeInTheDocument(),
     );
   });
 });

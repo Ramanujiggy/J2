@@ -88,9 +88,12 @@ describe('PathAheadPage — Rep Roulette FAB', () => {
     // Advance past the morph animation timeout (380ms)
     vi.advanceTimersByTime(400);
 
+    // The card's own heading (the FAB itself carries only an aria-label), plus
+    // the swipe affordance that sits under the drill. The old "Log this drill →"
+    // CTA was removed from RepRouletteFab — the card no longer logs directly.
     await waitFor(() => {
       expect(screen.getByText('Rep Roulette')).toBeInTheDocument();
-      expect(screen.getByText('Log this drill →')).toBeInTheDocument();
+      expect(screen.getByText('← swipe →')).toBeInTheDocument();
     });
   });
 
