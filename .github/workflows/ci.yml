@@ -62,8 +62,14 @@ jobs:
 
       # !cancelled() so a failing build does not hide the test results.
       # Both steps still fail the job.
+      #
+      # TEST_DATABASE_URL points at the postgres service above so the real-DB
+      # regression suite runs instead of silently skipping (JOU-25). The suite
+      # also hard-fails in CI if this is ever unset (see regressions.test.ts).
       - name: Tests
         if: ${{ !cancelled() }}
+        env:
+          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/journada_test
         run: npx vitest run
 
   frontend:

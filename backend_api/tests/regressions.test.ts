@@ -73,6 +73,25 @@ const isSafeToRun =
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = path.resolve(__dirname, '..', 'migrations');
 
+// Local Postgres (the CI container, or a localhost dev instance) does not
+// speak SSL; managed instances (Supabase) require it. Pick based on the host
+// so the exact same suite runs green in CI and against a cloud test DB.
+function sslForConnectionString(
+  cs: string | undefined,
+): false | { rejectUnauthorized: boolean } {
+  if (cs) {
+    try {
+      const host = new URL(cs).hostname;
+      if (host === 'localhost' || host === '127.0.0.1' || host === '::1') {
+        return false;
+      }
+    } catch {
+      // Not a parseable URL — fall through to the SSL-on default below.
+    }
+  }
+  return { rejectUnauthorized: false };
+}
+
 // `describe.skip` vs `describe` chosen at module-load based on env. Vitest
 // reports the suite as "skipped" so the user can see it isn't running.
 const describeRegressions = isSafeToRun ? describe : describe.skip;
@@ -126,7 +145,7 @@ describeRegressions('Regression tests (real-DB, mig 024 + 025 + 027 + 028 + 029)
   beforeAll(async () => {
     pool = new Pool({
       connectionString: TEST_DB_URL,
-      ssl: { rejectUnauthorized: false },
+      ssl: sslForConnectionString(TEST_DB_URL),
       max: 4,
     });
     await applyMigrations(pool);
@@ -378,6 +397,25 @@ describeRegressions('Regression tests (real-DB, mig 024 + 025 + 027 + 028 + 029)
       await cleanupUser(pool, userId);
     }
   }, 30_000);
+});
+
+// CI guard (JOU-25) — the whole value of this file is the real-DB regression
+// coverage. When the suite is gated off, Vitest reports it as "skipped", which
+// in a CI log is indistinguishable from "passed" — so a CI that quietly lost
+// its test database keeps reporting green. This always-run check closes that
+// gap: in CI (GitHub Actions sets CI=true), a skipped suite is a hard failure
+// with an actionable message. Locally, a missing test DB is still fine.
+describe('regression suite is enabled in CI (JOU-25)', () => {
+  it('the real-DB regression suite is not silently skipped when CI=true', () => {
+    if (!process.env.CI) return; // local dev without a test DB — skip is fine
+    expect(
+      isSafeToRun,
+      'The real-DB regression suite is disabled in CI: TEST_DATABASE_URL is ' +
+        'unset or tripped the prod-safety guard, so the suite would skip ' +
+        'silently. Configure the Postgres service + TEST_DATABASE_URL in ' +
+        '.github/workflows/ci.yml (backend job).',
+    ).toBe(true);
+  });
 });
 
 // Visibility log when the suite skips. Vitest's "skipped" reporter is
