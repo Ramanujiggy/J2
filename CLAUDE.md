@@ -89,6 +89,13 @@ All color tokens live in `frontend_app/src/lib/theme.ts`. Always import from the
 - Conventional commits: `feat:`, `fix:`, `refactor:`, `chore:`
 - Attribution lines at end (see repo commit history for format)
 
+**Commit only your own paths**
+- Always name the paths you are committing: `git commit -- <paths>`, or `git add <explicit paths>` then `git commit`.
+- Never `git commit -a`. Never bare `git add .`, `git add -A`, or `git add -u`.
+- Never `git stash` / `git checkout -- .` / `git reset --hard` across the whole tree.
+- Read `git status` as information about the tree, **not** as your list of changes. Files you did not touch belong to someone else.
+- Why: more than one agent run can share a checkout, so the index is shared state. A `-a` commit silently ships another run's half-finished work under your message. This has already caused one incident — commit `dd48ebd` shipped four unguarded migration renames, one of which was `DELETE FROM users` with CASCADE. Nobody could see it happen.
+
 **Stack**
 - Backend: Node/Express 5/TypeScript on Railway, port 5000
 - Database: PostgreSQL (Supabase), migrations tracked in `schema_migrations` table
