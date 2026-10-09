@@ -58,7 +58,7 @@ afterEach(() => {
 // so the FAB tests below need this initial entry.
 const renderPage = () =>
   render(
-    <MemoryRouter initialEntries={['/home']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter initialEntries={['/home']}>
       <PathAheadPage />
     </MemoryRouter>,
   );

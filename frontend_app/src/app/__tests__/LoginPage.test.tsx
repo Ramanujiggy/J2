@@ -38,7 +38,7 @@ const mockPost = vi.mocked(api.post);
 
 const renderPage = () =>
   render(
-    <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter>
       <LoginPage />
     </MemoryRouter>,
   );
