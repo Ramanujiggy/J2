@@ -60,9 +60,11 @@ jobs:
       - run: npm ci
 
       # Critical: `npm run build` is `vite build`, which does NOT typecheck.
-      # Without this step a type error ships to production unseen.
+      # Without this step a type error ships to production unseen. The
+      # `typecheck` script (tsc --noEmit) is the same command a dev runs
+      # locally, so CI and the workstation gate on identical behaviour.
       - name: Typecheck
-        run: npx tsc --noEmit
+        run: npm run typecheck
 
       - name: Tests
         if: ${{ !cancelled() }}
