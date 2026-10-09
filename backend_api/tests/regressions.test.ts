@@ -134,6 +134,25 @@ async function applyMigrations(p: Pool) {
     const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, file), 'utf-8');
     await p.query(sql);
     await p.query('INSERT INTO schema_migrations (name) VALUES ($1) ON CONFLICT DO NOTHING', [file]);
+
+    // Legacy inline bootstrap — mirrors app.ts runMigrations(). The
+    // password_reset_tokens table predates the numbered migration system and is
+    // created inline (not by any numbered .sql), so a clean apply never creates
+    // it. Migration 006 then adds an index ON password_reset_tokens and fails
+    // with 42P01 if the table is absent. Its FK references users(id), created by
+    // migration 000, so create it right after 000 is applied and before 006.
+    if (file.startsWith('000_')) {
+      await p.query(`
+        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+          id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          token      TEXT NOT NULL UNIQUE,
+          expires_at TIMESTAMPTZ NOT NULL,
+          used       BOOLEAN NOT NULL DEFAULT false,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `);
+    }
   }
 }
 
