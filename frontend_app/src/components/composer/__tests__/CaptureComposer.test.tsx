@@ -49,7 +49,7 @@ const ENTRY_PLACEHOLDER =
 // it needs a router in the tree even though these tests never navigate.
 const renderComposer = (onSuccess: (count?: number) => void) =>
   render(
-    <MemoryRouter>
+    <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <CaptureComposer onSuccess={onSuccess} />
     </MemoryRouter>,
   );
