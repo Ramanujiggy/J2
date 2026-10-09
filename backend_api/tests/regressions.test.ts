@@ -61,17 +61,46 @@ function readEnvFileVar(filePath: string, name: string): string | undefined {
 const ENV_FILE_PROD_DB_URL = readEnvFileVar('.env', 'DATABASE_URL');
 const ENV_FILE_TEST_DB_URL = readEnvFileVar('.env.test', 'TEST_DATABASE_URL');
 
-const isSafeToRun =
-  Boolean(TEST_DB_URL) &&
-  // Guard against the vitest-fake-URL false negative: ALSO compare against
-  // the prod URL straight from .env (not process.env, which vitest overrides).
-  TEST_DB_URL !== ENV_FILE_PROD_DB_URL &&
-  // Belt-and-suspenders: catch the case where TEST_DATABASE_URL was set in
-  // the shell (not .env.test) but somehow matches the .env's prod URL.
-  ENV_FILE_TEST_DB_URL !== ENV_FILE_PROD_DB_URL;
+// Does the configured TEST_DATABASE_URL actually point at the real prod DB?
+// Only meaningful when the prod URL is *known* — i.e. a `.env` with a
+// DATABASE_URL exists on disk. In CI there is no `.env` (and no `.env.test`),
+// so ENV_FILE_PROD_DB_URL is undefined and nothing can "match" it. Earlier this
+// compared `ENV_FILE_TEST_DB_URL !== ENV_FILE_PROD_DB_URL` unconditionally, so
+// in CI that reduced to `undefined !== undefined` → false, which disabled the
+// whole suite and defeated the entire point of JOU-25. Gate every prod-match
+// comparison on the prod URL being present.
+const matchesProdUrl =
+  ENV_FILE_PROD_DB_URL !== undefined &&
+  (// vitest-fake-URL false negative aside, compare the configured test URL
+   // against the prod URL read straight from .env (not process.env, which
+   // vitest overrides).
+   TEST_DB_URL === ENV_FILE_PROD_DB_URL ||
+   // Belt-and-suspenders: .env.test's own TEST_DATABASE_URL points at prod.
+   ENV_FILE_TEST_DB_URL === ENV_FILE_PROD_DB_URL);
+
+const isSafeToRun = Boolean(TEST_DB_URL) && !matchesProdUrl;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = path.resolve(__dirname, '..', 'migrations');
+
+// Local Postgres (the CI container, or a localhost dev instance) does not
+// speak SSL; managed instances (Supabase) require it. Pick based on the host
+// so the exact same suite runs green in CI and against a cloud test DB.
+function sslForConnectionString(
+  cs: string | undefined,
+): false | { rejectUnauthorized: boolean } {
+  if (cs) {
+    try {
+      const host = new URL(cs).hostname;
+      if (host === 'localhost' || host === '127.0.0.1' || host === '::1') {
+        return false;
+      }
+    } catch {
+      // Not a parseable URL — fall through to the SSL-on default below.
+    }
+  }
+  return { rejectUnauthorized: false };
+}
 
 // `describe.skip` vs `describe` chosen at module-load based on env. Vitest
 // reports the suite as "skipped" so the user can see it isn't running.
@@ -105,6 +134,25 @@ async function applyMigrations(p: Pool) {
     const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, file), 'utf-8');
     await p.query(sql);
     await p.query('INSERT INTO schema_migrations (name) VALUES ($1) ON CONFLICT DO NOTHING', [file]);
+
+    // Legacy inline bootstrap — mirrors app.ts runMigrations(). The
+    // password_reset_tokens table predates the numbered migration system and is
+    // created inline (not by any numbered .sql), so a clean apply never creates
+    // it. Migration 006 then adds an index ON password_reset_tokens and fails
+    // with 42P01 if the table is absent. Its FK references users(id), created by
+    // migration 000, so create it right after 000 is applied and before 006.
+    if (file.startsWith('000_')) {
+      await p.query(`
+        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+          id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          token      TEXT NOT NULL UNIQUE,
+          expires_at TIMESTAMPTZ NOT NULL,
+          used       BOOLEAN NOT NULL DEFAULT false,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `);
+    }
   }
 }
 
@@ -126,7 +174,7 @@ describeRegressions('Regression tests (real-DB, mig 024 + 025 + 027 + 028 + 029)
   beforeAll(async () => {
     pool = new Pool({
       connectionString: TEST_DB_URL,
-      ssl: { rejectUnauthorized: false },
+      ssl: sslForConnectionString(TEST_DB_URL),
       max: 4,
     });
     await applyMigrations(pool);
@@ -380,6 +428,25 @@ describeRegressions('Regression tests (real-DB, mig 024 + 025 + 027 + 028 + 029)
   }, 30_000);
 });
 
+// CI guard (JOU-25) — the whole value of this file is the real-DB regression
+// coverage. When the suite is gated off, Vitest reports it as "skipped", which
+// in a CI log is indistinguishable from "passed" — so a CI that quietly lost
+// its test database keeps reporting green. This always-run check closes that
+// gap: in CI (GitHub Actions sets CI=true), a skipped suite is a hard failure
+// with an actionable message. Locally, a missing test DB is still fine.
+describe('regression suite is enabled in CI (JOU-25)', () => {
+  it('the real-DB regression suite is not silently skipped when CI=true', () => {
+    if (!process.env.CI) return; // local dev without a test DB — skip is fine
+    expect(
+      isSafeToRun,
+      'The real-DB regression suite is disabled in CI: TEST_DATABASE_URL is ' +
+        'unset or tripped the prod-safety guard, so the suite would skip ' +
+        'silently. Configure the Postgres service + TEST_DATABASE_URL in ' +
+        '.github/workflows/ci.yml (backend job).',
+    ).toBe(true);
+  });
+});
+
 // Visibility log when the suite skips. Vitest's "skipped" reporter is
 // quiet by default; this makes the reason explicit so the user knows
 // they need to set TEST_DATABASE_URL to enable real-DB regression coverage.
@@ -387,7 +454,7 @@ if (!isSafeToRun) {
   if (!TEST_DB_URL) {
     // eslint-disable-next-line no-console
     console.log('ℹ️  regressions.test.ts skipped — set TEST_DATABASE_URL in .env.test to enable real-DB regression tests.');
-  } else if (TEST_DB_URL === ENV_FILE_PROD_DB_URL || ENV_FILE_TEST_DB_URL === ENV_FILE_PROD_DB_URL) {
+  } else if (matchesProdUrl) {
     // eslint-disable-next-line no-console
     console.warn('⚠️  regressions.test.ts skipped — TEST_DATABASE_URL matches the DATABASE_URL in .env. Refusing to run destructive tests against the production DB.');
   } else {

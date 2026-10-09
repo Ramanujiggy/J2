@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { renderWithProviders } from '@/test/renderWithProviders';
 import CaptureComposer from '../CaptureComposer.tsx';
 
 const postMock = vi.fn().mockResolvedValue({ message: 'Session logged.', session_count: 12 });
@@ -48,11 +48,7 @@ const ENTRY_PLACEHOLDER =
 // CaptureComposer always mounts SealRevealSheet, which calls useNavigate() — so
 // it needs a router in the tree even though these tests never navigate.
 const renderComposer = (onSuccess: (count?: number) => void) =>
-  render(
-    <MemoryRouter>
-      <CaptureComposer onSuccess={onSuccess} />
-    </MemoryRouter>,
-  );
+  renderWithProviders(<CaptureComposer onSuccess={onSuccess} />);
 
 describe('CaptureComposer', () => {
   beforeEach(() => {
