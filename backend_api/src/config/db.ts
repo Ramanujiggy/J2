@@ -13,11 +13,20 @@ types.setTypeParser(types.builtins.DATE, (val: string) => val);
 
 
 // 2. configure the connection pool
+//
+// SSL is on by default (Supabase and every cloud Postgres we deploy against
+// require it). A local Postgres — e.g. the throwaway service container the
+// Playwright e2e CI job stands up — does NOT speak SSL, and node-postgres
+// throws "The server does not support SSL connections" if we insist on it.
+// Set DATABASE_SSL=disable in those environments to connect plaintext.
+const sslDisabled = process.env.DATABASE_SSL === 'disable';
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: {
-        rejectUnauthorized: false // required for Supabase / cloud providers
-    },
+    ssl: sslDisabled
+        ? false
+        : {
+            rejectUnauthorized: false // required for Supabase / cloud providers
+        },
     max: 20,                        // max concurrent connections (pg default is 10)
     idleTimeoutMillis: 30_000,      // close idle connections after 30s
     connectionTimeoutMillis: 5_000, // fail fast if pool is exhausted

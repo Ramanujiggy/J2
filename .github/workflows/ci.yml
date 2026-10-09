@@ -2,9 +2,17 @@ name: CI
 
 # Every push and every PR. No path filters — a change in one package can break
 # the other through the shared API types in frontend_app/src/types/api.ts.
+#
+# The `e2e` job below is the exception: it is gated to `schedule` + `workflow_dispatch`
+# only (never push/PR). See its header comment and JOU-27 for why.
 on:
   push:
   pull_request:
+  # Nightly run so e2e regressions surface within a day, plus on-demand dispatch
+  # from the Actions tab. These feed the `e2e` job only (gated by its `if:`).
+  schedule:
+    - cron: '0 7 * * *'
+  workflow_dispatch:
 
 # A new push to the same branch cancels the previous run.
 concurrency:
@@ -69,3 +77,115 @@ jobs:
       - name: Tests
         if: ${{ !cancelled() }}
         run: npx vitest run
+
+  # Playwright end-to-end suite (frontend_app/playwright/: chip-input,
+  # first-run-hint, intention). Deliberately NOT gated on push/PR — the suite
+  # has a 15-25% per-attempt flake rate (handled by retries:3 in
+  # playwright.config.ts). Gating every merge on it would erode trust in the
+  # green signal, the opposite of what the build/test gates bought us. Instead
+  # it runs nightly (schedule) + on demand (workflow_dispatch) so regressions
+  # surface within a day without ever blocking a merge. See JOU-27.
+  e2e:
+    name: e2e (Playwright)
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    # A real Postgres the backend runs its migrations against on boot — the
+    # specs register/log-in a live user, so an in-memory stub will not do.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: journada
+          POSTGRES_PASSWORD: journada
+          POSTGRES_DB: journada_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U journada"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://journada:journada@localhost:5432/journada_e2e
+      # The service container is plaintext Postgres; see the SSL note in db.ts.
+      DATABASE_SSL: disable
+      JWT_SECRET: e2e-ci-jwt-secret-not-a-real-key
+      PORT: '5000'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            backend_api/package-lock.json
+            frontend_app/package-lock.json
+
+      - name: Install backend deps
+        working-directory: backend_api
+        run: npm ci
+
+      - name: Install frontend deps
+        working-directory: frontend_app
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        working-directory: frontend_app
+        run: npx playwright install --with-deps chromium
+
+      # Boot order matters: the backend runs its migration runner inside the
+      # app.listen callback, so the port opens BEFORE the schema is ready.
+      # Gate on the "Migrations complete" log line, not on the port — this is
+      # why playwright.config.ts intentionally leaves `webServer` unset.
+      - name: Start backend & wait for migrations to settle
+        working-directory: backend_api
+        run: |
+          nohup npm run dev > "$RUNNER_TEMP/backend.log" 2>&1 &
+          echo "Waiting for backend migrations to complete..."
+          for i in $(seq 1 60); do
+            if grep -q "Migrations complete" "$RUNNER_TEMP/backend.log"; then
+              echo "✅ Backend ready (migrations settled)."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "❌ Backend did not become ready in 120s. Log:"
+          cat "$RUNNER_TEMP/backend.log"
+          exit 1
+
+      # The Vite dev server (:3000) proxies /api and /auth to the backend
+      # (:5000), matching the local workflow the specs assume. `serve dist`
+      # would drop the proxy and the app could not reach the backend.
+      - name: Start frontend dev server & wait for :3000
+        working-directory: frontend_app
+        run: |
+          nohup npm run dev > "$RUNNER_TEMP/frontend.log" 2>&1 &
+          echo "Waiting for the frontend on :3000..."
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:3000 > /dev/null; then
+              echo "✅ Frontend ready."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "❌ Frontend did not become ready in 120s. Log:"
+          cat "$RUNNER_TEMP/frontend.log"
+          exit 1
+
+      - name: Run Playwright e2e
+        working-directory: frontend_app
+        run: npm run e2e -- --reporter=list,html
+
+      # Traces (trace: 'on-first-retry') and the HTML report are the only way
+      # to triage a nightly failure after the runner is gone.
+      - name: Upload Playwright report & traces
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            frontend_app/playwright-report/
+            frontend_app/test-results/
+          retention-days: 7
+          if-no-files-found: ignore
