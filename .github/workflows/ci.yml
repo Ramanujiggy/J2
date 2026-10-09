@@ -55,10 +55,13 @@ jobs:
       - name: Build
         run: npm run build
 
-      # build:architecture is a generator. If its committed output is stale, the
-      # tree is now dirty — turn that drift into a red job instead of silence.
+      # build:architecture is a generator. If its committed output is
+      # structurally stale, turn that drift into a red job instead of silence.
+      # The checker ignores the generatedAt / topology.lastEdited timestamps,
+      # which are environment-dependent and would otherwise make the gate
+      # impossible to pass (a bare `git diff` fails on the timestamps alone).
       - name: Architecture manifest is current
-        run: git diff --exit-code -- data/architecture-manifest.json
+        run: node scripts/checkArchitectureManifest.mjs
 
       # !cancelled() so a failing build does not hide the test results.
       # Both steps still fail the job.

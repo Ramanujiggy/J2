@@ -287,7 +287,11 @@ async function extractFrontendRoutes(warnings: string[]): Promise<FrontendRoute[
 
 async function extractTopology(warnings: string[]): Promise<Topology> {
     const file = path.join(DOCS_ROOT, 'architecture-topology.md');
-    const raw  = await safeRead(file);
+    // Normalise CRLF → LF so the embedded strings are identical regardless of
+    // the checkout platform. Without this, a manifest committed from a Windows
+    // checkout carries `\r\n` escapes that a Linux CI re-generation can never
+    // reproduce, which makes the "manifest is current" gate impossible to pass.
+    const raw  = (await safeRead(file)).replace(/\r\n/g, '\n');
     if (!raw) {
         warnings.push('Docs/architecture-topology.md not found — Overview tab will show a stub.');
         return { mermaid: '', lastEdited: null, raw: '' };
