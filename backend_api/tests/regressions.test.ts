@@ -61,14 +61,24 @@ function readEnvFileVar(filePath: string, name: string): string | undefined {
 const ENV_FILE_PROD_DB_URL = readEnvFileVar('.env', 'DATABASE_URL');
 const ENV_FILE_TEST_DB_URL = readEnvFileVar('.env.test', 'TEST_DATABASE_URL');
 
-const isSafeToRun =
-  Boolean(TEST_DB_URL) &&
-  // Guard against the vitest-fake-URL false negative: ALSO compare against
-  // the prod URL straight from .env (not process.env, which vitest overrides).
-  TEST_DB_URL !== ENV_FILE_PROD_DB_URL &&
-  // Belt-and-suspenders: catch the case where TEST_DATABASE_URL was set in
-  // the shell (not .env.test) but somehow matches the .env's prod URL.
-  ENV_FILE_TEST_DB_URL !== ENV_FILE_PROD_DB_URL;
+// Does the configured TEST_DATABASE_URL actually point at the real prod DB?
+// Only meaningful when the prod URL is *known* — i.e. a `.env` with a
+// DATABASE_URL exists on disk. In CI there is no `.env` (and no `.env.test`),
+// so ENV_FILE_PROD_DB_URL is undefined and nothing can "match" it. Earlier this
+// compared `ENV_FILE_TEST_DB_URL !== ENV_FILE_PROD_DB_URL` unconditionally, so
+// in CI that reduced to `undefined !== undefined` → false, which disabled the
+// whole suite and defeated the entire point of JOU-25. Gate every prod-match
+// comparison on the prod URL being present.
+const matchesProdUrl =
+  ENV_FILE_PROD_DB_URL !== undefined &&
+  (// vitest-fake-URL false negative aside, compare the configured test URL
+   // against the prod URL read straight from .env (not process.env, which
+   // vitest overrides).
+   TEST_DB_URL === ENV_FILE_PROD_DB_URL ||
+   // Belt-and-suspenders: .env.test's own TEST_DATABASE_URL points at prod.
+   ENV_FILE_TEST_DB_URL === ENV_FILE_PROD_DB_URL);
+
+const isSafeToRun = Boolean(TEST_DB_URL) && !matchesProdUrl;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = path.resolve(__dirname, '..', 'migrations');
@@ -425,7 +435,7 @@ if (!isSafeToRun) {
   if (!TEST_DB_URL) {
     // eslint-disable-next-line no-console
     console.log('ℹ️  regressions.test.ts skipped — set TEST_DATABASE_URL in .env.test to enable real-DB regression tests.');
-  } else if (TEST_DB_URL === ENV_FILE_PROD_DB_URL || ENV_FILE_TEST_DB_URL === ENV_FILE_PROD_DB_URL) {
+  } else if (matchesProdUrl) {
     // eslint-disable-next-line no-console
     console.warn('⚠️  regressions.test.ts skipped — TEST_DATABASE_URL matches the DATABASE_URL in .env. Refusing to run destructive tests against the production DB.');
   } else {
