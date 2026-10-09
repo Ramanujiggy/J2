@@ -27,8 +27,16 @@ interface SessionsContextValue {
   loading: boolean;
   /** Last fetch error, or null. */
   error: string | null;
-  /** Trigger a refetch. Call after any create/edit/delete session mutation. */
+  /** Trigger a full refetch. Call after any mutation that may affect ordering or
+   *  server-computed fields. For simple creates/updates/deletes prefer the
+   *  optimistic helpers below — they update local state instantly. */
   refresh: () => Promise<void>;
+  /** Optimistic: prepend a newly-created session without a network round-trip. */
+  applyAdd: (session: SessionSummary) => void;
+  /** Optimistic: replace an edited session in-place without a network round-trip. */
+  applyUpdate: (session: SessionSummary) => void;
+  /** Optimistic: remove a deleted session immediately without a network round-trip. */
+  applyRemove: (id: string) => void;
 }
 
 const SessionsContext = createContext<SessionsContextValue>({
@@ -36,12 +44,19 @@ const SessionsContext = createContext<SessionsContextValue>({
   loading: true,
   error: null,
   refresh: async () => {},
+  applyAdd: () => {},
+  applyUpdate: () => {},
+  applyRemove: () => {},
 });
 
 export function SessionsProvider({ children }: { children: React.ReactNode }) {
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const applyAdd    = useCallback((session: SessionSummary) => setSessions(prev => [session, ...prev]), []);
+  const applyUpdate = useCallback((session: SessionSummary) => setSessions(prev => prev.map(s => s.id === session.id ? session : s)), []);
+  const applyRemove = useCallback((id: string)              => setSessions(prev => prev.filter(s => s.id !== id)), []);
 
   const refresh = useCallback(async () => {
     try {
@@ -64,8 +79,8 @@ export function SessionsProvider({ children }: { children: React.ReactNode }) {
   useOnlineRefetch(refresh);
 
   const value = useMemo<SessionsContextValue>(
-    () => ({ sessions, loading, error, refresh }),
-    [sessions, loading, error, refresh],
+    () => ({ sessions, loading, error, refresh, applyAdd, applyUpdate, applyRemove }),
+    [sessions, loading, error, refresh, applyAdd, applyUpdate, applyRemove],
   );
 
   return (
