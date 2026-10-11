@@ -59,7 +59,7 @@ Competitive audit against Strong, Strava, Nike TC, Peloton identified gaps in in
 
 | Status | Area | Description |
 |---|---|---|
-| `[~]` | **Rep Roulette → FAB + bottom sheet** | Roulette breaks the homepage narrative flow (tracking → random drill → history). It's a "sometimes" tool, not an "always" feature. Move to a Floating Action Button (dice icon, lower-right above tab bar) that opens a bottom sheet with the drill card, swipe navigation, and "Log this drill" CTA. Frees ~320px of homepage real estate when expanded, ~48px when collapsed. |
+| `[x]` | **Rep Roulette → FAB + bottom sheet** | Roulette breaks the homepage narrative flow (tracking → random drill → history). It's a "sometimes" tool, not an "always" feature. Move to a Floating Action Button (dice icon, lower-right above tab bar) that opens a bottom sheet with the drill card, swipe navigation, and "Log this drill" CTA. Frees ~320px of homepage real estate when expanded, ~48px when collapsed. |
 | `[ ]` | **Primary CTA above the fold** | "Log Mat Time" button is buried 400+ pixels below the top on mobile. Every flagship training app (Strong, Peloton, Nike TC) puts the main CTA visible without scrolling. Move to immediately below StatStrip or integrate into the week carousel "today" circle. |
 | `[ ]` | **Training Telemetry hidden-panel UX** | Tapping StatStrip to expand Telemetry has no visual affordance — users don't know it's tappable. Either always show Telemetry inline (it's only ~100px) or move it to Analytics where it's contextually expected. |
 | `[ ]` | **Mobile scroll depth** | 805px of stacked content on a 390px viewport (2x screen height). Flagship apps target 1.0–1.5x. After moving Roulette to FAB and CTA above fold, reassess whether further section consolidation is needed. |
