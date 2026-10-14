@@ -207,8 +207,8 @@ export default function PositionTagger({ videoUrl, durationSecs, initialSegments
         </button>
         <button
           onClick={handleSave}
-          disabled={saving || segments.length === 0}
-          style={{ flex: 2, padding: '12px 0', minHeight: 44, background: BRAND_ORANGE, border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: segments.length === 0 ? 'not-allowed' : 'pointer', opacity: segments.length === 0 ? 0.4 : 1 }}
+          disabled={saving}
+          style={{ flex: 2, padding: '12px 0', minHeight: 44, background: BRAND_ORANGE, border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.4 : 1 }}
         >
           {saving ? 'Saving…' : 'Save tags'}
         </button>
