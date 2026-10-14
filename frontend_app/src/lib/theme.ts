@@ -41,8 +41,10 @@ export const PALE_YELLOW = '#F2E4A8' as const;
 /** Warm caramel — card borders and wave tile arc strokes. */
 export const COPPER = '#C4915F' as const;
 
-/** Sage — reserved for entry-list dates on Home. It is what makes the list
- *  read as journal pages rather than table rows; do not spend it elsewhere. */
+/** Sage — the time-marker accent (DESIGN.md §2): entry/session dates,
+ *  elapsed-time readouts, and the session-type marker. It is what makes
+ *  a list read as journal pages rather than table rows. Use it for time
+ *  markers; reach for another token for anything that is not one. */
 export const SAGE = '#8FB56A' as const;
 
 /** Orange — the ONLY colour permitted on a tappable affordance. Copper

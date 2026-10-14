@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { count } from '../lib/offlineQueue.ts';
+import { STATUS_SUCCESS, STATUS_SUCCESS_BG, STATUS_SUCCESS_BORDER } from '../lib/theme.ts';
 
 /**
  * Thin banner shown at the top of the page content when the app is offline.
@@ -40,11 +41,11 @@ export default function OfflineBanner() {
   return (
     <div
       style={{
-        backgroundColor: showReconnect ? 'rgba(74, 222, 128, 0.12)' : 'rgba(196, 145, 95, 0.12)',
-        borderBottom: `1px solid ${showReconnect ? 'rgba(74, 222, 128, 0.3)' : 'rgba(196, 145, 95, 0.3)'}`,
+        backgroundColor: showReconnect ? STATUS_SUCCESS_BG : 'rgba(196, 145, 95, 0.12)',
+        borderBottom: `1px solid ${showReconnect ? STATUS_SUCCESS_BORDER : 'rgba(196, 145, 95, 0.3)'}`,
         padding: '6px 16px',
         fontSize: 13,
-        color: showReconnect ? 'rgba(74, 222, 128, 0.9)' : 'rgba(196, 145, 95, 0.9)',
+        color: showReconnect ? STATUS_SUCCESS : 'rgba(196, 145, 95, 0.9)',
         textAlign: 'center',
         transition: 'background-color 0.4s ease, border-color 0.4s ease, color 0.4s ease',
       }}

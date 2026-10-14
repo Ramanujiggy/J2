@@ -15,7 +15,7 @@
 // full-row PUT never nulls them. Partners are derived from @mentions in the prose.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { PALE_YELLOW, COPPER, FONT_EDITORIAL, CARD_BG, SURFACE_2 } from '../../lib/theme.ts';
+import { PALE_YELLOW, COPPER, SAGE, FONT_EDITORIAL, CARD_BG, SURFACE_2 } from '../../lib/theme.ts';
 import { vibrate } from '../../lib/haptics.ts';
 import { SKILL_TAGS } from '../../lib/constants.ts';
 import SegmentedToggle from '../SegmentedToggle.tsx';
@@ -242,7 +242,7 @@ export default function MarginNotesEntry({
       {/* ── The entry ─────────────────────────────────────────── */}
       <button
         onClick={() => setDateEditing(v => !v)}
-        style={{ fontFamily: FONT_EDITORIAL, fontSize: 32, fontWeight: 600, color: '#8FB56A', letterSpacing: '-0.01em', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}
+        style={{ fontFamily: FONT_EDITORIAL, fontSize: 32, fontWeight: 600, color: SAGE, letterSpacing: '-0.01em', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}
       >
         {longLabel(date)} <span style={{ fontSize: 15, color: 'rgba(255,255,255,0.44)', fontFamily: 'inherit' }}>⌄</span>
       </button>
