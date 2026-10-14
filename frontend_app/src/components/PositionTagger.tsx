@@ -149,11 +149,19 @@ export default function PositionTagger({ videoUrl, durationSecs, initialSegments
         }} />
       </div>
 
-      {/* Tagged coverage */}
+      {/* Tagged coverage + clear-all link (scoped here, next to what it clears) */}
       {totalTagged > 0 && (
-        <p style={{ fontSize: 11, color: SAGE, margin: 0 }}>
-          {Math.round(totalTagged)}s tagged · {timelineSegs.length} segment{timelineSegs.length !== 1 ? 's' : ''}
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <p style={{ fontSize: 11, color: SAGE, margin: 0 }}>
+            {Math.round(totalTagged)}s tagged · {timelineSegs.length} segment{timelineSegs.length !== 1 ? 's' : ''}
+          </p>
+          <button
+            onClick={() => { setSegments([]); setActivePosition(null); }}
+            style={{ background: 'none', border: 'none', padding: '6px 4px', margin: '-6px -4px', color: COPPER, fontSize: 13, fontWeight: 600, cursor: 'pointer', touchAction: 'manipulation' }}
+          >
+            Clear all
+          </button>
+        </div>
       )}
 
       {/* Position buttons — 3 columns: top / bottom / neutral */}
@@ -191,14 +199,8 @@ export default function PositionTagger({ videoUrl, durationSecs, initialSegments
         </div>
       </div>
 
-      {/* Clear + action row */}
+      {/* Action row — two exits only: cancel (Discard) and commit (Save) */}
       <div style={{ display: 'flex', gap: 8, marginTop: 'auto', paddingTop: 12 }}>
-        <button
-          onClick={() => { setSegments([]); setActivePosition(null); }}
-          style={{ flex: 1, padding: '12px 0', minHeight: 44, background: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}`, borderRadius: 8, color: 'rgba(255,255,255,0.4)', fontSize: 13, cursor: 'pointer' }}
-        >
-          Clear
-        </button>
         <button
           onClick={onCancel}
           style={{ flex: 1, padding: '12px 0', minHeight: 44, background: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}`, borderRadius: 8, color: 'rgba(255,255,255,0.5)', fontSize: 13, cursor: 'pointer' }}
@@ -208,7 +210,7 @@ export default function PositionTagger({ videoUrl, durationSecs, initialSegments
         <button
           onClick={handleSave}
           disabled={saving}
-          style={{ flex: 2, padding: '12px 0', minHeight: 44, background: BRAND_ORANGE, border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.4 : 1 }}
+          style={{ flex: 2, padding: '12px 0', minHeight: 44, background: BRAND_ORANGE, border: 'none', borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 500, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.5 : 1 }}
         >
           {saving ? 'Saving…' : 'Save tags'}
         </button>
