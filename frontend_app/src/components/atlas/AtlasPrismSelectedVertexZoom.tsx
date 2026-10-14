@@ -13,7 +13,7 @@
 
 import { addDays, formatDuration, toDateString } from '../../lib/sessionUtils.ts';
 import { formatWeekShort, type AlignmentResult } from '../../lib/analyticsUtils.ts';
-import { FONT_EDITORIAL, INT_COLORS, PALE_YELLOW } from '../../lib/theme.ts';
+import { FONT_EDITORIAL, INT_COLORS, PALE_YELLOW, TEXT_PRIMARY, TEXT_BODY, TEXT_TERTIARY, TEXT_HINT, TEXT_DISABLED } from '../../lib/theme.ts';
 import type { Intention, SessionSummary } from '../../types/api.ts';
 
 interface Props {
@@ -79,7 +79,7 @@ export default function AtlasPrismSelectedVertexZoom({
           <p
             style={{
               fontSize: isDesktop ? 17 : 16, lineHeight: 1.55,
-              color: 'rgba(255,255,255,0.50)',
+              color: TEXT_TERTIARY,
               marginTop: 8, marginBottom: 0,
               maxWidth: isDesktop ? 540 : 'none',
             }}
@@ -134,7 +134,7 @@ export default function AtlasPrismSelectedVertexZoom({
               </div>
               <div
                 style={{
-                  fontSize: 12, color: 'rgba(255,255,255,0.40)',
+                  fontSize: 12, color: TEXT_TERTIARY,
                   marginTop: 2, letterSpacing: '0.06em',
                 }}
               >
@@ -159,7 +159,7 @@ export default function AtlasPrismSelectedVertexZoom({
             ◈ Recent sessions
           </div>
           {recentSessions.length === 0 ? (
-            <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.30)', fontStyle: 'italic' }}>
+            <p style={{ fontSize: 16, color: TEXT_HINT, fontStyle: 'italic' }}>
               {isAllTime
                 ? 'No sessions logged with this focus yet.'
                 : `No ${selectedLabel} sessions in this window.`}
@@ -214,7 +214,7 @@ export default function AtlasPrismSelectedVertexZoom({
                       <div
                         style={{
                           fontSize: 17, fontFamily: FONT_EDITORIAL,
-                          color: 'rgba(255,255,255,0.90)',
+                          color: TEXT_PRIMARY,
                         }}
                       >
                         {formatDuration(s.duration ?? 0)}
@@ -233,7 +233,7 @@ export default function AtlasPrismSelectedVertexZoom({
             ◇ Intentions for {selectedLabel}
           </div>
           {focusIntentions.length === 0 ? (
-            <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.30)', fontStyle: 'italic' }}>
+            <p style={{ fontSize: 16, color: TEXT_HINT, fontStyle: 'italic' }}>
               No intentions have targeted this pillar yet.
             </p>
           ) : (
@@ -274,13 +274,13 @@ export default function AtlasPrismSelectedVertexZoom({
                       <div
                         style={{
                           fontSize: 16, fontWeight: 600,
-                          color: 'rgba(255,255,255,0.85)',
+                          color: TEXT_BODY,
                           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                         }}
                       >
                         {intention.intent_label || selectedLabel}
                       </div>
-                      <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.30)', marginTop: 2 }}>
+                      <div style={{ fontSize: 13, color: TEXT_HINT, marginTop: 2 }}>
                         {formatWeekShort(intention.week_start)} – {formatWeekShort(endDate)}
                       </div>
                     </div>
@@ -298,7 +298,7 @@ export default function AtlasPrismSelectedVertexZoom({
                         {alignment.score !== null ? `${alignment.score}%` : (alignment.status === 'aligned' ? 'Aligned' : 'Diverged')}
                       </span>
                     ) : (
-                      <span style={{ fontSize: 13, fontStyle: 'italic', color: 'rgba(255,255,255,0.20)', flexShrink: 0 }}>
+                      <span style={{ fontSize: 13, fontStyle: 'italic', color: TEXT_DISABLED, flexShrink: 0 }}>
                         No data
                       </span>
                     )}

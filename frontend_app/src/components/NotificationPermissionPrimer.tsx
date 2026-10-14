@@ -16,10 +16,7 @@ import {
   setCategories,
   type SubscriptionCategories,
 } from '../lib/pushClient.ts';
-import {
-  CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, COPPER, COPPER_BORDER,
-  PALE_YELLOW, SURFACE_2, SURFACE_2_BORDER, FONT_EDITORIAL, GLOW_SOFT,
-} from '../lib/theme.ts';
+import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, COPPER, COPPER_BORDER, PALE_YELLOW, SURFACE_2, SURFACE_2_BORDER, FONT_EDITORIAL, GLOW_SOFT, TEXT_SECONDARY, TEXT_TERTIARY } from '../lib/theme.ts';
 
 interface CategoryDef {
   key: keyof SubscriptionCategories;
@@ -178,14 +175,14 @@ export default function NotificationPermissionPrimer({ open, onClose, onSubscrib
                 flexShrink: 0,
               }}
             />
-            <span style={{ fontSize: 11, letterSpacing: '0.06em', color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: 11, letterSpacing: '0.06em', color: TEXT_TERTIARY, textTransform: 'uppercase' }}>
               Journada · now
             </span>
           </div>
           <p style={{ color: PALE_YELLOW, fontSize: 14, fontWeight: 600, marginBottom: 2 }}>
             {togglePreview.title}
           </p>
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>
+          <p style={{ color: TEXT_SECONDARY, fontSize: 13 }}>
             {togglePreview.body}
           </p>
         </div>
@@ -214,7 +211,7 @@ export default function NotificationPermissionPrimer({ open, onClose, onSubscrib
                   <p style={{ color: PALE_YELLOW, fontSize: 14, fontWeight: 600, marginBottom: 2 }}>
                     {cat.title}
                   </p>
-                  <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12 }}>
+                  <p style={{ color: TEXT_TERTIARY, fontSize: 12 }}>
                     {cat.rationale}
                   </p>
                 </div>

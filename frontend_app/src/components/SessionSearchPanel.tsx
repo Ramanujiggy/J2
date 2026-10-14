@@ -3,10 +3,7 @@ import { Search, X } from 'lucide-react';
 import { api } from '../lib/api.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
 import { INTENSITY_COLOR, SESSION_TYPE_LABELS, formatGiNogi } from '../lib/sessionUtils.ts';
-import {
-  COPPER, COPPER_BORDER, SURFACE_2, SURFACE_3,
-  CARD_BG, CARD_SHADOW, PALE_YELLOW,
-} from '../lib/theme.ts';
+import { COPPER, COPPER_BORDER, SURFACE_2, SURFACE_3, CARD_BG, CARD_SHADOW, PALE_YELLOW, TEXT_TERTIARY, TEXT_HINT } from '../lib/theme.ts';
 import { vibrate } from '../lib/haptics.ts';
 import {
   type SearchFilters, DEFAULT_FILTERS, hasActiveFilters, filterSessionsLocal,
@@ -183,7 +180,7 @@ export default function SessionSearchPanel({ cachedSessions, onRefresh }: Props)
           <Search
             size={16}
             className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
-            style={{ color: 'rgba(255,255,255,0.3)' }}
+            style={{ color: TEXT_HINT }}
           />
           <input
             ref={inputRef}
@@ -201,7 +198,7 @@ export default function SessionSearchPanel({ cachedSessions, onRefresh }: Props)
             <button
               onClick={() => updateFilter('q', '')}
               className="absolute right-3 top-1/2 -translate-y-1/2 touch-manipulation"
-              style={{ color: 'rgba(255,255,255,0.4)' }}
+              style={{ color: TEXT_TERTIARY }}
             >
               <X size={14} />
             </button>
@@ -266,7 +263,7 @@ export default function SessionSearchPanel({ cachedSessions, onRefresh }: Props)
               <button
                 onClick={() => updateFilter('partner', '')}
                 className="absolute right-2 top-1/2 -translate-y-1/2 touch-manipulation"
-                style={{ color: 'rgba(255,255,255,0.4)' }}
+                style={{ color: TEXT_TERTIARY }}
               >
                 <X size={12} />
               </button>
@@ -313,20 +310,20 @@ export default function SessionSearchPanel({ cachedSessions, onRefresh }: Props)
 
         {/* Results */}
         {loading && !results.length && (
-          <p className="text-xs text-center py-6" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <p className="text-xs text-center py-6" style={{ color: TEXT_HINT }}>
             Searching...
           </p>
         )}
 
         {searched && !loading && results.length === 0 && (
-          <p className="text-xs text-center py-6" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <p className="text-xs text-center py-6" style={{ color: TEXT_HINT }}>
             No sessions match your filters.
           </p>
         )}
 
         {results.length > 0 && (
           <div className="space-y-1.5">
-            <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            <p className="text-xs mb-2" style={{ color: TEXT_HINT }}>
               {results.length < total
                 ? `Showing ${results.length} of ${total} results`
                 : `${total} result${total === 1 ? '' : 's'}`}
@@ -351,10 +348,10 @@ export default function SessionSearchPanel({ cachedSessions, onRefresh }: Props)
                   <span className="text-xs font-medium" style={{ color: PALE_YELLOW }}>
                     {formatDate(s.date)}
                   </span>
-                  <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  <span className="text-xs" style={{ color: TEXT_HINT }}>
                     {fmtDuration(s.duration)}
                   </span>
-                  <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  <span className="text-xs" style={{ color: TEXT_HINT }}>
                     {formatGiNogi(s.gi_nogi)}
                   </span>
                   {s.heading && (
@@ -365,14 +362,14 @@ export default function SessionSearchPanel({ cachedSessions, onRefresh }: Props)
                       {headingLabel(s.heading)}
                     </span>
                   )}
-                  <span className="text-xs ml-auto" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                  <span className="text-xs ml-auto" style={{ color: TEXT_HINT }}>
                     {SESSION_TYPE_LABELS[s.session_type] ?? s.session_type}
                   </span>
                 </div>
                 {s.notes && (
                   <p
                     className="text-xs leading-relaxed line-clamp-2"
-                    style={{ color: 'rgba(255,255,255,0.4)' }}
+                    style={{ color: TEXT_TERTIARY }}
                   >
                     {s.notes}
                   </p>

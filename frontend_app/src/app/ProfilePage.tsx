@@ -4,7 +4,7 @@ import { PROFILE_ORIGIN } from '../lib/navOrigin.ts';
 
 import { api } from '../lib/api.ts';
 import { useAuth } from '../context/AuthContext.tsx';
-import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, SURFACE_2, SURFACE_2_BORDER, COPPER, STATUS_ERROR, STATUS_ERROR_BG, STATUS_ERROR_BORDER } from '../lib/theme.ts';
+import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, SURFACE_2, SURFACE_2_BORDER, COPPER, STATUS_ERROR, STATUS_ERROR_BG, STATUS_ERROR_BORDER, TEXT_SECONDARY, TEXT_TERTIARY, TEXT_HINT } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import CsvImportModal from '../components/CsvImportModal.tsx';
 import ReportProblemModal from '../components/ReportProblemModal.tsx';
@@ -414,7 +414,7 @@ export default function ProfilePage() {
               ? 'block mb-2 text-[11px] font-bold uppercase tracking-[0.16em]'
               : 'block text-sm text-white/70 mb-1';
             const labelStyle: React.CSSProperties | undefined = isDesktop
-              ? { color: 'rgba(255,255,255,0.40)' }
+              ? { color: TEXT_TERTIARY }
               : undefined;
             const inputCls = isDesktop
               ? `${inputClsDesktop} j2-copper-focus`
@@ -451,7 +451,7 @@ export default function ProfilePage() {
                 onClick={() => setSheetOpen(true)}
                 title="Record a promotion"
               />
-              <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.46)', marginTop: 10 }}>
+              <p style={{ fontSize: 11.5, color: TEXT_TERTIARY, marginTop: 10 }}>
                 {tiedOnLabel ? `Tied on ${tiedOnLabel} · ` : ''}
                 {isDesktop ? 'click' : 'tap'} the belt to record a promotion
               </p>
@@ -599,7 +599,7 @@ export default function ProfilePage() {
                 </p>
               </div>
             </div>
-            <ChevronRight size={18} strokeWidth={2} style={{ color: 'rgba(255,255,255,0.30)', flexShrink: 0 }} />
+            <ChevronRight size={18} strokeWidth={2} style={{ color: TEXT_HINT, flexShrink: 0 }} />
           </button>
         </div>
 
@@ -622,7 +622,7 @@ export default function ProfilePage() {
                 </p>
               </div>
             </div>
-            <ChevronRight size={18} strokeWidth={2} style={{ color: 'rgba(255,255,255,0.30)', flexShrink: 0 }} />
+            <ChevronRight size={18} strokeWidth={2} style={{ color: TEXT_HINT, flexShrink: 0 }} />
           </button>
         </div>
 
@@ -653,16 +653,16 @@ export default function ProfilePage() {
                 </p>
               </div>
             </div>
-            <ChevronRight size={18} strokeWidth={2} style={{ color: 'rgba(255,255,255,0.30)', flexShrink: 0 }} />
+            <ChevronRight size={18} strokeWidth={2} style={{ color: TEXT_HINT, flexShrink: 0 }} />
           </button>
 
           {storage?.supported && storage.quotaBytes > 0 && (
             <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
               <div className="flex items-baseline justify-between mb-1.5">
-                <span className="text-[10px] uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.30)' }}>
+                <span className="text-[10px] uppercase tracking-widest" style={{ color: TEXT_HINT }}>
                   Local storage
                 </span>
-                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                <span className="text-xs" style={{ color: TEXT_TERTIARY }}>
                   {formatBytes(storage.usageBytes)} of {formatBytes(storage.quotaBytes)}
                 </span>
               </div>
@@ -839,7 +839,7 @@ export default function ProfilePage() {
                 className="w-full text-sm rounded-xl transition-colors touch-manipulation j2-press"
                 style={{
                   height: 44,
-                  color: 'rgba(255,255,255,0.65)',
+                  color: TEXT_SECONDARY,
                   backgroundColor: 'transparent',
                   border: '1px solid rgba(255,255,255,0.12)',
                 }}

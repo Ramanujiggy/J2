@@ -23,9 +23,7 @@ import JournalEmptyHero from '../components/empty/JournalEmptyHero.tsx';
 import SegmentedToggle from '../components/SegmentedToggle.tsx';
 import { SKILL_TAGS } from '../lib/constants.ts';
 import { toDateString, addDays, DAY_NAMES, SESSION_TYPE_LABELS, INTENSITY_COLOR, formatDuration, formatGiNogi } from '../lib/sessionUtils.ts';
-import {
-  PALE_YELLOW, COPPER, CARD_BG, FONT_EDITORIAL, GLOW_SOFT, STATUS_ERROR,
-} from '../lib/theme.ts';
+import { PALE_YELLOW, COPPER, CARD_BG, FONT_EDITORIAL, GLOW_SOFT, STATUS_ERROR, TEXT_PRIMARY, TEXT_TERTIARY } from '../lib/theme.ts';
 import type { SessionSummary } from '../types/api.ts';
 
 type Filter = 'All' | typeof SKILL_TAGS[number]['value'];
@@ -199,7 +197,7 @@ export default function JournalIndexPage() {
               }}
             />
           </div>
-          <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13, marginBottom: 20 }}>
+          <p style={{ color: TEXT_TERTIARY, fontSize: 13, marginBottom: 20 }}>
             {allSessions.length} {allSessions.length === 1 ? 'entry' : 'entries'} · {totalHours}h logged
           </p>
 
@@ -222,7 +220,7 @@ export default function JournalIndexPage() {
               background: 'rgba(255,255,255,0.06)',
               border: 'none',
               padding: '12px 16px',
-              color: 'rgba(255,255,255,0.90)',
+              color: TEXT_PRIMARY,
               fontSize: 15,
               outline: 'none',
             }}
@@ -454,7 +452,7 @@ function SessionMiniRow({
                   boxShadow: `0 0 6px ${intColor}60`, flexShrink: 0,
                 }}
               />
-              <div style={{ fontSize: 15, fontWeight: 600, color: 'rgba(255,255,255,0.90)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: TEXT_PRIMARY, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {headline}
               </div>
             </div>
@@ -462,7 +460,7 @@ function SessionMiniRow({
         })()}
         <div
           style={{
-            fontSize: 11, color: 'rgba(255,255,255,0.40)',
+            fontSize: 11, color: TEXT_TERTIARY,
             letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600,
           }}
         >
@@ -530,7 +528,7 @@ function EmptyState({ hasAny }: { hasAny: boolean }) {
       <h2 className="j2-serif-display" style={{ fontSize: 26, margin: 0 }}>
         No sessions match.
       </h2>
-      <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.50)', lineHeight: 1.6, marginTop: 10 }}>
+      <p style={{ fontSize: 14, color: TEXT_TERTIARY, lineHeight: 1.6, marginTop: 10 }}>
         Adjust the filter or search — your training is wider than it looks.
       </p>
     </div>

@@ -14,7 +14,7 @@
 
 import { CalendarDays, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import WeekIndicators from './WeekIndicators.tsx';
-import { CARD_BG, COPPER, SURFACE_2, WHISPER_BORDER } from '../lib/theme.ts';
+import { CARD_BG, COPPER, SURFACE_2, WHISPER_BORDER, TEXT_PRIMARY, TEXT_TERTIARY, TEXT_HINT, TEXT_DISABLED } from '../lib/theme.ts';
 import { SKILL_TAGS, MONTH_NAMES } from '../lib/constants.ts';
 import { toDateString, formatDuration, DAY_NAMES, INTENSITY_COLOR, SESSION_TYPE_LABELS, formatGiNogi } from '../lib/sessionUtils.ts';
 import type { SessionSummary } from '../types/api.ts';
@@ -161,7 +161,7 @@ export default function PathAheadWeekSection({
         >
           {weekSessionsList.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '24px 16px' }}>
-              <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 14, marginBottom: 12 }}>
+              <p style={{ color: TEXT_HINT, fontSize: 14, marginBottom: 12 }}>
                 No sessions logged this week yet.
               </p>
               <button
@@ -198,7 +198,7 @@ export default function PathAheadWeekSection({
                   onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(4px)'; }}
                   onMouseLeave={e => { e.currentTarget.style.transform = 'translateX(0)'; }}
                 >
-                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>
+                  <span style={{ color: TEXT_TERTIARY, fontSize: 14 }}>
                     Today — {MONTH_NAMES[today.getMonth()]} {today.getDate()}
                   </span>
                   <span style={{ color: COPPER, fontSize: 14, fontWeight: 600 }}>
@@ -252,7 +252,7 @@ export default function PathAheadWeekSection({
                         style={{
                           fontSize: 14,
                           fontWeight: 600,
-                          color: 'rgba(255,255,255,0.88)',
+                          color: TEXT_PRIMARY,
                           margin: 0,
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
@@ -261,11 +261,11 @@ export default function PathAheadWeekSection({
                       >
                         {title}
                       </p>
-                      <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', margin: '2px 0 0' }}>
+                      <p style={{ fontSize: 12, color: TEXT_TERTIARY, margin: '2px 0 0' }}>
                         {DAY_NAMES[day.getDay()]}, {MONTH_NAMES[day.getMonth()]} {day.getDate()}
                         {session.tags?.length > 1 && (
                           <>
-                            <span style={{ margin: '0 5px', color: 'rgba(255,255,255,0.15)' }}>·</span>
+                            <span style={{ margin: '0 5px', color: TEXT_DISABLED }}>·</span>
                             {SKILL_TAGS.find(s => s.value === session.tags[1])?.label ?? session.tags[1]}
                           </>
                         )}

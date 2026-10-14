@@ -4,7 +4,7 @@ import { useLocation } from 'react-router-dom';
 import gsap from 'gsap';
 import { ROULETTE_DRILLS } from '../lib/constants.ts';
 import { useCanonicalConstraints } from '../hooks/useCanonicalConstraints.ts';
-import { PALE_YELLOW, GLOW_SOFT, COPPER, COPPER_BORDER, SURFACE_3, FONT_EDITORIAL } from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, COPPER, COPPER_BORDER, SURFACE_3, FONT_EDITORIAL, TEXT_TERTIARY, TEXT_HINT, TEXT_DISABLED } from '../lib/theme.ts';
 import { vibrate } from '../lib/haptics.ts';
 import type { Pillar } from '../types/api.ts';
 
@@ -452,7 +452,7 @@ function RepRouletteFabImpl({ fabPosition = 'fixed' }: Props) {
               <button
                 onClick={() => setPool(p => p === 'drill' ? 'constraint' : 'drill')}
                 className="touch-manipulation"
-                style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)', background: 'none', border: 'none', padding: '2px 0', cursor: 'pointer' }}
+                style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: TEXT_HINT, background: 'none', border: 'none', padding: '2px 0', cursor: 'pointer' }}
               >
                 {pool === 'drill' ? '→ CLA' : '→ Drill'}
               </button>
@@ -484,7 +484,7 @@ function RepRouletteFabImpl({ fabPosition = 'fixed' }: Props) {
                   </span>
                 </div>
                 <div style={{
-                  fontSize: 11, color: 'rgba(255,255,255,0.38)', marginBottom: 14,
+                  fontSize: 11, color: TEXT_TERTIARY, marginBottom: 14,
                   opacity: spinning ? 0 : 1,
                   transition: 'opacity 0.2s ease 0.05s',
                 }}>
@@ -492,7 +492,7 @@ function RepRouletteFabImpl({ fabPosition = 'fixed' }: Props) {
                 </div>
               </>
             ) : (
-              <div style={{ fontSize: 12, fontStyle: 'italic', color: 'rgba(255,255,255,0.30)', marginBottom: 14 }}>
+              <div style={{ fontSize: 12, fontStyle: 'italic', color: TEXT_HINT, marginBottom: 14 }}>
                 No {pool === 'drill' ? 'drills' : 'constraints'} available.
               </div>
             )}
@@ -505,7 +505,7 @@ function RepRouletteFabImpl({ fabPosition = 'fixed' }: Props) {
                 className="touch-manipulation j2-press"
                 style={{
                   flex: 1, fontSize: 11, fontWeight: 600,
-                  color: 'rgba(255,255,255,0.50)',
+                  color: TEXT_TERTIARY,
                   padding: '7px 0', borderRadius: 8,
                   border: '1px solid rgba(255,255,255,0.08)',
                   backgroundColor: 'rgba(255,255,255,0.04)',
@@ -622,7 +622,7 @@ function RepRouletteFabImpl({ fabPosition = 'fixed' }: Props) {
               <button
                 onClick={handleClose}
                 className="w-7 h-7 flex items-center justify-center rounded-full touch-manipulation"
-                style={{ backgroundColor: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.35)' }}
+                style={{ backgroundColor: 'rgba(255,255,255,0.06)', color: TEXT_HINT }}
                 aria-label="Close roulette"
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
@@ -714,16 +714,16 @@ function RepRouletteFabImpl({ fabPosition = 'fixed' }: Props) {
                       </span>
                       </div>
                       <p className="text-xs" style={{
-                        color: 'rgba(255,255,255,0.45)',
+                        color: TEXT_TERTIARY,
                         opacity: spinning ? 0 : 1,
                         transition: 'opacity 0.2s ease 0.05s',
                       }}>
                         {item.focus}
-                        <span style={{ color: 'rgba(255,255,255,0.2)', margin: '0 6px' }}>·</span>
+                        <span style={{ color: TEXT_DISABLED, margin: '0 6px' }}>·</span>
                         {item.suggestion}
                       </p>
                       <p className="text-xs mt-2 leading-relaxed" style={{
-                        color: 'rgba(255,255,255,0.35)',
+                        color: TEXT_HINT,
                         opacity: spinning ? 0 : 1,
                         transition: 'opacity 0.2s ease 0.05s',
                         overflow: 'hidden',
@@ -743,7 +743,7 @@ function RepRouletteFabImpl({ fabPosition = 'fixed' }: Props) {
                       </div>
                     </>
                   ) : (
-                    <p className="text-xs italic" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                    <p className="text-xs italic" style={{ color: TEXT_HINT }}>
                       Constraint library is empty — seed pending.
                     </p>
                   )}

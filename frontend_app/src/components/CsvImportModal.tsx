@@ -3,7 +3,7 @@ import { parseCSV, type ParsedRow, type GiNogi, type SessionType, type SkillTagV
 import { parseJSON } from '../lib/jsonParser.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
 import { api, ApiError } from '../lib/api.ts';
-import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, COPPER_BORDER, PALE_YELLOW, SURFACE_2, SURFACE_2_BORDER, SURFACE_3, SURFACE_3_BORDER } from '../lib/theme.ts';
+import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, COPPER_BORDER, PALE_YELLOW, SURFACE_2, SURFACE_2_BORDER, SURFACE_3, SURFACE_3_BORDER, TEXT_BODY, TEXT_TERTIARY, TEXT_HINT } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 
 const COPPER_DIM = 'rgba(196,145,95,0.85)';
@@ -219,7 +219,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
               </h2>
               <p
                 className="j2-serif-italic"
-                style={{ marginTop: 10, fontSize: 16, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}
+                style={{ marginTop: 10, fontSize: 16, color: TEXT_TERTIARY, lineHeight: 1.5 }}
               >
                 Upload a CSV, JSON, or Numbers spreadsheet — review every row before it lands in your record.
               </p>
@@ -265,7 +265,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
               <p
                 className="text-center"
                 style={{
-                  color: 'rgba(255,255,255,0.75)',
+                  color: TEXT_BODY,
                   fontSize: isDesktop ? 16 : 14,
                   lineHeight: 1.5,
                 }}
@@ -275,7 +275,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
               </p>
               <p
                 style={{
-                  color: 'rgba(255,255,255,0.35)',
+                  color: TEXT_HINT,
                   fontSize: isDesktop ? 12 : 11,
                   letterSpacing: isDesktop ? '0.08em' : 'normal',
                   textTransform: isDesktop ? 'uppercase' : 'none',
@@ -297,7 +297,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
               <span
                 style={{
                   fontSize: isDesktop ? 11 : 12,
-                  color: 'rgba(255,255,255,0.40)',
+                  color: TEXT_TERTIARY,
                   letterSpacing: isDesktop ? '0.16em' : 'normal',
                   textTransform: isDesktop ? 'uppercase' : 'none',
                   fontWeight: isDesktop ? 700 : 400,
@@ -344,7 +344,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
               <p
                 style={{
                   fontSize: isDesktop ? 11 : 12,
-                  color: 'rgba(255,255,255,0.40)',
+                  color: TEXT_TERTIARY,
                   letterSpacing: isDesktop ? '0.16em' : '0.08em',
                   textTransform: 'uppercase',
                   fontWeight: isDesktop ? 700 : 600,
@@ -374,7 +374,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
                     fontSize: isDesktop ? 12.5 : 11,
                     padding: isDesktop ? '4px 10px' : '2px 8px',
                     borderRadius: 4,
-                    color: 'rgba(255,255,255,0.25)',
+                    color: TEXT_HINT,
                     backgroundColor: SURFACE_2,
                   }}
                 >
@@ -384,7 +384,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
               <p
                 style={{
                   fontSize: isDesktop ? 13 : 11,
-                  color: 'rgba(255,255,255,0.40)',
+                  color: TEXT_TERTIARY,
                   marginTop: 10,
                   lineHeight: 1.5,
                 }}
@@ -437,7 +437,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
                             fontWeight: 700,
                             letterSpacing: '0.16em',
                             textTransform: 'uppercase',
-                            color: 'rgba(255,255,255,0.40)',
+                            color: TEXT_TERTIARY,
                             marginBottom: 6,
                           }}
                         >
@@ -513,7 +513,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
                       <button
                         onClick={skipAllUntagged}
                         className="text-xs"
-                        style={{ color: 'rgba(255,255,255,0.45)', letterSpacing: '0.04em' }}
+                        style={{ color: TEXT_TERTIARY, letterSpacing: '0.04em' }}
                       >
                         Skip all untagged
                       </button>
@@ -572,7 +572,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
                   <button
                     onClick={skipAllUntagged}
                     className="ml-2 text-xs underline"
-                    style={{ color: 'rgba(255,255,255,0.35)' }}
+                    style={{ color: TEXT_HINT }}
                   >
                     Skip all untagged
                   </button>
@@ -659,7 +659,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
                   <span
                     style={{
                       fontSize: isDesktop ? 13 : 12,
-                      color: 'rgba(255,255,255,0.40)',
+                      color: TEXT_TERTIARY,
                     }}
                   >
                     All rows skipped
@@ -720,7 +720,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
                   style={{
                     marginTop: isDesktop ? 12 : 4,
                     fontSize: isDesktop ? 14 : 13,
-                    color: 'rgba(255,255,255,0.45)',
+                    color: TEXT_TERTIARY,
                     fontStyle: isDesktop ? 'italic' : 'normal',
                     fontFamily: isDesktop ? '"Cormorant Garamond", Georgia, serif' : undefined,
                   }}

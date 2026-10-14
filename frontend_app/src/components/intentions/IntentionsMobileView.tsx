@@ -12,7 +12,7 @@
 import { useMemo, useState } from 'react';
 import JournalEmptyState from '../JournalEmptyState.tsx';
 import { Pencil } from 'lucide-react';
-import { COPPER, COPPER_BORDER, GLOW_SOFT, PALE_YELLOW, SURFACE_2 } from '../../lib/theme.ts';
+import { COPPER, COPPER_BORDER, GLOW_SOFT, PALE_YELLOW, SURFACE_2, TEXT_PRIMARY, TEXT_TERTIARY, TEXT_HINT, TEXT_DISABLED } from '../../lib/theme.ts';
 import { SKILL_TAGS, CATEGORY_COLORS } from '../../lib/constants.ts';
 import { computeAlignment, tagHoursInRange, topTagInRange } from '../../lib/analyticsUtils.ts';
 import type { Intention, SessionSummary } from '../../types/api.ts';
@@ -123,7 +123,7 @@ export default function IntentionsMobileView({
             }}
           />
         </div>
-        <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13, marginTop: 4 }}>
+        <p style={{ color: TEXT_TERTIARY, fontSize: 13, marginTop: 4 }}>
           {intentions.length} {intentions.length === 1 ? 'intention' : 'intentions'}
         </p>
       </div>
@@ -131,7 +131,7 @@ export default function IntentionsMobileView({
       {!intentionsEnabled && (
         <div
           className="rounded-xl px-4 py-2.5 text-sm"
-          style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.35)' }}
+          style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)', color: TEXT_HINT }}
         >
           Intentions are currently disabled — viewing history only.
         </div>
@@ -157,7 +157,7 @@ export default function IntentionsMobileView({
               background: 'rgba(255,255,255,0.06)',
               border: 'none',
               padding: '12px 16px',
-              color: 'rgba(255,255,255,0.90)',
+              color: TEXT_PRIMARY,
               fontSize: 16,
               fontFamily: 'var(--font-editorial)',
               fontStyle: 'italic',
@@ -223,10 +223,10 @@ export default function IntentionsMobileView({
           className="rounded-xl px-6 py-8 text-center"
           style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}
         >
-          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.50)' }}>
+          <p className="text-sm" style={{ color: TEXT_TERTIARY }}>
             No intentions match.
           </p>
-          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.30)' }}>
+          <p className="text-xs mt-1" style={{ color: TEXT_HINT }}>
             Adjust the search or filter.
           </p>
         </div>
@@ -281,7 +281,7 @@ export default function IntentionsMobileView({
                   <div style={{ fontFamily: 'var(--font-editorial)', fontStyle: 'italic', fontSize: 16, color: 'rgba(242,228,168,0.50)', lineHeight: 1 }}>
                     {new Date(intention.week_start + 'T00:00:00').getDate()}
                   </div>
-                  <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.22)', marginTop: 2 }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: TEXT_HINT, marginTop: 2 }}>
                     {new Date(intention.week_start + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()}
                   </div>
                   <div style={{ fontFamily: 'var(--font-editorial)', fontStyle: 'italic', fontSize: 10, color: 'rgba(196,145,95,0.35)', marginTop: 3 }}>
@@ -293,12 +293,12 @@ export default function IntentionsMobileView({
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
                     {categoryColor && <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: categoryColor, flexShrink: 0 }} />}
-                    <span style={{ fontSize: 15, fontWeight: 600, color: 'rgba(255,255,255,0.90)' }}>
+                    <span style={{ fontSize: 15, fontWeight: 600, color: TEXT_PRIMARY }}>
                       {headingLabel ?? intention.intent_label}
                     </span>
                   </div>
                   {headingLabel && intention.intent_label && intention.intent_label.toLowerCase() !== (headingLabel ?? '').toLowerCase() && (
-                    <p style={{ fontFamily: 'var(--font-editorial)', fontStyle: 'italic', fontSize: 13, color: 'rgba(255,255,255,0.45)', margin: '0 0 4px' }}>
+                    <p style={{ fontFamily: 'var(--font-editorial)', fontStyle: 'italic', fontSize: 13, color: TEXT_TERTIARY, margin: '0 0 4px' }}>
                       {intention.intent_label}
                     </p>
                   )}
@@ -310,7 +310,7 @@ export default function IntentionsMobileView({
                         Trained: {ambient}
                       </span>
                     ) : (
-                      <span style={{ fontSize: 11, fontStyle: 'italic', color: 'rgba(255,255,255,0.20)' }}>No sessions</span>
+                      <span style={{ fontSize: 11, fontStyle: 'italic', color: TEXT_DISABLED }}>No sessions</span>
                     )}
                   </div>
                   {/* Journal snippet */}
@@ -332,7 +332,7 @@ export default function IntentionsMobileView({
                   <button
                     onClick={e => { e.stopPropagation(); onNavigate(`/intentions/${intention.id}/journal`, { state: { from: '/intentions' } }); }}
                     className="touch-manipulation"
-                    style={{ color: 'rgba(255,255,255,0.18)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}
+                    style={{ color: TEXT_DISABLED, background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}
                   >
                     <Pencil size={12} />
                   </button>

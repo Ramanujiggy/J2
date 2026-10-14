@@ -11,7 +11,7 @@ import SealStamp from './SealStamp.tsx';
 import { useFocusTrap } from '../../hooks/useFocusTrap.ts';
 import { vibrate } from '../../lib/haptics.ts';
 import { bandDate, struckMeta, type StampDie } from '../../lib/stampDies.ts';
-import { PALE_YELLOW, FONT_EDITORIAL, CARD_GLOW_BORDER } from '../../lib/theme.ts';
+import { PALE_YELLOW, FONT_EDITORIAL, CARD_GLOW_BORDER, TEXT_SECONDARY, TEXT_TERTIARY } from '../../lib/theme.ts';
 
 interface Props {
   open: boolean;
@@ -117,17 +117,17 @@ export default function SealRevealSheet({ open, die, struckAt, count, autoEarned
           {die.name}
         </div>
         <div
-          style={{ fontSize: 14, lineHeight: 1.62, color: 'rgba(255,255,255,0.66)', marginTop: 8, maxWidth: 280, marginLeft: 'auto', marginRight: 'auto' }}
+          style={{ fontSize: 14, lineHeight: 1.62, color: TEXT_SECONDARY, marginTop: 8, maxWidth: 280, marginLeft: 'auto', marginRight: 'auto' }}
           dangerouslySetInnerHTML={{ __html: die.why }}
         />
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.44)', marginTop: 18 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: TEXT_TERTIARY, marginTop: 18 }}>
           {meta}
         </div>
 
         <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
           <button
             onClick={onClose}
-            style={{ flex: 1, height: 46, borderRadius: 13, fontSize: 14, fontWeight: 700, border: '1px solid var(--j2-border-2)', background: 'none', color: 'rgba(255,255,255,0.66)', cursor: 'pointer' }}
+            style={{ flex: 1, height: 46, borderRadius: 13, fontSize: 14, fontWeight: 700, border: '1px solid var(--j2-border-2)', background: 'none', color: TEXT_SECONDARY, cursor: 'pointer' }}
           >
             Share
           </button>

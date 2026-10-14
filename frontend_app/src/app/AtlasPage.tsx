@@ -18,7 +18,7 @@ import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import { useActiveIntention } from '../context/ActiveIntentionContext.tsx';
 import { useSessions } from '../context/SessionsContext.tsx';
 import PageContent from '../components/PageContent.tsx';
-import { PALE_YELLOW, GLOW_SOFT, STATUS_ERROR } from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, STATUS_ERROR, TEXT_SECONDARY, TEXT_TERTIARY, TEXT_HINT } from '../lib/theme.ts';
 import { type TimeWindow } from '../lib/analyticsUtils.ts';
 import AtlasEmptyHero from '../components/empty/AtlasEmptyHero.tsx';
 import AtlasCalendarPanel from '../components/atlas/AtlasCalendarPanel.tsx';
@@ -179,7 +179,7 @@ export default function AtlasPage() {
             >
               Atlas
             </h2>
-            <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.30)' }}>
+            <p className="text-xs mt-1" style={{ color: TEXT_HINT }}>
               The patterns in your training
             </p>
           </div>
@@ -217,11 +217,11 @@ export default function AtlasPage() {
       style={{
         display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24,
         background: 'none', border: 'none', cursor: 'pointer',
-        color: 'rgba(255,255,255,0.66)', fontSize: 12, fontWeight: 700,
+        color: TEXT_SECONDARY, fontSize: 12, fontWeight: 700,
         letterSpacing: '0.12em', textTransform: 'uppercase',
       }}
     >
-      <span style={{ fontSize: 19, color: 'rgba(255,255,255,0.26)' }}>&lsaquo;</span>
+      <span style={{ fontSize: 19, color: TEXT_HINT }}>&lsaquo;</span>
       <span>Atlas</span>
     </button>
   );
@@ -258,7 +258,7 @@ export default function AtlasPage() {
           {/* Header - title left, the other three surfaces as quiet links */}
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px 24px' }}>
             <div>
-              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.46)' }}>
+              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: TEXT_TERTIARY }}>
                 Atlas
               </div>
               <h1
@@ -270,7 +270,7 @@ export default function AtlasPage() {
                 Look back at your training
               </h1>
             </div>
-            <div style={{ display: 'flex', gap: 20, fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.46)', paddingBottom: 8 }}>
+            <div style={{ display: 'flex', gap: 20, fontSize: 12, fontWeight: 600, color: TEXT_TERTIARY, paddingBottom: 8 }}>
               {([
                 ['Years', () => setSurface('years')],
                 ['Library', () => navigate('/library')],
@@ -333,7 +333,7 @@ export default function AtlasPage() {
 
               {/* The years - a teaser band; the full surface is one link up */}
               <div style={{ marginTop: 44, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 8 }}>
-                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.46)', margin: '14px 0 2px' }}>
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: TEXT_TERTIARY, margin: '14px 0 2px' }}>
                   The years
                 </div>
                 {yearRows.map(row => (
@@ -357,7 +357,7 @@ export default function AtlasPage() {
                         <i key={i} style={{ flex: 1, height: tick === 0 ? 2 : Math.round(4 + tick * 16), background: 'rgba(196,145,95,0.5)', borderRadius: 1, opacity: tick === 0 ? 0.25 : 0.85 }} />
                       ))}
                     </span>
-                    <span style={{ width: 240, flex: 'none', textAlign: 'right', fontSize: 11, color: 'rgba(255,255,255,0.46)' }}>
+                    <span style={{ width: 240, flex: 'none', textAlign: 'right', fontSize: 11, color: TEXT_TERTIARY }}>
                       {row.summary}
                     </span>
                   </button>

@@ -13,7 +13,7 @@
 //
 // Extracted from IntentionsPage.tsx during the 2026-05-09 refactor pass.
 
-import { COPPER, PALE_YELLOW, FONT_EDITORIAL } from '../../lib/theme.ts';
+import { COPPER, PALE_YELLOW, FONT_EDITORIAL, TEXT_SECONDARY } from '../../lib/theme.ts';
 import type { Intention } from '../../types/api.ts';
 import {
   FOCUS_COLORS, PILLAR_LABEL,
@@ -27,7 +27,7 @@ export default function IntentionsEras({ eras, statsMap, onOpen }: { eras: Era[]
         className="j2-serif-italic"
         style={{
           fontSize: 16,
-          color: 'rgba(255,255,255,0.65)',
+          color: TEXT_SECONDARY,
           marginBottom: 26,
           fontStyle: 'italic',
           lineHeight: 1.4,

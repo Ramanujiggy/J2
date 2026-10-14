@@ -17,7 +17,7 @@ import FlatBelt from './FlatBelt.tsx';
 import { beltDisplayName, type BeltRankKey } from '../../lib/beltCloth.ts';
 import { useFocusTrap } from '../../hooks/useFocusTrap.ts';
 import { vibrate } from '../../lib/haptics.ts';
-import { COPPER, PALE_YELLOW, FONT_EDITORIAL, CARD_GLOW_BORDER } from '../../lib/theme.ts';
+import { COPPER, PALE_YELLOW, FONT_EDITORIAL, CARD_GLOW_BORDER, TEXT_SECONDARY, TEXT_TERTIARY } from '../../lib/theme.ts';
 
 const REDUCED = typeof matchMedia !== 'undefined'
   && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -166,10 +166,10 @@ export default function PromotionRevealSheet({
         <div style={{ fontFamily: FONT_EDITORIAL, fontSize: 32, fontWeight: 600, color: PALE_YELLOW, marginTop: 22, letterSpacing: '-0.01em' }}>
           {name}
         </div>
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.44)', marginTop: 12 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: TEXT_TERTIARY, marginTop: 12 }}>
           {meta}
         </div>
-        <div style={{ fontSize: 14, lineHeight: 1.62, color: 'rgba(255,255,255,0.66)', marginTop: 14, maxWidth: 300, marginLeft: 'auto', marginRight: 'auto' }}>
+        <div style={{ fontSize: 14, lineHeight: 1.62, color: TEXT_SECONDARY, marginTop: 14, maxWidth: 300, marginLeft: 'auto', marginRight: 'auto' }}>
           It’s in your journal now, and it will come back on the anniversary.
         </div>
 

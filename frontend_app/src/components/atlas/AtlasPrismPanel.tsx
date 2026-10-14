@@ -20,7 +20,7 @@ import {
   type TimeWindow, WINDOW_DAYS,
   sessionPillarHours, computeAlignment, topTagInRange, tagHoursInRange,
 } from '../../lib/analyticsUtils.ts';
-import { FONT_EDITORIAL, GLOW_SOFT, PALE_YELLOW } from '../../lib/theme.ts';
+import { FONT_EDITORIAL, GLOW_SOFT, PALE_YELLOW, TEXT_TERTIARY } from '../../lib/theme.ts';
 import type { Intention, SessionSummary } from '../../types/api.ts';
 
 interface Props {
@@ -309,7 +309,7 @@ export default function AtlasPrismPanel({
               style={{
                 flexShrink: 0,
                 fontSize: 12,
-                color: 'rgba(255,255,255,0.42)',
+                color: TEXT_TERTIARY,
                 letterSpacing: '0.20em',
                 textTransform: 'uppercase',
                 whiteSpace: 'nowrap',

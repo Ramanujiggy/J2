@@ -23,15 +23,11 @@ import {
   buildStream, filterStream, groupByMonth, yearBlocks, typeLabel,
   type StreamChip, type StreamItem,
 } from '../lib/journalStream.ts';
-import { COPPER, PALE_YELLOW, SAGE, FONT_EDITORIAL } from '../lib/theme.ts';
+import { COPPER, PALE_YELLOW, SAGE, FONT_EDITORIAL, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_TERTIARY, TEXT_HINT } from '../lib/theme.ts';
 import type {
   BeltHistoryEntry, Intention, SessionSummary, TrainingNote,
 } from '../types/api.ts';
 
-const TEXT_PRIMARY   = 'rgba(255,255,255,0.92)';
-const TEXT_SECONDARY = 'rgba(255,255,255,0.66)';
-const TEXT_TERTIARY  = 'rgba(255,255,255,0.46)';
-const TEXT_HINT      = 'rgba(255,255,255,0.26)';
 const HAIRLINE       = 'rgba(255,255,255,0.06)';
 
 const CHIPS: StreamChip[] = ['All', 'Sessions', 'Notes'];

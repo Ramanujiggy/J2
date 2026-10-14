@@ -20,10 +20,7 @@
 //   - Headspace post-session check-in (`87fab23a-…`) — drive-home warmth
 //   - 222 forest-green register (`fb8cfaaf-…`) — italic Cormorant + hairlines
 
-import {
-  CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, COPPER, COPPER_BORDER,
-  PALE_YELLOW, FONT_EDITORIAL, GLOW_SOFT, SURFACE_2,
-} from '../../lib/theme.ts';
+import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, COPPER, COPPER_BORDER, PALE_YELLOW, FONT_EDITORIAL, GLOW_SOFT, SURFACE_2, TEXT_HINT } from '../../lib/theme.ts';
 import { formatGiNogi } from '../../lib/sessionUtils.ts';
 import { useTodayClass, formatRelativeMinutes } from './useTodayClass.ts';
 import type { SessionSummary } from '../../types/api.ts';
@@ -372,7 +369,7 @@ function PromptRow({
         <button
           onClick={onNo}
           style={{
-            fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.35)',
+            fontSize: 13, fontWeight: 600, color: TEXT_HINT,
             background: 'none', border: 'none',
             cursor: 'pointer', padding: 0,
           }}

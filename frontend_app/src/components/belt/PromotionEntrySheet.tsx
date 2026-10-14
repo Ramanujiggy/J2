@@ -15,11 +15,9 @@ import { createPortal } from 'react-dom';
 import FlatBelt from './FlatBelt.tsx';
 import { beltDisplayName, isBeltRank } from '../../lib/beltCloth.ts';
 import { useFocusTrap } from '../../hooks/useFocusTrap.ts';
-import { COPPER, PALE_YELLOW, FONT_EDITORIAL, CARD_GLOW_BORDER } from '../../lib/theme.ts';
+import { COPPER, PALE_YELLOW, FONT_EDITORIAL, CARD_GLOW_BORDER, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_TERTIARY } from '../../lib/theme.ts';
 import type { BeltHistoryEntry } from '../../types/api.ts';
 
-const TEXT_SECONDARY = 'rgba(255,255,255,0.66)';
-const TEXT_TERTIARY  = 'rgba(255,255,255,0.46)';
 const MAX_CHARS = 2000;
 
 interface Props {
@@ -110,7 +108,7 @@ export default function PromotionEntrySheet({ open, promotion, academy, saving, 
             width: '100%', marginTop: 24,
             background: 'transparent', border: 'none', outline: 'none', resize: 'vertical',
             fontFamily: FONT_EDITORIAL, fontSize: 17.5, lineHeight: 1.7,
-            color: 'rgba(255,255,255,0.88)', padding: 0, minHeight: 180,
+            color: TEXT_PRIMARY, padding: 0, minHeight: 180,
           }}
         />
 

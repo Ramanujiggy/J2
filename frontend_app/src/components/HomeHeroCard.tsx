@@ -17,9 +17,7 @@
 // without promising a count.
 
 import { useCallback, useRef, useState } from 'react';
-import {
-  COPPER, PALE_YELLOW, BRAND_ORANGE, FONT_EDITORIAL,
-} from '../lib/theme.ts';
+import { COPPER, PALE_YELLOW, BRAND_ORANGE, FONT_EDITORIAL, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_TERTIARY } from '../lib/theme.ts';
 import { formatDuration } from '../lib/sessionUtils.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
 import { excerptOf, isExcerptTruncated } from '../lib/homeViewModel.ts';
@@ -58,7 +56,7 @@ const PILL_STYLE: React.CSSProperties = {
   fontWeight: 700,
   letterSpacing: '0.1em',
   textTransform: 'uppercase',
-  color: 'rgba(255,255,255,0.66)',
+  color: TEXT_SECONDARY,
   whiteSpace: 'nowrap',
 };
 
@@ -88,7 +86,7 @@ const CTA_STYLE: React.CSSProperties = {
 const GHOST_STYLE: React.CSSProperties = {
   height: 44,
   padding: '0 12px',
-  color: 'rgba(255,255,255,0.66)',
+  color: TEXT_SECONDARY,
   fontSize: 14,
   whiteSpace: 'nowrap',
   background: 'none',
@@ -101,7 +99,7 @@ const QUOTE_STYLE: React.CSSProperties = {
   fontFamily: FONT_EDITORIAL,
   fontSize: 18,
   lineHeight: 1.5,
-  color: 'rgba(255,255,255,0.92)',
+  color: TEXT_PRIMARY,
   paddingLeft: 14,
   borderLeft: '1px solid rgba(196,145,95,0.4)',
 };
@@ -238,13 +236,13 @@ function TaskCard({ entry, onKeepWriting }: {
       {excerpt ? (
         <div style={{ ...QUOTE_STYLE, marginTop: 12, maxWidth: 236 }}>
           {excerpt}
-          {truncated && <span style={{ color: 'rgba(255,255,255,0.46)' }}> …</span>}
+          {truncated && <span style={{ color: TEXT_TERTIARY }}> …</span>}
         </div>
       ) : (
         <div
           style={{
             fontFamily: FONT_EDITORIAL, fontSize: 18, fontStyle: 'italic',
-            lineHeight: 1.5, color: 'rgba(255,255,255,0.46)',
+            lineHeight: 1.5, color: TEXT_TERTIARY,
             marginTop: 12, maxWidth: 236,
           }}
         >
@@ -303,7 +301,7 @@ function MemoryCard({ memory, onRead, onLogToday }: {
       <CardHeader
         pill={memory.label}
         right={
-          <span style={{ ...MICRO_LABEL, color: 'rgba(255,255,255,0.46)' }}>
+          <span style={{ ...MICRO_LABEL, color: TEXT_TERTIARY }}>
             {ordinal(memory.ordinal)} session
           </span>
         }
@@ -319,7 +317,7 @@ function MemoryCard({ memory, onRead, onLogToday }: {
         <span
           style={{
             display: 'block', fontSize: 14, fontWeight: 500,
-            color: 'rgba(255,255,255,0.66)',
+            color: TEXT_SECONDARY,
             fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif',
           }}
         >
@@ -380,7 +378,7 @@ function IntentionCard({ intention, weeksIn, touchedCount, onOpen }: {
 
       <div
         style={{
-          fontSize: 13.5, color: 'rgba(255,255,255,0.66)', marginTop: 10,
+          fontSize: 13.5, color: TEXT_SECONDARY, marginTop: 10,
           lineHeight: 1.6, maxWidth: 270,
         }}
       >
@@ -419,7 +417,7 @@ function DayOneCard({ onLogFirst }: { onLogFirst: () => void }) {
           lines, deliberately. */}
       <div
         style={{
-          fontSize: 13.5, color: 'rgba(255,255,255,0.66)', marginTop: 10,
+          fontSize: 13.5, color: TEXT_SECONDARY, marginTop: 10,
           lineHeight: 1.55, maxWidth: 250,
         }}
       >
@@ -462,7 +460,7 @@ function TechniqueCardView({ card, onOpen }: {
     <div style={CARD_STYLE}>
       <CardHeader
         pill={learning ? 'Working on' : 'Go-to'}
-        right={<span style={{ ...MICRO_LABEL, color: 'rgba(255,255,255,0.46)' }}>{pillar}</span>}
+        right={<span style={{ ...MICRO_LABEL, color: TEXT_TERTIARY }}>{pillar}</span>}
       />
 
       <div
@@ -489,7 +487,7 @@ function TechniqueCardView({ card, onOpen }: {
       ) : (
         <div
           style={{
-            fontSize: 13.5, color: 'rgba(255,255,255,0.66)', marginTop: 10,
+            fontSize: 13.5, color: TEXT_SECONDARY, marginTop: 10,
             lineHeight: 1.6, maxWidth: 270,
           }}
         >
@@ -502,7 +500,7 @@ function TechniqueCardView({ card, onOpen }: {
           Open technique
         </button>
         {journal && recentCount > 0 && (
-          <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.46)' }}>
+          <span style={{ fontSize: 11.5, color: TEXT_TERTIARY }}>
             {recentCount} of {windowSize}
           </span>
         )}
@@ -524,7 +522,7 @@ function PastIntentionCard({ intention, techniques, onOpen }: {
     <div style={CARD_STYLE}>
       <CardHeader
         pill="Earlier intention"
-        right={<span style={{ ...MICRO_LABEL, color: 'rgba(255,255,255,0.46)' }}>{when}</span>}
+        right={<span style={{ ...MICRO_LABEL, color: TEXT_TERTIARY }}>{when}</span>}
       />
 
       <div
@@ -595,7 +593,7 @@ function NothingToResurfaceCard({ onLog }: { onLog: () => void }) {
 
       <div
         style={{
-          fontSize: 13.5, color: 'rgba(255,255,255,0.66)', marginTop: 10,
+          fontSize: 13.5, color: TEXT_SECONDARY, marginTop: 10,
           lineHeight: 1.55, maxWidth: 260,
         }}
       >

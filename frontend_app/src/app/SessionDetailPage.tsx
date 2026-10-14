@@ -18,7 +18,7 @@ import SessionDetailModal from '../components/SessionDetailModal.tsx';
 import { api } from '../lib/api.ts';
 import { SKILL_TAGS, MONTH_NAMES } from '../lib/constants.ts';
 import { toDateString, DAY_NAMES, formatDuration } from '../lib/sessionUtils.ts';
-import { CARD_BG, COPPER, FONT_EDITORIAL, STATUS_ERROR } from '../lib/theme.ts';
+import { CARD_BG, COPPER, FONT_EDITORIAL, STATUS_ERROR, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_TERTIARY } from '../lib/theme.ts';
 import type { SessionSummary } from '../types/api.ts';
 
 export default function SessionDetailPage() {
@@ -195,7 +195,7 @@ function RelatedRow({ sessions, onOpen }: { sessions: SessionSummary[]; onOpen: 
             >
               <div
                 style={{
-                  fontSize: 13, color: 'rgba(255,255,255,0.40)',
+                  fontSize: 13, color: TEXT_TERTIARY,
                   letterSpacing: '0.14em', textTransform: 'uppercase',
                 }}
               >
@@ -204,12 +204,12 @@ function RelatedRow({ sessions, onOpen }: { sessions: SessionSummary[]; onOpen: 
               <div
                 style={{
                   fontSize: 19, fontWeight: 600, marginTop: 8,
-                  color: 'rgba(255,255,255,0.90)', fontFamily: FONT_EDITORIAL,
+                  color: TEXT_PRIMARY, fontFamily: FONT_EDITORIAL,
                 }}
               >
                 {focusLabel}
               </div>
-              <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.40)', marginTop: 6 }}>
+              <div style={{ fontSize: 14, color: TEXT_TERTIARY, marginTop: 6 }}>
                 {DAY_NAMES[d.getDay()]} · {formatDuration(r.duration ?? 0)}
               </div>
             </button>
@@ -246,7 +246,7 @@ function PrevNext({
         <div className="j2-label-micro" style={{ marginBottom: 6 }}>
           {side === 'left' ? '← Previous' : 'Next →'}
         </div>
-        <div style={{ fontSize: 15, color: 'rgba(255,255,255,0.60)' }}>
+        <div style={{ fontSize: 15, color: TEXT_SECONDARY }}>
           {focusLabel} · {MONTH_NAMES[d.getMonth()]} {d.getDate()}
         </div>
       </button>
@@ -281,7 +281,7 @@ function NotFound({ onBack }: { onBack: () => void }) {
       }}
     >
       <h2 className="j2-serif-display" style={{ fontSize: 26, margin: 0 }}>Entry not found.</h2>
-      <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.50)', lineHeight: 1.6, marginTop: 10 }}>
+      <p style={{ fontSize: 14, color: TEXT_TERTIARY, lineHeight: 1.6, marginTop: 10 }}>
         That session doesn&rsquo;t exist — it may have been deleted, or the link is wrong.
       </p>
       <button

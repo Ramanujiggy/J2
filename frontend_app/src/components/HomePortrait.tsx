@@ -7,7 +7,7 @@
 
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { COPPER, PALE_YELLOW, FONT_EDITORIAL } from '../lib/theme.ts';
+import { COPPER, PALE_YELLOW, FONT_EDITORIAL, TEXT_TERTIARY } from '../lib/theme.ts';
 import {
   PILLAR_ORDER,
   prismVertices,
@@ -166,7 +166,7 @@ export default function HomePortrait({ shapes, sessionCount, variant = 'mobile' 
           style={{
             display: 'block',
             fontSize: 12,
-            color: 'rgba(255,255,255,0.46)',
+            color: TEXT_TERTIARY,
             marginTop: desk ? 5 : 6,
             lineHeight: desk ? 1.55 : undefined,
             maxWidth: desk ? 330 : undefined,
@@ -178,7 +178,7 @@ export default function HomePortrait({ shapes, sessionCount, variant = 'mobile' 
         </span>
       </span>
 
-      {!desk && <span style={{ color: 'rgba(255,255,255,0.46)', fontSize: 20, flex: 'none' }}>›</span>}
+      {!desk && <span style={{ color: TEXT_TERTIARY, fontSize: 20, flex: 'none' }}>›</span>}
     </button>
   );
 }

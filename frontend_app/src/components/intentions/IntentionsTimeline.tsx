@@ -14,7 +14,7 @@
 // Extracted from IntentionsPage.tsx during the 2026-05-09 refactor pass.
 
 import { useState } from 'react';
-import { COPPER, COPPER_BORDER, FONT_EDITORIAL, PALE_YELLOW } from '../../lib/theme.ts';
+import { COPPER, COPPER_BORDER, FONT_EDITORIAL, PALE_YELLOW, TEXT_SECONDARY, TEXT_HINT } from '../../lib/theme.ts';
 import { MONTH_NAMES } from '../../lib/constants.ts';
 import type { Intention, Pillar } from '../../types/api.ts';
 import {
@@ -175,7 +175,7 @@ function MonthHeader({ weekStart, isFirst }: { weekStart: string; isFirst: boole
           fontWeight: 600,
           letterSpacing: '0.16em',
           textTransform: 'uppercase',
-          color: 'rgba(255,255,255,0.32)',
+          color: TEXT_HINT,
           fontVariantNumeric: 'tabular-nums',
         }}
       >
@@ -206,7 +206,7 @@ function EmptyWeekRow({ weekStart, sessionCount }: { weekStart: string; sessionC
       <div
         style={{
           fontSize: 14,
-          color: 'rgba(255,255,255,0.32)',
+          color: TEXT_HINT,
           letterSpacing: '0.10em',
           textTransform: 'uppercase',
           fontVariantNumeric: 'tabular-nums',
@@ -222,7 +222,7 @@ function EmptyWeekRow({ weekStart, sessionCount }: { weekStart: string; sessionC
         style={{
           fontSize: 22,
           fontStyle: 'italic',
-          color: 'rgba(255,255,255,0.32)',
+          color: TEXT_HINT,
           lineHeight: 1.1,
         }}
       >
@@ -284,7 +284,7 @@ function IntentionRow({
       <div
         style={{
           fontSize: 14,
-          color: 'rgba(255,255,255,0.62)',
+          color: TEXT_SECONDARY,
           letterSpacing: '0.10em',
           textTransform: 'uppercase',
           fontVariantNumeric: 'tabular-nums',
@@ -327,7 +327,7 @@ function IntentionRow({
       <div
         style={{
           fontSize: 15,
-          color: 'rgba(255,255,255,0.72)',
+          color: TEXT_SECONDARY,
           fontVariantNumeric: 'tabular-nums',
           fontWeight: 500,
         }}
@@ -365,7 +365,7 @@ function IntentionRow({
         <span
           style={{
             fontSize: 13.5,
-            color: 'rgba(255,255,255,0.58)',
+            color: TEXT_SECONDARY,
             fontVariantNumeric: 'tabular-nums',
             minWidth: 42,
             textAlign: 'right',

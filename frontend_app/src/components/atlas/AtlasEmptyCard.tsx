@@ -3,7 +3,7 @@
 //
 // Extracted from AtlasPage.tsx during the 2026-05-09 refactor pass.
 
-import { CARD_BG } from '../../lib/theme.ts';
+import { CARD_BG, TEXT_TERTIARY } from '../../lib/theme.ts';
 
 interface Props {
   title: string;
@@ -24,7 +24,7 @@ export default function AtlasEmptyCard({ title, body }: Props) {
       }}
     >
       <h2 className="j2-serif-display" style={{ fontSize: 28, margin: 0 }}>{title}</h2>
-      <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.50)', lineHeight: 1.6, marginTop: 10 }}>
+      <p style={{ fontSize: 14, color: TEXT_TERTIARY, lineHeight: 1.6, marginTop: 10 }}>
         {body}
       </p>
     </div>

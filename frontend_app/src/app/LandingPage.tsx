@@ -18,19 +18,12 @@ import { useAuth } from '../context/AuthContext.tsx';
 // Brand surfaces/accents come from the token registry. Aliased to the local
 // names this file already uses (CHAMPAGNE/BORDER_2) so the markup reads the
 // same while the values stay single-sourced.
-import {
-  PAGE_BG, COPPER, CARD_BG,
-  PALE_YELLOW as CHAMPAGNE,
-  SURFACE_3_BORDER as BORDER_2,
-} from '../lib/theme.ts';
+import { PAGE_BG, COPPER, CARD_BG, PALE_YELLOW as CHAMPAGNE, SURFACE_3_BORDER as BORDER_2, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_TERTIARY } from '../lib/theme.ts';
 
 // Landing-only values with no registry equivalent.
 const ORANGE = '#DA7422';
 const ORANGE_HOVER = '#E8823A';
 const CARD_BG_2 = '#122619';
-const TEXT_PRIMARY = 'rgba(255,255,255,0.90)';
-const TEXT_SECONDARY = 'rgba(255,255,255,0.60)';
-const TEXT_TERTIARY = 'rgba(255,255,255,0.40)';
 const BORDER_1 = 'rgba(255,255,255,0.05)';
 
 // CTA primary button (52px tall, used in hero + closing). Inline so the

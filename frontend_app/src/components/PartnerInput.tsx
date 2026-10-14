@@ -9,7 +9,7 @@
 // off real partner records. Today: pure local strings on the session record.
 
 import { useState, useRef } from 'react';
-import { COPPER, SURFACE_3 } from '../lib/theme.ts';
+import { COPPER, SURFACE_3, TEXT_SECONDARY } from '../lib/theme.ts';
 import { vibrate } from '../lib/haptics.ts';
 
 interface Props {
@@ -77,7 +77,7 @@ export default function PartnerInput({ partners, onChange, maxSelected = 5 }: Pr
               title={`${name} (tap to remove)`}
             >
               <span>{name}</span>
-              <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11 }}>×</span>
+              <span style={{ color: TEXT_SECONDARY, fontSize: 11 }}>×</span>
             </button>
           ))}
         </div>

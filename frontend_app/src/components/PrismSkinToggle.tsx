@@ -8,7 +8,7 @@ import { useState } from 'react';
 import SegmentedToggle from './SegmentedToggle.tsx';
 import PrismFocusInput, { type PrismSkin } from './PrismFocusInput.tsx';
 import type { ChipSelection } from '../lib/selectionsToDistribution.ts';
-import { PALE_YELLOW } from '../lib/theme.ts';
+import { PALE_YELLOW, TEXT_HINT } from '../lib/theme.ts';
 
 const STORAGE_KEY = 'j2-prism-skin';
 
@@ -62,7 +62,7 @@ export default function PrismSkinToggle({ hideHeading, onChange }: Props = {}) {
       {/* Live preview — drag or tap to feel it; changes here don't save. */}
       <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <PrismFocusInput selections={preview} onChange={() => {}} skin={skin} />
-        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: -6 }}>
+        <p style={{ fontSize: 11, color: TEXT_HINT, marginTop: -6 }}>
           Preview · <span style={{ color: PALE_YELLOW }}>{PRISM_SKIN_LABEL[skin]}</span>
         </p>
       </div>

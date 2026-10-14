@@ -5,7 +5,7 @@
 // Prism. Tap anywhere on the overlay (or wait) to dismiss.
 
 import { useEffect } from 'react';
-import { COPPER, PALE_YELLOW } from '../lib/theme.ts';
+import { COPPER, PALE_YELLOW, TEXT_BODY } from '../lib/theme.ts';
 import type { ChipSelection } from '../lib/selectionsToDistribution.ts';
 import type { Pillar } from '../types/api.ts';
 
@@ -103,7 +103,7 @@ export default function PrismReceipt({ selections, onDismiss }: Props) {
           borderRadius: '50%',
           border: '1px solid rgba(255,255,255,0.16)',
           background: 'rgba(255,255,255,0.06)',
-          color: 'rgba(255,255,255,0.75)',
+          color: TEXT_BODY,
           fontSize: 20,
           lineHeight: 1,
           display: 'flex',

@@ -17,11 +17,7 @@ import PageContent from '../components/PageContent.tsx';
 import { useProfile } from '../context/ProfileContext.tsx';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import { api, ApiError } from '../lib/api.ts';
-import {
-    PALE_YELLOW, COPPER, CARD_BG, CARD_GLOW, CARD_GLOW_BORDER,
-    SURFACE_2, SURFACE_2_BORDER, FONT_EDITORIAL, GLOW_SOFT,
-    STATUS_ERROR, STATUS_ERROR_BG, STATUS_ERROR_BORDER,
-} from '../lib/theme.ts';
+import { PALE_YELLOW, COPPER, CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, SURFACE_2, SURFACE_2_BORDER, FONT_EDITORIAL, GLOW_SOFT, STATUS_ERROR, STATUS_ERROR_BG, STATUS_ERROR_BORDER, TEXT_PRIMARY, TEXT_BODY, TEXT_SECONDARY, TEXT_TERTIARY, TEXT_HINT } from '../lib/theme.ts';
 import type {
     AdminStats, AdminStatsResponse,
     AdminCasesResponse, AdminUsersResponse,
@@ -192,7 +188,7 @@ export default function AdminDashboardPage() {
                     </h1>
                     <p
                         className="j2-serif-italic"
-                        style={{ marginTop: 14, fontSize: isDesktop ? 18 : 15, color: 'rgba(255,255,255,0.55)' }}
+                        style={{ marginTop: 14, fontSize: isDesktop ? 18 : 15, color: TEXT_TERTIARY }}
                     >
                         Stats, cases, and recent activity.
                     </p>
@@ -303,8 +299,8 @@ export default function AdminDashboardPage() {
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
                         <SectionLabel compact={!isDesktop}>Recent users</SectionLabel>
                         <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
-                                <span style={{ letterSpacing: '0.06em', textTransform: 'uppercase', fontSize: 10, color: 'rgba(255,255,255,0.40)' }}>Min sessions</span>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: TEXT_TERTIARY }}>
+                                <span style={{ letterSpacing: '0.06em', textTransform: 'uppercase', fontSize: 10, color: TEXT_TERTIARY }}>Min sessions</span>
                                 <input
                                     type="number"
                                     min={0}
@@ -316,7 +312,7 @@ export default function AdminDashboardPage() {
                                         background: SURFACE_2,
                                         border: `1px solid ${SURFACE_2_BORDER}`,
                                         borderRadius: 8,
-                                        color: 'rgba(255,255,255,0.88)',
+                                        color: TEXT_PRIMARY,
                                         fontSize: 13,
                                         textAlign: 'center',
                                         outline: 'none',
@@ -332,7 +328,7 @@ export default function AdminDashboardPage() {
                             <>
                                 {visibleUsers.map(u => <UserRow key={u.id} user={u} />)}
                                 {hiddenUserCount > 0 && (
-                                    <div style={{ paddingTop: 14, color: 'rgba(255,255,255,0.40)', fontSize: 13, fontStyle: 'italic' }}>
+                                    <div style={{ paddingTop: 14, color: TEXT_TERTIARY, fontSize: 13, fontStyle: 'italic' }}>
                                         +{hiddenUserCount} more match the filter (raise the min-sessions threshold to narrow further).
                                     </div>
                                 )}
@@ -346,7 +342,7 @@ export default function AdminDashboardPage() {
                     <SectionLabel compact={!isDesktop}>Recent logins</SectionLabel>
                     <div style={{ marginTop: 14 }}>
                         {recentLogins.length === 0 ? (
-                            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic' }}>No login data yet.</p>
+                            <p style={{ fontSize: 13, color: TEXT_HINT, fontStyle: 'italic' }}>No login data yet.</p>
                         ) : (
                             recentLogins.slice(0, 15).map(login => {
                                 const ago = getTimeAgo(login.last_login_at);
@@ -363,22 +359,22 @@ export default function AdminDashboardPage() {
                                         <div style={{ minWidth: 0, overflow: 'hidden' }}>
                                             {isDesktop ? (
                                                 <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.80)' }}>
+                                                    <span style={{ fontSize: 13, color: TEXT_BODY }}>
                                                         {login.name ?? login.email}
                                                     </span>
                                                     {login.name && (
-                                                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)', marginLeft: 8 }}>
+                                                        <span style={{ fontSize: 11, color: TEXT_HINT, marginLeft: 8 }}>
                                                             {login.email}
                                                         </span>
                                                     )}
                                                 </div>
                                             ) : (
                                                 <>
-                                                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.80)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                    <div style={{ fontSize: 13, color: TEXT_BODY, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                         {login.name ?? login.email}
                                                     </div>
                                                     {login.name && (
-                                                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                        <div style={{ fontSize: 11, color: TEXT_HINT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                             {login.email}
                                                         </div>
                                                     )}
@@ -398,7 +394,7 @@ export default function AdminDashboardPage() {
                 {/* ── System info ── */}
                 <Card style={{ marginTop: 24 }} compact={!isDesktop}>
                     <SectionLabel compact={!isDesktop}>System</SectionLabel>
-                    <div style={{ marginTop: 14, fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.7 }}>
+                    <div style={{ marginTop: 14, fontSize: 13, color: TEXT_TERTIARY, lineHeight: 1.7 }}>
                         <div>App version: <span style={{ color: PALE_YELLOW }}>{(import.meta as { env?: { VITE_APP_VERSION?: string } }).env?.VITE_APP_VERSION ?? 'dev'}</span></div>
                         <div>API connected: <span style={{ color: error ? STATUS_ERROR : '#52B56C' }}>{error ? 'failed' : 'ok'}</span></div>
                         <div>Loaded at: <span style={{ color: PALE_YELLOW }}>{new Date().toLocaleString()}</span></div>
@@ -409,7 +405,7 @@ export default function AdminDashboardPage() {
                 <Card style={{ marginTop: 24 }} compact={!isDesktop}>
                     <SectionLabel compact={!isDesktop}>File tree</SectionLabel>
                     <div style={{ marginTop: 14, maxHeight: 500, overflowY: 'auto' }}>
-                        {fileTree ? <FileTreeView nodes={fileTree} /> : <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic' }}>Loading…</p>}
+                        {fileTree ? <FileTreeView nodes={fileTree} /> : <p style={{ fontSize: 13, color: TEXT_HINT, fontStyle: 'italic' }}>Loading…</p>}
                     </div>
                 </Card>
 
@@ -438,9 +434,9 @@ export default function AdminDashboardPage() {
                                 }}>
                                     {r.method}
                                 </span>
-                                <span style={{ color: 'rgba(255,255,255,0.70)', wordBreak: 'break-all' }}>{r.path}</span>
+                                <span style={{ color: TEXT_SECONDARY, wordBreak: 'break-all' }}>{r.path}</span>
                             </div>
-                        )) : <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic' }}>Loading…</p>}
+                        )) : <p style={{ fontSize: 13, color: TEXT_HINT, fontStyle: 'italic' }}>Loading…</p>}
                     </div>
                 </Card>
             </div>
@@ -542,7 +538,7 @@ function Stat({ label, value, accent, compact }: { label: string; value: number 
             <div
                 style={{
                     fontSize: 11,
-                    color: 'rgba(255,255,255,0.45)',
+                    color: TEXT_TERTIARY,
                     marginTop: 6,
                     letterSpacing: '0.06em',
                     textTransform: 'uppercase',
@@ -559,7 +555,7 @@ function EmptyRow({ text }: { text: string }) {
         <div
             style={{
                 padding: '16px 0',
-                color: 'rgba(255,255,255,0.40)',
+                color: TEXT_TERTIARY,
                 fontSize: 14,
                 fontStyle: 'italic',
             }}
@@ -622,10 +618,10 @@ function CaseRow({
             >
                 <StatusPill status={caseItem.status} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, color: 'rgba(255,255,255,0.92)', fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div style={{ fontWeight: 600, color: TEXT_PRIMARY, fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {caseItem.subject}
                     </div>
-                    <div style={{ color: 'rgba(255,255,255,0.40)', fontSize: 12, marginTop: 2 }}>
+                    <div style={{ color: TEXT_TERTIARY, fontSize: 12, marginTop: 2 }}>
                         <Link
                             to={`/admin/users/${caseItem.user_id}`}
                             onClick={e => e.stopPropagation()}
@@ -638,21 +634,21 @@ function CaseRow({
                         {' · '}{created} · {SEVERITY_LABEL[caseItem.severity]}
                     </div>
                 </div>
-                <div style={{ color: 'rgba(255,255,255,0.30)', fontSize: 12 }}>
+                <div style={{ color: TEXT_HINT, fontSize: 12 }}>
                     {expanded ? '▾' : '▸'}
                 </div>
             </div>
 
             {expanded && (
                 <div style={{ marginTop: 14, marginLeft: 8, paddingLeft: 18, borderLeft: '2px solid rgba(196,145,95,0.20)' }}>
-                    <p style={{ color: 'rgba(255,255,255,0.78)', fontSize: 14, lineHeight: 1.55, margin: '0 0 14px', whiteSpace: 'pre-wrap' }}>
+                    <p style={{ color: TEXT_BODY, fontSize: 14, lineHeight: 1.55, margin: '0 0 14px', whiteSpace: 'pre-wrap' }}>
                         {caseItem.description}
                     </p>
 
-                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginBottom: 14, lineHeight: 1.6 }}>
-                        {caseItem.page_url     && <div>URL: <span style={{ color: 'rgba(255,255,255,0.65)' }}>{caseItem.page_url}</span></div>}
-                        {caseItem.user_agent   && <div>UA: <span style={{ color: 'rgba(255,255,255,0.65)' }}>{caseItem.user_agent}</span></div>}
-                        {caseItem.app_version  && <div>App version: <span style={{ color: 'rgba(255,255,255,0.65)' }}>{caseItem.app_version}</span></div>}
+                    <div style={{ fontSize: 12, color: TEXT_TERTIARY, marginBottom: 14, lineHeight: 1.6 }}>
+                        {caseItem.page_url     && <div>URL: <span style={{ color: TEXT_SECONDARY }}>{caseItem.page_url}</span></div>}
+                        {caseItem.user_agent   && <div>UA: <span style={{ color: TEXT_SECONDARY }}>{caseItem.user_agent}</span></div>}
+                        {caseItem.app_version  && <div>App version: <span style={{ color: TEXT_SECONDARY }}>{caseItem.app_version}</span></div>}
                     </div>
 
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
@@ -679,7 +675,7 @@ function CaseRow({
                     </div>
 
                     <div>
-                        <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.40)' }}>
+                        <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: TEXT_TERTIARY }}>
                             Admin notes
                         </label>
                         <textarea
@@ -694,7 +690,7 @@ function CaseRow({
                                 background: SURFACE_2,
                                 border: `1px solid ${SURFACE_2_BORDER}`,
                                 borderRadius: 10,
-                                color: 'rgba(255,255,255,0.90)',
+                                color: TEXT_PRIMARY,
                                 fontSize: 13,
                                 resize: 'vertical',
                                 outline: 'none',
@@ -771,22 +767,22 @@ function UserRow({ user }: { user: AdminUserSummary }) {
             onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
         >
             <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ color: 'rgba(255,255,255,0.92)', fontSize: 14, fontWeight: 600 }}>
+                <div style={{ color: TEXT_PRIMARY, fontSize: 14, fontWeight: 600 }}>
                     {user.name ?? '(no name)'}
                 </div>
-                <div style={{ color: 'rgba(255,255,255,0.42)', fontSize: 12, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div style={{ color: TEXT_TERTIARY, fontSize: 12, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {user.email} · {user.belt_rank ?? 'no belt'} · joined {new Date(user.created_at).toLocaleDateString()}
                 </div>
             </div>
-            <div style={{ textAlign: 'right', fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
+            <div style={{ textAlign: 'right', fontSize: 12, color: TEXT_TERTIARY }}>
                 <div style={{ fontFamily: FONT_EDITORIAL, fontSize: 18, color: PALE_YELLOW }}>
                     {user.session_count}
                 </div>
-                <div style={{ fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.40)' }}>
+                <div style={{ fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: TEXT_TERTIARY }}>
                     sessions
                 </div>
             </div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.30)', marginLeft: 4 }}>↗</div>
+            <div style={{ fontSize: 12, color: TEXT_HINT, marginLeft: 4 }}>↗</div>
         </Link>
     );
 }
@@ -818,7 +814,7 @@ function FileTreeItem({ node, depth }: { node: FileTreeNode; depth: number }) {
                     fontFamily: 'ui-monospace, SFMono-Regular, monospace',
                 }}
             >
-                <span style={{ width: 10, textAlign: 'center', fontSize: 10, color: 'rgba(255,255,255,0.30)' }}>
+                <span style={{ width: 10, textAlign: 'center', fontSize: 10, color: TEXT_HINT }}>
                     {hasChildren ? (expanded ? '▾' : '▸') : ''}
                 </span>
                 <span>{isDir ? `${node.name}/` : node.name}</span>

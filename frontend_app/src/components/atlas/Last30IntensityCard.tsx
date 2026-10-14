@@ -5,7 +5,7 @@
 //
 // Extracted from AtlasPage.tsx during the 2026-05-09 refactor pass.
 
-import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, INT_COLORS } from '../../lib/theme.ts';
+import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, INT_COLORS, TEXT_TERTIARY } from '../../lib/theme.ts';
 import { toDateString } from '../../lib/sessionUtils.ts';
 import type { SessionSummary } from '../../types/api.ts';
 
@@ -42,7 +42,7 @@ export default function Last30IntensityCard({ sessions }: Props) {
           return (
             <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
               <div style={{ width: '100%', height: h, background: c, borderRadius: 5, boxShadow: `0 0 12px ${c}60` }} />
-              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.40)', letterSpacing: '0.1em' }}>{n}</div>
+              <div style={{ fontSize: 13, color: TEXT_TERTIARY, letterSpacing: '0.1em' }}>{n}</div>
             </div>
           );
         })}
@@ -50,7 +50,7 @@ export default function Last30IntensityCard({ sessions }: Props) {
       <div
         style={{
           display: 'flex', justifyContent: 'space-between',
-          fontSize: 12, color: 'rgba(255,255,255,0.40)',
+          fontSize: 12, color: TEXT_TERTIARY,
           letterSpacing: '0.14em', textTransform: 'uppercase', marginTop: 8,
         }}
       >

@@ -16,9 +16,7 @@
 // page, so all three surfaces read identically.
 
 import { useMemo, useState } from 'react';
-import {
-  COPPER, PALE_YELLOW, BRAND_ORANGE, FONT_EDITORIAL, STATUS_ERROR,
-} from '../lib/theme.ts';
+import { COPPER, PALE_YELLOW, BRAND_ORANGE, FONT_EDITORIAL, STATUS_ERROR, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_TERTIARY } from '../lib/theme.ts';
 import { formatGiNogi } from '../lib/sessionUtils.ts';
 import { prismVertices, dominantPillar, pillarLabel } from '../lib/prismGeometry.ts';
 import { STAMP_DIES, bandDate } from '../lib/stampDies.ts';
@@ -26,10 +24,7 @@ import SealStamp from './seal/SealStamp.tsx';
 import SealRevealSheet from './seal/SealRevealSheet.tsx';
 import type { Pillar, SessionSummary } from '../types/api.ts';
 
-const TEXT_PRIMARY   = 'rgba(255,255,255,0.92)';
-const TEXT_SECONDARY = 'rgba(255,255,255,0.66)';
 /** The contrast floor. Small text never goes below this. */
-const TEXT_TERTIARY  = 'rgba(255,255,255,0.46)';
 const HAIRLINE_2     = 'rgba(255,255,255,0.1)';
 
 const SESSION_TYPE_LABELS: Record<string, string> = {

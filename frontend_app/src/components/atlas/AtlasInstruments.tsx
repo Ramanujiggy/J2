@@ -24,7 +24,7 @@ import {
 import {
   overlayVerdict, byWeekVerdict, ghostVerdict, hoursPerPillar, type Verdict,
 } from '../../lib/atlasVerdicts.ts';
-import { COPPER, PALE_YELLOW, FONT_EDITORIAL } from '../../lib/theme.ts';
+import { COPPER, PALE_YELLOW, FONT_EDITORIAL, TEXT_SECONDARY, TEXT_TERTIARY, TEXT_HINT } from '../../lib/theme.ts';
 import type { PillarDistribution, SessionSummary } from '../../types/api.ts';
 
 export type Instrument = 'overlay' | 'byweek' | 'ghost' | 'study' | 'density';
@@ -37,8 +37,6 @@ export const INSTRUMENTS: { id: Instrument; label: string; stub?: boolean }[] = 
   { id: 'density', label: 'Density',    stub: true },
 ];
 
-const TEXT_SECONDARY = 'rgba(255,255,255,0.66)';
-const TEXT_TERTIARY  = 'rgba(255,255,255,0.46)';
 
 /** The web behind a radar: three rings and five spokes. */
 function Web({ cx, cy, r, labels }: { cx: number; cy: number; r: number; labels?: boolean }) {
@@ -138,7 +136,7 @@ export default function AtlasInstruments({ instrument, shapes, sessions, weeks, 
                     />
                   ))}
                 </svg>
-                <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.26)', marginTop: 4 }}>
+                <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: TEXT_HINT, marginTop: 4 }}>
                   {w.label}
                 </div>
               </div>

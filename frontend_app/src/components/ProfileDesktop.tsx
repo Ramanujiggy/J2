@@ -20,12 +20,9 @@ import PromotionList from './belt/PromotionList.tsx';
 import SealStamp from './seal/SealStamp.tsx';
 import { STAMP_DIES, bandDate } from '../lib/stampDies.ts';
 import { beltDisplayName, isBeltRank, type BeltRankKey } from '../lib/beltCloth.ts';
-import { PALE_YELLOW, FONT_EDITORIAL, STATUS_ERROR, STATUS_ERROR_BG, STATUS_ERROR_BORDER } from '../lib/theme.ts';
+import { PALE_YELLOW, FONT_EDITORIAL, STATUS_ERROR, STATUS_ERROR_BG, STATUS_ERROR_BORDER, TEXT_SECONDARY, TEXT_TERTIARY, TEXT_HINT } from '../lib/theme.ts';
 import type { BeltHistoryEntry, EarnedStamp } from '../types/api.ts';
 
-const TEXT_SECONDARY = 'rgba(255,255,255,0.66)';
-const TEXT_TERTIARY  = 'rgba(255,255,255,0.46)';
-const TEXT_HINT      = 'rgba(255,255,255,0.26)';
 const HAIRLINE       = '1px solid rgba(255,255,255,0.06)';
 
 /** How many slots the shelf shows. Enough to imply there is more without

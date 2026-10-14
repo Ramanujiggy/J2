@@ -10,7 +10,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import SessionDetailModal from './SessionDetailModal.tsx';
-import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, HEATMAP_REST, HEATMAP_FUTURE, HEATMAP_HEADER_BG, PALE_YELLOW, GLOW_SOFT, SURFACE_2, INT_COLORS, INT_LABELS } from '../lib/theme.ts';
+import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, HEATMAP_REST, HEATMAP_FUTURE, HEATMAP_HEADER_BG, PALE_YELLOW, GLOW_SOFT, SURFACE_2, INT_COLORS, INT_LABELS, TEXT_BODY, TEXT_SECONDARY, TEXT_HINT, TEXT_DISABLED } from '../lib/theme.ts';
 import { giShare, nogiShare } from '../lib/sessionUtils.ts';
 import type { SessionSummary, CalendarIntention } from '../types/api.ts';
 export type { SessionSummary };
@@ -795,7 +795,7 @@ function TrainingHeatmap({ sessions = [], intentions = [], loading = false, onSe
                       )}
                       <span
                         className="leading-none select-none pointer-events-none whitespace-nowrap"
-                        style={{ fontSize: '12px', fontWeight: 500, color: 'rgba(255,255,255,0.80)' }}
+                        style={{ fontSize: '12px', fontWeight: 500, color: TEXT_BODY }}
                       >
                         {date.getDate()}
                         {!isMobile && day.count > 0 && ` | ${(day.totalMinutes / 60).toFixed(1)}h`}
@@ -863,7 +863,7 @@ function TrainingHeatmap({ sessions = [], intentions = [], loading = false, onSe
                 ) : (
                   <span style={{ fontSize: 11, color: 'rgba(242,228,168,0.3)' }} title={weekNotes.join(' · ')}>
                     {noteText}
-                    {extraNotes && <span style={{ color: 'rgba(255,255,255,0.15)' }}>{extraNotes}</span>}
+                    {extraNotes && <span style={{ color: TEXT_DISABLED }}>{extraNotes}</span>}
                   </span>
                 )}
               </div>
@@ -882,7 +882,7 @@ function TrainingHeatmap({ sessions = [], intentions = [], loading = false, onSe
                   animation: 'j2CalIntentFadeIn 0.25s ease forwards',
                 }}
               >
-                <p style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.7)' }}>
+                <p style={{ fontSize: 11, fontWeight: 500, color: TEXT_SECONDARY }}>
                   {weekSessions} session{weekSessions !== 1 ? 's' : ''} · {(weekMinutes / 60).toFixed(1)}h
                   {weekMaxIntensity > 0 && ` · ${INT_LABELS[weekMaxIntensity]} avg`}
                   {weekIntention && (
@@ -890,7 +890,7 @@ function TrainingHeatmap({ sessions = [], intentions = [], loading = false, onSe
                   )}
                 </p>
                 {weekFirstNote && (
-                  <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <p style={{ fontSize: 10, color: TEXT_HINT, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     "{weekFirstNote}"
                   </p>
                 )}

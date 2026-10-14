@@ -4,7 +4,7 @@
 // carries NO number: the record count, tenure and streak that used to live
 // here moved to Profile. Today's date is the one number home is allowed.
 
-import { COPPER } from '../lib/theme.ts';
+import { COPPER, TEXT_TERTIARY } from '../lib/theme.ts';
 
 interface Props {
   /** The die / Sharpen control. Rendered as-is on the right. */
@@ -47,7 +47,7 @@ export default function HomeGreetingRow({ rouletteSlot, now }: Props) {
         </div>
         {/* 0.46 alpha is the contrast floor for small text — see the handoff's
             contrast rule. Do not dim this to 0.26. */}
-        <div style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.46)', marginTop: 5 }}>
+        <div style={{ fontSize: 13.5, color: TEXT_TERTIARY, marginTop: 5 }}>
           {dateLabel}
         </div>
       </div>

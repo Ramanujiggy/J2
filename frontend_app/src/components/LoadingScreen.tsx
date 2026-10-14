@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import PrismLoader from './PrismLoader.tsx';
+import { TEXT_DISABLED } from '../lib/theme.ts';
 
 interface LoadingScreenProps {
   messages?: string[];
@@ -32,7 +33,7 @@ export default function LoadingScreen({ messages, onCycleSettle }: LoadingScreen
       <p
         className="text-sm tracking-widest uppercase"
         style={{
-          color: 'rgba(255,255,255,0.2)',
+          color: TEXT_DISABLED,
           opacity: 0,
           animation: 'j2LdrTextIn 400ms ease-out 200ms forwards',
         }}
