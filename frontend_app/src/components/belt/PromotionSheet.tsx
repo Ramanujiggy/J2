@@ -21,7 +21,7 @@ import FlatBelt, { stripeLeft, stripeWidth } from './FlatBelt.tsx';
 import {
   BELT_CLOTH, BELT_RANK_ORDER, beltDisplayName, type BeltRankKey,
 } from '../../lib/beltCloth.ts';
-import { COPPER, PALE_YELLOW, FONT_EDITORIAL, TEXT_SECONDARY, TEXT_TERTIARY } from '../../lib/theme.ts';
+import { COPPER, PALE_YELLOW, FONT_EDITORIAL, CARD_BG, COPPER_BORDER, TEXT_SECONDARY, TEXT_TERTIARY } from '../../lib/theme.ts';
 import { useFocusTrap } from '../../hooks/useFocusTrap.ts';
 
 const HAIRLINE       = '1px solid rgba(255,255,255,0.06)';
@@ -97,9 +97,14 @@ export default function PromotionSheet({
       className="animate-j2-backdrop-in"
       style={{
         position: 'fixed', inset: 0, zIndex: 60,
-        background: 'rgba(5,10,7,0.74)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: 20,
+        background: 'rgba(13,26,20,0.85)',
+        backdropFilter: 'blur(12px) saturate(1.2)',
+        WebkitBackdropFilter: 'blur(12px) saturate(1.2)',
+        display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+        overflowY: 'auto',
+        paddingLeft: '1rem', paddingRight: '1rem',
+        paddingTop: 'max(1rem, env(safe-area-inset-top))',
+        paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
       }}
     >
       <div
@@ -109,12 +114,13 @@ export default function PromotionSheet({
         aria-label="Record a promotion"
         className="animate-j2-modal-in"
         style={{
-          width: 600, maxWidth: '100%',
-          background: '#17291F',
-          border: '1px solid rgba(196,145,95,0.24)',
-          borderRadius: 22,
-          padding: '34px 38px 30px',
-          maxHeight: '90vh', overflowY: 'auto',
+          width: '100%', maxWidth: '42rem',
+          background: CARD_BG,
+          border: `1px solid ${COPPER_BORDER}`,
+          borderRadius: 16,
+          padding: 24,
+          maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem)',
+          overflowY: 'auto',
         }}
       >
         <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: COPPER }}>
