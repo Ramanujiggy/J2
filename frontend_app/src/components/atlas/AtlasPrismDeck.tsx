@@ -13,7 +13,7 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { SKILL_TAGS, MONTH_NAMES } from '../../lib/constants.ts';
-import { COPPER, PALE_YELLOW, GLOW_SOFT, SURFACE_3_BORDER, PAGE_BG } from '../../lib/theme.ts';
+import { COPPER, PALE_YELLOW, GLOW_SOFT, SURFACE_3_BORDER, PAGE_BG, TEXT_HINT, TEXT_DISABLED } from '../../lib/theme.ts';
 import { WINDOW_DAYS, type TimeWindow, sessionPillarHours, tagHoursInRange } from '../../lib/analyticsUtils.ts';
 import { giShare, nogiShare } from '../../lib/sessionUtils.ts';
 import type { SessionSummary } from '../TrainingHeatmap.tsx';
@@ -431,7 +431,7 @@ export default function AtlasPrismDeck({
                   className="flex-shrink-0"
                   style={{
                     width: 8, height: 8, borderRadius: 2,
-                    backgroundColor: h > 0 ? color : 'rgba(255,255,255,0.12)',
+                    backgroundColor: h > 0 ? color : TEXT_DISABLED,
                   }}
                 />
                 <span
@@ -476,7 +476,7 @@ export default function AtlasPrismDeck({
               <span className="font-bold" style={{ fontSize: 17, color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
                 {entropy.score.toFixed(2)}
               </span>
-              <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.30)' }}>
+              <span style={{ fontSize: 14, color: TEXT_HINT }}>
                 {entropy.label}
               </span>
             </div>
@@ -765,7 +765,7 @@ function SubViewRail({
               {short}
             </button>
             {i < RAIL_VIEWS.length - 1 && (
-              <span aria-hidden style={{ color: 'rgba(255,255,255,0.18)', fontSize: 14 }}>·</span>
+              <span aria-hidden style={{ color: TEXT_DISABLED, fontSize: 14 }}>·</span>
             )}
           </span>
         );

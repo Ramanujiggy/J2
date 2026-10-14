@@ -25,15 +25,11 @@ import HomePortrait from './HomePortrait.tsx';
 import PageContent from './PageContent.tsx';
 import DesktopPathAheadSkeleton from './DesktopPathAheadSkeleton.tsx';
 import RepRouletteFab from './RepRouletteFab.tsx';
-import { COPPER, FONT_EDITORIAL, PALE_YELLOW, BRAND_ORANGE } from '../lib/theme.ts';
+import { COPPER, FONT_EDITORIAL, PALE_YELLOW, BRAND_ORANGE, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_TERTIARY, TEXT_HINT } from '../lib/theme.ts';
 import { excerptOf } from '../lib/homeViewModel.ts';
 import type { MemoryEntry, RecentEntry, TechniqueCard } from '../lib/homeViewModel.ts';
 import type { Intention, PillarDistribution, SessionSummary, UserTag } from '../types/api.ts';
 
-const TEXT_PRIMARY   = 'rgba(255,255,255,0.92)';
-const TEXT_SECONDARY = 'rgba(255,255,255,0.66)';
-const TEXT_TERTIARY  = 'rgba(255,255,255,0.46)';
-const TEXT_HINT      = 'rgba(255,255,255,0.26)';
 const HAIRLINE       = '1px solid rgba(255,255,255,0.06)';
 
 const LABEL_STYLE: React.CSSProperties = {

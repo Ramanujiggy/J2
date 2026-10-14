@@ -17,6 +17,7 @@ import { uploadToR2 } from '../lib/videoUploader.ts';
 import {
   BRAND_ORANGE, COPPER, PALE_YELLOW, SAGE, SURFACE_2,
   SURFACE_2_BORDER, STATUS_ERROR, CARD_BG, COPPER_BORDER,
+  TEXT_TERTIARY, TEXT_HINT,
 } from '../lib/theme.ts';
 import type { SessionVideo, PositionSegment } from '../types/api.ts';
 import PositionTagger, { POSITION_COLOR, POSITION_DEFS } from './PositionTagger.tsx';
@@ -184,7 +185,7 @@ export default function SessionVideoBlock({ sessionId, sessionLabel }: Props) {
             style={{
               width: '100%', padding: '14px 0', marginTop: videos.length > 0 ? 10 : 0,
               background: SURFACE_2, border: `1px dashed ${SURFACE_2_BORDER}`, borderRadius: 10,
-              color: 'rgba(255,255,255,0.4)', fontSize: 13, cursor: 'pointer',
+              color: TEXT_TERTIARY, fontSize: 13, cursor: 'pointer',
             }}
           >
             + Attach footage
@@ -250,7 +251,7 @@ export default function SessionVideoBlock({ sessionId, sessionLabel }: Props) {
               <button
                 onClick={closeTagger}
                 className="touch-manipulation"
-                style={{ flexShrink: 0, fontSize: 13, color: 'rgba(255,255,255,0.45)', background: 'none', border: 'none', cursor: 'pointer', padding: '10px 8px', minHeight: 44 }}
+                style={{ flexShrink: 0, fontSize: 13, color: TEXT_TERTIARY, background: 'none', border: 'none', cursor: 'pointer', padding: '10px 8px', minHeight: 44 }}
               >
                 Done
               </button>
@@ -267,7 +268,7 @@ export default function SessionVideoBlock({ sessionId, sessionLabel }: Props) {
                 saving={savingSegments}
               />
             ) : (
-              <div style={{ padding: '40px 0', textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>
+              <div style={{ padding: '40px 0', textAlign: 'center', fontSize: 13, color: TEXT_HINT }}>
                 Loading video…
               </div>
             )}
@@ -331,7 +332,7 @@ function VideoCard({
         <>
           {/* Header row: duration + actions */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{formatDurationMMSS(dur)}</span>
+            <span style={{ fontSize: 12, color: TEXT_TERTIARY }}>{formatDurationMMSS(dur)}</span>
             <div style={{ display: 'flex', gap: 10 }}>
               {isDesktop && (
                 <button onClick={onTagClick} style={{ fontSize: 12, color: BRAND_ORANGE, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
@@ -340,7 +341,7 @@ function VideoCard({
               )}
               <button
                 onClick={e => { e.stopPropagation(); onDelete(); }}
-                style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', background: 'none', border: 'none', cursor: 'pointer' }}
+                style={{ fontSize: 12, color: TEXT_HINT, background: 'none', border: 'none', cursor: 'pointer' }}
               >
                 Remove
               </button>
@@ -417,7 +418,7 @@ function PositionBreakdown({ segments, totalDur }: { segments: PositionSegment[]
               {def ? `${def.label}${def.sub ? ` (${def.sub})` : ''}` : label}
             </span>
             <span style={{ fontSize: 11, color: SAGE }}>{Math.round(secs)}s</span>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', minWidth: 32, textAlign: 'right' }}>{pct}%</span>
+            <span style={{ fontSize: 11, color: TEXT_TERTIARY, minWidth: 32, textAlign: 'right' }}>{pct}%</span>
           </div>
         );
       })}

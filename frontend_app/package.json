@@ -33,7 +33,7 @@
     "papaparse": "^5.5.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.27.0",
+    "react-router-dom": "^7.18.4",
     "react-window": "^1.8.11",
     "tailwind-merge": "^3.5.0",
     "workbox-cacheable-response": "^7.4.0",

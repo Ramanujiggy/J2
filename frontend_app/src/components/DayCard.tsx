@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { SKILL_TAGS, MONTH_NAMES } from '../lib/constants.ts';
 import type { SessionSummary, Intention } from '../types/api.ts';
-import { CARD_BG, PAGE_BG, SURFACE_2_BORDER, SURFACE_3 } from '../lib/theme.ts';
+import { CARD_BG, PAGE_BG, SURFACE_2_BORDER, SURFACE_3, TEXT_SECONDARY, TEXT_TERTIARY, TEXT_HINT, TEXT_DISABLED } from '../lib/theme.ts';
 import { toDateString, formatDuration, DAY_NAMES, INTENSITY_COLOR, SESSION_TYPE_LABELS } from '../lib/sessionUtils.ts';
 import { generateDayParticles } from '../lib/particles.ts';
 
@@ -27,7 +27,7 @@ function Tooltip({ text, children }: { text: string; children: React.ReactNode }
           borderRadius: 8,
           padding: '5px 10px',
           fontSize: 11,
-          color: 'rgba(255,255,255,0.65)',
+          color: TEXT_SECONDARY,
           whiteSpace: 'nowrap',
           zIndex: 1000,
           pointerEvents: 'none',
@@ -147,11 +147,11 @@ export default function DayCard({ day, today, sessions, intention, intentionBrig
             />
             <span className="text-sm font-semibold text-white">{formatDuration(totalMinutes)}</span>
             {sessionCount > 1 && (
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>×{sessionCount}</span>
+              <span style={{ fontSize: 10, color: TEXT_HINT }}>×{sessionCount}</span>
             )}
           </div>
           {/* Type · Style */}
-          <p className="text-[12px] mb-2" style={{ color: 'rgba(255,255,255,0.45)' }}>
+          <p className="text-[12px] mb-2" style={{ color: TEXT_TERTIARY }}>
             {SESSION_TYPE_LABELS[primarySession!.session_type] ?? primarySession!.session_type}
             {' · '}
             {primarySession!.gi_nogi === 'gi' ? 'Gi' : 'No-Gi'}
@@ -165,7 +165,7 @@ export default function DayCard({ day, today, sessions, intention, intentionBrig
                   <span
                     key={tag}
                     className="text-[11px] px-1.5 py-0.5 rounded"
-                    style={{ backgroundColor: SURFACE_3, color: 'rgba(255,255,255,0.5)' }}
+                    style={{ backgroundColor: SURFACE_3, color: TEXT_TERTIARY }}
                   >
                     {found?.label ?? tag}
                   </span>
@@ -173,7 +173,7 @@ export default function DayCard({ day, today, sessions, intention, intentionBrig
               })}
             </div>
           )}
-          <p className="text-[11px] text-right" style={{ color: 'rgba(255,255,255,0.2)' }}>Tap to view ›</p>
+          <p className="text-[11px] text-right" style={{ color: TEXT_DISABLED }}>Tap to view ›</p>
         </button>
       ) : isToday ? (
         <button
@@ -187,7 +187,7 @@ export default function DayCard({ day, today, sessions, intention, intentionBrig
           onClick={() => onLogSession(day)}
           className="flex-1 flex flex-col items-center justify-center gap-1.5"
         >
-          <span className="text-sm" style={{ color: 'rgba(255,255,255,0.2)' }}>Rest day</span>
+          <span className="text-sm" style={{ color: TEXT_DISABLED }}>Rest day</span>
           <span className="text-sm font-medium" style={{ color: 'rgba(196,145,95,0.55)' }}>+ Log session</span>
         </button>
       ) : (
@@ -195,7 +195,7 @@ export default function DayCard({ day, today, sessions, intention, intentionBrig
           onClick={() => onLogSession(day)}
           className="flex-1 flex flex-col items-center justify-center gap-1"
         >
-          <span className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.18)' }}>+ Log</span>
+          <span className="text-sm font-medium" style={{ color: TEXT_DISABLED }}>+ Log</span>
         </button>
       )}
       </div>

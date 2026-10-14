@@ -15,16 +15,14 @@ import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api.ts';
 import { useFocusTrap } from '../hooks/useFocusTrap.ts';
 import { useGymAutocomplete, type GymPlace } from '../hooks/useGymAutocomplete.ts';
-import { COPPER, PALE_YELLOW, FONT_EDITORIAL, CARD_BG, COPPER_BORDER } from '../lib/theme.ts';
+import { COPPER, PALE_YELLOW, FONT_EDITORIAL, CARD_BG, COPPER_BORDER, TEXT_SECONDARY, TEXT_TERTIARY } from '../lib/theme.ts';
 
-const TEXT_SECONDARY = 'rgba(255,255,255,0.66)';
-const TEXT_TERTIARY  = 'rgba(255,255,255,0.46)';
 const HAIRLINE       = '1px solid rgba(255,255,255,0.06)';
 
 const LABEL: React.CSSProperties = {
   display: 'block', marginBottom: 8,
   fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase',
-  color: 'rgba(255,255,255,0.40)',
+  color: TEXT_TERTIARY,
 };
 
 const INPUT_CLS = 'w-full rounded-xl px-4 py-3.5 text-[15px] text-white placeholder-white/25 outline-none transition-colors j2-copper-focus';

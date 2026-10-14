@@ -1,4 +1,4 @@
-import { PALE_YELLOW, COPPER, FONT_EDITORIAL, GLOW_SOFT } from '../lib/theme.ts';
+import { PALE_YELLOW, COPPER, FONT_EDITORIAL, GLOW_SOFT, TEXT_SECONDARY } from '../lib/theme.ts';
 
 interface Props {
   heroLines: string[];
@@ -37,7 +37,7 @@ export default function JournalEmptyState({ heroLines, supporting, affordance, o
           fontStyle: 'italic',
           fontWeight: 400,
           fontSize: 16,
-          color: 'rgba(255,255,255,0.60)',
+          color: TEXT_SECONDARY,
           lineHeight: 1.5,
           textAlign: 'center',
           maxWidth: 280,

@@ -4,7 +4,7 @@
 // input over `value` (minutes) so it drops into any session form.
 
 import { useEffect, useRef } from 'react';
-import { PALE_YELLOW, COPPER } from '../lib/theme.ts';
+import { PALE_YELLOW, COPPER, TEXT_TERTIARY } from '../lib/theme.ts';
 import { vibrate } from '../lib/haptics.ts';
 
 const MIN = 15, MAX = 240, STEP = 15;
@@ -47,7 +47,7 @@ export default function DurationDial({ value, onChange, size = 168 }: Props) {
       + '<circle class="knob" r="9" fill="' + PALE_YELLOW + '" stroke="#12130e" stroke-width="2"/></svg>'
       + '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">'
       + '<div class="dv" style="font-family:\'Plus Jakarta Sans\',system-ui,sans-serif;font-variant-numeric:tabular-nums;font-size:27px;font-weight:700;color:' + PALE_YELLOW + ';letter-spacing:-0.01em"></div>'
-      + '<div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.44);margin-top:4px">on the mat</div>'
+      + '<div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:' + TEXT_TERTIARY + ';margin-top:4px">on the mat</div>'
       + '</div></div>';
 
     const svg = host.querySelector('svg')!;

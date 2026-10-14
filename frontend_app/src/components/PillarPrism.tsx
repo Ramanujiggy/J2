@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { COPPER } from '../lib/theme.ts';
+import { COPPER, TEXT_HINT } from '../lib/theme.ts';
 import { vibrate } from '../lib/haptics.ts';
 
 // ── Pentagon geometry ─────────────────────────────────────────────────────
@@ -305,7 +305,7 @@ export default function PillarPrism({ heading, resonance, onSelect, defaultHeadi
       </svg>
 
       {/* Hint */}
-      <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.28)', textAlign: 'center', lineHeight: 1.4 }}>
+      <p style={{ fontSize: 10, color: TEXT_HINT, textAlign: 'center', lineHeight: 1.4 }}>
         {heading
           ? isSnapped
             ? (() => {

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { renderWithProviders } from '@/test/renderWithProviders';
 import CaptureComposer from '../CaptureComposer.tsx';
 
 const postMock = vi.fn().mockResolvedValue({ message: 'Session logged.', session_count: 12 });
@@ -48,11 +48,7 @@ const ENTRY_PLACEHOLDER =
 // CaptureComposer always mounts SealRevealSheet, which calls useNavigate() — so
 // it needs a router in the tree even though these tests never navigate.
 const renderComposer = (onSuccess: (count?: number) => void) =>
-  render(
-    <MemoryRouter>
-      <CaptureComposer onSuccess={onSuccess} />
-    </MemoryRouter>,
-  );
+  renderWithProviders(<CaptureComposer onSuccess={onSuccess} />);
 
 describe('CaptureComposer', () => {
   beforeEach(() => {
@@ -93,9 +89,8 @@ describe('CaptureComposer', () => {
 
     // Techniques and prism focus are now chosen explicitly (TagPicker /
     // PrismFocusInput), never inferred from the entry text — so a write that
-    // only types prose carries no pillars. `extractChips` is no longer wired
-    // into any capture surface; src/lib/__tests__/chipExtraction.test.ts still
-    // covers the module itself.
+    // only types prose carries no pillars. The old prose-inference path
+    // (`extractChips`) was removed entirely once no capture surface wired it.
     expect(body.tags).toEqual([]);
     expect(body.heading).toBeNull();
     expect(body.had_primary).toBe(false);
@@ -121,9 +116,9 @@ describe('CaptureComposer', () => {
   // Replaces the old "re-extraction on Continue preserves a user un-confirmation
   // (F1)" case. That test drove a chip-extraction/receipt step that no longer
   // exists: the composer stopped auto-seeding technique chips from the entry text
-  // (`extractChips` has no callers), and MarginNotesEntry saves straight from the
-  // page. What is still worth covering on the voice route is that the transcript
-  // survives the record → page handoff and lands in `notes`.
+  // (the `extractChips` module has since been removed), and MarginNotesEntry saves
+  // straight from the page. What is still worth covering on the voice route is that
+  // the transcript survives the record → page handoff and lands in `notes`.
   it('voice path: sheet → record → page carries the transcript into notes', async () => {
     speechState.supported = true;
     const onSuccess = vi.fn();

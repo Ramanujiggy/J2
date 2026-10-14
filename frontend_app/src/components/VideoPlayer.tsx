@@ -19,6 +19,7 @@ import { useState, useEffect } from 'react';
 import { loadVideo, saveVideo, deleteVideosForTag } from '../lib/videoStore.ts';
 import { api } from '../lib/api.ts';
 import type { UserTag } from '../types/api.ts';
+import { TEXT_BODY, TEXT_TERTIARY, TEXT_HINT } from '../lib/theme.ts';
 
 interface Props {
   tag: UserTag;
@@ -176,7 +177,7 @@ export default function VideoPlayer({ tag, onClose, stuck = false }: Props) {
   return (
     <div style={wrapperStyle}>
       {loading && (
-        <p className="text-sm" style={{ color: 'rgba(255,255,255,0.40)' }}>
+        <p className="text-sm" style={{ color: TEXT_TERTIARY }}>
           {downloadPercent != null ? `Downloading ${downloadPercent}%…` : 'Loading…'}
         </p>
       )}
@@ -190,10 +191,10 @@ export default function VideoPlayer({ tag, onClose, stuck = false }: Props) {
               style={{ width: '100%', maxWidth: 240, opacity: 0.5, borderRadius: 8 }}
             />
           )}
-          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>
+          <p className="text-sm" style={{ color: TEXT_TERTIARY }}>
             {tag.video_status === 'processing' ? 'Still encoding…' : 'Video unavailable.'}
           </p>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.30)' }}>
+          <p className="text-xs" style={{ color: TEXT_HINT }}>
             {tag.video_status === 'processing'
               ? 'Hang tight — the encode usually finishes in under a minute.'
               : tag.video_status === 'failed'
@@ -260,7 +261,7 @@ export default function VideoPlayer({ tag, onClose, stuck = false }: Props) {
           borderRadius: '50%',
           background: 'rgba(0,0,0,0.55)',
           border: '1px solid rgba(255,255,255,0.18)',
-          color: 'rgba(255,255,255,0.85)',
+          color: TEXT_BODY,
           fontSize: 16,
           lineHeight: 1,
           display: 'flex',

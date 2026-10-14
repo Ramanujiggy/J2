@@ -20,7 +20,7 @@
 // Cancellation rolls the ring back; completion fires haptics + commits deep_work.
 
 import { useEffect, useRef, useState } from 'react';
-import { COPPER, COPPER_BORDER, PALE_YELLOW, SURFACE_3 } from '../lib/theme.ts';
+import { COPPER, COPPER_BORDER, PALE_YELLOW, SURFACE_3, TEXT_TERTIARY } from '../lib/theme.ts';
 import { vibrate } from '../lib/haptics.ts';
 import type { ChipSelection } from '../lib/selectionsToDistribution.ts';
 import type { Pillar } from '../types/api.ts';
@@ -411,14 +411,14 @@ export default function FocusAreaChips({ selections, onChange, defaultPrimaryPil
       {!hintDismissed && !isSingle && (
         <p
           className="text-[11px] mt-2 text-center"
-          style={{ color: 'rgba(255,255,255,0.40)', lineHeight: 1.5 }}
+          style={{ color: TEXT_TERTIARY, lineHeight: 1.5 }}
         >
           Tap to add. Double-tap to set your focus. Hold for deep work.
           <button
             type="button"
             onClick={dismissHint}
             className="ml-2 underline j2-press"
-            style={{ color: 'rgba(255,255,255,0.55)', background: 'transparent', border: 0, padding: 0, cursor: 'pointer' }}
+            style={{ color: TEXT_TERTIARY, background: 'transparent', border: 0, padding: 0, cursor: 'pointer' }}
           >
             got it
           </button>

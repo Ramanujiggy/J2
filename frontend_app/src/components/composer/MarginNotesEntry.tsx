@@ -15,7 +15,7 @@
 // full-row PUT never nulls them. Partners are derived from @mentions in the prose.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { PALE_YELLOW, COPPER, FONT_EDITORIAL, CARD_BG, SURFACE_2 } from '../../lib/theme.ts';
+import { PALE_YELLOW, COPPER, FONT_EDITORIAL, CARD_BG, SURFACE_2, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_TERTIARY, TEXT_HINT } from '../../lib/theme.ts';
 import { vibrate } from '../../lib/haptics.ts';
 import { SKILL_TAGS } from '../../lib/constants.ts';
 import SegmentedToggle from '../SegmentedToggle.tsx';
@@ -226,7 +226,7 @@ export default function MarginNotesEntry({
   };
 
   const SubLabel = ({ children }: { children: React.ReactNode }) => (
-    <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.44)', margin: '22px 0 10px' }}>
+    <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: TEXT_TERTIARY, margin: '22px 0 10px' }}>
       {children}
     </p>
   );
@@ -244,13 +244,13 @@ export default function MarginNotesEntry({
         onClick={() => setDateEditing(v => !v)}
         style={{ fontFamily: FONT_EDITORIAL, fontSize: 32, fontWeight: 600, color: '#8FB56A', letterSpacing: '-0.01em', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}
       >
-        {longLabel(date)} <span style={{ fontSize: 15, color: 'rgba(255,255,255,0.44)', fontFamily: 'inherit' }}>⌄</span>
+        {longLabel(date)} <span style={{ fontSize: 15, color: TEXT_TERTIARY, fontFamily: 'inherit' }}>⌄</span>
       </button>
       {dateEditing && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10 }}>
-          <button onClick={() => stepDate(-1)} style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.66)', cursor: 'pointer' }}>‹</button>
+          <button onClick={() => stepDate(-1)} style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.1)', color: TEXT_SECONDARY, cursor: 'pointer' }}>‹</button>
           <div style={{ fontSize: 13, fontWeight: 700, color: PALE_YELLOW, minWidth: 92, textAlign: 'center' }}>{longLabel(date)}</div>
-          <button onClick={() => stepDate(1)} style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.66)', cursor: 'pointer' }}>›</button>
+          <button onClick={() => stepDate(1)} style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.1)', color: TEXT_SECONDARY, cursor: 'pointer' }}>›</button>
           <button onClick={() => { setDate(initial?.date ?? kernel.date); setDateEditing(false); }} style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: COPPER, padding: '8px 10px', borderRadius: 9, border: '1px dashed rgba(196,145,95,0.5)', background: 'none', cursor: 'pointer' }}>Today</button>
         </div>
       )}
@@ -265,13 +265,13 @@ export default function MarginNotesEntry({
           onBlur={() => requestAnimationFrame(() => setMentionToken(null))}
           placeholder="What would you like to remember about this session? Type @ to tag a partner."
           rows={2}
-          style={{ width: '100%', marginTop: 12, minHeight: 56, overflow: 'hidden', background: 'none', border: 'none', outline: 'none', resize: 'none', fontFamily: FONT_EDITORIAL, fontSize: 20, lineHeight: 1.5, color: 'rgba(255,255,255,0.92)' }}
+          style={{ width: '100%', marginTop: 12, minHeight: 56, overflow: 'hidden', background: 'none', border: 'none', outline: 'none', resize: 'none', fontFamily: FONT_EDITORIAL, fontSize: 20, lineHeight: 1.5, color: TEXT_PRIMARY }}
         />
         {mentionToken != null && (mentionMatches.length > 0 || mentionToken.length > 0) && (
           <div
             style={{ position: 'absolute', left: 0, right: 0, top: '100%', zIndex: 10, background: CARD_BG, border: '1px solid rgba(196,145,95,0.3)', borderRadius: 12, padding: 6, boxShadow: '0 12px 30px -12px rgba(0,0,0,0.6)' }}
           >
-            <p style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', padding: '4px 8px' }}>Tag a partner</p>
+            <p style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: TEXT_HINT, padding: '4px 8px' }}>Tag a partner</p>
             {mentionMatches.map(name => (
               <button
                 key={name}
@@ -327,7 +327,7 @@ export default function MarginNotesEntry({
       <div style={{ marginTop: 14, background: 'linear-gradient(180deg,rgba(196,145,95,0.05),rgba(255,255,255,0.015))', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, padding: '18px 16px 20px', position: 'relative' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: COPPER }}>◈ Margin notes</span>
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.44)' }}>· the shape of the session</span>
+          <span style={{ fontSize: 11, color: TEXT_TERTIARY }}>· the shape of the session</span>
         </div>
 
         <SubLabel>The basics</SubLabel>
@@ -351,7 +351,7 @@ export default function MarginNotesEntry({
 
         <SubLabel>What did you work on?</SubLabel>
         <PrismFocusInput selections={selections} onChange={setSelections} skin={skin} />
-        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.44)', textAlign: 'center', marginTop: 4 }}>
+        <p style={{ fontSize: 12, color: TEXT_TERTIARY, textAlign: 'center', marginTop: 4 }}>
           {studyLabel
             ? <>The study ✦&nbsp; <b style={{ color: PALE_YELLOW }}>{studyLabel}</b></>
             : 'Pull a point out — or tap it.'}
@@ -372,7 +372,7 @@ export default function MarginNotesEntry({
           deselectable
         />
 
-        <SubLabel>Techniques <span style={{ letterSpacing: 0, textTransform: 'none', color: 'rgba(255,255,255,0.26)', fontWeight: 500 }}>· from your library, max 5</span></SubLabel>
+        <SubLabel>Techniques <span style={{ letterSpacing: 0, textTransform: 'none', color: TEXT_HINT, fontWeight: 500 }}>· from your library, max 5</span></SubLabel>
         <TagPicker
           selectedUserTagIds={userTagIds}
           selectedCanonicalIds={canonicalIds}

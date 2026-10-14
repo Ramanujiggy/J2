@@ -10,7 +10,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../lib/api.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
-import { CARD_BG, COPPER, CARD_GLOW, CARD_GLOW_BORDER } from '../lib/theme.ts';
+import { CARD_BG, COPPER, CARD_GLOW, CARD_GLOW_BORDER, TEXT_TERTIARY } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import EntryReadView from './EntryReadView.tsx';
 import SealRevealSheet from './seal/SealRevealSheet.tsx';
@@ -286,7 +286,7 @@ export default function SessionDetailModal({ session, date, intention, sessionCo
                     if (initialEditing) onClose(); else setIsEditing(false);
                   }}
                   className="touch-manipulation"
-                  style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                  style={{ fontSize: 14, color: TEXT_TERTIARY, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                   ‹ Cancel
                 </button>
                 <span style={{ flex: 1, textAlign: 'center', fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: COPPER }}>

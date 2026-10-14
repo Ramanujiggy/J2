@@ -19,7 +19,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Intention, UserTag } from '../types/api.ts';
-import { COPPER, PALE_YELLOW, STATUS_ERROR, INT_COLORS } from '../lib/theme.ts';
+import { COPPER, PALE_YELLOW, STATUS_ERROR, INT_COLORS, TEXT_SECONDARY, TEXT_TERTIARY, TEXT_HINT } from '../lib/theme.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
 import { addDays, toDateString } from '../lib/sessionUtils.ts';
 import { useUserTags } from '../hooks/useUserTags.ts';
@@ -201,7 +201,7 @@ export default function IntentionHeroCard({
             style={{
               marginTop: 6,
               fontSize: 14,
-              color: 'rgba(255,255,255,0.60)',
+              color: TEXT_SECONDARY,
               fontStyle: 'italic',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}
@@ -238,7 +238,7 @@ export default function IntentionHeroCard({
             marginTop: 14,
             fontSize: 12.5, letterSpacing: '0.14em',
             textTransform: 'uppercase', fontWeight: 700,
-            color: 'rgba(255,255,255,0.40)',
+            color: TEXT_TERTIARY,
           }}
         >
           {statusLabel}
@@ -272,7 +272,7 @@ export default function IntentionHeroCard({
             />
           </div>
           {trailingCount && (
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)', flexShrink: 0, letterSpacing: '0.04em' }}>
+            <span style={{ fontSize: 11, color: TEXT_TERTIARY, flexShrink: 0, letterSpacing: '0.04em' }}>
               {trailingCount}
             </span>
           )}
@@ -308,7 +308,7 @@ export default function IntentionHeroCard({
               className="touch-manipulation"
               style={{
                 padding: '8px 10px', borderRadius: 8,
-                fontSize: 12, color: 'rgba(255,255,255,0.30)',
+                fontSize: 12, color: TEXT_HINT,
                 background: 'transparent', border: 'none',
                 minHeight: 40, cursor: 'pointer',
               }}

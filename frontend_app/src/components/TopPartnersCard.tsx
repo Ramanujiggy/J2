@@ -6,7 +6,7 @@
 
 import { useMemo } from 'react';
 import type { SessionSummary } from '../types/api.ts';
-import { PALE_YELLOW, COPPER, FONT_EDITORIAL } from '../lib/theme.ts';
+import { PALE_YELLOW, COPPER, FONT_EDITORIAL, TEXT_TERTIARY } from '../lib/theme.ts';
 
 interface Props {
   sessions: SessionSummary[];
@@ -61,7 +61,7 @@ export default function TopPartnersCard({ sessions, softCardStyle }: Props) {
                 <span style={{ fontSize: 16, fontFamily: FONT_EDITORIAL, fontWeight: 600, color: PALE_YELLOW }}>
                   {r.display}
                 </span>
-                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.12em' }}>
+                <span style={{ fontSize: 12, color: TEXT_TERTIARY, letterSpacing: '0.12em' }}>
                   {r.count}×
                 </span>
               </div>

@@ -20,7 +20,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { listVideoIds, loadVideo } from '../lib/videoStore.ts';
-import { CARD_BG, COPPER, PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
+import { CARD_BG, COPPER, PALE_YELLOW, GLOW_SOFT, TEXT_SECONDARY } from '../lib/theme.ts';
 import { formatBytes } from '../lib/videoUtils.ts';
 import type { UserTag } from '../types/api.ts';
 
@@ -198,7 +198,7 @@ export default function LocalVideoMigrationPrompt({ tags, attachVideo }: Props) 
               ? `Uploading… (${Math.min(progressIdx + 1, candidates.length)} of ${candidates.length})`
               : `Back up your library across devices?`}
           </h2>
-          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.65)', lineHeight: 1.55, margin: 0 }}>
+          <p style={{ fontSize: 14, color: TEXT_SECONDARY, lineHeight: 1.55, margin: 0 }}>
             {phase === 'uploading' ? (
               error ? error : (
                 <>Uploading <strong style={{ color: PALE_YELLOW }}>{candidates[progressIdx]?.tag.name}</strong>… each clip transcodes in the background after upload. You can close this and keep using the app.</>
@@ -241,7 +241,7 @@ export default function LocalVideoMigrationPrompt({ tags, attachVideo }: Props) 
                   borderRadius: 10,
                   background: 'transparent',
                   border: '1px solid rgba(255,255,255,0.14)',
-                  color: 'rgba(255,255,255,0.65)',
+                  color: TEXT_SECONDARY,
                   fontWeight: 500,
                   fontSize: 14,
                   cursor: 'pointer',
@@ -285,7 +285,7 @@ export default function LocalVideoMigrationPrompt({ tags, attachVideo }: Props) 
                     borderRadius: 8,
                     background: 'transparent',
                     border: '1px solid rgba(255,255,255,0.14)',
-                    color: 'rgba(255,255,255,0.65)',
+                    color: TEXT_SECONDARY,
                     fontWeight: 500,
                     fontSize: 13,
                     cursor: 'pointer',

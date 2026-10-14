@@ -2,7 +2,7 @@
 // (a number that only accrues, never resets) + tenure + streak pill.
 // Replaces the previous streak-hero that led with the daily count.
 
-import { COPPER, PALE_YELLOW, FONT_EDITORIAL, GLOW_SOFT } from '../lib/theme.ts';
+import { COPPER, PALE_YELLOW, FONT_EDITORIAL, GLOW_SOFT, TEXT_TERTIARY, TEXT_HINT } from '../lib/theme.ts';
 
 interface Props {
   totalSessions: number;
@@ -36,7 +36,7 @@ export default function HomeHero({
           >
             {greeting}
           </div>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.32)', marginTop: 4 }}>
+          <div style={{ fontSize: 13, color: TEXT_HINT, marginTop: 4 }}>
             {new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date())}
           </div>
         </div>
@@ -67,7 +67,7 @@ export default function HomeHero({
       </div>
 
       {/* Record — the number that only accrues */}
-      <div className="j2-label-micro" style={{ color: 'rgba(255,255,255,0.40)' }}>
+      <div className="j2-label-micro" style={{ color: TEXT_TERTIARY }}>
         Your record
       </div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginTop: 10 }}>
@@ -90,13 +90,13 @@ export default function HomeHero({
             fontWeight: 700,
             letterSpacing: '0.14em',
             textTransform: 'uppercase' as const,
-            color: 'rgba(255,255,255,0.40)',
+            color: TEXT_TERTIARY,
           }}
         >
           Sessions<br />remembered
         </span>
       </div>
-      <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.30)', marginTop: 12 }}>
+      <div style={{ fontSize: 13, color: TEXT_HINT, marginTop: 12 }}>
         {tenure}
       </div>
     </div>

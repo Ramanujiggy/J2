@@ -12,7 +12,7 @@ Development areas identified from codebase assessment. Updated as work progresse
 |---|---|---|
 | `[x]` | **Testing — backend** | Vitest backend suite (auth, sessions, JWT middleware) + Husky pre-commit hook. 150 passing, 9 skipped (159 total) across 11 test files; all passing as of 2026-10-06 (`cd backend_api && npx vitest run`). |
 | `[x]` | **Password reset token hashing** | Reset tokens are stored as SHA-256 hashes. Raw token travels only in the email link; DB never holds the plaintext token. |
-| `[~]` | **Frontend testing** | 11 test files, 114 tests, all passing as of 2026-10-06 (`cd frontend_app && npx vitest run`): component tests (`HomePage`, `LoginPage`, `PathAheadPage`, `CaptureComposer`) plus lib unit tests (`atlasVerdicts`, `chipExtraction`, `composerKernel`, `homeViewModel`, `journalStream`, `prismGeometry`, `selectionsToDistribution`). High-value additions still missing: `api.ts` (offline queue/cache — riskiest untested code), `SessionDetailModal` (complex 3D flip, just had a bug), all hooks, shared test render wrapper with providers. |
+| `[~]` | **Frontend testing** | 10 test files, 105 tests, all passing as of 2026-10-06 (`cd frontend_app && npx vitest run`): component tests (`HomePage`, `LoginPage`, `PathAheadPage`, `CaptureComposer`) plus lib unit tests (`atlasVerdicts`, `composerKernel`, `homeViewModel`, `journalStream`, `prismGeometry`, `selectionsToDistribution`). High-value additions still missing: `api.ts` (offline queue/cache — riskiest untested code), `SessionDetailModal` (complex 3D flip, just had a bug), all hooks, shared test render wrapper with providers. |
 | `[~]` | **E2E testing (Playwright)** | Two Playwright suites as of 2026-10-06: `e2e/` (10 spec files, ~85 `test()` blocks — auth, CSV import, form/intentions/session-detail audits, visual screenshots, usage, interaction) and `frontend_app/playwright/tests/` (3 spec files, 19 `test()` blocks — chip input, first-run hint, intention). Counts are static (grep of `test()` blocks); E2E is not run in CI and was not executed to produce these numbers, so pass/fail is unverified here. Core journeys still thin on coverage: edit/delete session, profile updates. Also needs: E2E in CI, test data cleanup, rate-limit handling, consolidation of the two suites. |
 | `[x]` | **CI/CD pipeline** | `.github/workflows/ci.yml` runs on every push and PR (JOU-4). Two jobs — `backend_api` and `frontend_app` — each run `tsc --noEmit` then `vitest run` on Node 24 with `npm ci`. Playwright E2E is **not** yet wired into CI (see E2E row). |
 | `[x]` | **Pagination on session fetch** | `GET /api/sessions` supports optional `?from` and `?to` date params (YYYY-MM-DD). CalendarPage scopes to the selected year; AnalyticsPage scopes to the active time window (7D–1Y or custom range); PathAheadPage fetches 168 days back (covers the 24-week heatmap preview widget) through 5 days ahead — full session history is never loaded in a single payload. |
@@ -53,16 +53,38 @@ Development areas identified from codebase assessment. Updated as work progresse
 
 ---
 
-## Homepage Redesign
-
-Competitive audit against Strong, Strava, Nike TC, Peloton identified gaps in information architecture. The homepage tells a strong narrative (streak → intention → week → history) but has placement issues that hurt flagship-level polish.
+## Features: Session Video & Position Tagging
 
 | Status | Area | Description |
 |---|---|---|
-| `[~]` | **Rep Roulette → FAB + bottom sheet** | Roulette breaks the homepage narrative flow (tracking → random drill → history). It's a "sometimes" tool, not an "always" feature. Move to a Floating Action Button (dice icon, lower-right above tab bar) that opens a bottom sheet with the drill card, swipe navigation, and "Log this drill" CTA. Frees ~320px of homepage real estate when expanded, ~48px when collapsed. |
-| `[ ]` | **Primary CTA above the fold** | "Log Mat Time" button is buried 400+ pixels below the top on mobile. Every flagship training app (Strong, Peloton, Nike TC) puts the main CTA visible without scrolling. Move to immediately below StatStrip or integrate into the week carousel "today" circle. |
-| `[ ]` | **Training Telemetry hidden-panel UX** | Tapping StatStrip to expand Telemetry has no visual affordance — users don't know it's tappable. Either always show Telemetry inline (it's only ~100px) or move it to Analytics where it's contextually expected. |
-| `[ ]` | **Mobile scroll depth** | 805px of stacked content on a 390px viewport (2x screen height). Flagship apps target 1.0–1.5x. After moving Roulette to FAB and CTA above fold, reassess whether further section consolidation is needed. |
+| `[x]` | **Session video upload** | `SessionVideoBlock.tsx` — upload rolling footage to Cloudflare R2 per session. Signed URL upload with XHR progress reporting. `sessionVideoController.ts` + `sessionVideoModel.ts` + migration `040_session_videos.sql`. |
+| `[x]` | **Video transcoding worker** | `transcodeWorker.ts` — background job converts raw uploads to HLS for browser playback. Status polling in the UI (`pending → processing → ready → error`). |
+| `[x]` | **Position tagger** | `PositionTagger.tsx` — 17-position BJJ taxonomy (7 top, 7 bottom, 3 neutral) with a timeline scrubber. Tag time segments with position labels. Saves `position_segments` with `source: 'manual'`. |
+| `[x]` | **Tagger overlay — mobile UX** | Full-screen portal overlay (z-60) with spring slide-up/slide-down animation (Framer Motion). Tap footage card on mobile to open; "Tag positions" / "Re-tag" button on desktop. Session strip tappable to dismiss. |
+| `[ ]` | **Position model training** | Feature extraction from tagged segments → pose estimation → lightweight classifier (gradient boosted trees or small MLP) → auto-fill `position_segments` with `source: 'model', confirmed: false`. Needs ~500–1000 tagged segments across users first. Schema already supports `source` and `confirmed` fields. **Pose library decision:** MediaPipe Pose over OpenPose. OpenPose is the academic gold standard but requires a GPU and is painful to deploy on Railway. MediaPipe runs in Node.js via WASM, handles two-person detection (critical for BJJ), and slots naturally into the existing `transcodeWorker` pattern as a second background job. Revisit only if MediaPipe accuracy proves insufficient after real data testing. |
+
+---
+
+## Performance & Polish
+
+| Status | Area | Description |
+|---|---|---|
+| `[x]` | **Framer Motion page transitions** | `PageTransition.tsx` rewritten with `AnimatePresence` + spring physics. Exit: 140ms ease-in fade-up. Enter: ~260ms spring settle (stiffness 380, damping 34). Replaced manual timer/phase state machine. |
+| `[x]` | **Optimistic session mutations** | `SessionsContext` exposes `applyAdd` / `applyUpdate` / `applyRemove` alongside `refresh()`. Callsites can update local state instantly before the network responds. |
+| `[x]` | **Vendor chunk splitting** | Vite `manualChunks`: `vendor-react`, `vendor-motion`, `vendor-gsap`. Stable library code cached separately from app code across deploys. |
+
+---
+
+## Homepage Redesign
+
+Competitive audit against Strong, Strava, Nike TC, Peloton identified gaps in information architecture. All items resolved as of 2026-10-11 — the home was redesigned more broadly than originally planned.
+
+| Status | Area | Description |
+|---|---|---|
+| `[x]` | **Rep Roulette → FAB + bottom sheet** | Shipped `e6beb9e`. `RepRouletteFab.tsx` portal-rendered bottom sheet; inline section removed from PathAheadPage (~180 lines). |
+| `[x]` | **Primary CTA above the fold** | Resolved by home redesign. StatStrip, week carousel, and intention card moved to Profile/Atlas. Home is now greeting row → HERO card — the log CTA is the HERO in every state (DayOneCard, NothingToResurfaceCard, MemoryCard). Never buried. |
+| `[x]` | **Training Telemetry hidden-panel UX** | Resolved by home redesign. StatStrip and TelemetryCard no longer on home — live on Profile where they're contextually expected as identity/history data. |
+| `[x]` | **Mobile scroll depth** | Resolved by home redesign. Mobile home is now: greeting row + HERO card + entry list + portrait. Well within 1.5x viewport on a 390px screen. |
 
 ---
 

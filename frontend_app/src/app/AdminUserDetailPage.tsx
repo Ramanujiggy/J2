@@ -14,11 +14,7 @@ import PageContent from '../components/PageContent.tsx';
 import { useProfile } from '../context/ProfileContext.tsx';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import { api, ApiError } from '../lib/api.ts';
-import {
-    PALE_YELLOW, COPPER, CARD_BG, CARD_GLOW, CARD_GLOW_BORDER,
-    SURFACE_2, SURFACE_2_BORDER, FONT_EDITORIAL, GLOW_SOFT,
-    STATUS_ERROR, STATUS_ERROR_BG, STATUS_ERROR_BORDER,
-} from '../lib/theme.ts';
+import { PALE_YELLOW, COPPER, CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, SURFACE_2, SURFACE_2_BORDER, FONT_EDITORIAL, GLOW_SOFT, STATUS_ERROR, STATUS_ERROR_BG, STATUS_ERROR_BORDER, TEXT_PRIMARY, TEXT_BODY, TEXT_SECONDARY, TEXT_TERTIARY, TEXT_HINT } from '../lib/theme.ts';
 import { formatDuration, SESSION_TYPE_LABELS, INTENSITY_COLOR, formatGiNogi } from '../lib/sessionUtils.ts';
 import type {
     AdminUserDetailResponse,
@@ -83,7 +79,7 @@ export default function AdminUserDetailPage() {
                     style={{
                         background: 'transparent',
                         border: 'none',
-                        color: 'rgba(255,255,255,0.45)',
+                        color: TEXT_TERTIARY,
                         fontSize: 13,
                         cursor: 'pointer',
                         padding: 0,
@@ -133,7 +129,7 @@ export default function AdminUserDetailPage() {
                                 style={{
                                     marginTop: 12,
                                     fontSize: isDesktop ? 16 : 14,
-                                    color: 'rgba(255,255,255,0.55)',
+                                    color: TEXT_TERTIARY,
                                     fontFamily: 'ui-monospace, SFMono-Regular, monospace',
                                 }}
                             >
@@ -283,7 +279,7 @@ function Field({ label, value, accent }: { label: string; value: string; accent?
             <div
                 style={{
                     fontSize: 10,
-                    color: 'rgba(255,255,255,0.40)',
+                    color: TEXT_TERTIARY,
                     letterSpacing: '0.10em',
                     textTransform: 'uppercase',
                     marginBottom: 4,
@@ -322,7 +318,7 @@ function Stat({ label, value, text }: { label: string; value?: number; text?: st
             <div
                 style={{
                     fontSize: 11,
-                    color: 'rgba(255,255,255,0.45)',
+                    color: TEXT_TERTIARY,
                     marginTop: 6,
                     letterSpacing: '0.06em',
                     textTransform: 'uppercase',
@@ -339,7 +335,7 @@ function Empty({ text }: { text: string }) {
         <div
             style={{
                 padding: '14px 0',
-                color: 'rgba(255,255,255,0.40)',
+                color: TEXT_TERTIARY,
                 fontSize: 14,
                 fontStyle: 'italic',
             }}
@@ -364,22 +360,22 @@ function SessionRow({ session }: { session: AdminUserSession }) {
                 alignItems: 'center',
                 padding: '12px 0',
                 borderTop: '1px solid rgba(255,255,255,0.06)',
-                color: 'rgba(255,255,255,0.85)',
+                color: TEXT_BODY,
                 textDecoration: 'none',
                 cursor: 'pointer',
             }}
         >
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)' }}>{date}</div>
+            <div style={{ fontSize: 13, color: TEXT_SECONDARY }}>{date}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
                 <span style={{ width: 10, height: 10, borderRadius: '50%', background: intColor, boxShadow: `0 0 6px ${intColor}60` }} />
                 {formatDuration(session.duration)}
             </div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: 13, color: TEXT_TERTIARY, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {SESSION_TYPE_LABELS[session.session_type] ?? session.session_type}
                 {session.heading && ` · ${cap(session.heading)}`}
                 {session.gi_nogi && ` · ${formatGiNogi(session.gi_nogi)}`}
             </div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.30)' }}>↗</div>
+            <div style={{ fontSize: 12, color: TEXT_HINT }}>↗</div>
         </Link>
     );
 }
@@ -389,10 +385,10 @@ function IntentionRow({ intention }: { intention: AdminUserIntention }) {
     return (
         <div style={{ padding: '12px 0', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, justifyContent: 'space-between' }}>
-                <div style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.85)' }}>
+                <div style={{ fontSize: 14, fontWeight: 500, color: TEXT_BODY }}>
                     {intention.intent_label || (intention.heading ? cap(intention.heading) : '(no label)')}
                 </div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', whiteSpace: 'nowrap' }}>
+                <div style={{ fontSize: 12, color: TEXT_TERTIARY, whiteSpace: 'nowrap' }}>
                     {week} · {intention.duration_days}d
                 </div>
             </div>
@@ -430,21 +426,21 @@ function CaseRow({ caseItem }: { caseItem: SupportCase }) {
                 >
                     {caseItem.status.replace('_', ' ')}
                 </span>
-                <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.88)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 14, fontWeight: 600, color: TEXT_PRIMARY, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {caseItem.subject}
                 </span>
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 11, color: TEXT_TERTIARY, whiteSpace: 'nowrap' }}>
                     {caseItem.severity}
                 </span>
             </div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginBottom: 6 }}>
+            <div style={{ fontSize: 12, color: TEXT_TERTIARY, marginBottom: 6 }}>
                 {created}
             </div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+            <div style={{ fontSize: 13, color: TEXT_SECONDARY, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
                 {caseItem.description}
             </div>
             {caseItem.admin_notes && (
-                <div style={{ marginTop: 8, padding: '8px 10px', background: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}`, borderRadius: 8, fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
+                <div style={{ marginTop: 8, padding: '8px 10px', background: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}`, borderRadius: 8, fontSize: 12, color: TEXT_TERTIARY }}>
                     <span style={{ fontWeight: 600, color: COPPER }}>Notes:</span> {caseItem.admin_notes}
                 </div>
             )}

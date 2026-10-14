@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { api } from '../lib/api.ts';
-import { PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3, COPPER, FONT_EDITORIAL } from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3, COPPER, FONT_EDITORIAL, TEXT_BODY, TEXT_SECONDARY, TEXT_TERTIARY, TEXT_HINT, TEXT_DISABLED } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import { CATEGORY_COLORS, SKILL_TAGS, MONTH_NAMES, REFLECTION_PROMPTS } from '../lib/constants.ts';
@@ -239,7 +239,7 @@ export default function JournalEntryPage() {
         <button
           onClick={() => navigate(origin)}
           className="mt-4 text-sm transition-colors"
-          style={{ color: 'rgba(255,255,255,0.40)' }}
+          style={{ color: TEXT_TERTIARY }}
         >
           ← Back to {originLabel}
         </button>
@@ -251,7 +251,7 @@ export default function JournalEntryPage() {
       <button
         onClick={() => navigate(origin)}
         className="text-sm flex items-center gap-1.5 transition-colors touch-manipulation"
-        style={{ color: 'rgba(255,255,255,0.40)' }}
+        style={{ color: TEXT_TERTIARY }}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
           <path d="M15 18l-6-6 6-6" />
@@ -313,7 +313,7 @@ export default function JournalEntryPage() {
                   style={{
                     marginTop: 6,
                     fontSize: 14,
-                    color: 'rgba(255,255,255,0.60)',
+                    color: TEXT_SECONDARY,
                     fontStyle: 'italic',
                     lineHeight: 1.4,
                   }}
@@ -333,13 +333,13 @@ export default function JournalEntryPage() {
                   fontWeight: 600,
                   letterSpacing: '0.14em',
                   textTransform: 'uppercase',
-                  color: 'rgba(255,255,255,0.40)',
+                  color: TEXT_TERTIARY,
                 }}
               >
                 <span>{formatWeekLong(intention.week_start)}</span>
                 {categoryColor && (
                   <>
-                    <span style={{ color: 'rgba(255,255,255,0.15)' }}>·</span>
+                    <span style={{ color: TEXT_DISABLED }}>·</span>
                     <span
                       className="capitalize"
                       style={{
@@ -354,7 +354,7 @@ export default function JournalEntryPage() {
                     </span>
                   </>
                 )}
-                <span style={{ color: 'rgba(255,255,255,0.15)' }}>·</span>
+                <span style={{ color: TEXT_DISABLED }}>·</span>
                 <span>{intention.duration_days}d intention</span>
               </div>
             </div>
@@ -376,7 +376,7 @@ export default function JournalEntryPage() {
                 fontWeight: 700,
                 letterSpacing: '0.14em',
                 textTransform: 'uppercase' as const,
-                color: 'rgba(255,255,255,0.28)',
+                color: TEXT_HINT,
               }}
             >
               Techniques
@@ -416,16 +416,16 @@ export default function JournalEntryPage() {
       {editOpen && (
         <div style={{ borderBottom: '1px solid rgba(196,145,95,0.08)', paddingBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: TEXT_HINT }}>
               Edit Focus
             </span>
-            <button onClick={() => setEditOpen(false)} style={{ fontSize: 14, color: 'rgba(255,255,255,0.25)', background: 'none', border: 'none', cursor: 'pointer' }}>×</button>
+            <button onClick={() => setEditOpen(false)} style={{ fontSize: 14, color: TEXT_HINT, background: 'none', border: 'none', cursor: 'pointer' }}>×</button>
           </div>
 
           {/* Label */}
           <div style={{ marginBottom: 12 }}>
-            <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.40)', display: 'block', marginBottom: 4 }}>
-              What specifically? <span style={{ color: 'rgba(255,255,255,0.20)' }}>(optional)</span>
+            <label style={{ fontSize: 12, color: TEXT_TERTIARY, display: 'block', marginBottom: 4 }}>
+              What specifically? <span style={{ color: TEXT_DISABLED }}>(optional)</span>
             </label>
             <input
               type="text"
@@ -506,7 +506,7 @@ export default function JournalEntryPage() {
         </p>
         <p
           className="text-sm italic leading-relaxed"
-          style={{ color: 'rgba(255,255,255,0.75)' }}
+          style={{ color: TEXT_BODY }}
         >
           &ldquo;{reflectionPrompt}&rdquo;
         </p>
@@ -520,12 +520,12 @@ export default function JournalEntryPage() {
       >
         <p
           className="text-[10px] font-medium uppercase tracking-widest mb-3"
-          style={{ color: 'rgba(255,255,255,0.25)' }}
+          style={{ color: TEXT_HINT }}
         >
           Journal Entry
         </p>
         {!intentionsEnabled && (
-          <p className="text-xs mb-3 italic" style={{ color: 'rgba(255,255,255,0.22)' }}>
+          <p className="text-xs mb-3 italic" style={{ color: TEXT_HINT }}>
             Intentions are disabled — entry is read-only.
           </p>
         )}
@@ -539,7 +539,7 @@ export default function JournalEntryPage() {
             <div
               aria-hidden="true"
               className="absolute inset-0 pointer-events-none text-sm leading-relaxed"
-              style={{ color: 'rgba(255,255,255,0.75)' }}
+              style={{ color: TEXT_BODY }}
             >
               {revealLines.map((line, i) => (
                 <span
@@ -566,7 +566,7 @@ export default function JournalEntryPage() {
             style={{
               minHeight: 200,
               height: 'auto',
-              color: 'rgba(255,255,255,0.75)',
+              color: TEXT_BODY,
               cursor: intentionsEnabled && revealComplete ? 'text' : 'default',
               opacity: revealComplete ? 1 : 0,
               transition: 'opacity 240ms ease',
@@ -613,11 +613,11 @@ export default function JournalEntryPage() {
       {/* ── Associated Sessions ────────────────────────────────── */}
       <div>
         <div className="flex items-center justify-between mb-2.5">
-          <h3 className="text-lg font-semibold" style={{ color: 'rgba(255,255,255,0.80)' }}>
+          <h3 className="text-lg font-semibold" style={{ color: TEXT_BODY }}>
             Sessions
           </h3>
           {sessions.length > 0 && (
-            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.30)' }}>
+            <span className="text-xs" style={{ color: TEXT_HINT }}>
               {sessions.length} logged
             </span>
           )}
@@ -627,7 +627,7 @@ export default function JournalEntryPage() {
         {sessions.length > 0 && (() => {
           const totalMin = sessions.reduce((s, ses) => s + ses.duration, 0);
           return (
-            <p className="text-xs mb-2.5" style={{ color: 'rgba(255,255,255,0.30)' }}>
+            <p className="text-xs mb-2.5" style={{ color: TEXT_HINT }}>
               {formatDuration(totalMin)} across {sessions.length} session{sessions.length !== 1 ? 's' : ''}
             </p>
           );
@@ -657,16 +657,16 @@ export default function JournalEntryPage() {
 
                   {/* Session info */}
                   <div className="flex-1 min-w-0 flex items-center gap-2">
-                    <span className="text-sm" style={{ color: 'rgba(255,255,255,0.80)' }}>
+                    <span className="text-sm" style={{ color: TEXT_BODY }}>
                       {dateLabel}
                     </span>
-                    <span className="text-xs" style={{ color: 'rgba(255,255,255,0.30)' }}>·</span>
-                    <span className="text-xs" style={{ color: 'rgba(255,255,255,0.50)' }}>
+                    <span className="text-xs" style={{ color: TEXT_HINT }}>·</span>
+                    <span className="text-xs" style={{ color: TEXT_TERTIARY }}>
                       {formatDuration(session.duration)}
                     </span>
                     {tagLabel && (
                       <>
-                        <span className="text-xs" style={{ color: 'rgba(255,255,255,0.30)' }}>·</span>
+                        <span className="text-xs" style={{ color: TEXT_HINT }}>·</span>
                         <span className="text-xs font-medium truncate" style={{ color: COPPER }}>
                           {tagLabel}
                         </span>
@@ -675,7 +675,7 @@ export default function JournalEntryPage() {
                   </div>
 
                   {/* Chevron */}
-                  <ChevronRight size={14} strokeWidth={2} style={{ color: 'rgba(255,255,255,0.15)', flexShrink: 0 }} />
+                  <ChevronRight size={14} strokeWidth={2} style={{ color: TEXT_DISABLED, flexShrink: 0 }} />
                 </button>
               );
             })}
@@ -685,7 +685,7 @@ export default function JournalEntryPage() {
             className="rounded-xl px-5 py-4"
             style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}
           >
-            <p className="text-sm italic" style={{ color: 'rgba(255,255,255,0.30)' }}>
+            <p className="text-sm italic" style={{ color: TEXT_HINT }}>
               No sessions logged during this period.
             </p>
           </div>

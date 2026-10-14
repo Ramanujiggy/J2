@@ -2,10 +2,7 @@ import { useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.tsx';
 import { api, ApiError } from '../lib/api.ts';
-import {
-  CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, PAGE_BG, PALE_YELLOW, COPPER, SURFACE_3,
-  STATUS_ERROR, STATUS_ERROR_BG, STATUS_ERROR_BORDER,
-} from '../lib/theme.ts';
+import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, PAGE_BG, PALE_YELLOW, COPPER, SURFACE_3, STATUS_ERROR, STATUS_ERROR_BG, STATUS_ERROR_BORDER, TEXT_SECONDARY, TEXT_TERTIARY, TEXT_HINT } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import SegmentedToggle from '../components/SegmentedToggle.tsx';
 import SeigaihaPattern from '../components/visuals/SeigaihaPattern.tsx';
@@ -207,7 +204,7 @@ export default function LoginPage() {
             </p>
             <p
               className="j2-serif-italic"
-              style={{ fontSize: 15, color: 'rgba(255,255,255,0.60)', lineHeight: 1.5 }}
+              style={{ fontSize: 15, color: TEXT_SECONDARY, lineHeight: 1.5 }}
             >
               Enter your email and we'll send you a reset link.
             </p>
@@ -231,7 +228,7 @@ export default function LoginPage() {
             <button
               onClick={() => switchMode('login')}
               className="w-full text-sm font-medium transition-colors"
-              style={{ color: 'rgba(255,255,255,0.45)' }}
+              style={{ color: TEXT_TERTIARY }}
               onMouseEnter={e => (e.currentTarget.style.color = PALE_YELLOW)}
               onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}
             >
@@ -250,7 +247,7 @@ export default function LoginPage() {
                     fontWeight: 700,
                     letterSpacing: '0.16em',
                     textTransform: 'uppercase',
-                    color: 'rgba(255,255,255,0.40)',
+                    color: TEXT_TERTIARY,
                   }}
                 >
                   Email
@@ -284,7 +281,7 @@ export default function LoginPage() {
                       fontWeight: 700,
                       letterSpacing: '0.16em',
                       textTransform: 'uppercase',
-                      color: 'rgba(255,255,255,0.40)',
+                      color: TEXT_TERTIARY,
                     }}
                   >
                     Password
@@ -420,7 +417,7 @@ export default function LoginPage() {
       >
         <p
           className="j2-label-micro"
-          style={{ color: 'rgba(255,255,255,0.22)' }}
+          style={{ color: TEXT_HINT }}
         >
           ·   ·   ·
         </p>

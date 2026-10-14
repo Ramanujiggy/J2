@@ -6,7 +6,7 @@ import { useCountUp } from '../hooks/useCountUp.ts';
 import { localDateKey, buildDayMap, cellColor, computeStats, EMPTY_DAY } from './TrainingHeatmap.tsx';
 import type { DayData } from './TrainingHeatmap.tsx';
 import type { SessionSummary } from '../types/api.ts';
-import { CARD_BG, COPPER_BORDER, CARD_SHADOW, HEATMAP_REST, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_2_BORDER, INT_COLORS } from '../lib/theme.ts';
+import { CARD_BG, COPPER_BORDER, CARD_SHADOW, HEATMAP_REST, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_2_BORDER, INT_COLORS, TEXT_HINT } from '../lib/theme.ts';
 
 const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const DOW_LABELS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
@@ -185,7 +185,7 @@ export default function CompactHeatmap({ sessions, year, loading = false }: Comp
                 textAlign: 'center',
                 fontSize: 10,
                 fontWeight: 500,
-                color: 'rgba(255,255,255,0.30)',
+                color: TEXT_HINT,
                 textTransform: 'uppercase',
                 letterSpacing: '0.03em',
               }}
@@ -206,7 +206,7 @@ export default function CompactHeatmap({ sessions, year, loading = false }: Comp
                   style={{
                     fontSize: 10,
                     fontWeight: 600,
-                    color: 'rgba(255,255,255,0.35)',
+                    color: TEXT_HINT,
                     textTransform: 'uppercase',
                     letterSpacing: '0.06em',
                     paddingTop: colIdx === 0 ? 0 : 10,

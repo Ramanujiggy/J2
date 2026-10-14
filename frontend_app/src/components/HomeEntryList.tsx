@@ -11,7 +11,7 @@
 // drops training days and stops being a truthful record of the week.
 
 import { useNavigate } from 'react-router-dom';
-import { FONT_EDITORIAL, SAGE, BRAND_ORANGE } from '../lib/theme.ts';
+import { FONT_EDITORIAL, SAGE, BRAND_ORANGE, TEXT_TERTIARY } from '../lib/theme.ts';
 import type { RecentEntry } from '../lib/homeViewModel.ts';
 import type { SessionSummary } from '../types/api.ts';
 
@@ -91,7 +91,7 @@ export default function HomeEntryList({ entries, totalCount, onEntryTap, variant
                   fontWeight: 700,
                   letterSpacing: '0.1em',
                   textTransform: 'uppercase',
-                  color: 'rgba(255,255,255,0.46)',
+                  color: TEXT_TERTIARY,
                   marginTop: 3,
                 }}
               >
@@ -111,7 +111,7 @@ export default function HomeEntryList({ entries, totalCount, onEntryTap, variant
               }}
             >
               {excerpt ?? 'No notes yet'}
-              {truncated && <span style={{ color: 'rgba(255,255,255,0.46)' }}> …</span>}
+              {truncated && <span style={{ color: TEXT_TERTIARY }}> …</span>}
             </span>
           </button>
         );

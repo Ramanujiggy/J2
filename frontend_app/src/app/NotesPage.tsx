@@ -7,7 +7,7 @@ import { useUserTags } from '../hooks/useUserTags.ts';
 import SegmentedToggle from '../components/SegmentedToggle.tsx';
 import PageContent from '../components/PageContent.tsx';
 import JournalEmptyState from '../components/JournalEmptyState.tsx';
-import { PAGE_BG, PALE_YELLOW, GLOW_SOFT, COPPER, COPPER_BORDER, FONT_EDITORIAL } from '../lib/theme.ts';
+import { PAGE_BG, PALE_YELLOW, GLOW_SOFT, COPPER, COPPER_BORDER, FONT_EDITORIAL, TEXT_PRIMARY, TEXT_BODY, TEXT_TERTIARY, TEXT_HINT } from '../lib/theme.ts';
 import { toast } from '../hooks/use-toast.ts';
 import { formatDuration } from '../lib/sessionUtils.ts';
 import type { TrainingNote, SessionSummary } from '../types/api.ts';
@@ -248,7 +248,7 @@ export default function NotesPage() {
               fontFamily: FONT_EDITORIAL,
               fontStyle: 'italic',
               fontSize: 14,
-              color: 'rgba(255,255,255,0.35)',
+              color: TEXT_HINT,
             }}
           >
             {noteDate}
@@ -289,7 +289,7 @@ export default function NotesPage() {
             flex: 1,
             fontSize: 16,
             lineHeight: 1.7,
-            color: 'rgba(255,255,255,0.90)',
+            color: TEXT_PRIMARY,
             backgroundColor: 'transparent',
             border: 'none',
             outline: 'none',
@@ -375,12 +375,12 @@ export default function NotesPage() {
                   backgroundColor: 'rgba(255,255,255,0.025)', border: 'none',
                 }}>
                   <div>
-                    <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.90)' }}>{tag.name}</span>
+                    <span style={{ fontSize: 14, color: TEXT_PRIMARY }}>{tag.name}</span>
                     <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(196,145,95,0.60)', marginLeft: 8 }}>
                       {tag.parent_pillar}
                     </span>
                   </div>
-                  <button onClick={() => unlinkTechnique(tagId)} style={{ fontSize: 14, color: 'rgba(255,255,255,0.25)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px' }}>×</button>
+                  <button onClick={() => unlinkTechnique(tagId)} style={{ fontSize: 14, color: TEXT_HINT, background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px' }}>×</button>
                 </div>
               );
             })}
@@ -401,12 +401,12 @@ export default function NotesPage() {
                   {session ? new Date(session.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Linked session'}
                 </span>
                 {session && (
-                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)', marginLeft: 8 }}>
+                  <span style={{ fontSize: 11, color: TEXT_TERTIARY, marginLeft: 8 }}>
                     {session.heading ?? ''} · {formatDuration(session.duration)}
                   </span>
                 )}
               </div>
-              <button onClick={unlinkSession} style={{ fontSize: 14, color: 'rgba(255,255,255,0.25)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px' }}>×</button>
+              <button onClick={unlinkSession} style={{ fontSize: 14, color: TEXT_HINT, background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px' }}>×</button>
             </div>
           );
         })()}
@@ -436,14 +436,14 @@ export default function NotesPage() {
                   className="w-full text-left touch-manipulation"
                   style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 6px', borderRadius: 6, background: 'none', border: 'none', cursor: 'pointer' }}
                 >
-                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.80)' }}>{tag.name}</span>
+                  <span style={{ fontSize: 13, color: TEXT_BODY }}>{tag.name}</span>
                   <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(196,145,95,0.50)' }}>{tag.parent_pillar}</span>
-                  {tag.affinity && <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>{tag.affinity === 'go_to' ? '★' : tag.affinity === 'learning' ? '◐' : '◌'}</span>}
+                  {tag.affinity && <span style={{ fontSize: 9, color: TEXT_HINT }}>{tag.affinity === 'go_to' ? '★' : tag.affinity === 'learning' ? '◐' : '◌'}</span>}
                 </button>
               ))
             }
             {allUserTags.filter(t => !editorLinkedTagIds.includes(t.id)).filter(t => !techSearch.trim() || t.name.toLowerCase().includes(techSearch.toLowerCase())).length === 0 && (
-              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.30)', fontStyle: 'italic', padding: '8px 0', textAlign: 'center' }}>
+              <p style={{ fontSize: 12, color: TEXT_HINT, fontStyle: 'italic', padding: '8px 0', textAlign: 'center' }}>
                 {techSearch ? 'No matching techniques' : 'No techniques in library yet'}
               </p>
             )}
@@ -456,7 +456,7 @@ export default function NotesPage() {
             marginTop: 10, maxHeight: 220, overflowY: 'auto',
             backgroundColor: 'rgba(255,255,255,0.025)', borderRadius: 8, padding: '8px 10px',
           }}>
-            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)', marginBottom: 8 }}>Recent sessions</p>
+            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: TEXT_HINT, marginBottom: 8 }}>Recent sessions</p>
             {recentSessions.slice(0, 20).map(s => (
               <button
                 key={s.id}
@@ -467,13 +467,13 @@ export default function NotesPage() {
                 <span style={{ fontFamily: FONT_EDITORIAL, fontStyle: 'italic', fontSize: 13, color: PALE_YELLOW }}>
                   {new Date(s.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </span>
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)' }}>
+                <span style={{ fontSize: 11, color: TEXT_TERTIARY }}>
                   {s.heading ?? ''} · {formatDuration(s.duration)}
                 </span>
               </button>
             ))}
             {recentSessions.length === 0 && (
-              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.30)', fontStyle: 'italic', textAlign: 'center' }}>No sessions yet</p>
+              <p style={{ fontSize: 12, color: TEXT_HINT, fontStyle: 'italic', textAlign: 'center' }}>No sessions yet</p>
             )}
           </div>
         )}
@@ -551,7 +551,7 @@ export default function NotesPage() {
         />
       </div>
 
-      <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13, marginBottom: 14 }}>
+      <p style={{ color: TEXT_HINT, fontSize: 13, marginBottom: 14 }}>
         {notes.length} {notes.length === 1 ? 'note' : 'notes'}
       </p>
 
@@ -567,7 +567,7 @@ export default function NotesPage() {
           background: 'rgba(255,255,255,0.06)',
           border: 'none',
           padding: '12px 16px',
-          color: 'rgba(255,255,255,0.90)',
+          color: TEXT_PRIMARY,
           fontSize: 16,
           fontFamily: FONT_EDITORIAL,
           fontStyle: 'italic',
@@ -587,7 +587,7 @@ export default function NotesPage() {
 
       {/* No search results */}
       {notes.length === 0 && !loading && searchText && (
-        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>
+        <p style={{ fontSize: 13, color: TEXT_HINT, fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>
           No notes matching "{searchText}"
         </p>
       )}
@@ -596,7 +596,7 @@ export default function NotesPage() {
       {pinned.length > 0 && (
         <>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-            <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)' }}>Pinned</span>
+            <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: TEXT_HINT }}>Pinned</span>
             <span style={{ flex: 1, height: 1, backgroundColor: 'rgba(196,145,95,0.2)', borderRadius: 1 }} />
           </div>
           {pinned.map(note => (
@@ -610,7 +610,7 @@ export default function NotesPage() {
         <>
           {pinned.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 20, marginBottom: 10 }}>
-              <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)' }}>Recent</span>
+              <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: TEXT_HINT }}>Recent</span>
               <span style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 1 }} />
             </div>
           )}
@@ -752,7 +752,7 @@ function NoteRow({ note, onTap, onDelete, searchQuery = '' }: { note: TrainingNo
         <div style={{ fontFamily: FONT_EDITORIAL, fontSize: 18, fontWeight: 500, color: 'rgba(242,228,168,0.50)', lineHeight: 1 }}>
           {day}
         </div>
-        <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.22)', marginTop: 2 }}>
+        <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: TEXT_HINT, marginTop: 2 }}>
           {dow}
         </div>
       </div>
@@ -765,7 +765,7 @@ function NoteRow({ note, onTap, onDelete, searchQuery = '' }: { note: TrainingNo
       {/* Content */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{
-          fontSize: 15, fontWeight: 600, color: 'rgba(255,255,255,0.85)', margin: 0,
+          fontSize: 15, fontWeight: 600, color: TEXT_BODY, margin: 0,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           lineHeight: 1.4,
         }}>
@@ -773,7 +773,7 @@ function NoteRow({ note, onTap, onDelete, searchQuery = '' }: { note: TrainingNo
         </p>
         {bodyPreview !== null && (
           <p style={{
-            fontSize: 13, color: 'rgba(255,255,255,0.45)', margin: '4px 0 0',
+            fontSize: 13, color: TEXT_TERTIARY, margin: '4px 0 0',
             overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
             lineHeight: 1.5,
           }}>

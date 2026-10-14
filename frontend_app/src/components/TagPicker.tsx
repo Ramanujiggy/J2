@@ -21,7 +21,7 @@
 // hooks of their own). Idempotent at the server.
 
 import { useState, useMemo, useRef } from 'react';
-import { COPPER, SURFACE_2, SURFACE_3 } from '../lib/theme.ts';
+import { COPPER, SURFACE_2, SURFACE_3, TEXT_BODY, TEXT_SECONDARY, TEXT_TERTIARY, TEXT_HINT } from '../lib/theme.ts';
 import { vibrate } from '../lib/haptics.ts';
 import { useUserTags } from '../hooks/useUserTags.ts';
 import { useCanonicalPositions } from '../hooks/useCanonicalPositions.ts';
@@ -241,10 +241,10 @@ export default function TagPicker({
               title={`${p.name} → ${PILLAR_LABELS[p.parent_pillar]} (tap to remove)`}
             >
               <span>{p.name}</span>
-              <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: 10 }}>
+              <span style={{ color: TEXT_TERTIARY, fontSize: 10 }}>
                 {PILLAR_LABELS[p.parent_pillar]}
               </span>
-              <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11 }}>×</span>
+              <span style={{ color: TEXT_SECONDARY, fontSize: 11 }}>×</span>
             </button>
           ))}
           {selectedUserTags.map(t => (
@@ -263,10 +263,10 @@ export default function TagPicker({
               {t.affinity === 'learning' && <span aria-label="learning" style={{ fontSize: 10 }}>◐</span>}
               {t.affinity === 'shelved'  && <span aria-label="shelved"  style={{ fontSize: 10, opacity: 0.7 }}>◌</span>}
               <span>{t.name}</span>
-              <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: 10 }}>
+              <span style={{ color: TEXT_TERTIARY, fontSize: 10 }}>
                 {PILLAR_LABELS[t.parent_pillar]}
               </span>
-              <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11 }}>×</span>
+              <span style={{ color: TEXT_SECONDARY, fontSize: 11 }}>×</span>
             </button>
           ))}
         </div>
@@ -322,10 +322,10 @@ export default function TagPicker({
                 className="w-full flex items-center justify-between px-4 py-2.5 text-left j2-press touch-manipulation"
                 style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
               >
-                <span className="text-sm flex items-center gap-2" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                <span className="text-sm flex items-center gap-2" style={{ color: TEXT_BODY }}>
                   {affinity === 'go_to'    && <span aria-label="go-to" style={{ fontSize: 11, color: COPPER }}>★</span>}
                   {affinity === 'learning' && <span aria-label="learning" style={{ fontSize: 11, color: 'rgba(196,145,95,0.65)' }}>◐</span>}
-                  {affinity === 'shelved'  && <span aria-label="shelved" style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)' }}>◌</span>}
+                  {affinity === 'shelved'  && <span aria-label="shelved" style={{ fontSize: 11, color: TEXT_HINT }}>◌</span>}
                   {row.name}
                   {row.kind === 'user' && (
                     <span
@@ -360,10 +360,10 @@ export default function TagPicker({
                 className="w-full flex items-center justify-between px-4 py-2.5 text-left j2-press touch-manipulation"
                 style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
               >
-                <span className="text-sm flex items-center gap-2" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                <span className="text-sm flex items-center gap-2" style={{ color: TEXT_BODY }}>
                   {affinity === 'go_to'    && <span aria-label="go-to" style={{ fontSize: 11, color: COPPER }}>★</span>}
                   {affinity === 'learning' && <span aria-label="learning" style={{ fontSize: 11, color: 'rgba(196,145,95,0.65)' }}>◐</span>}
-                  {affinity === 'shelved'  && <span aria-label="shelved" style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)' }}>◌</span>}
+                  {affinity === 'shelved'  && <span aria-label="shelved" style={{ fontSize: 11, color: TEXT_HINT }}>◌</span>}
                   {row.name}
                   {row.kind === 'user' && (
                     <span
@@ -374,7 +374,7 @@ export default function TagPicker({
                     </span>
                   )}
                 </span>
-                <span className="text-[10px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                <span className="text-[10px] uppercase tracking-wider" style={{ color: TEXT_HINT }}>
                   {PILLAR_LABELS[row.parent_pillar]}
                 </span>
               </button>
@@ -390,7 +390,7 @@ export default function TagPicker({
               <span className="text-sm" style={{ color: COPPER }}>
                 {creating ? 'Creating…' : `Add "${trimmed}"`}
               </span>
-              <span className="text-[10px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              <span className="text-[10px] uppercase tracking-wider" style={{ color: TEXT_HINT }}>
                 → {currentPillar ? PILLAR_LABELS[currentPillar] : ''} · yours
               </span>
             </button>

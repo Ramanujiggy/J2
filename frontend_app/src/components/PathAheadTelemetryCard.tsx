@@ -1,4 +1,4 @@
-import { FONT_EDITORIAL } from '../lib/theme.ts';
+import { FONT_EDITORIAL, TEXT_BODY, TEXT_TERTIARY, TEXT_DISABLED } from '../lib/theme.ts';
 import { formatDuration } from '../lib/sessionUtils.ts';
 import type { TelemetryResult } from '../lib/analyticsModels.ts';
 
@@ -25,11 +25,11 @@ export default function PathAheadTelemetryCard({ telemetry }: Props) {
 
   // Headline line — the acute snapshot. Always shown.
   const headline = (
-    <div style={{ fontSize: 20, color: 'rgba(255,255,255,0.50)', marginBottom: 6 }}>
-      <span style={{ fontWeight: 600, color: 'rgba(255,255,255,0.78)' }}>{acute.count}</span>
+    <div style={{ fontSize: 20, color: TEXT_TERTIARY, marginBottom: 6 }}>
+      <span style={{ fontWeight: 600, color: TEXT_BODY }}>{acute.count}</span>
       {' session'}{acute.count !== 1 ? 's' : ''}
-      <span style={{ color: 'rgba(255,255,255,0.20)', margin: '0 6px' }}>·</span>
-      <span style={{ fontWeight: 600, color: 'rgba(255,255,255,0.78)' }}>{formatDuration(acute.totalMinutes)}</span>
+      <span style={{ color: TEXT_DISABLED, margin: '0 6px' }}>·</span>
+      <span style={{ fontWeight: 600, color: TEXT_BODY }}>{formatDuration(acute.totalMinutes)}</span>
       {' this week'}
     </div>
   );
@@ -65,7 +65,7 @@ export default function PathAheadTelemetryCard({ telemetry }: Props) {
           fontSize: 18,
           fontFamily: FONT_EDITORIAL,
           fontStyle: 'italic',
-          color: 'rgba(255,255,255,0.50)',
+          color: TEXT_TERTIARY,
           margin: 0,
           lineHeight: 1.45,
         }}>

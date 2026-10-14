@@ -6,7 +6,7 @@
 // the data flywheel (Phase 2: model-pre-filled segments that users correct).
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { BRAND_ORANGE, COPPER, PALE_YELLOW, SAGE, SURFACE_2, SURFACE_3, SURFACE_2_BORDER } from '../lib/theme.ts';
+import { BRAND_ORANGE, COPPER, PALE_YELLOW, SAGE, SURFACE_2, SURFACE_3, SURFACE_2_BORDER, TEXT_TERTIARY, TEXT_HINT, TEXT_DISABLED } from '../lib/theme.ts';
 
 // ── Position taxonomy ──────────────────────────────────────────────────────
 
@@ -149,11 +149,19 @@ export default function PositionTagger({ videoUrl, durationSecs, initialSegments
         }} />
       </div>
 
-      {/* Tagged coverage */}
+      {/* Tagged coverage + clear-all link (scoped here, next to what it clears) */}
       {totalTagged > 0 && (
-        <p style={{ fontSize: 11, color: SAGE, margin: 0 }}>
-          {Math.round(totalTagged)}s tagged · {timelineSegs.length} segment{timelineSegs.length !== 1 ? 's' : ''}
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <p style={{ fontSize: 11, color: SAGE, margin: 0 }}>
+            {Math.round(totalTagged)}s tagged · {timelineSegs.length} segment{timelineSegs.length !== 1 ? 's' : ''}
+          </p>
+          <button
+            onClick={() => { setSegments([]); setActivePosition(null); }}
+            style={{ background: 'none', border: 'none', padding: '6px 4px', margin: '-6px -4px', color: COPPER, fontSize: 13, fontWeight: 600, cursor: 'pointer', touchAction: 'manipulation' }}
+          >
+            Clear all
+          </button>
+        </div>
       )}
 
       {/* Position buttons — 3 columns: top / bottom / neutral */}
@@ -191,24 +199,18 @@ export default function PositionTagger({ videoUrl, durationSecs, initialSegments
         </div>
       </div>
 
-      {/* Clear + action row */}
+      {/* Action row — two exits only: cancel (Discard) and commit (Save) */}
       <div style={{ display: 'flex', gap: 8, marginTop: 'auto', paddingTop: 12 }}>
         <button
-          onClick={() => { setSegments([]); setActivePosition(null); }}
-          style={{ flex: 1, padding: '12px 0', minHeight: 44, background: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}`, borderRadius: 8, color: 'rgba(255,255,255,0.4)', fontSize: 13, cursor: 'pointer' }}
-        >
-          Clear
-        </button>
-        <button
           onClick={onCancel}
-          style={{ flex: 1, padding: '12px 0', minHeight: 44, background: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}`, borderRadius: 8, color: 'rgba(255,255,255,0.5)', fontSize: 13, cursor: 'pointer' }}
+          style={{ flex: 1, padding: '12px 0', minHeight: 44, background: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}`, borderRadius: 8, color: TEXT_TERTIARY, fontSize: 13, cursor: 'pointer' }}
         >
           Discard
         </button>
         <button
           onClick={handleSave}
-          disabled={saving || segments.length === 0}
-          style={{ flex: 2, padding: '12px 0', minHeight: 44, background: BRAND_ORANGE, border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: segments.length === 0 ? 'not-allowed' : 'pointer', opacity: segments.length === 0 ? 0.4 : 1 }}
+          disabled={saving}
+          style={{ flex: 2, padding: '12px 0', minHeight: 44, background: BRAND_ORANGE, border: 'none', borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 500, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.5 : 1 }}
         >
           {saving ? 'Saving…' : 'Save tags'}
         </button>
@@ -228,7 +230,7 @@ function PositionButton({ posKey, label, sub, color, active, onTap }: {
       style={{
         padding: '6px 8px',
         borderRadius: 7,
-        border: `1px solid ${active ? color : 'rgba(255,255,255,0.10)'}`,
+        border: `1px solid ${active ? color : TEXT_DISABLED}`,
         background: active ? `${color}22` : SURFACE_3,
         cursor: 'pointer',
         textAlign: 'left',
@@ -237,7 +239,7 @@ function PositionButton({ posKey, label, sub, color, active, onTap }: {
       }}
     >
       <div style={{ fontSize: 12, fontWeight: 600, color: active ? color : PALE_YELLOW, lineHeight: 1.1 }}>{label}</div>
-      {sub && <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 1 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 10, color: TEXT_HINT, marginTop: 1 }}>{sub}</div>}
     </button>
   );
 }

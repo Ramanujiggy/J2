@@ -18,7 +18,7 @@ import { useSessions } from '../../context/SessionsContext.tsx';
 import { useIsDesktop } from '../../hooks/useIsDesktop.ts';
 import { useStamps } from '../../hooks/useStamps.ts';
 import { buildSessionPayload, type SessionDraft } from '../../lib/sessionPayload.ts';
-import { CARD_BG, STATUS_ERROR } from '../../lib/theme.ts';
+import { CARD_BG, STATUS_ERROR, TEXT_TERTIARY } from '../../lib/theme.ts';
 import type { SessionSummary } from '../../types/api.ts';
 import ComposerSheet from './ComposerSheet.tsx';
 import ComposerRecorder from './ComposerRecorder.tsx';
@@ -151,7 +151,7 @@ export default function CaptureComposer({ onSuccess, onCancel, defaultDate }: Pr
           />
           <p
             onClick={onCancel}
-            style={{ textAlign: 'center', marginTop: 18, fontFamily: 'var(--font-editorial)', fontStyle: 'italic', fontSize: 14, color: 'rgba(255,255,255,0.38)', cursor: 'pointer' }}
+            style={{ textAlign: 'center', marginTop: 18, fontFamily: 'var(--font-editorial)', fontStyle: 'italic', fontSize: 14, color: TEXT_TERTIARY, cursor: 'pointer' }}
           >
             not now →
           </p>
