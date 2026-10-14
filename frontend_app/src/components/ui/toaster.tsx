@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { PALE_YELLOW, COPPER_BORDER, FONT_EDITORIAL, GLOW_SOFT } from '@/lib/theme';
+import { PALE_YELLOW, COPPER_BORDER, FONT_EDITORIAL, GLOW_SOFT, TEXT_TERTIARY } from '@/lib/theme';
 
 export function Toaster() {
   const { toasts } = useToast();
@@ -87,7 +87,7 @@ export function Toaster() {
               fontFamily: FONT_EDITORIAL,
               fontStyle: 'italic',
               fontSize: 12,
-              color: 'rgba(255,255,255,0.40)',
+              color: TEXT_TERTIARY,
               margin: '4px 0 0',
               lineHeight: 1.4,
             }}

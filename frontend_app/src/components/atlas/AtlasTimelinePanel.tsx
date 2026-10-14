@@ -13,7 +13,7 @@ import { useMemo } from 'react';
 import { SKILL_COLORS } from '../charts/RadarChart.tsx';
 import { SKILL_TAGS } from '../../lib/constants.ts';
 import { toDateString } from '../../lib/sessionUtils.ts';
-import { CARD_BG, COPPER, INT_COLORS, PALE_YELLOW } from '../../lib/theme.ts';
+import { CARD_BG, COPPER, INT_COLORS, PALE_YELLOW, TEXT_SECONDARY, TEXT_TERTIARY } from '../../lib/theme.ts';
 import type { Intention, SessionSummary } from '../../types/api.ts';
 import AtlasEmptyCard from './AtlasEmptyCard.tsx';
 
@@ -115,7 +115,7 @@ function YearCard({ year, sessions, intentions }: { year: number; sessions: Sess
           <div className="j2-serif-display" style={{ fontSize: 60, lineHeight: 1 }}>{year}</div>
           <div
             className="j2-serif-italic"
-            style={{ fontSize: 18, color: 'rgba(255,255,255,0.60)', marginTop: 8 }}
+            style={{ fontSize: 18, color: TEXT_SECONDARY, marginTop: 8 }}
           >
             {yearSessions.length} session{yearSessions.length === 1 ? '' : 's'} · {totalHours} hour{totalHours === 1 ? '' : 's'}
             {topTag ? <> · mostly <span style={{ color: PALE_YELLOW }}>{topTag}</span></> : null}
@@ -154,7 +154,7 @@ function YearCard({ year, sessions, intentions }: { year: number; sessions: Sess
       <div
         style={{
           display: 'flex', gap: 24, marginTop: 18,
-          fontSize: 13, color: 'rgba(255,255,255,0.40)',
+          fontSize: 13, color: TEXT_TERTIARY,
         }}
       >
         {SKILL_TAGS.map(tag => (

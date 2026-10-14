@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { localDateKey, buildDayMap, cellColor, EMPTY_DAY, computeStats } from './TrainingHeatmap.tsx';
 import type { DayData } from './TrainingHeatmap.tsx';
 import type { SessionSummary } from '../types/api.ts';
-import { CARD_BG, COPPER, CARD_GLOW, CARD_GLOW_BORDER } from '../lib/theme.ts';
+import { CARD_BG, COPPER, CARD_GLOW, CARD_GLOW_BORDER, TEXT_HINT } from '../lib/theme.ts';
 
 const WEEKS     = 24;   // 6 months of rolling history
 const CELL_SIZE = 14;   // px — ~20% smaller than the old 18px compact heatmap
@@ -89,7 +89,7 @@ export default function HeatmapPreviewWidget({ sessions }: HeatmapPreviewWidgetP
           style={{
             fontSize: 10,
             fontWeight: 600,
-            color: 'rgba(255,255,255,0.30)',
+            color: TEXT_HINT,
             textTransform: 'uppercase',
             letterSpacing: '0.1em',
           }}
@@ -135,7 +135,7 @@ export default function HeatmapPreviewWidget({ sessions }: HeatmapPreviewWidgetP
                   style={{
                     fontSize: 9,
                     fontWeight: 500,
-                    color: 'rgba(255,255,255,0.35)',
+                    color: TEXT_HINT,
                     whiteSpace: 'nowrap',
                   }}
                 >

@@ -5,7 +5,7 @@
 // No schedule match renders the quiet variant. Spec §2 state 1.
 
 import { SKILL_TAGS } from '../../lib/constants.ts';
-import { CARD_BG, CARD_SHADOW, COPPER, GLOW_SOFT, PALE_YELLOW, FONT_EDITORIAL } from '../../lib/theme.ts';
+import { CARD_BG, CARD_SHADOW, COPPER, GLOW_SOFT, PALE_YELLOW, FONT_EDITORIAL, TEXT_TERTIARY } from '../../lib/theme.ts';
 import { vibrate } from '../../lib/haptics.ts';
 import { formatTime12 } from '../../lib/timeUtils.ts';
 import type { Kernel } from '../../lib/composerKernel.ts';
@@ -45,7 +45,7 @@ export default function ComposerSheet({ kernel, intention, speechSupported, onSp
       <h3 style={{ fontFamily: FONT_EDITORIAL, fontWeight: 500, fontSize: 28, color: PALE_YELLOW, margin: '0 0 4px', letterSpacing: '-0.01em', textShadow: GLOW_SOFT }}>
         {kernel.scheduleName ?? 'Open mat?'}
       </h3>
-      <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.40)', letterSpacing: '0.05em', textTransform: 'uppercase', margin: '2px 0 0' }}>
+      <p style={{ fontSize: 11.5, color: TEXT_TERTIARY, letterSpacing: '0.05em', textTransform: 'uppercase', margin: '2px 0 0' }}>
         {meta}
       </p>
 

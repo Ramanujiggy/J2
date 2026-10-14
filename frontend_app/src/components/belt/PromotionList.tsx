@@ -10,12 +10,10 @@
 
 import { useEffect, useState } from 'react';
 import { beltDisplayName, isBeltRank } from '../../lib/beltCloth.ts';
-import { FONT_EDITORIAL } from '../../lib/theme.ts';
+import { FONT_EDITORIAL, TEXT_SECONDARY, TEXT_TERTIARY } from '../../lib/theme.ts';
 import type { BeltHistoryEntry } from '../../types/api.ts';
 
 const HAIRLINE = '1px solid rgba(255,255,255,0.06)';
-const TEXT_SECONDARY = 'rgba(255,255,255,0.66)';
-const TEXT_TERTIARY = 'rgba(255,255,255,0.46)';
 const CONFIRM_WINDOW_MS = 3500;
 
 /** "March 2026" — how a promotion is dated on the belt surfaces. */

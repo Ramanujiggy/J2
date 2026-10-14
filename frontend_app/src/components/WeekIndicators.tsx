@@ -1,5 +1,5 @@
 import type { SessionSummary } from '../types/api.ts';
-import { COPPER } from '../lib/theme.ts';
+import { COPPER, TEXT_PRIMARY } from '../lib/theme.ts';
 import { toDateString, INTENSITY_COLOR, formatDuration } from '../lib/sessionUtils.ts';
 
 interface Props {
@@ -103,7 +103,7 @@ export default function WeekIndicators({
               ) : hasSessions ? (
                 <span
                   className="text-sm font-bold"
-                  style={{ color: 'rgba(255,255,255,0.95)' }}
+                  style={{ color: TEXT_PRIMARY }}
                 >
                   {day.getDate()}
                 </span>

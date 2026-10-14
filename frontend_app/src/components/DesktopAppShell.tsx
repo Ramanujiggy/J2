@@ -26,7 +26,7 @@ import CaptureComposer from './composer/CaptureComposer.tsx';
 import { useOnlineSync } from '../hooks/useOnlineSync.ts';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock.ts';
 import { toDateString } from '../lib/sessionUtils.ts';
-import { PAGE_BG, PALE_YELLOW, COPPER, BRAND_ORANGE, BRAND_ORANGE_HOVER } from '../lib/theme.ts';
+import { PAGE_BG, PALE_YELLOW, COPPER, BRAND_ORANGE, BRAND_ORANGE_HOVER, TEXT_SECONDARY, TEXT_TERTIARY } from '../lib/theme.ts';
 import { isFromProfile } from '../lib/navOrigin.ts';
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
@@ -89,8 +89,6 @@ const NAV_ITEMS: readonly NavItem[] = [
 ] as const;
 
 const RAIL_BORDER   = '1px solid rgba(255,255,255,0.06)';
-const TEXT_SECONDARY = 'rgba(255,255,255,0.66)';
-const TEXT_TERTIARY  = 'rgba(255,255,255,0.46)';
 
 interface Props { children: React.ReactNode; }
 

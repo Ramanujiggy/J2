@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { COPPER, PALE_YELLOW, FONT_EDITORIAL, GLOW_SOFT, SURFACE_2, COPPER_BORDER } from '../lib/theme.ts';
+import { COPPER, PALE_YELLOW, FONT_EDITORIAL, GLOW_SOFT, SURFACE_2, COPPER_BORDER, TEXT_TERTIARY } from '../lib/theme.ts';
 import { formatDuration } from '../lib/sessionUtils.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
 import { useUserTags } from '../hooks/useUserTags.ts';
@@ -200,7 +200,7 @@ export default function StillFreshHero({ lastSession, onAddNotes, onDismiss }: P
           /* ── CAPTURE MODE ── */
           <>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.50)', backgroundColor: SURFACE_2, padding: '5px 10px', borderRadius: 8 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: TEXT_TERTIARY, backgroundColor: SURFACE_2, padding: '5px 10px', borderRadius: 8 }}>
                 {lastSession.endedAgo}
               </span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: COPPER, backgroundColor: 'rgba(196,145,95,0.16)', border: `1px solid ${COPPER_BORDER}`, padding: '5px 10px', borderRadius: 8 }}>
@@ -212,14 +212,14 @@ export default function StillFreshHero({ lastSession, onAddNotes, onDismiss }: P
               <div style={{ fontFamily: FONT_EDITORIAL, fontSize: 46, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1, color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
                 Jiu Jitsu
               </div>
-              <div style={{ marginTop: 6, fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>
+              <div style={{ marginTop: 6, fontSize: 13, color: TEXT_TERTIARY }}>
                 {formatDuration(lastSession.duration)} &middot; {lastSession.focusLabel} &middot; ended {lastSession.endedAgo}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 16 }}>
                 <button type="button" onClick={onAddNotes} className="j2-press" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, height: 44, padding: '0 20px', borderRadius: 12, border: 'none', backgroundColor: ORANGE, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
                   <PencilIcon /> Add notes
                 </button>
-                <button type="button" onClick={onDismiss} style={{ height: 44, padding: '0 14px', borderRadius: 12, border: 'none', backgroundColor: 'transparent', color: 'rgba(255,255,255,0.45)', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
+                <button type="button" onClick={onDismiss} style={{ height: 44, padding: '0 14px', borderRadius: 12, border: 'none', backgroundColor: 'transparent', color: TEXT_TERTIARY, fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
                   Not now
                 </button>
               </div>
@@ -235,7 +235,7 @@ export default function StillFreshHero({ lastSession, onAddNotes, onDismiss }: P
             style={{ touchAction: 'pan-y', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1 }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.50)', backgroundColor: SURFACE_2, padding: '5px 10px', borderRadius: 8 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: TEXT_TERTIARY, backgroundColor: SURFACE_2, padding: '5px 10px', borderRadius: 8 }}>
                 From your library
               </span>
               <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: COPPER }}>
@@ -247,7 +247,7 @@ export default function StillFreshHero({ lastSession, onAddNotes, onDismiss }: P
                 {technique.name}
               </div>
               {technique.resonance_journal && (
-                <div style={{ marginTop: 8, fontSize: 13, color: 'rgba(255,255,255,0.40)', fontStyle: 'italic', lineHeight: 1.45, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' }}>
+                <div style={{ marginTop: 8, fontSize: 13, color: TEXT_TERTIARY, fontStyle: 'italic', lineHeight: 1.45, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' }}>
                   {technique.resonance_journal}
                 </div>
               )}
@@ -287,7 +287,7 @@ export default function StillFreshHero({ lastSession, onAddNotes, onDismiss }: P
               <div style={{ fontFamily: FONT_EDITORIAL, fontSize: 38, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.05, color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
                 Jiu Jitsu
               </div>
-              <div style={{ marginTop: 6, fontSize: 13, color: 'rgba(255,255,255,0.40)' }}>
+              <div style={{ marginTop: 6, fontSize: 13, color: TEXT_TERTIARY }}>
                 Last session: {formatDuration(lastSession.duration)} &middot; {lastSession.focusLabel} &middot; {lastSession.endedAgo}
               </div>
             </div>

@@ -18,7 +18,7 @@
 // Extracted from PathAheadPage.tsx during the 2026-05-09 refactor pass.
 
 import { useState, useEffect } from 'react';
-import { COPPER } from '../lib/theme.ts';
+import { COPPER, TEXT_SECONDARY, TEXT_TERTIARY } from '../lib/theme.ts';
 import { SKILL_TAGS, MONTH_NAMES } from '../lib/constants.ts';
 import { toDateString, formatDuration, DAY_NAMES, SESSION_TYPE_LABELS, formatGiNogi } from '../lib/sessionUtils.ts';
 import type { SessionSummary } from '../types/api.ts';
@@ -136,10 +136,10 @@ export default function MostRecentSessionCard({ mostRecent, softCardStyle }: Pro
           {focusLabel}
         </div>
       </div>
-      <div style={{ fontSize: 15, color: 'rgba(255,255,255,0.60)' }}>
+      <div style={{ fontSize: 15, color: TEXT_SECONDARY }}>
         {formatDuration(mostRecent.duration ?? 0)} · {typeLabel} · {giLabel}
       </div>
-      <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.40)', marginTop: 8 }}>
+      <div style={{ fontSize: 14, color: TEXT_TERTIARY, marginTop: 8 }}>
         {DAY_NAMES[dateObj.getDay()]}, {MONTH_NAMES[dateObj.getMonth()]} {dateObj.getDate()}
       </div>
     </div>

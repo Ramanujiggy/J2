@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, COPPER } from '../lib/theme.ts';
+import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, COPPER, TEXT_PRIMARY, TEXT_TERTIARY, TEXT_HINT } from '../lib/theme.ts';
 import { formatDuration } from '../lib/sessionUtils.ts';
 import { EIGHT_GATES } from '../lib/constants.ts';
 import { generateBurstParticles } from '../lib/particles.ts';
@@ -41,7 +41,7 @@ export default function StatStrip({ streak, longestStreak, weekSessionCount, wee
 
   // Per-view display values
   const valueColor =
-    view === 'weekly'  ? (gate ? gate.color : 'rgba(255,255,255,0.88)') :
+    view === 'weekly'  ? (gate ? gate.color : TEXT_PRIMARY) :
     view === 'daily'   ? (streak > 0 ? COPPER : 'rgba(255,255,255,0.88)') :
     'rgba(255,255,255,0.88)';
 
@@ -109,7 +109,7 @@ export default function StatStrip({ streak, longestStreak, weekSessionCount, wee
           <span className="text-lg font-bold block text-center" style={{ color: valueColor }}>
             {cellValue}
           </span>
-          <span className="text-xs block text-center" style={{ color: 'rgba(255,255,255,0.38)' }}>
+          <span className="text-xs block text-center" style={{ color: TEXT_TERTIARY }}>
             {cellLabel}
           </span>
           {cellSub && (
@@ -125,7 +125,7 @@ export default function StatStrip({ streak, longestStreak, weekSessionCount, wee
         {/* Cycle hint */}
         <span
           className="absolute bottom-1 right-1.5 text-[10px] select-none"
-          style={{ color: 'rgba(255,255,255,0.30)' }}
+          style={{ color: TEXT_HINT }}
         >
           ⇄
         </span>
@@ -133,10 +133,10 @@ export default function StatStrip({ streak, longestStreak, weekSessionCount, wee
 
       {/* ── Right cell: time this week — always visible ── */}
       <div className="flex-1 flex flex-col items-center justify-center py-3 gap-0.5">
-        <span className="text-lg font-bold" style={{ color: 'rgba(255,255,255,0.88)' }}>
+        <span className="text-lg font-bold" style={{ color: TEXT_PRIMARY }}>
           {weekTotalMinutes > 0 ? formatDuration(weekTotalMinutes) : '0h'}
         </span>
-        <span className="text-xs" style={{ color: 'rgba(255,255,255,0.38)' }}>
+        <span className="text-xs" style={{ color: TEXT_TERTIARY }}>
           this week
         </span>
       </div>

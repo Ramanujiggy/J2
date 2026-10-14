@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { CalendarDays, X } from 'lucide-react';
 import type { TimeWindow } from '../lib/analyticsUtils.ts';
-import { CARD_BG, COPPER_BORDER, PALE_YELLOW, COPPER, SURFACE_3, DATE_INPUT_STYLE } from '../lib/theme.ts';
+import { CARD_BG, COPPER_BORDER, PALE_YELLOW, COPPER, SURFACE_3, DATE_INPUT_STYLE, TEXT_TERTIARY } from '../lib/theme.ts';
 import { MONTH_NAMES } from '../lib/constants.ts';
 
 interface TimeRangeBarProps {
@@ -50,7 +50,7 @@ export default function TimeRangeBar({ value, onChange, customRange, onCustomRan
 
   const pill  = 'px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer select-none touch-manipulation j2-press min-h-[44px] flex items-center justify-center whitespace-nowrap';
   const active   = { backgroundColor: COPPER,      color: '#fff' };
-  const inactive = { backgroundColor: SURFACE_3, color: 'rgba(255,255,255,0.55)' };
+  const inactive = { backgroundColor: SURFACE_3, color: TEXT_TERTIARY };
 
   function selectPreset(w: TimeWindow) {
     onChange(w);

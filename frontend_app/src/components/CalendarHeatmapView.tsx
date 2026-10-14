@@ -8,10 +8,7 @@ import type { DayData } from './TrainingHeatmap.tsx';
 import type { SessionSummary } from '../types/api.ts';
 import SessionDetailModal from './SessionDetailModal.tsx';
 import { useBeltHistory } from '../hooks/useBeltHistory.ts';
-import {
-  PAGE_BG, PALE_YELLOW, GLOW_SOFT, COPPER, FONT_EDITORIAL,
-  HEATMAP_HEADER_BG, INT_LABELS,
-} from '../lib/theme.ts';
+import { PAGE_BG, PALE_YELLOW, GLOW_SOFT, COPPER, FONT_EDITORIAL, HEATMAP_HEADER_BG, INT_LABELS, TEXT_BODY, TEXT_SECONDARY, TEXT_TERTIARY, TEXT_HINT } from '../lib/theme.ts';
 import { SKILL_TAGS } from '../lib/constants.ts';
 import { formatDuration, INTENSITY_COLOR, SESSION_TYPE_LABELS, DAY_NAMES } from '../lib/sessionUtils.ts';
 
@@ -201,18 +198,18 @@ export default function CalendarHeatmapView({
           <button
             onClick={() => { onYearChange?.(year - 1); setSelectedMonth(null); }}
             className="touch-manipulation"
-            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', padding: 4 }}
+            style={{ background: 'none', border: 'none', color: TEXT_HINT, cursor: 'pointer', padding: 4 }}
             aria-label="Previous year"
           >
             <ChevronLeft size={16} />
           </button>
-          <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase' as const, color: 'rgba(255,255,255,0.50)', minWidth: 44, textAlign: 'center' as const }}>
+          <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase' as const, color: TEXT_TERTIARY, minWidth: 44, textAlign: 'center' as const }}>
             {year}
           </span>
           <button
             onClick={() => { onYearChange?.(year + 1); setSelectedMonth(null); }}
             className="touch-manipulation"
-            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', padding: 4 }}
+            style={{ background: 'none', border: 'none', color: TEXT_HINT, cursor: 'pointer', padding: 4 }}
             aria-label="Next year"
           >
             <ChevronRight size={16} />
@@ -229,7 +226,7 @@ export default function CalendarHeatmapView({
         ].map(({ value, label }) => (
           <div key={label}>
             <span style={{ fontFamily: FONT_EDITORIAL, fontSize: 28, fontWeight: 500, color: COPPER }}>{value}</span>
-            <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase' as const, color: 'rgba(255,255,255,0.28)', marginTop: 2 }}>
+            <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase' as const, color: TEXT_HINT, marginTop: 2 }}>
               {label}
             </div>
           </div>
@@ -270,7 +267,7 @@ export default function CalendarHeatmapView({
                 fontSize: 10,
                 fontWeight: 600,
                 textTransform: 'uppercase',
-                color: 'rgba(255,255,255,0.30)',
+                color: TEXT_HINT,
                 letterSpacing: '0.05em',
               }}
             >
@@ -429,11 +426,11 @@ export default function CalendarHeatmapView({
             {tooltip.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' })}
           </div>
           {tooltip.day.count > 0 ? (
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>
+            <div style={{ fontSize: 11, color: TEXT_TERTIARY }}>
               {INT_LABELS[tooltip.day.maxIntensity] ?? 'Session'} · {tooltip.day.count} session{tooltip.day.count !== 1 ? 's' : ''} · {formatDuration(tooltip.day.totalMinutes)}
             </div>
           ) : (
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic' }}>No sessions</div>
+            <div style={{ fontSize: 11, color: TEXT_HINT, fontStyle: 'italic' }}>No sessions</div>
           )}
         </div>
       )}
@@ -442,13 +439,13 @@ export default function CalendarHeatmapView({
       {selectedMonth != null && monthSessions.length > 0 && (
         <div ref={sessionListRef} style={{ marginTop: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase' as const, color: 'rgba(255,255,255,0.35)' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase' as const, color: TEXT_HINT }}>
               {MONTH_ABBR[selectedMonth]} {year} · {monthSessions.length} session{monthSessions.length !== 1 ? 's' : ''}
             </span>
             <button
               onClick={() => setSelectedMonth(null)}
               className="touch-manipulation"
-              style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.25)', fontSize: 11, cursor: 'pointer' }}
+              style={{ background: 'none', border: 'none', color: TEXT_HINT, fontSize: 11, cursor: 'pointer' }}
             >
               Clear
             </button>
@@ -479,14 +476,14 @@ export default function CalendarHeatmapView({
                   cursor: 'pointer',
                 }}
               >
-                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', fontVariantNumeric: 'tabular-nums' as const }}>
-                  <strong style={{ color: 'rgba(255,255,255,0.65)', fontWeight: 600 }}>{d.getDate()}</strong>
+                <span style={{ fontSize: 12, color: TEXT_TERTIARY, fontVariantNumeric: 'tabular-nums' as const }}>
+                  <strong style={{ color: TEXT_SECONDARY, fontWeight: 600 }}>{d.getDate()}</strong>
                   {' '}{DAY_NAMES[d.getDay()]}
                 </span>
                 <span style={{ width: 9, height: 9, borderRadius: '50%', background: intColor, boxShadow: `0 0 6px ${intColor}60` }} />
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.80)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: TEXT_BODY, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
                   {focusLabel}
-                  <span style={{ fontWeight: 400, color: 'rgba(255,255,255,0.28)', fontSize: 11, marginLeft: 5 }}>· {typeLabel}</span>
+                  <span style={{ fontWeight: 400, color: TEXT_HINT, fontSize: 11, marginLeft: 5 }}>· {typeLabel}</span>
                 </span>
                 <span style={{ fontSize: 12, fontWeight: 600, color: COPPER, fontVariantNumeric: 'tabular-nums' as const }}>
                   {formatDuration(s.duration ?? 0)}

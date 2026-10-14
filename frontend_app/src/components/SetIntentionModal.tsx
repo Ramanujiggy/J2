@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.ts';
-import { CARD_BG, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3, COPPER } from '../lib/theme.ts';
+import { CARD_BG, PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3, COPPER, TEXT_TERTIARY, TEXT_HINT, TEXT_DISABLED } from '../lib/theme.ts';
 import { vibrate } from '../lib/haptics.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import FocusAreaChips from './FocusAreaChips.tsx';
@@ -189,7 +189,7 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
 
             {/* ── Focus card ───────────────────────────────── */}
             <div className="rounded-xl px-4 py-4 space-y-4" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
-              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              <p className="text-xs" style={{ color: TEXT_HINT }}>
                 Tap a focus area to declare what you're working on.
               </p>
 
@@ -210,8 +210,8 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
               {/* Optional label */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs" style={{ color: 'rgba(255,255,255,0.40)' }}>
-                    What specifically? <span style={{ color: 'rgba(255,255,255,0.20)' }}>(optional)</span>
+                  <label className="text-xs" style={{ color: TEXT_TERTIARY }}>
+                    What specifically? <span style={{ color: TEXT_DISABLED }}>(optional)</span>
                   </label>
                   {label.length > 0 && (
                     <span className="text-[11px]" style={{ color: charsLeft < 5 ? COPPER : 'rgba(255,255,255,0.25)' }}>
@@ -237,7 +237,7 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
                   toggle picks the mode; the inner control picks the
                   target. Days are the legacy default. */}
             <div className="rounded-xl px-4 py-4 space-y-3" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
-              <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.25)' }}>
+              <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: TEXT_HINT }}>
                 Completes after
               </span>
 
@@ -254,7 +254,7 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
                     value={String(durationDays)}
                     onChange={v => { if (v) setDurationDays(Number(v)); }}
                   />
-                  <p className="text-[10px] text-center" style={{ color: 'rgba(255,255,255,0.22)' }}>
+                  <p className="text-[10px] text-center" style={{ color: TEXT_HINT }}>
                     How long to hold this focus
                   </p>
                 </>
@@ -267,7 +267,7 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
                     value={String(sessionTarget)}
                     onChange={v => { if (v) setSessionTarget(Number(v)); }}
                   />
-                  <p className="text-[10px] text-center" style={{ color: 'rgba(255,255,255,0.22)' }}>
+                  <p className="text-[10px] text-center" style={{ color: TEXT_HINT }}>
                     Sessions touching this focus — missed days don't count against you
                   </p>
                 </>
@@ -280,7 +280,7 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
                     value={String(trainingWeekTarget)}
                     onChange={v => { if (v) setTrainingWeekTarget(Number(v)); }}
                   />
-                  <p className="text-[10px] text-center" style={{ color: 'rgba(255,255,255,0.22)' }}>
+                  <p className="text-[10px] text-center" style={{ color: TEXT_HINT }}>
                     Distinct weeks containing training — a week off pauses the clock
                   </p>
                 </>
@@ -290,8 +290,8 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
             {/* ── Techniques card (optional) ─────────────────── */}
             {heading && (
               <div className="rounded-xl px-4 py-4 space-y-3" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.05)' }}>
-                <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.25)' }}>
-                  Techniques <span style={{ color: 'rgba(255,255,255,0.15)' }}>(optional)</span>
+                <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: TEXT_HINT }}>
+                  Techniques <span style={{ color: TEXT_DISABLED }}>(optional)</span>
                 </span>
                 <TagPicker
                   selectedUserTagIds={userTagIds}
@@ -364,7 +364,7 @@ export default function SetIntentionModal({ onSaved, onClose, editIntention }: P
                 type="button"
                 onClick={onClose}
                 className="px-4 py-3 text-sm font-medium transition-colors touch-manipulation"
-                style={{ color: 'rgba(255,255,255,0.40)' }}
+                style={{ color: TEXT_TERTIARY }}
               >
                 Cancel
               </button>

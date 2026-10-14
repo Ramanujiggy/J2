@@ -11,10 +11,7 @@ import SealStamp from '../components/seal/SealStamp.tsx';
 import SealRevealSheet from '../components/seal/SealRevealSheet.tsx';
 import { useStamps } from '../hooks/useStamps.ts';
 import { STAMP_DIES, DIE_KEYS, type StampDie } from '../lib/stampDies.ts';
-import {
-  PALE_YELLOW, GLOW_SOFT, COPPER, FONT_EDITORIAL, CARD_BG, CARD_GLOW, CARD_GLOW_BORDER,
-  SURFACE_2, SURFACE_2_BORDER,
-} from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, COPPER, FONT_EDITORIAL, CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, SURFACE_2, SURFACE_2_BORDER, TEXT_TERTIARY } from '../lib/theme.ts';
 
 export default function StampCollectionPage() {
   const navigate = useNavigate();
@@ -60,7 +57,7 @@ export default function StampCollectionPage() {
                     style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 8 }}
                   >
                     <SealStamp die={die} top={die.sub} size={82} style={{ transform: 'rotate(-8deg)' }} />
-                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', textAlign: 'center' }}>{die.name}</span>
+                    <span style={{ fontSize: 11, color: TEXT_TERTIARY, textAlign: 'center' }}>{die.name}</span>
                   </button>
                 );
               }
@@ -71,7 +68,7 @@ export default function StampCollectionPage() {
                   aria-label="Locked stamp"
                 >
                   <SealStamp die={die} top="· · · ·" size={82} style={{ transform: 'rotate(-8deg)' }} />
-                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Locked</span>
+                  <span style={{ fontSize: 11, color: TEXT_TERTIARY }}>Locked</span>
                 </div>
               );
             })}

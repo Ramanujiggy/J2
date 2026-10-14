@@ -7,7 +7,7 @@
 // Extracted from IntentionsPage.tsx during the 2026-05-09 refactor pass.
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { COPPER } from '../../lib/theme.ts';
+import { COPPER, TEXT_SECONDARY, TEXT_TERTIARY } from '../../lib/theme.ts';
 import { toDateString, addDays, getWeekStart } from '../../lib/sessionUtils.ts';
 import type { Intention, Pillar, SessionSummary } from '../../types/api.ts';
 import PageContent from '../PageContent.tsx';
@@ -261,7 +261,7 @@ export default function IntentionsDesktopView({
           </h1>
           <div
             className="j2-serif-italic"
-            style={{ marginTop: 12, fontSize: 18, color: 'rgba(255,255,255,0.65)' }}
+            style={{ marginTop: 12, fontSize: 18, color: TEXT_SECONDARY }}
           >
             {subtitle}
           </div>
@@ -297,7 +297,7 @@ export default function IntentionsDesktopView({
             borderRadius: 12,
             padding: '12px 16px',
             fontSize: 14,
-            color: 'rgba(255,255,255,0.40)',
+            color: TEXT_TERTIARY,
             marginBottom: 24,
           }}
         >

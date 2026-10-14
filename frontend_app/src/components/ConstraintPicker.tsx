@@ -16,7 +16,7 @@
 // to the two DB columns they belong in (canonical_constraint_ids + user_constraint_ids).
 
 import { useState, useMemo, useRef } from 'react';
-import { COPPER, SURFACE_2, SURFACE_3 } from '../lib/theme.ts';
+import { COPPER, SURFACE_2, SURFACE_3, TEXT_BODY, TEXT_SECONDARY, TEXT_HINT } from '../lib/theme.ts';
 import { vibrate } from '../lib/haptics.ts';
 import { useUserConstraints } from '../hooks/useUserConstraints.ts';
 import { useCanonicalConstraints } from '../hooks/useCanonicalConstraints.ts';
@@ -196,7 +196,7 @@ export default function ConstraintPicker({
               title={`${c.name}${c.parent_pillar ? ` → ${PILLAR_LABELS[c.parent_pillar]}` : ''} (tap to remove)`}
             >
               <span style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>{c.name}</span>
-              <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, flexShrink: 0 }}>×</span>
+              <span style={{ color: TEXT_SECONDARY, fontSize: 12, flexShrink: 0 }}>×</span>
             </button>
           ))}
           {selectedUser.map(c => (
@@ -209,7 +209,7 @@ export default function ConstraintPicker({
               title={`${c.name}${c.parent_pillar ? ` → ${PILLAR_LABELS[c.parent_pillar]}` : ''} (tap to remove)`}
             >
               <span style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>{c.name}</span>
-              <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, flexShrink: 0 }}>×</span>
+              <span style={{ color: TEXT_SECONDARY, fontSize: 12, flexShrink: 0 }}>×</span>
             </button>
           ))}
         </div>
@@ -248,7 +248,7 @@ export default function ConstraintPicker({
               className="w-full flex items-center justify-between px-4 py-2.5 text-left j2-press touch-manipulation"
               style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
             >
-              <span className="text-sm flex items-center gap-2" style={{ color: 'rgba(255,255,255,0.85)' }}>
+              <span className="text-sm flex items-center gap-2" style={{ color: TEXT_BODY }}>
                 <span style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>{row.name}</span>
                 {row.kind === 'user' && (
                   <span
@@ -260,7 +260,7 @@ export default function ConstraintPicker({
                 )}
               </span>
               {row.parent_pillar && (
-                <span className="text-[10px] uppercase tracking-wider flex-shrink-0 ml-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                <span className="text-[10px] uppercase tracking-wider flex-shrink-0 ml-2" style={{ color: TEXT_HINT }}>
                   {PILLAR_LABELS[row.parent_pillar]}
                 </span>
               )}
@@ -276,7 +276,7 @@ export default function ConstraintPicker({
               <span className="text-sm" style={{ color: COPPER }}>
                 {creating ? 'Creating…' : `Add "${trimmed}"`}
               </span>
-              <span className="text-[10px] uppercase tracking-wider flex-shrink-0 ml-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              <span className="text-[10px] uppercase tracking-wider flex-shrink-0 ml-2" style={{ color: TEXT_HINT }}>
                 {currentPillar ? `→ ${PILLAR_LABELS[currentPillar]} · yours` : '→ yours'}
               </span>
             </button>

@@ -5,7 +5,7 @@
 // journal page. Presentational: speech state comes in as props. Spec §2 state 2.
 
 import PrismMotif from '../visuals/PrismMotif.tsx';
-import { FONT_EDITORIAL } from '../../lib/theme.ts';
+import { FONT_EDITORIAL, TEXT_TERTIARY, TEXT_HINT } from '../../lib/theme.ts';
 import { vibrate } from '../../lib/haptics.ts';
 
 interface Props {
@@ -22,10 +22,10 @@ function fmt(sec: number): string {
 export default function ComposerRecorder({ kernelCaption, transcript, elapsed, onStop }: Props) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: 420 }}>
-      <p style={{ fontSize: 10.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.34)', textAlign: 'center', margin: '0 0 6px' }}>
+      <p style={{ fontSize: 10.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: TEXT_HINT, textAlign: 'center', margin: '0 0 6px' }}>
         {kernelCaption}
       </p>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: TEXT_TERTIARY }}>
         <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#E25555', marginRight: 7, animation: 'j2-mic-pulse-dot 1.4s ease-in-out infinite' }} />Recording</span>
         <span style={{ fontVariantNumeric: 'tabular-nums' }}>{fmt(elapsed)}</span>
       </div>

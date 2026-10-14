@@ -10,11 +10,7 @@
 
 import { useEffect, useState } from 'react';
 import { api, ApiError } from '../lib/api.ts';
-import {
-    PALE_YELLOW, COPPER, CARD_BG, CARD_GLOW, CARD_GLOW_BORDER,
-    SURFACE_3, SURFACE_3_BORDER,
-    STATUS_ERROR, STATUS_ERROR_BG, STATUS_ERROR_BORDER,
-} from '../lib/theme.ts';
+import { PALE_YELLOW, COPPER, CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, SURFACE_3, SURFACE_3_BORDER, STATUS_ERROR, STATUS_ERROR_BG, STATUS_ERROR_BORDER, TEXT_PRIMARY, TEXT_TERTIARY } from '../lib/theme.ts';
 
 interface Props {
     onClose: () => void;
@@ -102,7 +98,7 @@ export default function ReportProblemModal({ onClose }: Props) {
                     >
                         Report a problem
                     </h2>
-                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', marginTop: 8, lineHeight: 1.5 }}>
+                    <p style={{ fontSize: 13, color: TEXT_TERTIARY, marginTop: 8, lineHeight: 1.5 }}>
                         Tell us what's wrong and we'll take a look. The page you're on
                         and your browser info come along automatically.
                     </p>
@@ -133,7 +129,7 @@ export default function ReportProblemModal({ onClose }: Props) {
                                     fontWeight: 700,
                                     letterSpacing: '0.16em',
                                     textTransform: 'uppercase',
-                                    color: 'rgba(255,255,255,0.40)',
+                                    color: TEXT_TERTIARY,
                                 }}
                             >
                                 Subject
@@ -151,7 +147,7 @@ export default function ReportProblemModal({ onClose }: Props) {
                                     backgroundColor: SURFACE_3,
                                     border: `1px solid ${SURFACE_3_BORDER}`,
                                     borderRadius: 10,
-                                    color: 'rgba(255,255,255,0.92)',
+                                    color: TEXT_PRIMARY,
                                     fontSize: 14,
                                     outline: 'none',
                                 }}
@@ -167,7 +163,7 @@ export default function ReportProblemModal({ onClose }: Props) {
                                     fontWeight: 700,
                                     letterSpacing: '0.16em',
                                     textTransform: 'uppercase',
-                                    color: 'rgba(255,255,255,0.40)',
+                                    color: TEXT_TERTIARY,
                                 }}
                             >
                                 What happened
@@ -185,7 +181,7 @@ export default function ReportProblemModal({ onClose }: Props) {
                                     backgroundColor: SURFACE_3,
                                     border: `1px solid ${SURFACE_3_BORDER}`,
                                     borderRadius: 10,
-                                    color: 'rgba(255,255,255,0.92)',
+                                    color: TEXT_PRIMARY,
                                     fontSize: 14,
                                     fontFamily: 'inherit',
                                     resize: 'vertical',
@@ -220,7 +216,7 @@ export default function ReportProblemModal({ onClose }: Props) {
                                     background: 'transparent',
                                     border: '1px solid rgba(255,255,255,0.10)',
                                     borderRadius: 12,
-                                    color: 'rgba(255,255,255,0.55)',
+                                    color: TEXT_TERTIARY,
                                     fontSize: 14,
                                     fontWeight: 500,
                                     cursor: 'pointer',

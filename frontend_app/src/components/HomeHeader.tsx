@@ -1,4 +1,4 @@
-import { PALE_YELLOW, GLOW_SOFT } from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, TEXT_TERTIARY } from '../lib/theme.ts';
 
 interface Props {
   name: string | null;
@@ -23,7 +23,7 @@ export default function HomeHeader({ name }: Props) {
       >
         {displayGreeting}
       </h2>
-      <span className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
+      <span className="text-sm" style={{ color: TEXT_TERTIARY }}>
         {dateStr}
       </span>
     </div>

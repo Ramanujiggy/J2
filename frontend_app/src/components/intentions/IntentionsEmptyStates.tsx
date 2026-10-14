@@ -9,9 +9,7 @@
 //
 // Extracted from IntentionsPage.tsx during the 2026-05-09 refactor pass.
 
-import {
-  CARD_BG, CARD_GLOW, CARD_GLOW_BORDER,
-} from '../../lib/theme.ts';
+import { CARD_BG, CARD_GLOW, CARD_GLOW_BORDER, TEXT_SECONDARY, TEXT_TERTIARY } from '../../lib/theme.ts';
 import type { Pillar } from '../../types/api.ts';
 import { PILLAR_LABEL } from './intentionsTypes.ts';
 
@@ -30,7 +28,7 @@ export function DesktopEmpty({ onStart }: { onStart: () => void }) {
       }}
     >
       <h2 className="j2-serif-display" style={{ fontSize: 32, margin: 0 }}>No intentions yet.</h2>
-      <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.60)', lineHeight: 1.6, marginTop: 10 }}>
+      <p style={{ fontSize: 15, color: TEXT_SECONDARY, lineHeight: 1.6, marginTop: 10 }}>
         Declare what you&rsquo;re working on — each week, each pivot. It&rsquo;ll live here
         as a log of what your training has been <em>about</em>, not just what it was.
       </p>
@@ -58,14 +56,14 @@ export function EmptyFilteredState({ filter }: { filter: Pillar }) {
       style={{
         padding: '60px 20px',
         textAlign: 'center',
-        color: 'rgba(255,255,255,0.40)',
+        color: TEXT_TERTIARY,
         border: '1px dashed rgba(255,255,255,0.10)',
         borderRadius: 16,
       }}
     >
       <div
         className="j2-serif-italic"
-        style={{ fontSize: 20, color: 'rgba(255,255,255,0.65)', marginBottom: 10 }}
+        style={{ fontSize: 20, color: TEXT_SECONDARY, marginBottom: 10 }}
       >
         No weeks of {PILLAR_LABEL[filter]} yet.
       </div>
@@ -80,14 +78,14 @@ export function EmptyYearState({ year }: { year: string }) {
       style={{
         padding: '60px 20px',
         textAlign: 'center',
-        color: 'rgba(255,255,255,0.40)',
+        color: TEXT_TERTIARY,
         border: '1px dashed rgba(255,255,255,0.10)',
         borderRadius: 16,
       }}
     >
       <div
         className="j2-serif-italic"
-        style={{ fontSize: 20, color: 'rgba(255,255,255,0.65)', marginBottom: 10 }}
+        style={{ fontSize: 20, color: TEXT_SECONDARY, marginBottom: 10 }}
       >
         No intentions in {year || 'this year'}.
       </div>

@@ -14,9 +14,7 @@ import { useNavigate } from 'react-router-dom';
 import { localDateKey, buildDayMap, EMPTY_DAY } from './TrainingHeatmap.tsx';
 import type { DayData } from './TrainingHeatmap.tsx';
 import type { SessionSummary } from '../types/api.ts';
-import {
-  COPPER, PALE_YELLOW, INT_COLORS,
-} from '../lib/theme.ts';
+import { COPPER, PALE_YELLOW, INT_COLORS, TEXT_TERTIARY, TEXT_HINT } from '../lib/theme.ts';
 
 const WINDOW_DAYS = 30;
 
@@ -93,7 +91,7 @@ export default function PulseSparklineWidget({ sessions }: PulseSparklineWidgetP
         <div className="j2-label-micro" style={{ marginBottom: 12 }}>
           Last 30 days · pulse
         </div>
-        <p style={{ color: 'rgba(255,255,255,0.40)', fontSize: 13.5, lineHeight: 1.5 }}>
+        <p style={{ color: TEXT_TERTIARY, fontSize: 13.5, lineHeight: 1.5 }}>
           Log a few more sessions and your training rhythm will appear here.
         </p>
       </div>
@@ -232,7 +230,7 @@ export default function PulseSparklineWidget({ sessions }: PulseSparklineWidgetP
           justifyContent: 'space-between',
           fontSize: 10,
           fontWeight: 600,
-          color: 'rgba(255,255,255,0.32)',
+          color: TEXT_HINT,
           letterSpacing: '0.12em',
           textTransform: 'uppercase',
         }}
@@ -265,7 +263,7 @@ function Stat({ value, suffix, label }: { value: string; suffix?: string; label:
           <span
             style={{
               fontSize: 12,
-              color: 'rgba(255,255,255,0.45)',
+              color: TEXT_TERTIARY,
               fontWeight: 500,
               letterSpacing: '0.02em',
             }}
@@ -279,7 +277,7 @@ function Stat({ value, suffix, label }: { value: string; suffix?: string; label:
           marginTop: 4,
           fontSize: 10,
           fontWeight: 600,
-          color: 'rgba(255,255,255,0.42)',
+          color: TEXT_TERTIARY,
           textTransform: 'uppercase',
           letterSpacing: '0.12em',
         }}

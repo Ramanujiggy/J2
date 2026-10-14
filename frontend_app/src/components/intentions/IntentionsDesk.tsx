@@ -18,12 +18,9 @@ import { sessionTouchesHeading } from '../../lib/analyticsUtils.ts';
 import { dominantPillar, pillarLabel } from '../../lib/prismGeometry.ts';
 import { toDateString, addDays } from '../../lib/sessionUtils.ts';
 import { excerptOf } from '../../lib/homeViewModel.ts';
-import { COPPER, PALE_YELLOW, SAGE, BRAND_ORANGE, FONT_EDITORIAL } from '../../lib/theme.ts';
+import { COPPER, PALE_YELLOW, SAGE, BRAND_ORANGE, FONT_EDITORIAL, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_TERTIARY, TEXT_HINT } from '../../lib/theme.ts';
 import type { Intention, SessionSummary } from '../../types/api.ts';
 
-const TEXT_PRIMARY   = 'rgba(255,255,255,0.92)';
-const TEXT_SECONDARY = 'rgba(255,255,255,0.66)';
-const TEXT_TERTIARY  = 'rgba(255,255,255,0.46)';
 const HAIRLINE       = '1px solid rgba(255,255,255,0.06)';
 const CARD_GRADIENT  = 'radial-gradient(120% 130% at 20% -10%, #1d3b2b 0%, #14291e 55%, #0f2016 100%)';
 
@@ -209,7 +206,7 @@ export default function IntentionsDesk({
               <div style={{ marginTop: 16 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7 }}>
                   {MONTHS.map(m => (
-                    <span key={m} style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.26)' }}>
+                    <span key={m} style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: TEXT_HINT }}>
                       {m}
                     </span>
                   ))}

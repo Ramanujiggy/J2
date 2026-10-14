@@ -27,9 +27,7 @@ import ErrorBoundary from '../components/ErrorBoundary.tsx';
 import VideoPlayer from '../components/VideoPlayer.tsx';
 import SessionDetailModal from '../components/SessionDetailModal.tsx';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
-import {
-  PALE_YELLOW, GLOW_SOFT, COPPER, CARD_BG, SURFACE_2,
-} from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, COPPER, CARD_BG, SURFACE_2, TEXT_PRIMARY, TEXT_BODY, TEXT_SECONDARY, TEXT_TERTIARY, TEXT_HINT } from '../lib/theme.ts';
 import { formatDurationMMSS } from '../lib/videoUtils.ts';
 import { useUserTags } from '../hooks/useUserTags.ts';
 import type { SessionSummary, SessionsResponse, Affinity, Pillar, UserTag } from '../types/api.ts';
@@ -284,7 +282,7 @@ export default function TechniquePage() {
     return (
       <PageContent ready={true}>
         <div className="mx-auto max-w-2xl px-4 py-10 text-center">
-          <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 16 }}>
+          <p style={{ color: TEXT_TERTIARY, fontSize: 16 }}>
             Technique not found.
           </p>
           <button
@@ -337,7 +335,7 @@ export default function TechniquePage() {
         style={{
           background: 'transparent',
           border: 'none',
-          color: 'rgba(255,255,255,0.85)',
+          color: TEXT_BODY,
           fontSize: 14,
           lineHeight: 1.55,
           outline: 'none',
@@ -367,7 +365,7 @@ export default function TechniquePage() {
         style={{
           background: 'transparent',
           border: 'none',
-          color: 'rgba(255,255,255,0.88)',
+          color: TEXT_PRIMARY,
           fontSize: 15,
           lineHeight: 1.6,
           outline: 'none',
@@ -386,7 +384,7 @@ export default function TechniquePage() {
           fontSize: 11,
         }}
       >
-        <span style={{ color: 'rgba(255,255,255,0.30)' }}>
+        <span style={{ color: TEXT_HINT }}>
           {resonanceDraft.length} / 5000
         </span>
         {resonanceSavedAt && (
@@ -425,7 +423,7 @@ export default function TechniquePage() {
                 borderBottom: '1px solid rgba(255,255,255,0.05)',
                 textAlign: 'left',
                 cursor: 'pointer',
-                color: 'rgba(255,255,255,0.80)',
+                color: TEXT_BODY,
                 fontSize: 14,
               }}
             >
@@ -433,7 +431,7 @@ export default function TechniquePage() {
               <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {peer.name}
               </span>
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)' }}>→</span>
+              <span style={{ fontSize: 11, color: TEXT_HINT }}>→</span>
             </button>
           </li>
         ))}
@@ -468,7 +466,7 @@ export default function TechniquePage() {
           <button
             onClick={() => navigate('/library', { state: originState })}
             className="text-sm flex items-center gap-1 mb-4 transition-colors touch-manipulation"
-            style={{ color: 'rgba(255,255,255,0.50)' }}
+            style={{ color: TEXT_TERTIARY }}
           >
             <ChevronLeft size={14} />
             Technique Library
@@ -517,7 +515,7 @@ export default function TechniquePage() {
           <button
             onClick={() => navigate('/library', { state: originState })}
             className="text-xs flex items-center gap-1 mb-4 transition-colors touch-manipulation"
-            style={{ color: 'rgba(255,255,255,0.50)' }}
+            style={{ color: TEXT_TERTIARY }}
           >
             <ChevronLeft size={14} />
             Technique Library
@@ -678,7 +676,7 @@ function Hero({
             fontWeight: 600,
             letterSpacing: '0.14em',
             textTransform: 'uppercase',
-            color: 'rgba(255,255,255,0.40)',
+            color: TEXT_TERTIARY,
           }}
         >
           {PILLAR_LABELS[tag.parent_pillar]}
@@ -691,7 +689,7 @@ function Hero({
               fontSize: 13,
               fontFamily: 'var(--font-editorial)',
               fontStyle: 'italic',
-              color: 'rgba(255,255,255,0.45)',
+              color: TEXT_TERTIARY,
               lineHeight: 1.4,
               margin: '8px 0 0',
             }}
@@ -705,7 +703,7 @@ function Hero({
             fontSize: 12,
             fontFamily: 'var(--font-editorial)',
             fontStyle: 'italic',
-            color: 'rgba(255,255,255,0.30)',
+            color: TEXT_HINT,
             lineHeight: 1.4,
             margin: '4px 0 0',
           }}
@@ -915,7 +913,7 @@ function VideoBlock({
                 <>
                   <span style={{ color: 'rgba(218,90,70,0.85)' }}>Encoding failed</span>
                   {tag.video_status_message && (
-                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: 400, maxWidth: 280, lineHeight: 1.4 }}>
+                    <span style={{ fontSize: 11, color: TEXT_TERTIARY, fontWeight: 400, maxWidth: 280, lineHeight: 1.4 }}>
                       {tag.video_status_message.length > 140
                         ? tag.video_status_message.slice(0, 140) + '…'
                         : tag.video_status_message}
@@ -957,7 +955,7 @@ function VideoBlock({
             <>
               <span style={{ fontSize: 22 }}>+</span>
               <span>Add video</span>
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)', fontWeight: 500, fontStyle: 'italic' }}>
+              <span style={{ fontSize: 11, color: TEXT_TERTIARY, fontWeight: 500, fontStyle: 'italic' }}>
                 Up to 60s, ≤50MB
               </span>
             </>
@@ -1024,7 +1022,7 @@ function VideoBlock({
               borderRadius: 8,
               background: SURFACE_2,
               border: '1px solid rgba(255,255,255,0.10)',
-              color: 'rgba(255,255,255,0.75)',
+              color: TEXT_BODY,
               cursor: uploading ? 'wait' : 'pointer',
               opacity: uploading ? 0.5 : 1,
             }}
@@ -1089,7 +1087,7 @@ function VideoBlock({
             style={{
               fontSize: 14,
               lineHeight: 1.5,
-              color: 'rgba(255,255,255,0.70)',
+              color: TEXT_SECONDARY,
               whiteSpace: 'pre-wrap',
             }}
           >
@@ -1117,13 +1115,13 @@ function SectionCard({
         borderTop: '1px solid rgba(196,145,95,0.08)',
       }}
     >
-      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)', marginBottom: subtitle ? 6 : 12 }}>{kicker}</div>
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: TEXT_HINT, marginBottom: subtitle ? 6 : 12 }}>{kicker}</div>
       {subtitle && (
         <p
           style={{
             margin: '0 0 14px',
             fontSize: 12.5,
-            color: 'rgba(255,255,255,0.45)',
+            color: TEXT_TERTIARY,
             fontStyle: 'italic',
             lineHeight: 1.45,
           }}
@@ -1177,14 +1175,14 @@ function SessionList({
 }) {
   if (loading) {
     return (
-      <p style={{ color: 'rgba(255,255,255,0.40)', fontSize: 13, fontStyle: 'italic' }}>
+      <p style={{ color: TEXT_TERTIARY, fontSize: 13, fontStyle: 'italic' }}>
         Loading…
       </p>
     );
   }
   if (sessions.length === 0) {
     return (
-      <p style={{ color: 'rgba(255,255,255,0.40)', fontSize: 13, fontStyle: 'italic' }}>
+      <p style={{ color: TEXT_TERTIARY, fontSize: 13, fontStyle: 'italic' }}>
         No sessions logged with this technique yet — pick it next time you train.
       </p>
     );
@@ -1228,29 +1226,29 @@ function SessionRow({ session, onOpen }: { session: SessionSummary; onOpen: () =
           rowGap: 4,
         }}
       >
-        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', fontVariantNumeric: 'tabular-nums', fontWeight: 500 }}>
+        <span style={{ fontSize: 13, color: TEXT_BODY, fontVariantNumeric: 'tabular-nums', fontWeight: 500 }}>
           {formatDate(session.date)}
         </span>
-        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', fontVariantNumeric: 'tabular-nums' }}>
+        <span style={{ fontSize: 13, color: TEXT_TERTIARY, fontVariantNumeric: 'tabular-nums' }}>
           {formatDuration(session.duration)}
         </span>
         <span
           className="capitalize"
           style={{
             fontSize: 11, fontWeight: 600, letterSpacing: '0.08em',
-            textTransform: 'uppercase', color: 'rgba(255,255,255,0.40)',
+            textTransform: 'uppercase', color: TEXT_TERTIARY,
           }}
         >
           {session.session_type.replace('_', ' ')}
         </span>
         <span style={{ flex: 1 }} />
-        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)' }}>→</span>
+        <span style={{ fontSize: 11, color: TEXT_HINT }}>→</span>
       </div>
       {hasNote && (
         <span
           style={{
             fontSize: 13,
-            color: 'rgba(255,255,255,0.55)',
+            color: TEXT_TERTIARY,
             fontStyle: 'italic',
             overflow: 'hidden',
             textOverflow: 'ellipsis',

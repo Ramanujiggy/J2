@@ -9,7 +9,7 @@
 import PrismSkinToggle from './PrismSkinToggle.tsx';
 import type { PrismSkin } from './PrismFocusInput.tsx';
 import { useFocusTrap } from '../hooks/useFocusTrap.ts';
-import { COPPER, PALE_YELLOW, FONT_EDITORIAL } from '../lib/theme.ts';
+import { COPPER, PALE_YELLOW, FONT_EDITORIAL, TEXT_TERTIARY } from '../lib/theme.ts';
 
 interface Props {
   open: boolean;
@@ -55,7 +55,7 @@ export default function PrismSkinSheet({ open, onClose, onChange }: Props) {
         <div style={{ fontFamily: FONT_EDITORIAL, fontSize: 30, fontWeight: 600, color: PALE_YELLOW, marginTop: 8 }}>
           Prism style
         </div>
-        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.46)', marginTop: 6, marginBottom: 22, lineHeight: 1.5 }}>
+        <p style={{ fontSize: 13, color: TEXT_TERTIARY, marginTop: 6, marginBottom: 22, lineHeight: 1.5 }}>
           How the focus prism looks when you log a session. Drag the preview to feel it.
         </p>
 

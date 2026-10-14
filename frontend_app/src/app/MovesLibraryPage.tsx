@@ -26,7 +26,7 @@ import LocalVideoMigrationPrompt from '../components/LocalVideoMigrationPrompt.t
 import { useUserTags } from '../hooks/useUserTags.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import SegmentedToggle from '../components/SegmentedToggle.tsx';
-import { PALE_YELLOW, GLOW_SOFT, COPPER, SURFACE_2, SURFACE_2_BORDER, SURFACE_3, CARD_BG, FONT_EDITORIAL } from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, COPPER, SURFACE_2, SURFACE_2_BORDER, SURFACE_3, CARD_BG, FONT_EDITORIAL, TEXT_PRIMARY, TEXT_TERTIARY, TEXT_HINT, TEXT_DISABLED } from '../lib/theme.ts';
 import { PROFILE_ORIGIN, isFromProfile } from '../lib/navOrigin.ts';
 import { formatDurationMMSS } from '../lib/videoUtils.ts';
 import { vibrate } from '../lib/haptics.ts';
@@ -188,7 +188,7 @@ export default function MovesLibraryPage() {
                 Technique Library
               </h1>
             </div>
-            <p style={{ color: 'rgba(255,255,255,0.40)', fontSize: 13, marginBottom: 4 }}>
+            <p style={{ color: TEXT_TERTIARY, fontSize: 13, marginBottom: 4 }}>
               {counts.total} technique{counts.total === 1 ? '' : 's'}
             </p>
           </div>
@@ -197,7 +197,7 @@ export default function MovesLibraryPage() {
             <h2 className="text-2xl font-display font-bold tracking-tight" style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}>
               Technique Library
             </h2>
-            <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.40)' }}>
+            <p className="text-xs mt-1" style={{ color: TEXT_TERTIARY }}>
               {counts.total} technique{counts.total === 1 ? '' : 's'}
             </p>
           </div>
@@ -233,7 +233,7 @@ export default function MovesLibraryPage() {
                 }}
               />
             </div>
-            <p style={{ color: 'rgba(255,255,255,0.40)', fontSize: 13, marginBottom: 4 }}>
+            <p style={{ color: TEXT_TERTIARY, fontSize: 13, marginBottom: 4 }}>
               {counts.total} technique{counts.total === 1 ? '' : 's'}
             </p>
           </div>
@@ -381,7 +381,7 @@ function PillarSection({
             alignItems: 'center',
             justifyContent: 'center',
             width: 22,
-            color: 'rgba(255,255,255,0.45)',
+            color: TEXT_TERTIARY,
             transition: 'transform 160ms ease',
           }}
         >
@@ -405,7 +405,7 @@ function PillarSection({
           style={{
             fontSize: 12,
             fontWeight: 600,
-            color: 'rgba(255,255,255,0.45)',
+            color: TEXT_TERTIARY,
             letterSpacing: '0.04em',
             fontVariantNumeric: 'tabular-nums',
           }}
@@ -445,7 +445,7 @@ function PillarSection({
                 padding: '20px 22px',
                 fontSize: 13,
                 fontStyle: 'italic',
-                color: 'rgba(255,255,255,0.40)',
+                color: TEXT_TERTIARY,
                 lineHeight: 1.5,
               }}
             >
@@ -510,7 +510,7 @@ function TechniqueRow({ tag, onOpen }: { tag: UserTag; onOpen: () => void }) {
         }}
       >
         {!hasVideo && (
-          <Video size={16} strokeWidth={1.5} style={{ color: 'rgba(255,255,255,0.18)' }} />
+          <Video size={16} strokeWidth={1.5} style={{ color: TEXT_DISABLED }} />
         )}
       </div>
 
@@ -520,7 +520,7 @@ function TechniqueRow({ tag, onOpen }: { tag: UserTag; onOpen: () => void }) {
           style={{
             fontSize: 15,
             fontWeight: 500,
-            color: 'rgba(255,255,255,0.88)',
+            color: TEXT_PRIMARY,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -536,7 +536,7 @@ function TechniqueRow({ tag, onOpen }: { tag: UserTag; onOpen: () => void }) {
         <span
           style={{
             fontSize: 12,
-            color: 'rgba(255,255,255,0.45)',
+            color: TEXT_TERTIARY,
             fontVariantNumeric: 'tabular-nums',
             flexShrink: 0,
           }}
@@ -545,7 +545,7 @@ function TechniqueRow({ tag, onOpen }: { tag: UserTag; onOpen: () => void }) {
         </span>
       )}
 
-      <ChevronRight size={16} style={{ color: 'rgba(255,255,255,0.30)', flexShrink: 0 }} />
+      <ChevronRight size={16} style={{ color: TEXT_HINT, flexShrink: 0 }} />
     </button>
   );
 }
@@ -554,7 +554,7 @@ function AffinityInline({ value }: { value: Affinity }) {
   const styles =
     value === 'go_to' ? { glyph: '★', label: 'Go-to', color: COPPER } :
     value === 'learning' ? { glyph: '◐', label: 'Learning', color: 'rgba(196,145,95,0.65)' } :
-    { glyph: '◌', label: 'Shelved', color: 'rgba(255,255,255,0.30)' };
+    { glyph: '◌', label: 'Shelved', color: TEXT_HINT };
   return (
     <span
       style={{
@@ -683,7 +683,7 @@ function RecentCard({ tag, onOpen }: { tag: UserTag; onOpen: () => void }) {
         }}
       >
         {!hasThumb && (
-          <Video size={26} strokeWidth={1.5} style={{ color: 'rgba(255,255,255,0.18)' }} />
+          <Video size={26} strokeWidth={1.5} style={{ color: TEXT_DISABLED }} />
         )}
         {/* Affinity badge, if set — overlays the top-left of the thumbnail
             so it's visible at a glance during a quick scroll. Mirrors the
@@ -725,7 +725,7 @@ function RecentCard({ tag, onOpen }: { tag: UserTag; onOpen: () => void }) {
           style={{
             fontSize: 13,
             fontWeight: 600,
-            color: 'rgba(255,255,255,0.88)',
+            color: TEXT_PRIMARY,
             lineHeight: 1.25,
             // Two-line truncate. -webkit-line-clamp is non-standard but
             // universally supported in production browsers; on the rare
@@ -744,7 +744,7 @@ function RecentCard({ tag, onOpen }: { tag: UserTag; onOpen: () => void }) {
             fontWeight: 600,
             letterSpacing: '0.10em',
             textTransform: 'uppercase',
-            color: 'rgba(255,255,255,0.40)',
+            color: TEXT_TERTIARY,
           }}
         >
           {PILLAR_LABEL}

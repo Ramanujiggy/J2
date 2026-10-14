@@ -3,7 +3,7 @@
 // handoff's effort meter, but bound to the app's existing intensity scale
 // (INT_LABELS / INT_COLORS) rather than a parallel palette.
 
-import { INT_LABELS, INT_COLORS, FONT_EDITORIAL } from '../lib/theme.ts';
+import { INT_LABELS, INT_COLORS, FONT_EDITORIAL, TEXT_TERTIARY, TEXT_DISABLED } from '../lib/theme.ts';
 import { vibrate } from '../lib/haptics.ts';
 
 const DESCRIPTIONS: Record<number, string> = {
@@ -28,7 +28,7 @@ export default function EffortMeter({ value, onChange }: Props) {
         <span style={{ fontFamily: FONT_EDITORIAL, fontSize: 23, fontWeight: 600, letterSpacing: '-0.01em', color }}>
           {INT_LABELS[value] ?? ''}
         </span>
-        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.44)', textAlign: 'right' }}>
+        <span style={{ fontSize: 11, color: TEXT_TERTIARY, textAlign: 'right' }}>
           {DESCRIPTIONS[value] ?? ''}
         </span>
       </div>
@@ -47,8 +47,8 @@ export default function EffortMeter({ value, onChange }: Props) {
                 flex: 1,
                 height: h,
                 borderRadius: 5,
-                background: on ? color : 'rgba(255,255,255,0.05)',
-                border: `1px solid ${on ? color : 'rgba(255,255,255,0.06)'}`,
+                background: on ? color : TEXT_DISABLED,
+                border: `1px solid ${on ? color : TEXT_DISABLED}`,
                 opacity: on ? Number((0.5 + 0.5 * level / value).toFixed(2)) : 1,
                 padding: 0,
                 cursor: 'pointer',

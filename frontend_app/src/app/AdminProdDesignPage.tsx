@@ -16,7 +16,7 @@ import { Navigate } from 'react-router-dom';
 import PageContent from '../components/PageContent.tsx';
 import { useProfile } from '../context/ProfileContext.tsx';
 import { api, ApiError } from '../lib/api.ts';
-import { CARD_BG, COPPER, PALE_YELLOW, SURFACE_2, SURFACE_2_BORDER, FONT_EDITORIAL } from '../lib/theme.ts';
+import { CARD_BG, COPPER, PALE_YELLOW, SURFACE_2, SURFACE_2_BORDER, FONT_EDITORIAL, TEXT_BODY, TEXT_SECONDARY, TEXT_TERTIARY, TEXT_HINT } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 
 // ── Types matching the backend manifest ────────────────────────────────────
@@ -120,7 +120,7 @@ function Header({ generatedAt, isDesktop }: { generatedAt?: string; isDesktop?: 
             </h1>
             <p
                 className="j2-serif-italic"
-                style={{ marginTop: 12, fontSize: isDesktop !== false ? 17 : 14, color: 'rgba(255,255,255,0.55)' }}
+                style={{ marginTop: 12, fontSize: isDesktop !== false ? 17 : 14, color: TEXT_TERTIARY }}
             >
                 What's actually deployed, regenerated every Railway push. Last build: {stamp}.
             </p>
@@ -172,7 +172,7 @@ function WarningsBlock({ warnings }: { warnings: string[] }) {
                 ◇ Generator warnings ({warnings.length})
             </p>
             {warnings.map((w, i) => (
-                <p key={i} style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.65)', margin: 0, lineHeight: 1.5 }}>
+                <p key={i} style={{ fontSize: 12.5, color: TEXT_SECONDARY, margin: 0, lineHeight: 1.5 }}>
                     {w}
                 </p>
             ))}
@@ -218,7 +218,7 @@ function StatStrip({ manifest, isDesktop }: { manifest: Manifest; isDesktop?: bo
                     </div>
                     <div style={{
                         fontSize: 10.5, fontWeight: 700, letterSpacing: '0.14em',
-                        textTransform: 'uppercase', color: 'rgba(255,255,255,0.45)',
+                        textTransform: 'uppercase', color: TEXT_TERTIARY,
                     }}>
                         {i.label}
                     </div>
@@ -255,7 +255,7 @@ function MermaidBlock({ source, lastEdited, isDesktop }: { source: string; lastE
     if (status === 'empty') {
         return (
             <SectionCard kicker="◇ System topology" isDesktop={isDesktop}>
-                <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 14 }}>
+                <p style={{ color: TEXT_TERTIARY, fontSize: 14 }}>
                     No topology defined. Add a <code style={{ color: COPPER }}>```mermaid</code> block to{' '}
                     <code style={{ color: COPPER }}>Docs/architecture-topology.md</code> and redeploy.
                 </p>
@@ -270,7 +270,7 @@ function MermaidBlock({ source, lastEdited, isDesktop }: { source: string; lastE
             isDesktop={isDesktop}
         >
             {status === 'pending' && (
-                <p style={{ color: 'rgba(255,255,255,0.40)', fontSize: 13 }}>Rendering diagram…</p>
+                <p style={{ color: TEXT_TERTIARY, fontSize: 13 }}>Rendering diagram…</p>
             )}
             {status === 'ready' && (
                 <div
@@ -358,7 +358,7 @@ function ApiTab({ routes, isDesktop }: { routes: ApiRoute[]; isDesktop?: boolean
                 }}
             />
             {grouped.length === 0 && (
-                <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13 }}>No routes match.</p>
+                <p style={{ color: TEXT_TERTIARY, fontSize: 13 }}>No routes match.</p>
             )}
             {grouped.map(([file, fileRoutes]) => (
                 <SectionCard key={file} kicker={`◇ ${file}`} isDesktop={isDesktop}>
@@ -377,7 +377,7 @@ function ApiTab({ routes, isDesktop }: { routes: ApiRoute[]; isDesktop?: boolean
                                     <tr key={i}>
                                         <td style={tdStyle}><MethodBadge method={r.method} /></td>
                                         <td style={{ ...tdStyle, fontFamily: 'ui-monospace, monospace', fontSize: 12.5 }}>{r.path}</td>
-                                        <td style={{ ...tdStyle, color: 'rgba(255,255,255,0.65)' }}>{r.handler}</td>
+                                        <td style={{ ...tdStyle, color: TEXT_SECONDARY }}>{r.handler}</td>
                                         <td style={tdStyle}><AuthBadge auth={r.auth} /></td>
                                     </tr>
                                 ))}
@@ -428,7 +428,7 @@ function DbTab({ migrations, models, isDesktop }: { migrations: Migration[]; mod
                             <code style={{ color: COPPER, fontSize: 12, minWidth: 280, fontFamily: 'ui-monospace, monospace' }}>
                                 {m.file}
                             </code>
-                            <span style={{ color: 'rgba(255,255,255,0.70)', fontSize: 13 }}>{m.title}</span>
+                            <span style={{ color: TEXT_SECONDARY, fontSize: 13 }}>{m.title}</span>
                         </li>
                     ))}
                 </ol>
@@ -456,10 +456,10 @@ function ModelRow({ model }: { model: Model }) {
                 }}
             >
                 <span style={{ color: PALE_YELLOW, fontSize: 14, fontWeight: 600 }}>{model.name}</span>
-                <span style={{ color: 'rgba(255,255,255,0.30)', fontSize: 12, fontFamily: 'ui-monospace, monospace' }}>
+                <span style={{ color: TEXT_HINT, fontSize: 12, fontFamily: 'ui-monospace, monospace' }}>
                     {model.file}
                 </span>
-                <span style={{ marginLeft: 'auto', color: 'rgba(255,255,255,0.40)', fontSize: 11 }}>
+                <span style={{ marginLeft: 'auto', color: TEXT_TERTIARY, fontSize: 11 }}>
                     {model.fields.length} field{model.fields.length === 1 ? '' : 's'} {open ? '▾' : '▸'}
                 </span>
             </button>
@@ -471,7 +471,7 @@ function ModelRow({ model }: { model: Model }) {
                                 <td style={{ ...tdStyle, color: COPPER, fontFamily: 'ui-monospace, monospace', fontSize: 12.5, paddingLeft: 0 }}>
                                     {f.name}{f.optional ? '?' : ''}
                                 </td>
-                                <td style={{ ...tdStyle, color: 'rgba(255,255,255,0.65)', fontFamily: 'ui-monospace, monospace', fontSize: 12.5 }}>
+                                <td style={{ ...tdStyle, color: TEXT_SECONDARY, fontFamily: 'ui-monospace, monospace', fontSize: 12.5 }}>
                                     {f.type}
                                 </td>
                             </tr>
@@ -506,10 +506,10 @@ function FrontendTab({ routes, isDesktop }: { routes: FrontendRoute[]; isDesktop
                                     {r.path}
                                 </td>
                                 <td style={{ ...tdStyle, color: PALE_YELLOW }}>{r.component}</td>
-                                <td style={{ ...tdStyle, color: 'rgba(255,255,255,0.55)', fontSize: 12, fontFamily: 'ui-monospace, monospace' }}>
+                                <td style={{ ...tdStyle, color: TEXT_TERTIARY, fontSize: 12, fontFamily: 'ui-monospace, monospace' }}>
                                     {r.file}
                                 </td>
-                                <td style={{ ...tdStyle, color: 'rgba(255,255,255,0.60)', fontSize: 12 }}>{r.shell}</td>
+                                <td style={{ ...tdStyle, color: TEXT_SECONDARY, fontSize: 12 }}>{r.shell}</td>
                                 <td style={tdStyle}>
                                     {r.adminGated && <AuthBadge auth="admin" />}
                                 </td>
@@ -536,7 +536,7 @@ function SectionCard({ kicker, subtitle, children, isDesktop }: { kicker: string
         >
             <div className="j2-label-copper" style={{ marginBottom: subtitle ? 4 : 14 }}>{kicker}</div>
             {subtitle && (
-                <p className="j2-serif-italic" style={{ marginTop: 0, marginBottom: 14, fontSize: 13, color: 'rgba(255,255,255,0.50)' }}>
+                <p className="j2-serif-italic" style={{ marginTop: 0, marginBottom: 14, fontSize: 13, color: TEXT_TERTIARY }}>
                     {subtitle}
                 </p>
             )}
@@ -554,13 +554,13 @@ const thStyle: React.CSSProperties = {
     textAlign: 'left',
     fontSize: 10.5, fontWeight: 700, letterSpacing: '0.14em',
     textTransform: 'uppercase',
-    color: 'rgba(255,255,255,0.40)',
+    color: TEXT_TERTIARY,
     padding: '6px 10px 6px 0',
     borderBottom: '1px solid rgba(255,255,255,0.08)',
 };
 const tdStyle: React.CSSProperties = {
     padding: '8px 10px 8px 0',
-    color: 'rgba(255,255,255,0.85)',
+    color: TEXT_BODY,
     verticalAlign: 'top',
     borderBottom: '1px solid rgba(255,255,255,0.04)',
 };
@@ -570,7 +570,7 @@ const preStyle: React.CSSProperties = {
     borderRadius: 8,
     padding: 14,
     fontSize: 12, fontFamily: 'ui-monospace, monospace',
-    color: 'rgba(255,255,255,0.75)',
+    color: TEXT_BODY,
     overflowX: 'auto',
     whiteSpace: 'pre',
 };

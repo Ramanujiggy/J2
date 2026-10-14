@@ -33,6 +33,31 @@ export const SURFACE_2_BORDER = 'rgba(255,255,255,0.07)' as const;
 /** Border pairing for SURFACE_3 containers. */
 export const SURFACE_3_BORDER = 'rgba(255,255,255,0.10)' as const;
 
+// ─── Text scale ────────────────────────────────────────────────────────────
+//
+// The canonical white-on-forest text ramp (DESIGN.md §2). These are the ONLY
+// opacities permitted for `color:` on body/label/metadata text — never pick a
+// raw `rgba(255,255,255,0.X)` literal. Titles and stat numbers use PALE_YELLOW,
+// not these. Backgrounds and borders use the SURFACE_* tokens, not these.
+
+/** Emphasis values, read-view body — the brightest text weight. */
+export const TEXT_PRIMARY   = 'rgba(255,255,255,0.92)' as const;
+
+/** Long-form prose, journal body. */
+export const TEXT_BODY      = 'rgba(255,255,255,0.80)' as const;
+
+/** Field labels, sub-values. */
+export const TEXT_SECONDARY = 'rgba(255,255,255,0.66)' as const;
+
+/** Metadata, timestamps, counts. */
+export const TEXT_TERTIARY  = 'rgba(255,255,255,0.46)' as const;
+
+/** Placeholders, empty-state hints. */
+export const TEXT_HINT      = 'rgba(255,255,255,0.26)' as const;
+
+/** Disabled / ghost. */
+export const TEXT_DISABLED  = 'rgba(255,255,255,0.15)' as const;
+
 // ─── Accents ─────────────────────────────────────────────────────────────────
 
 /** Champagne gold — all title text, nav links, and accent labels. */

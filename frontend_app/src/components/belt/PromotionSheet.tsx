@@ -21,11 +21,9 @@ import FlatBelt, { stripeLeft, stripeWidth } from './FlatBelt.tsx';
 import {
   BELT_CLOTH, BELT_RANK_ORDER, beltDisplayName, type BeltRankKey,
 } from '../../lib/beltCloth.ts';
-import { COPPER, PALE_YELLOW, FONT_EDITORIAL } from '../../lib/theme.ts';
+import { COPPER, PALE_YELLOW, FONT_EDITORIAL, TEXT_SECONDARY, TEXT_TERTIARY } from '../../lib/theme.ts';
 import { useFocusTrap } from '../../hooks/useFocusTrap.ts';
 
-const TEXT_SECONDARY = 'rgba(255,255,255,0.66)';
-const TEXT_TERTIARY  = 'rgba(255,255,255,0.46)';
 const HAIRLINE       = '1px solid rgba(255,255,255,0.06)';
 
 const REDUCED = typeof matchMedia !== 'undefined'
