@@ -103,6 +103,23 @@ export const PRESTIGE_BLUE_GLOW = 'rgba(0,180,255,0.50)' as const;
 /** Standard card border (caramel at 45% opacity). */
 export const COPPER_BORDER = 'rgba(196,145,95,0.45)' as const;
 
+/** Copper fill at 12% — the tint behind the single category pill. */
+export const COPPER_FILL = 'rgba(196,145,95,0.12)' as const;
+
+/** The one category pill. Intention category is no longer colour-encoded
+ *  (DESIGN.md §2, §4): all six categories share this copper pill and the
+ *  capitalized label — not a hue — carries the distinction. */
+export const CATEGORY_PILL_STYLE = {
+  background: COPPER_FILL,
+  border: `1px solid ${COPPER_BORDER}`,
+  color: 'rgba(242,228,168,0.70)',   // PALE_YELLOW at 70%
+  padding: '2px 6px',
+  borderRadius: 999,
+  fontSize: 10,
+  fontWeight: 500,
+  textTransform: 'capitalize' as const,
+};
+
 /** Standard card drop shadow — 3-layer chromatic depth + whisper inset rim-light. */
 export const CARD_SHADOW =
   '0 1px 3px rgba(0,0,0,0.24), 0 6px 16px rgba(13,26,20,0.45), 0 16px 48px rgba(196,145,95,0.06), inset 0 0 0 1px rgba(255,255,255,0.045)' as const;
