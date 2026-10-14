@@ -271,7 +271,10 @@ position: fixed bottom-0
 background: rgba(13,26,20,0.92) + backdrop-blur
 border-top: 1px solid rgba(196,145,95,0.15)
 padding-bottom: env(safe-area-inset-bottom)
-5 tabs: Home, Calendar, Analytics, Intentions, Profile
+4 tabs: Home, Journal, Calendar, Profile
+  — plus a centre "+" Log FAB inserted between Journal and Calendar
+  — Journal also lights for /notes, /library, /techniques
+  — /intentions and /atlas have no mobile tab (side trips from Home)
 Active tab: icon + label in #F2E4A8 with GLOW_NAV text-shadow
 Inactive tab: rgba(255,255,255,0.40) / no glow
 ```
@@ -282,6 +285,12 @@ width: 240px
 background: #0D1A14 (same as page)
 border-right: 1px solid rgba(196,145,95,0.15)
 Nav links: 14px, PALE_YELLOW when active + GLOW_NAV
+Rail items (top to bottom): Today, Journal, Intentions, Atlas, Profile, Admin
+  — /home is labelled "Today" on the rail and "Home" on the mobile bar
+  — Journal also lights for /notes, /library, /techniques
+  — Atlas also lights for /calendar; Atlas is desktop-only (no mobile tab)
+  — Intentions renders only when the profile has intentions enabled
+  — Admin renders only for users.is_admin
 ```
 
 ### Badges / Category Pills
@@ -341,7 +350,8 @@ Base unit: **4px**. Common values:
 ### Grid & Containers
 
 - Page max-width: `max-w-2xl` (672px) centered, `px-4 sm:px-6`
-- Analytics / wide views: `max-w-4xl` (896px)
+- Atlas / wide views: `max-w-5xl` (1024px) on mobile and tablet; `.j2-desk-page`
+  (1180px) inside the desktop rail layout
 - Card-in-card: `space-y-4` or `space-y-5`
 - Two-column form fields: `flex flex-col sm:flex-row gap-4`
 
@@ -447,7 +457,7 @@ add desktop enhancements.
 | Form rows (Style + Type) | `flex-col` stacked | `flex-row` side by side |
 | Table → cards | Card surface per row (`rounded-xl`, `border border-white/[0.07]`) | `grid-cols-[…]` table layout |
 | Navigation | Bottom tab bar (fixed) | Left sidebar rail |
-| Analytics view tabs | Visible horizontal pill row | Hidden (desktop uses icon rail) |
+| Atlas sub-surfaces | Prism panel only | Prism is the page; Years / Library / Calendar as header links |
 | Modal max-width | `w-full` | `sm:max-w-md` or `sm:max-w-lg` |
 | Page padding | `px-4` | `px-6` |
 
