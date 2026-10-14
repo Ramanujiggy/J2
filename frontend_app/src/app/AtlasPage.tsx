@@ -295,7 +295,7 @@ export default function AtlasPage() {
           ) : (
             <>
               {/* One segmented control drives the body */}
-              <div style={{ marginTop: 18, display: 'inline-flex', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 11, overflow: 'hidden' }}>
+              <div style={{ marginTop: 18, display: 'inline-flex', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, overflow: 'hidden' }}>
                 {INSTRUMENTS.map(inst => {
                   const on = instrument === inst.id;
                   return (
@@ -354,7 +354,7 @@ export default function AtlasPage() {
                     </b>
                     <span style={{ flex: 1, display: 'flex', gap: 3, height: 20, alignItems: 'flex-end' }} aria-hidden>
                       {row.ticks.map((tick, i) => (
-                        <i key={i} style={{ flex: 1, height: tick === 0 ? 2 : Math.round(4 + tick * 16), background: 'rgba(196,145,95,0.5)', borderRadius: 1, opacity: tick === 0 ? 0.25 : 0.85 }} />
+                        <i key={i} style={{ flex: 1, height: tick === 0 ? 2 : Math.round(4 + tick * 16), background: 'rgba(196,145,95,0.5)', borderRadius: 2, opacity: tick === 0 ? 0.25 : 0.85 }} />
                       ))}
                     </span>
                     <span style={{ width: 240, flex: 'none', textAlign: 'right', fontSize: 11, color: TEXT_TERTIARY }}>

@@ -265,7 +265,7 @@ export default function EntryReadView({
           <div
             style={{
               marginTop: 18, padding: 16,
-              border: `1px solid ${HAIRLINE_2}`, borderRadius: 15,
+              border: `1px solid ${HAIRLINE_2}`, borderRadius: 12,
             }}
           >
             <div style={{ ...MICRO, color: COPPER, letterSpacing: '0.12em', marginBottom: 5 }}>
@@ -283,7 +283,7 @@ export default function EntryReadView({
               type="button"
               onClick={onEdit}
               style={{
-                height: 44, padding: '0 18px', borderRadius: 11,
+                height: 44, padding: '0 18px', borderRadius: 10,
                 background: BRAND_ORANGE, color: '#fff', fontWeight: 600, fontSize: 14,
                 display: 'inline-flex', alignItems: 'center', gap: 7,
                 marginTop: 14, border: 'none', cursor: 'pointer',

@@ -251,7 +251,7 @@ export default function MarginNotesEntry({
           <button onClick={() => stepDate(-1)} style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.1)', color: TEXT_SECONDARY, cursor: 'pointer' }}>‹</button>
           <div style={{ fontSize: 13, fontWeight: 700, color: PALE_YELLOW, minWidth: 92, textAlign: 'center' }}>{longLabel(date)}</div>
           <button onClick={() => stepDate(1)} style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.1)', color: TEXT_SECONDARY, cursor: 'pointer' }}>›</button>
-          <button onClick={() => { setDate(initial?.date ?? kernel.date); setDateEditing(false); }} style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: COPPER, padding: '8px 10px', borderRadius: 9, border: '1px dashed rgba(196,145,95,0.5)', background: 'none', cursor: 'pointer' }}>Today</button>
+          <button onClick={() => { setDate(initial?.date ?? kernel.date); setDateEditing(false); }} style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: COPPER, padding: '8px 10px', borderRadius: 10, border: '1px dashed rgba(196,145,95,0.5)', background: 'none', cursor: 'pointer' }}>Today</button>
         </div>
       )}
 
@@ -276,7 +276,7 @@ export default function MarginNotesEntry({
               <button
                 key={name}
                 onMouseDown={e => { e.preventDefault(); completeMention(name); }}
-                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 10px', borderRadius: 8, background: 'none', border: 'none', color: PALE_YELLOW, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 10px', borderRadius: 10, background: 'none', border: 'none', color: PALE_YELLOW, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
               >
                 {name}
               </button>
@@ -284,7 +284,7 @@ export default function MarginNotesEntry({
             {mentionToken.length > 0 && !pastPartners.some(p => p.toLowerCase() === mentionToken.toLowerCase()) && (
               <button
                 onMouseDown={e => { e.preventDefault(); completeMention(mentionToken); }}
-                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 10px', borderRadius: 8, background: 'none', border: 'none', color: COPPER, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 10px', borderRadius: 10, background: 'none', border: 'none', color: COPPER, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
               >
                 + Tag “{mentionToken}”
               </button>
@@ -324,7 +324,7 @@ export default function MarginNotesEntry({
       )}
 
       {/* ── Margin notes band ─────────────────────────────────── */}
-      <div style={{ marginTop: 14, background: 'linear-gradient(180deg,rgba(196,145,95,0.05),rgba(255,255,255,0.015))', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, padding: '18px 16px 20px', position: 'relative' }}>
+      <div style={{ marginTop: 14, background: 'linear-gradient(180deg,rgba(196,145,95,0.05),rgba(255,255,255,0.015))', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '18px 16px 20px', position: 'relative' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: COPPER }}>◈ Margin notes</span>
           <span style={{ fontSize: 11, color: TEXT_TERTIARY }}>· the shape of the session</span>
@@ -387,7 +387,7 @@ export default function MarginNotesEntry({
         onClick={handleSave}
         disabled={saving}
         className="j2-press disabled:opacity-60"
-        style={{ width: '100%', marginTop: 20, height: 52, borderRadius: 14, background: '#DA7422', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', boxShadow: '0 12px 28px -10px rgba(218,116,34,0.7)' }}
+        style={{ width: '100%', marginTop: 20, height: 52, borderRadius: 10, background: '#DA7422', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', boxShadow: '0 12px 28px -10px rgba(218,116,34,0.7)' }}
       >
         {saving ? 'Saving…' : '◈ Save entry'}
       </button>

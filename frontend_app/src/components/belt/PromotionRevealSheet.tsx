@@ -104,7 +104,7 @@ export default function PromotionRevealSheet({
         style={{
           background: '#17291F',
           borderTop: `1px solid ${CARD_GLOW_BORDER}`,
-          borderRadius: '26px 26px 0 0',
+          borderRadius: '16px 16px 0 0',
           padding: `14px ${SHEET_PAD}px 30px`,
           textAlign: 'center',
           transform: dragY ? `translateY(${dragY}px)` : undefined,
@@ -176,7 +176,7 @@ export default function PromotionRevealSheet({
         <button
           onClick={onClose}
           style={{
-            width: '100%', height: 46, borderRadius: 13, marginTop: 22,
+            width: '100%', height: 46, borderRadius: 10, marginTop: 22,
             fontSize: 14, fontWeight: 700, border: 'none',
             background: COPPER, color: '#12130e', cursor: 'pointer',
           }}

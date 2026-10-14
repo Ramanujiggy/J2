@@ -774,7 +774,7 @@ function TrainingHeatmap({ sessions = [], intentions = [], loading = false, onSe
                             position: 'absolute',
                             top: 0, left: 0, right: 0,
                             height: 2,
-                            borderRadius: '3px 3px 0 0',
+                            borderRadius: '2px 2px 0 0',
                             backgroundColor: 'rgba(242,228,168,0.7)',
                             pointerEvents: 'none',
                           }}

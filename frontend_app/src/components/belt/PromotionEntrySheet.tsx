@@ -73,7 +73,7 @@ export default function PromotionEntrySheet({ open, promotion, academy, saving, 
           width: 600, maxWidth: '100%',
           background: '#17291F',
           border: `1px solid ${CARD_GLOW_BORDER}`,
-          borderRadius: 22,
+          borderRadius: 16,
           padding: '34px 38px 30px',
           maxHeight: '90vh', overflowY: 'auto',
         }}
@@ -122,7 +122,7 @@ export default function PromotionEntrySheet({ open, promotion, academy, saving, 
             onClick={onClose}
             disabled={saving}
             style={{
-              flex: 1, height: 46, borderRadius: 13,
+              flex: 1, height: 46, borderRadius: 10,
               border: '1px solid rgba(255,255,255,0.1)',
               background: 'none', color: TEXT_SECONDARY,
               fontSize: 14, fontWeight: 700, cursor: 'pointer',
@@ -135,7 +135,7 @@ export default function PromotionEntrySheet({ open, promotion, academy, saving, 
             onClick={() => onSave(promotion.id, text.trim())}
             disabled={saving}
             style={{
-              flex: 1, height: 46, borderRadius: 13,
+              flex: 1, height: 46, borderRadius: 10,
               background: COPPER, color: '#12130e', border: 'none',
               fontSize: 14, fontWeight: 700,
               cursor: saving ? 'default' : 'pointer',

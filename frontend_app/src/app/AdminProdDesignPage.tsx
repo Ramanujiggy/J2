@@ -401,7 +401,7 @@ function MethodBadge({ method }: { method: Method }) {
     return (
         <span style={{
             fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em',
-            padding: '2px 6px', borderRadius: 4,
+            padding: '2px 6px', borderRadius: 6,
             background: 'rgba(255,255,255,0.04)',
             color: colors[method],
         }}>
@@ -530,7 +530,7 @@ function SectionCard({ kicker, subtitle, children, isDesktop }: { kicker: string
             style={{
                 background: CARD_BG,
                 border: '1px solid var(--j2-border-2)',
-                borderRadius: 14,
+                borderRadius: 16,
                 padding: isDesktop !== false ? '20px 22px' : '14px 16px',
             }}
         >
@@ -567,7 +567,7 @@ const tdStyle: React.CSSProperties = {
 const preStyle: React.CSSProperties = {
     background: 'rgba(255,255,255,0.04)',
     border: `1px solid ${SURFACE_2_BORDER}`,
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 14,
     fontSize: 12, fontFamily: 'ui-monospace, monospace',
     color: TEXT_BODY,

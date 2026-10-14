@@ -126,7 +126,7 @@ export default function IntentionsDesk({
           {activeIntention ? (
             <div
               style={{
-                marginTop: 26, borderRadius: 18,
+                marginTop: 26, borderRadius: 16,
                 border: '1px solid rgba(255,255,255,0.1)',
                 background: CARD_GRADIENT,
                 padding: '26px 28px',
@@ -177,7 +177,7 @@ export default function IntentionsDesk({
               onClick={onOpenCreate}
               style={{
                 display: 'block', width: '100%', textAlign: 'left',
-                marginTop: 26, borderRadius: 18,
+                marginTop: 26, borderRadius: 16,
                 border: '1px dashed rgba(255,255,255,0.14)',
                 background: 'none', padding: '26px 28px', cursor: 'pointer',
               }}
@@ -211,14 +211,14 @@ export default function IntentionsDesk({
                     </span>
                   ))}
                 </div>
-                <div style={{ position: 'relative', height: 14, borderRadius: 7, background: 'rgba(255,255,255,0.05)' }}>
+                <div style={{ position: 'relative', height: 14, borderRadius: 999, background: 'rgba(255,255,255,0.05)' }}>
                   {eras.map(e => (
                     <span
                       key={e.id}
                       style={{
                         position: 'absolute', top: 3, bottom: 3,
                         left: `${e.left}%`, width: `${e.width}%`,
-                        borderRadius: 4,
+                        borderRadius: 999,
                         background: e.live ? COPPER : 'rgba(196,145,95,0.55)',
                         boxShadow: e.live ? '0 0 12px rgba(196,145,95,0.5)' : undefined,
                       }}
@@ -361,7 +361,7 @@ export default function IntentionsDesk({
               style={{
                 display: 'flex', alignItems: 'center', gap: 12, width: '100%',
                 textAlign: 'left', marginTop: 26, padding: '15px 17px',
-                border: HAIRLINE, borderRadius: 13, background: 'none', cursor: 'pointer',
+                border: HAIRLINE, borderRadius: 10, background: 'none', cursor: 'pointer',
               }}
             >
               <span style={{ flex: 1 }}>

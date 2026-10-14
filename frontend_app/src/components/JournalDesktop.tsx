@@ -158,7 +158,7 @@ export default function JournalDesktop({
                   onClick={() => setChip(c)}
                   aria-pressed={on}
                   style={{
-                    height: 32, padding: '0 14px', borderRadius: 17,
+                    height: 32, padding: '0 14px', borderRadius: 999,
                     border: on ? '1px solid transparent' : '1px solid rgba(255,255,255,0.1)',
                     background: on ? 'rgba(196,145,95,0.9)' : 'transparent',
                     color: on ? '#12130e' : TEXT_SECONDARY,
@@ -282,7 +282,7 @@ export default function JournalDesktop({
                       flex: 1,
                       height: t === 0 ? 2 : Math.round(4 + t * 14),
                       background: 'rgba(196,145,95,0.55)',
-                      borderRadius: 1,
+                      borderRadius: 2,
                       opacity: t === 0 ? 0.25 : 0.8,
                     }}
                   />

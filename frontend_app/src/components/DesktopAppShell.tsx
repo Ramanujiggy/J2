@@ -236,7 +236,7 @@ export default function DesktopAppShell({ children }: Props) {
           <button
             onClick={() => { setLogDate(toDateString(new Date())); setLogOpen(true); }}
             style={{
-              height: 44, padding: '0 18px', borderRadius: 11,
+              height: 44, padding: '0 18px', borderRadius: 10,
               background: BRAND_ORANGE, color: '#fff',
               fontWeight: 600, fontSize: 14,
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,

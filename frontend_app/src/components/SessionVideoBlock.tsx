@@ -352,7 +352,7 @@ function VideoCard({
             <img
               src={video.video_thumbnail}
               alt="Session footage thumbnail"
-              style={{ width: '100%', borderRadius: 8, objectFit: 'cover', maxHeight: 180 }}
+              style={{ width: '100%', borderRadius: 12, objectFit: 'cover', maxHeight: 180 }}
             />
           ) : null}
 
@@ -397,7 +397,7 @@ function PositionBreakdown({ segments, totalDur }: { segments: PositionSegment[]
       </div>
 
       {/* Stacked bar */}
-      <div style={{ height: 8, borderRadius: 4, overflow: 'hidden', background: 'rgba(255,255,255,0.06)', display: 'flex', marginBottom: 10 }}>
+      <div style={{ height: 8, borderRadius: 2, overflow: 'hidden', background: 'rgba(255,255,255,0.06)', display: 'flex', marginBottom: 10 }}>
         {sorted.map(([label, secs]) => (
           <div key={label} style={{
             height: '100%',

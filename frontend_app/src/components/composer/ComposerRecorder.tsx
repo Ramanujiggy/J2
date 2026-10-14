@@ -57,7 +57,7 @@ export default function ComposerRecorder({ kernelCaption, transcript, elapsed, o
             justifyContent: 'center', boxShadow: '0 0 24px rgba(196,145,95,0.18)',
           }}
         >
-          <span style={{ width: 20, height: 20, borderRadius: 5, background: '#E25555', display: 'block' }} />
+          <span style={{ width: 20, height: 20, borderRadius: 6, background: '#E25555', display: 'block' }} />
         </button>
       </div>
     </div>

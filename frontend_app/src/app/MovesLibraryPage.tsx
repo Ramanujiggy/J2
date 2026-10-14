@@ -291,7 +291,7 @@ export default function MovesLibraryPage() {
             style={{
               background: CARD_BG,
               border: '1px solid rgba(255,255,255,0.06)',
-              borderRadius: 14,
+              borderRadius: 16,
               overflow: 'hidden',
             }}
           >
@@ -698,7 +698,7 @@ function RecentCard({ tag, onOpen }: { tag: UserTag; onOpen: () => void }) {
               fontSize: 10,
               fontWeight: 600,
               padding: '2px 6px',
-              borderRadius: 4,
+              borderRadius: 6,
               background: 'rgba(196,145,95,0.92)',
               color: '#fff',
               letterSpacing: '0.04em',

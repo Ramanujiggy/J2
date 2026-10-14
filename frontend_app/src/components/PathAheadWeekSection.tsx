@@ -190,7 +190,7 @@ export default function PathAheadWeekSection({
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '14px 20px',
-                    borderRadius: 14,
+                    borderRadius: 10,
                     backgroundColor: SURFACE_2,
                     border: '1px dashed rgba(196,145,95,0.5)',
                     transition: 'transform 250ms cubic-bezier(0.16, 1, 0.3, 1)',
@@ -226,7 +226,7 @@ export default function PathAheadWeekSection({
                       alignItems: 'center',
                       gap: 14,
                       padding: '16px 20px',
-                      borderRadius: 14,
+                      borderRadius: 10,
                       backgroundColor: CARD_BG,
                       border: isToday
                         ? '1px solid rgba(196,145,95,0.5)'

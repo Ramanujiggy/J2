@@ -84,7 +84,7 @@ export default function SealRevealSheet({ open, die, struckAt, count, autoEarned
         style={{
           background: '#17291F',
           borderTop: `1px solid ${CARD_GLOW_BORDER}`,
-          borderRadius: '26px 26px 0 0',
+          borderRadius: '16px 16px 0 0',
           padding: '14px 26px 30px',
           textAlign: 'center',
           transform: dragY ? `translateY(${dragY}px)` : undefined,
@@ -127,13 +127,13 @@ export default function SealRevealSheet({ open, die, struckAt, count, autoEarned
         <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
           <button
             onClick={onClose}
-            style={{ flex: 1, height: 46, borderRadius: 13, fontSize: 14, fontWeight: 700, border: '1px solid var(--j2-border-2)', background: 'none', color: TEXT_SECONDARY, cursor: 'pointer' }}
+            style={{ flex: 1, height: 46, borderRadius: 10, fontSize: 14, fontWeight: 700, border: '1px solid var(--j2-border-2)', background: 'none', color: TEXT_SECONDARY, cursor: 'pointer' }}
           >
             Share
           </button>
           <button
             onClick={() => { onClose(); navigate('/profile/collection'); }}
-            style={{ flex: 1, height: 46, borderRadius: 13, fontSize: 14, fontWeight: 700, border: 'none', background: '#C4915F', color: '#12130e', cursor: 'pointer' }}
+            style={{ flex: 1, height: 46, borderRadius: 10, fontSize: 14, fontWeight: 700, border: 'none', background: '#C4915F', color: '#12130e', cursor: 'pointer' }}
           >
             Collection
           </button>

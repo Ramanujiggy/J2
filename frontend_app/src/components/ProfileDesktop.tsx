@@ -214,7 +214,7 @@ export default function ProfileDesktop({
                     style={{
                       display: 'flex', alignItems: 'center', gap: 15, width: '100%',
                       border: danger ? `1px solid ${STATUS_ERROR_BORDER}` : HAIRLINE,
-                      borderRadius: 14, padding: '17px 19px',
+                      borderRadius: 10, padding: '17px 19px',
                       marginBottom: 12, background: danger ? STATUS_ERROR_BG : 'none',
                       textAlign: 'left', cursor: 'pointer',
                     }}

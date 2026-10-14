@@ -58,7 +58,7 @@ export default function Coachmark({
           backgroundColor: CARD_BG,
           border: `1px solid ${CARD_GLOW_BORDER}`,
           boxShadow: CARD_GLOW,
-          borderRadius: 18,
+          borderRadius: 16,
           width: '100%',
           maxWidth: 420,
           padding: '28px 24px 22px',

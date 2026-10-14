@@ -179,7 +179,7 @@ function EraStats({
                 height: `${heightPct}%`,
                 background: color,
                 opacity,
-                borderRadius: 1,
+                borderRadius: 2,
                 transition: 'height 240ms ease, opacity 240ms ease',
               }}
             />

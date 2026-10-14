@@ -47,7 +47,7 @@ export default function AtlasCalendarPanel({
           <button
             onClick={() => onYearChange(year - 1)}
             style={{
-              width: 34, height: 32, borderRadius: 8,
+              width: 34, height: 32, borderRadius: 10,
               background: 'transparent', cursor: 'pointer',
               color: 'rgba(242,228,168,0.65)',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -71,7 +71,7 @@ export default function AtlasCalendarPanel({
             onClick={() => onYearChange(year + 1)}
             disabled={year >= currentYear}
             style={{
-              width: 34, height: 32, borderRadius: 8,
+              width: 34, height: 32, borderRadius: 10,
               background: 'transparent',
               cursor: year >= currentYear ? 'not-allowed' : 'pointer',
               opacity: year >= currentYear ? 0.25 : 1,

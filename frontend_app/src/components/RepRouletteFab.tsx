@@ -347,7 +347,7 @@ function RepRouletteFabImpl({ fabPosition = 'fixed' }: Props) {
 
     if (phase === 'opening') {
       gsap.fromTo(panel,
-        { scale: 0.15, borderRadius: 24, opacity: 0 },
+        { scale: 0.15, borderRadius: 16, opacity: 0 },
         { scale: 1, borderRadius: 16, opacity: 1, duration: 0.38, ease: 'elastic.out(1, 0.82)' },
       );
       gsap.fromTo(content,
@@ -356,7 +356,7 @@ function RepRouletteFabImpl({ fabPosition = 'fixed' }: Props) {
       );
     } else if (phase === 'closing') {
       gsap.to(content, { opacity: 0, duration: 0.1, ease: 'power2.in' });
-      gsap.to(panel, { scale: 0.15, borderRadius: 24, opacity: 0, duration: 0.28, delay: 0.06, ease: 'power2.in' });
+      gsap.to(panel, { scale: 0.15, borderRadius: 16, opacity: 0, duration: 0.28, delay: 0.06, ease: 'power2.in' });
     }
   }, [phase, fabPosition]);
 
@@ -506,7 +506,7 @@ function RepRouletteFabImpl({ fabPosition = 'fixed' }: Props) {
                 style={{
                   flex: 1, fontSize: 11, fontWeight: 600,
                   color: TEXT_TERTIARY,
-                  padding: '7px 0', borderRadius: 8,
+                  padding: '7px 0', borderRadius: 10,
                   border: '1px solid rgba(255,255,255,0.08)',
                   backgroundColor: 'rgba(255,255,255,0.04)',
                   cursor: 'pointer',
@@ -582,7 +582,7 @@ function RepRouletteFabImpl({ fabPosition = 'fixed' }: Props) {
             bottom: fabBottom,
             width: 'calc(100vw - 24px)',
             maxHeight: 'calc(100vh - 10rem - env(safe-area-inset-bottom, 0px))',
-            borderRadius: 20,
+            borderRadius: 16,
             backgroundColor: '#1A3528',
             border: '1px solid rgba(196,145,95,0.55)',
             boxShadow: '0 8px 40px rgba(0,0,0,0.45), 0 0 0 1px rgba(196,145,95,0.2), 0 0 30px rgba(196,145,95,0.08)',
@@ -756,7 +756,7 @@ function RepRouletteFabImpl({ fabPosition = 'fixed' }: Props) {
               style={{
                 height: 2,
                 marginTop: 12,
-                borderRadius: 1,
+                borderRadius: 2,
                 background: 'linear-gradient(to right, transparent, rgba(196,145,95,0.3), rgba(196,145,95,0.5), rgba(196,145,95,0.3), transparent)',
                 boxShadow: '0 0 8px rgba(196,145,95,0.15)',
               }}

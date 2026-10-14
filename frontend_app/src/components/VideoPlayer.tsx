@@ -188,7 +188,7 @@ export default function VideoPlayer({ tag, onClose, stuck = false }: Props) {
             <img
               src={tag.video_thumbnail}
               alt=""
-              style={{ width: '100%', maxWidth: 240, opacity: 0.5, borderRadius: 8 }}
+              style={{ width: '100%', maxWidth: 240, opacity: 0.5, borderRadius: 12 }}
             />
           )}
           <p className="text-sm" style={{ color: TEXT_TERTIARY }}>

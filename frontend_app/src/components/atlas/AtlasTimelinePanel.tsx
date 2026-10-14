@@ -105,7 +105,7 @@ function YearCard({ year, sessions, intentions }: { year: number; sessions: Sess
       style={{
         background: CARD_BG,
         border: '1px solid var(--j2-border-2)',
-        borderRadius: 20,
+        borderRadius: 16,
         padding: 40,
       }}
     >
@@ -133,7 +133,7 @@ function YearCard({ year, sessions, intentions }: { year: number; sessions: Sess
           display: 'flex',
           gap: 2,
           height: 14,
-          borderRadius: 7,
+          borderRadius: 999,
           overflow: 'hidden',
           border: '1px solid var(--j2-border-1)',
         }}

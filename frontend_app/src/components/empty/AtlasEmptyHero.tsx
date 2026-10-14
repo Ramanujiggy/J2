@@ -23,7 +23,7 @@ export default function AtlasEmptyHero({ onLogSession }: Props) {
         backgroundColor: CARD_BG,
         border: `1px solid ${CARD_GLOW_BORDER}`,
         boxShadow: CARD_GLOW,
-        borderRadius: 18,
+        borderRadius: 16,
         padding: '36px 28px',
         textAlign: 'center',
         maxWidth: 480,

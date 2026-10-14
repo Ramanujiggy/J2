@@ -246,7 +246,7 @@ export default function CompactHeatmap({ sessions, year, loading = false }: Comp
                       style={{
                         aspectRatio: '1',
                         minWidth: 0,
-                        borderRadius: 5,
+                        borderRadius: 2,
                         backgroundColor: bg,
                         ...(isToday ? {
                           outline: '1.5px solid rgba(196,145,95,0.7)',
