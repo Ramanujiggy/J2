@@ -5,8 +5,8 @@
 //   loading → upload progress / transcode spinner
 //   ready   → video player + position stats + "Tag positions" button
 //
-// Tagging opens a full-screen portal overlay (z-index 60) above the session
-// modal — PositionTagger is not rendered inline.
+// Tagging opens a portal overlay (z-index 60) above the session modal — the
+// §4 modal box (large 42rem variant), not rendered inline.
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
@@ -16,7 +16,7 @@ import { validateVideoFile, probeVideo, extractThumbnail, formatDurationMMSS } f
 import { uploadToR2 } from '../lib/videoUploader.ts';
 import {
   BRAND_ORANGE, COPPER, PALE_YELLOW, SAGE, SURFACE_2,
-  SURFACE_2_BORDER, STATUS_ERROR, PAGE_BG,
+  SURFACE_2_BORDER, STATUS_ERROR, CARD_BG, COPPER_BORDER,
 } from '../lib/theme.ts';
 import type { SessionVideo, PositionSegment } from '../types/api.ts';
 import PositionTagger, { POSITION_COLOR, POSITION_DEFS } from './PositionTagger.tsx';
@@ -35,15 +35,10 @@ export default function SessionVideoBlock({ sessionId, sessionLabel }: Props) {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [playbackUrls, setPlaybackUrls] = useState<Record<string, string>>({});
   const [taggingVideoId, setTaggingVideoId] = useState<string | null>(null);
-  const [isClosing, setIsClosing] = useState(false);
   const [savingSegments, setSavingSegments] = useState(false);
 
-  const openTagger = (videoId: string) => {
-    setIsClosing(false);
-    setTaggingVideoId(videoId);
-  };
-  const closeTagger = () => setIsClosing(true);
-  const finalizeClose = () => { setIsClosing(false); setTaggingVideoId(null); };
+  const openTagger = (videoId: string) => setTaggingVideoId(videoId);
+  const closeTagger = () => setTaggingVideoId(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -208,74 +203,76 @@ export default function SessionVideoBlock({ sessionId, sessionLabel }: Props) {
         />
       </div>
 
-      {/* Full-screen tagging overlay — animated slide-up portal above the session modal */}
+      {/* Tagging overlay — §4 modal box (large 42rem variant), portal above the session modal */}
       {taggingVideoId && createPortal(
-        <>
-          <style>{`
-            @keyframes taggerSlideUp   { from { transform: translateY(100%) } to { transform: translateY(0) } }
-            @keyframes taggerSlideDown { from { transform: translateY(0) }    to { transform: translateY(100%) } }
-          `}</style>
+        <div
+          role="presentation"
+          onClick={e => { if (e.target === e.currentTarget) closeTagger(); }}
+          className="animate-j2-backdrop-in"
+          style={{
+            position: 'fixed', inset: 0, zIndex: 60,
+            background: 'rgba(13,26,20,0.85)',
+            backdropFilter: 'blur(12px) saturate(1.2)',
+            WebkitBackdropFilter: 'blur(12px) saturate(1.2)',
+            display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+            overflowY: 'auto',
+            paddingLeft: '1rem', paddingRight: '1rem',
+            paddingTop: 'max(1rem, env(safe-area-inset-top))',
+            paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
+          }}
+        >
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Tag positions"
             data-no-page-swipe=""
+            className="animate-j2-modal-in"
             style={{
-              position: 'fixed', inset: 0, zIndex: 60,
-              background: PAGE_BG,
-              display: 'flex', flexDirection: 'column',
-              paddingTop: 'env(safe-area-inset-top, 0px)',
-              paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-              animation: isClosing
-                ? 'taggerSlideDown 280ms ease-in forwards'
-                : 'taggerSlideUp 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
+              width: '100%', maxWidth: '42rem',
+              background: CARD_BG,
+              border: `1px solid ${COPPER_BORDER}`,
+              borderRadius: 16,
+              padding: 24,
+              maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem)',
+              overflowY: 'auto',
             }}
-            onAnimationEnd={() => { if (isClosing) finalizeClose(); }}
           >
-            {/* Session strip — tap anywhere to close and return to session */}
-            <div
-              onClick={closeTagger}
-              style={{
-                height: 52, flexShrink: 0,
-                display: 'flex', alignItems: 'center',
-                padding: '0 16px', gap: 12,
-                borderBottom: '1px solid rgba(255,255,255,0.08)',
-                cursor: 'pointer',
-              }}
-            >
+            {/* Header — session eyebrow + Done */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+              <span style={{
+                flex: 1,
+                fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
+                textTransform: 'uppercase', color: COPPER,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
+                {sessionLabel ?? 'Tag positions'}
+              </span>
               <button
                 onClick={closeTagger}
                 className="touch-manipulation"
-                style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)', background: 'none', border: 'none', cursor: 'pointer', padding: '14px 8px', minHeight: 44 }}
+                style={{ flexShrink: 0, fontSize: 13, color: 'rgba(255,255,255,0.45)', background: 'none', border: 'none', cursor: 'pointer', padding: '10px 8px', minHeight: 44 }}
               >
-                ‹ Done
+                Done
               </button>
-              <span style={{
-                flex: 1, textAlign: 'center',
-                fontSize: 12, color: PALE_YELLOW, letterSpacing: '0.04em',
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}>
-                {sessionLabel}
-              </span>
-              <span style={{ width: 52 }} aria-hidden />
             </div>
 
             {/* Tagger body */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 24px' }}>
-              {taggingPlaybackUrl ? (
-                <PositionTagger
-                  videoUrl={taggingPlaybackUrl}
-                  durationSecs={taggingDur}
-                  initialSegments={(segments[taggingVideoId] ?? []) as DraftSegment[]}
-                  onSave={(segs) => saveSegments(taggingVideoId, segs)}
-                  onCancel={closeTagger}
-                  saving={savingSegments}
-                />
-              ) : (
-                <div style={{ padding: '40px 0', textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>
-                  Loading video…
-                </div>
-              )}
-            </div>
+            {taggingPlaybackUrl ? (
+              <PositionTagger
+                videoUrl={taggingPlaybackUrl}
+                durationSecs={taggingDur}
+                initialSegments={(segments[taggingVideoId] ?? []) as DraftSegment[]}
+                onSave={(segs) => saveSegments(taggingVideoId, segs)}
+                onCancel={closeTagger}
+                saving={savingSegments}
+              />
+            ) : (
+              <div style={{ padding: '40px 0', textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>
+                Loading video…
+              </div>
+            )}
           </div>
-        </>,
+        </div>,
         document.body
       )}
     </>
