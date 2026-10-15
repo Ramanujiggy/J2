@@ -4,7 +4,7 @@ import { Plus } from 'lucide-react';
 import { useProfile } from '../context/ProfileContext.tsx';
 import SeigaihaPattern from './visuals/SeigaihaPattern.tsx';
 import BeltBar, { type BeltRank, BELT_COLORS, PATCH_COLORS } from './BeltBar.tsx';
-import { PAGE_BG, PALE_YELLOW, GLOW_TITLE, BRAND_ORANGE, TEXT_TERTIARY } from '../lib/theme.ts';
+import { PAGE_BG, PALE_YELLOW, GLOW_TITLE, BRAND_ORANGE, TEXT_TERTIARY, NAV_BAR_BG, NAV_HAIRLINE, NAV_PILL_BG, NAV_RAIL_PILL_BG } from '../lib/theme.ts';
 import { isFromProfile } from '../lib/navOrigin.ts';
 import PageTransition from './PageTransition.tsx';
 import OfflineBanner from './OfflineBanner.tsx';
@@ -234,7 +234,7 @@ function MobileAppShell({ children }: Props) {
                 style={{
                   minHeight: 44,
                   color: isActive ? PALE_YELLOW : TEXT_TERTIARY,
-                  backgroundColor: isActive ? 'rgba(242,228,168,0.07)' : 'transparent',
+                  backgroundColor: isActive ? NAV_RAIL_PILL_BG : 'transparent',
                   borderRadius: 10,
                   transition: 'color 0.3s ease, background-color 0.3s ease',
                 }}
@@ -273,10 +273,10 @@ function MobileAppShell({ children }: Props) {
       <nav
         className="sm:hidden fixed bottom-0 left-0 right-0 flex border-t z-40"
         style={{
-          backgroundColor: 'rgba(21,46,34,0.82)',
+          backgroundColor: NAV_BAR_BG,
           backdropFilter: 'saturate(180%) blur(12px)',
           WebkitBackdropFilter: 'saturate(180%) blur(12px)',
-          borderTopColor: 'rgba(255,255,255,0.06)',
+          borderTopColor: NAV_HAIRLINE,
           paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 10px)',
           paddingTop: 8,
         }}
@@ -335,9 +335,9 @@ function MobileAppShell({ children }: Props) {
                 style={{
                   gap: 5,
                   paddingTop: 4, paddingBottom: 4,
-                  // 0.46 is the small-text contrast floor; the old 0.40 sat
-                  // under it on this background.
-                  color: isActive ? PALE_YELLOW : 'rgba(255,255,255,0.46)',
+                  // TEXT_TERTIARY (0.46) is the small-text contrast floor; the
+                  // old 0.40 sat under it on this background.
+                  color: isActive ? PALE_YELLOW : TEXT_TERTIARY,
                   transition: 'color 0.2s ease',
                   background: 'transparent',
                   border: 'none',
@@ -350,7 +350,7 @@ function MobileAppShell({ children }: Props) {
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     width: 34, height: 30, borderRadius: 10,
-                    background: isActive ? 'rgba(242,228,168,0.10)' : 'transparent',
+                    background: isActive ? NAV_PILL_BG : 'transparent',
                     transition: 'background 0.2s ease',
                   }}
                 >
