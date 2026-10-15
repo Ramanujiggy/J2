@@ -192,7 +192,7 @@ All color tokens live in `frontend_app/src/lib/theme.ts`. Never hard-code colour
 | `CARD_SHADOW` | 4-layer composite | Card drop shadow with chromatic depth |
 | `GLOW_TITLE` | text-shadow | Hero title glow |
 | `GLOW_SOFT` | text-shadow | Stat numbers and section headings |
-| `GLOW_NAV` | text-shadow | Nav links and buttons |
+| `GLOW_NAV` | text-shadow | "For Intentional Grappling" tagline (name is historical — not nav) |
 | `HEATMAP_REST` | `#0A1610` | Rest / empty heatmap cell |
 
 Tailwind brand tokens (in `tailwind.config.ts`): `brand.orange` `#DA7422`, `brand.green` `#6FD08C`, `brand.light-green` `#CDDFA0`, `brand.dark` `#0D1A14`.
