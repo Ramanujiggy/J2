@@ -2,10 +2,10 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { api } from '../lib/api.ts';
-import { PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3, COPPER, FONT_EDITORIAL, TEXT_BODY, TEXT_SECONDARY, TEXT_TERTIARY, TEXT_HINT, TEXT_DISABLED } from '../lib/theme.ts';
+import { PALE_YELLOW, GLOW_SOFT, SURFACE_2, SURFACE_3, COPPER, FONT_EDITORIAL, TEXT_BODY, TEXT_SECONDARY, TEXT_TERTIARY, TEXT_HINT, TEXT_DISABLED, CATEGORY_PILL_STYLE } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
-import { CATEGORY_COLORS, SKILL_TAGS, MONTH_NAMES, REFLECTION_PROMPTS } from '../lib/constants.ts';
+import { SKILL_TAGS, MONTH_NAMES, REFLECTION_PROMPTS } from '../lib/constants.ts';
 import { formatDuration, INTENSITY_COLOR } from '../lib/sessionUtils.ts';
 import { vibrate } from '../lib/haptics.ts';
 import type { Intention, IntentionsResponse, SessionSummary, SessionsResponse, IntentionCompletionType, UserTag } from '../types/api.ts';
@@ -222,10 +222,6 @@ export default function JournalEntryPage() {
     }
   };
 
-  const categoryColor = intention?.intent_category
-    ? (CATEGORY_COLORS[intention.intent_category] ?? 'rgba(255,255,255,0.4)')
-    : null;
-
   // Daily reflection prompt — same index calc as the old Path Ahead card so a
   // user who reloaded across pages on the same day saw a stable prompt.
   const todayIdx = Math.floor(Date.now() / 86_400_000);
@@ -337,19 +333,10 @@ export default function JournalEntryPage() {
                 }}
               >
                 <span>{formatWeekLong(intention.week_start)}</span>
-                {categoryColor && (
+                {intention.intent_category && (
                   <>
                     <span style={{ color: TEXT_DISABLED }}>·</span>
-                    <span
-                      className="capitalize"
-                      style={{
-                        padding: '3px 10px',
-                        borderRadius: 999,
-                        background: `${categoryColor}20`,
-                        color: categoryColor,
-                        letterSpacing: '0.08em',
-                      }}
-                    >
+                    <span style={CATEGORY_PILL_STYLE}>
                       {intention.intent_category}
                     </span>
                   </>

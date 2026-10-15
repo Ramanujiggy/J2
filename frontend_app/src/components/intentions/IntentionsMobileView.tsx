@@ -12,8 +12,8 @@
 import { useMemo, useState } from 'react';
 import JournalEmptyState from '../JournalEmptyState.tsx';
 import { Pencil } from 'lucide-react';
-import { COPPER, COPPER_BORDER, GLOW_SOFT, PALE_YELLOW, SURFACE_2, TEXT_PRIMARY, TEXT_TERTIARY, TEXT_HINT, TEXT_DISABLED } from '../../lib/theme.ts';
-import { SKILL_TAGS, CATEGORY_COLORS } from '../../lib/constants.ts';
+import { COPPER, COPPER_BORDER, GLOW_SOFT, PALE_YELLOW, SURFACE_2, TEXT_PRIMARY, TEXT_TERTIARY, TEXT_HINT, TEXT_DISABLED, CATEGORY_PILL_STYLE } from '../../lib/theme.ts';
+import { SKILL_TAGS } from '../../lib/constants.ts';
 import { computeAlignment, tagHoursInRange, topTagInRange } from '../../lib/analyticsUtils.ts';
 import type { Intention, SessionSummary } from '../../types/api.ts';
 import PageContent from '../PageContent.tsx';
@@ -254,9 +254,6 @@ export default function IntentionsMobileView({
             const ambient       = topTag?.label ?? null;
             const hours         = tagHoursInRange(sessions, intention.week_start, intention.duration_days);
             const alignment     = computeAlignment(intention, topTag, hours);
-            const categoryColor = intention.intent_category
-              ? (CATEGORY_COLORS[intention.intent_category] ?? 'rgba(255,255,255,0.4)')
-              : null;
             const hasJournal    = !!intention.journal_entry;
             const journalSnippet = hasJournal
               ? intention.journal_entry!.slice(0, 40) + (intention.journal_entry!.length > 40 ? '...' : '')
@@ -292,7 +289,7 @@ export default function IntentionsMobileView({
                 {/* Right column — dot + heading + alignment */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                    {categoryColor && <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: categoryColor, flexShrink: 0 }} />}
+                    {intention.intent_category && <span style={{ ...CATEGORY_PILL_STYLE, flexShrink: 0 }}>{intention.intent_category}</span>}
                     <span style={{ fontSize: 15, fontWeight: 600, color: TEXT_PRIMARY }}>
                       {headingLabel ?? intention.intent_label}
                     </span>
