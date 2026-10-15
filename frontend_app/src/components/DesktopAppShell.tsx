@@ -26,7 +26,7 @@ import CaptureComposer from './composer/CaptureComposer.tsx';
 import { useOnlineSync } from '../hooks/useOnlineSync.ts';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock.ts';
 import { toDateString } from '../lib/sessionUtils.ts';
-import { PAGE_BG, PALE_YELLOW, COPPER, BRAND_ORANGE, BRAND_ORANGE_HOVER, TEXT_SECONDARY, TEXT_TERTIARY } from '../lib/theme.ts';
+import { PAGE_BG, PALE_YELLOW, COPPER, BRAND_ORANGE, BRAND_ORANGE_HOVER, TEXT_SECONDARY, TEXT_TERTIARY, NAV_RAIL_BG, NAV_HAIRLINE, NAV_RAIL_PILL_BG } from '../lib/theme.ts';
 import { isFromProfile } from '../lib/navOrigin.ts';
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
@@ -88,7 +88,7 @@ const NAV_ITEMS: readonly NavItem[] = [
   { path: '/admin',      label: 'Admin',      Icon: ShieldIcon, gated: 'admin' },
 ] as const;
 
-const RAIL_BORDER   = '1px solid rgba(255,255,255,0.06)';
+const RAIL_BORDER   = `1px solid ${NAV_HAIRLINE}`;
 
 interface Props { children: React.ReactNode; }
 
@@ -173,7 +173,7 @@ export default function DesktopAppShell({ children }: Props) {
           display: 'flex',
           flexDirection: 'column',
           borderRight: RAIL_BORDER,
-          background: 'rgba(10,21,16,0.7)',
+          background: NAV_RAIL_BG,
           backdropFilter: 'blur(6px)',
           WebkitBackdropFilter: 'blur(6px)',
           zIndex: 1,
@@ -213,7 +213,7 @@ export default function DesktopAppShell({ children }: Props) {
                   display: 'flex', alignItems: 'center', gap: 12,
                   height: 44, padding: '0 12px',
                   borderRadius: 10,
-                  background: isActive ? 'rgba(242,228,168,0.07)' : 'transparent',
+                  background: isActive ? NAV_RAIL_PILL_BG : 'transparent',
                   border: 'none',
                   color: isActive ? PALE_YELLOW : TEXT_TERTIARY,
                   fontSize: 13.5, fontWeight: 600,
