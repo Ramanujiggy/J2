@@ -1,9 +1,10 @@
 # Journada — Design System
 
-Journada is a BJJ training tracker built as a mobile-first dark-theme PWA. The
-aesthetic is **deep forest night**: rich forest-green surfaces, warm copper
-borders, champagne-gold titles, and burnt-orange accents. Every surface feels
-like aged leather and dark wood — measured, confident, grounded.
+Journada is a BJJ training **journal** — not a tracker, not an analytics
+dashboard — built as a mobile-first dark-theme PWA. The aesthetic is **deep
+forest night**: rich forest-green surfaces, warm copper borders, champagne-gold
+titles, and burnt-orange accents. Every surface feels like aged leather and
+dark wood — measured, confident, grounded.
 
 Tell your AI agent: *"Build a page that looks like the Journada design system"*
 and reference the sections below for pixel-perfect consistency.
