@@ -431,14 +431,6 @@ Rail items (top to bottom): Today, Journal, Intentions, Atlas, Profile, Admin
   — Admin renders only for users.is_admin
 ```
 
-> **This section is deliberately ahead of the code in two places (JOU-61, 2026-10-14).**
-> The founder's call: keep the pill icons, bring the frosted bar back, stop the
-> tablet row glowing. Still outstanding in `AppShell.tsx`, tracked by JOU-64 —
-> the bottom bar ships solid `#0B1712` with no blur, and the tablet header row
-> still ships `GLOW_NAV` and a sliding lit indicator. Do not "correct" this
-> section back to the code; the code comes to this section. Delete this note
-> when JOU-64 lands.
-
 ### Badges / Category Pills
 
 ```
