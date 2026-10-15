@@ -274,7 +274,7 @@ export default function NotificationPermissionPrimer({ open, onClose, onSubscrib
               backgroundColor: blocked ? 'rgba(196,145,95,0.25)' : COPPER,
               color: blocked ? 'rgba(255,255,255,0.4)' : '#fff',
               fontSize: 14, fontWeight: 600,
-              borderRadius: 12, padding: '10px 18px',
+              borderRadius: 10, padding: '10px 18px',
               cursor: blocked || busy ? 'not-allowed' : 'pointer',
               opacity: busy ? 0.7 : 1,
             }}

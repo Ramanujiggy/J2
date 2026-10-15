@@ -128,7 +128,7 @@ export default function OnboardingBeltPage() {
             backgroundColor: selected ? COPPER : 'rgba(196,145,95,0.25)',
             color: selected ? '#fff' : 'rgba(255,255,255,0.4)',
             fontSize: 16, fontWeight: 600,
-            padding: '14px 24px', borderRadius: 12,
+            padding: '14px 24px', borderRadius: 10,
             border: `1px solid ${selected ? COPPER_BORDER : 'transparent'}`,
             cursor: selected === null || busy ? 'not-allowed' : 'pointer',
             width: '100%',

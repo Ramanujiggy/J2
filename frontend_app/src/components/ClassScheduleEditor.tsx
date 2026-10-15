@@ -241,7 +241,7 @@ export default function ClassScheduleEditor({ initial, isEdit, onSave, onDelete,
             disabled={busy}
             style={{
               backgroundColor: COPPER, color: '#fff',
-              fontSize: 14, fontWeight: 600, borderRadius: 12, padding: '10px 18px',
+              fontSize: 14, fontWeight: 600, borderRadius: 10, padding: '10px 18px',
               cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.7 : 1,
             }}
           >

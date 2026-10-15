@@ -196,7 +196,7 @@ export default function ClassSchedulesPage() {
                         textAlign: 'left',
                         backgroundColor: SURFACE_2,
                         border: `1px solid ${active ? COPPER_BORDER : SURFACE_2_BORDER}`,
-                        borderRadius: 12, padding: '12px 14px',
+                        borderRadius: 10, padding: '12px 14px',
                         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                         cursor: 'pointer',
                       }}
