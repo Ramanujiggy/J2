@@ -449,7 +449,7 @@ export default function AtlasPrismDeck({
                   backgroundColor: h > 0
                     ? (displayMode === 'hours' ? color.replace(/[\d.]+\)$/, '0.45)') : 'rgba(242,228,168,0.25)')
                     : 'rgba(255,255,255,0.1)',
-                  borderRadius: displayMode === 'hours' ? '2.5px' : '1px',
+                  borderRadius: displayMode === 'hours' ? '999px' : '2px',
                   transition: 'width 450ms cubic-bezier(0.4,0,0.2,1), height 300ms ease, border-radius 300ms ease',
                 }}
               />
@@ -727,7 +727,7 @@ function SubViewRail({
                     left: 0, top: 4, bottom: 4,
                     width: 2,
                     backgroundColor: COPPER,
-                    borderRadius: 1,
+                    borderRadius: 2,
                   }}
                 />
               )}

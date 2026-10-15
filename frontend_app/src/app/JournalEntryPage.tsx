@@ -277,7 +277,7 @@ export default function JournalEntryPage() {
               position: 'relative',
               overflow: 'hidden',
               padding: '18px 20px',
-              borderRadius: 14,
+              borderRadius: 16,
               background: 'rgba(196,145,95,0.04)',
               border: '1px solid rgba(196,145,95,0.22)',
             }}
@@ -467,7 +467,7 @@ export default function JournalEntryPage() {
                   onClick={() => { vibrate(8); editCompletionType === 'days' ? setEditDuration(n) : setEditTarget(n); }}
                   className="flex-1 touch-manipulation"
                   style={{
-                    height: 34, borderRadius: 8, fontSize: 13, fontWeight: 600,
+                    height: 34, borderRadius: 10, fontSize: 13, fontWeight: 600,
                     backgroundColor: active ? COPPER : SURFACE_3,
                     color: active ? '#fff' : 'rgba(255,255,255,0.45)',
                     border: 'none', cursor: 'pointer',

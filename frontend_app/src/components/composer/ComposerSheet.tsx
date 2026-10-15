@@ -37,7 +37,7 @@ export default function ComposerSheet({ kernel, intention, speechSupported, onSp
 
   return (
     <div
-      style={{ backgroundColor: CARD_BG, border: '1px solid rgba(196,145,95,0.40)', borderRadius: 18, padding: '24px 22px', boxShadow: CARD_SHADOW }}
+      style={{ backgroundColor: CARD_BG, border: '1px solid rgba(196,145,95,0.40)', borderRadius: 16, padding: '24px 22px', boxShadow: CARD_SHADOW }}
     >
       <p className="j2-label-copper" style={{ marginBottom: 8 }}>
         ◇ {hasClass ? 'Tonight' : 'Today'}
@@ -80,7 +80,7 @@ export default function ComposerSheet({ kernel, intention, speechSupported, onSp
             type="button"
             onClick={() => { vibrate(6); onWrite(); }}
             className="touch-manipulation"
-            style={{ flex: 1, fontWeight: 600, fontSize: 13.5, color: 'rgba(242,228,168,0.62)', border: '1px solid rgba(196,145,95,0.30)', borderRadius: 14, padding: '14px 12px', background: 'rgba(196,145,95,0.06)' }}
+            style={{ flex: 1, fontWeight: 600, fontSize: 13.5, color: 'rgba(242,228,168,0.62)', border: '1px solid rgba(196,145,95,0.30)', borderRadius: 10, padding: '14px 12px', background: 'rgba(196,145,95,0.06)' }}
           >
             Write instead
           </button>
@@ -89,7 +89,7 @@ export default function ComposerSheet({ kernel, intention, speechSupported, onSp
           type="button"
           onClick={() => { vibrate(6); onMarkAttended(); }}
           className="touch-manipulation"
-          style={{ flex: 1, fontWeight: 600, fontSize: 13.5, color: 'rgba(242,228,168,0.62)', border: '1px solid rgba(196,145,95,0.30)', borderRadius: 14, padding: '14px 12px', background: 'rgba(196,145,95,0.06)' }}
+          style={{ flex: 1, fontWeight: 600, fontSize: 13.5, color: 'rgba(242,228,168,0.62)', border: '1px solid rgba(196,145,95,0.30)', borderRadius: 10, padding: '14px 12px', background: 'rgba(196,145,95,0.06)' }}
         >
           Just mark attended ✓
         </button>

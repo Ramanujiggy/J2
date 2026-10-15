@@ -309,7 +309,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
                 className="flex overflow-hidden"
                 style={{
                   border: `1px solid ${SURFACE_3_BORDER}`,
-                  borderRadius: isDesktop ? 8 : 4,
+                  borderRadius: 10,
                   height: isDesktop ? 36 : undefined,
                 }}
               >
@@ -360,7 +360,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
                     style={{
                       fontSize: isDesktop ? 12.5 : 11,
                       padding: isDesktop ? '4px 10px' : '2px 8px',
-                      borderRadius: 4,
+                      borderRadius: 6,
                       backgroundColor: 'rgba(196,145,95,0.12)',
                       color: COPPER_DIM,
                     }}
@@ -373,7 +373,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
                   style={{
                     fontSize: isDesktop ? 12.5 : 11,
                     padding: isDesktop ? '4px 10px' : '2px 8px',
-                    borderRadius: 4,
+                    borderRadius: 6,
                     color: TEXT_HINT,
                     backgroundColor: SURFACE_2,
                   }}
@@ -675,7 +675,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
                     fontSize: isDesktop ? 15 : 14,
                     fontWeight: 600,
                     color: 'white',
-                    borderRadius: isDesktop ? 12 : 8,
+                    borderRadius: 10,
                     backgroundColor: canImport && !importing ? '#DA7422' : 'rgba(196,145,95,0.2)',
                     boxShadow: isDesktop && canImport && !importing
                       ? '0 2px 12px rgba(218,116,34,0.25), 0 0 0 1px rgba(218,116,34,0.30)'
@@ -739,7 +739,7 @@ export default function CsvImportModal({ existingDates, onClose, onImported }: P
                 fontSize: isDesktop ? 15 : 14,
                 fontWeight: 600,
                 color: 'white',
-                borderRadius: isDesktop ? 12 : 8,
+                borderRadius: 10,
                 backgroundColor: '#DA7422',
                 boxShadow: isDesktop
                   ? '0 2px 12px rgba(218,116,34,0.25), 0 0 0 1px rgba(218,116,34,0.30)'

@@ -822,7 +822,7 @@ function VideoBlock({
       style={{
         background: CARD_BG,
         border: '1px solid rgba(255,255,255,0.06)',
-        borderRadius: 14,
+        borderRadius: 16,
         padding: 14,
       }}
     >
@@ -888,7 +888,7 @@ function VideoBlock({
               style={{
                 position: 'absolute', right: 8, bottom: 8,
                 fontSize: 11, fontWeight: 600,
-                padding: '2px 8px', borderRadius: 4,
+                padding: '2px 8px', borderRadius: 6,
                 background: 'rgba(0,0,0,0.65)', color: '#fff',
               }}
             >
@@ -1003,7 +1003,7 @@ function VideoBlock({
               style={{
                 fontSize: 12, fontWeight: 600,
                 padding: '6px 12px',
-                borderRadius: 8,
+                borderRadius: 10,
                 background: 'rgba(196,145,95,0.18)',
                 border: `1px solid ${COPPER}`,
                 color: COPPER,
@@ -1019,7 +1019,7 @@ function VideoBlock({
             style={{
               fontSize: 12, fontWeight: 600,
               padding: '6px 12px',
-              borderRadius: 8,
+              borderRadius: 10,
               background: SURFACE_2,
               border: '1px solid rgba(255,255,255,0.10)',
               color: TEXT_BODY,
@@ -1037,7 +1037,7 @@ function VideoBlock({
             style={{
               fontSize: 12, fontWeight: 500,
               padding: '6px 12px',
-              borderRadius: 8,
+              borderRadius: 10,
               background: 'transparent',
               border: '1px solid transparent',
               color: 'rgba(218,90,70,0.65)',

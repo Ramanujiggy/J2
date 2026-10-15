@@ -107,7 +107,7 @@ export default function IntentionHeroCard({
         style={{
           backgroundColor: 'rgba(196,145,95,0.04)',
           border: '1px solid rgba(196,145,95,0.22)',
-          borderRadius: compact ? 12 : 14,
+          borderRadius: compact ? 12 : 16,
           padding: compact ? '14px 14px' : '20px 20px',
           position: 'relative',
           overflow: 'hidden',
@@ -165,7 +165,7 @@ export default function IntentionHeroCard({
       style={{
         padding: compact ? 14 : 20,
         border: '1px solid rgba(196,145,95,0.18)',
-        borderRadius: compact ? 12 : 14,
+        borderRadius: compact ? 12 : 16,
         background: 'rgba(196,145,95,0.04)',
         backdropFilter: 'blur(12px) saturate(120%)',
         WebkitBackdropFilter: 'blur(12px) saturate(120%)',
@@ -292,7 +292,7 @@ export default function IntentionHeroCard({
               onClick={onViewJournal}
               className="touch-manipulation j2-press"
               style={{
-                padding: '8px 12px', borderRadius: 8,
+                padding: '8px 12px', borderRadius: 10,
                 fontSize: 13, fontWeight: 600,
                 color: COPPER, background: 'transparent', border: 'none',
                 minHeight: 40, cursor: 'pointer',
@@ -307,7 +307,7 @@ export default function IntentionHeroCard({
               onClick={() => setDeleteConfirm(false)}
               className="touch-manipulation"
               style={{
-                padding: '8px 10px', borderRadius: 8,
+                padding: '8px 10px', borderRadius: 10,
                 fontSize: 12, color: TEXT_HINT,
                 background: 'transparent', border: 'none',
                 minHeight: 40, cursor: 'pointer',
@@ -320,7 +320,7 @@ export default function IntentionHeroCard({
             onClick={handleDelete}
             className="touch-manipulation"
             style={{
-              padding: '8px 10px', borderRadius: 8,
+              padding: '8px 10px', borderRadius: 10,
               fontSize: 12,
               color: deleteConfirm ? STATUS_ERROR : 'rgba(255,255,255,0.25)',
               background: 'transparent', border: 'none',

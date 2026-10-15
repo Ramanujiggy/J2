@@ -24,7 +24,7 @@ function Tooltip({ text, children }: { text: string; children: React.ReactNode }
           transform: 'translateX(-50%)',
           backgroundColor: PAGE_BG,
           border: '1px solid rgba(196,145,95,0.4)',
-          borderRadius: 8,
+          borderRadius: 16,
           padding: '5px 10px',
           fontSize: 11,
           color: TEXT_SECONDARY,

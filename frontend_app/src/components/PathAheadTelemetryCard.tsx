@@ -53,7 +53,7 @@ export default function PathAheadTelemetryCard({ telemetry }: Props) {
             flex: 1,
             height: 1,
             backgroundColor: 'rgba(196,145,95,0.25)',
-            borderRadius: 1,
+            borderRadius: 2,
           }}
         />
       </div>

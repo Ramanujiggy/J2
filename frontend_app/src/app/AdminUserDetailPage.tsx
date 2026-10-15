@@ -440,7 +440,7 @@ function CaseRow({ caseItem }: { caseItem: SupportCase }) {
                 {caseItem.description}
             </div>
             {caseItem.admin_notes && (
-                <div style={{ marginTop: 8, padding: '8px 10px', background: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}`, borderRadius: 8, fontSize: 12, color: TEXT_TERTIARY }}>
+                <div style={{ marginTop: 8, padding: '8px 10px', background: SURFACE_2, border: `1px solid ${SURFACE_2_BORDER}`, borderRadius: 12, fontSize: 12, color: TEXT_TERTIARY }}>
                     <span style={{ fontWeight: 600, color: COPPER }}>Notes:</span> {caseItem.admin_notes}
                 </div>
             )}

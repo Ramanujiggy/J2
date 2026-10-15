@@ -44,7 +44,7 @@ export default function PrismSkinSheet({ open, onClose, onChange }: Props) {
           width: 460, maxWidth: '100%',
           background: '#17291F',
           border: '1px solid rgba(196,145,95,0.24)',
-          borderRadius: 22,
+          borderRadius: 16,
           padding: '34px 38px 30px',
           maxHeight: '90vh', overflowY: 'auto',
         }}
@@ -65,7 +65,7 @@ export default function PrismSkinSheet({ open, onClose, onChange }: Props) {
           type="button"
           onClick={onClose}
           style={{
-            width: '100%', height: 46, borderRadius: 13, marginTop: 26,
+            width: '100%', height: 46, borderRadius: 10, marginTop: 26,
             background: COPPER, color: '#12130e', border: 'none',
             fontSize: 14, fontWeight: 700, cursor: 'pointer',
           }}

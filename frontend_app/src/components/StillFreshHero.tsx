@@ -162,7 +162,7 @@ export default function StillFreshHero({ lastSession, onAddNotes, onDismiss }: P
   return (
     <div
       style={{
-        borderRadius: 20,
+        borderRadius: 16,
         minHeight: showCapture ? 236 : 190,
         overflow: 'hidden',
         border: '1px solid var(--j2-border-2)',
@@ -200,10 +200,10 @@ export default function StillFreshHero({ lastSession, onAddNotes, onDismiss }: P
           /* ── CAPTURE MODE ── */
           <>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: TEXT_TERTIARY, backgroundColor: SURFACE_2, padding: '5px 10px', borderRadius: 8 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: TEXT_TERTIARY, backgroundColor: SURFACE_2, padding: '5px 10px', borderRadius: 6 }}>
                 {lastSession.endedAgo}
               </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: COPPER, backgroundColor: 'rgba(196,145,95,0.16)', border: `1px solid ${COPPER_BORDER}`, padding: '5px 10px', borderRadius: 8 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: COPPER, backgroundColor: 'rgba(196,145,95,0.16)', border: `1px solid ${COPPER_BORDER}`, padding: '5px 10px', borderRadius: 6 }}>
                 <FlameIcon />
                 Still fresh
               </span>
@@ -235,7 +235,7 @@ export default function StillFreshHero({ lastSession, onAddNotes, onDismiss }: P
             style={{ touchAction: 'pan-y', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1 }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: TEXT_TERTIARY, backgroundColor: SURFACE_2, padding: '5px 10px', borderRadius: 8 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: TEXT_TERTIARY, backgroundColor: SURFACE_2, padding: '5px 10px', borderRadius: 6 }}>
                 From your library
               </span>
               <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: COPPER }}>

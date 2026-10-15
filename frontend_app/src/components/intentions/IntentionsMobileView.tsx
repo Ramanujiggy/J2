@@ -183,7 +183,7 @@ export default function IntentionsMobileView({
                     fontSize: 12, fontWeight: 600,
                     background: active ? 'rgba(196,145,95,0.16)' : 'var(--j2-surface-2)',
                     border: `1px solid ${active ? COPPER : 'var(--j2-border-1)'}`,
-                    borderRadius: 16,
+                    borderRadius: 999,
                     color: active ? PALE_YELLOW : 'rgba(255,255,255,0.55)',
                     whiteSpace: 'nowrap',
                   }}
@@ -304,7 +304,7 @@ export default function IntentionsMobileView({
                   )}
                   {/* Alignment + trained */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                    <div style={{ width: 24, height: 2, borderRadius: 1, backgroundColor: alignment.status === 'aligned' ? 'rgba(82,181,108,0.70)' : alignment.status === 'diverged' ? 'rgba(218,116,34,0.50)' : 'rgba(255,255,255,0.06)' }} />
+                    <div style={{ width: 24, height: 2, borderRadius: 2, backgroundColor: alignment.status === 'aligned' ? 'rgba(82,181,108,0.70)' : alignment.status === 'diverged' ? 'rgba(218,116,34,0.50)' : 'rgba(255,255,255,0.06)' }} />
                     {ambient ? (
                       <span style={{ fontSize: 11, fontFamily: 'var(--font-editorial)', fontStyle: 'italic', color: 'rgba(196,145,95,0.50)' }}>
                         Trained: {ambient}

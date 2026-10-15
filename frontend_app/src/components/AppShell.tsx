@@ -271,7 +271,7 @@ function MobileAppShell({ children }: Props) {
               left: 0,
               width: indicator.width,
               height: 2,
-              borderRadius: 1,
+              borderRadius: 2,
               backgroundColor: PALE_YELLOW,
               boxShadow: '0 0 8px rgba(242,228,168,0.6), 0 0 16px rgba(196,145,95,0.3)',
               transform: `translateX(${indicator.left}px)`,
@@ -384,7 +384,7 @@ function MobileAppShell({ children }: Props) {
                 <span
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    width: 34, height: 30, borderRadius: 9,
+                    width: 34, height: 30, borderRadius: 10,
                     background: isActive ? 'rgba(242,228,168,0.10)' : 'transparent',
                     transition: 'background 0.2s ease',
                   }}

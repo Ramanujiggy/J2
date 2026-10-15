@@ -282,7 +282,7 @@ export default function LocalVideoMigrationPrompt({ tags, attachVideo }: Props) 
                     marginTop: 16,
                     minHeight: 40,
                     padding: '8px 16px',
-                    borderRadius: 8,
+                    borderRadius: 10,
                     background: 'transparent',
                     border: '1px solid rgba(255,255,255,0.14)',
                     color: TEXT_SECONDARY,

@@ -185,7 +185,7 @@ function RelatedRow({ sessions, onOpen }: { sessions: SessionSummary[]; onOpen: 
                 padding: 22,
                 background: 'var(--j2-surface-2)',
                 border: '1px solid var(--j2-border-1)',
-                borderRadius: 14,
+                borderRadius: 16,
                 textAlign: 'left',
                 cursor: 'pointer',
                 transition: 'background 160ms ease, transform 160ms ease',

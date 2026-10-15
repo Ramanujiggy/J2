@@ -38,7 +38,7 @@ export default function StampCollectionPage() {
         </div>
 
         <div
-          style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW, borderRadius: 18, padding: 22 }}
+          style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_GLOW_BORDER}`, boxShadow: CARD_GLOW, borderRadius: 16, padding: 22 }}
         >
           <p style={{ fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: COPPER, marginBottom: 16 }}>
             ◇ {earnedCount} of {DIE_KEYS.length} struck

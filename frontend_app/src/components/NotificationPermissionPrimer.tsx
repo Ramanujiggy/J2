@@ -129,7 +129,7 @@ export default function NotificationPermissionPrimer({ open, onClose, onSubscrib
           backgroundColor: CARD_BG,
           border: `1px solid ${CARD_GLOW_BORDER}`,
           boxShadow: CARD_GLOW,
-          borderRadius: isDesktop ? 20 : '20px 20px 0 0',
+          borderRadius: isDesktop ? 16 : '16px 16px 0 0',
           width: '100%',
           maxWidth: 520,
           padding: '28px 24px 24px',
@@ -162,7 +162,7 @@ export default function NotificationPermissionPrimer({ open, onClose, onSubscrib
           style={{
             backgroundColor: SURFACE_2,
             border: `1px solid ${SURFACE_2_BORDER}`,
-            borderRadius: 14,
+            borderRadius: 12,
             padding: '12px 14px',
             marginBottom: 24,
           }}
@@ -199,7 +199,7 @@ export default function NotificationPermissionPrimer({ open, onClose, onSubscrib
                   textAlign: 'left',
                   backgroundColor: SURFACE_2,
                   border: `1px solid ${active ? COPPER_BORDER : SURFACE_2_BORDER}`,
-                  borderRadius: 14,
+                  borderRadius: 10,
                   padding: '14px 16px',
                   display: 'flex',
                   gap: 14,
@@ -274,7 +274,7 @@ export default function NotificationPermissionPrimer({ open, onClose, onSubscrib
               backgroundColor: blocked ? 'rgba(196,145,95,0.25)' : COPPER,
               color: blocked ? 'rgba(255,255,255,0.4)' : '#fff',
               fontSize: 14, fontWeight: 600,
-              borderRadius: 12, padding: '10px 18px',
+              borderRadius: 10, padding: '10px 18px',
               cursor: blocked || busy ? 'not-allowed' : 'pointer',
               opacity: busy ? 0.7 : 1,
             }}

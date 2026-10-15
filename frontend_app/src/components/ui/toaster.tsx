@@ -106,7 +106,7 @@ export function Toaster() {
             marginLeft: 'auto',
             marginRight: 'auto',
             transition: 'width 3s cubic-bezier(0.16, 1, 0.3, 1)',
-            borderRadius: 1,
+            borderRadius: 2,
           }}
         />
       </div>

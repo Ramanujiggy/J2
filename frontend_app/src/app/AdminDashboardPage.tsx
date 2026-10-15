@@ -311,7 +311,7 @@ export default function AdminDashboardPage() {
                                         padding: '6px 8px',
                                         background: SURFACE_2,
                                         border: `1px solid ${SURFACE_2_BORDER}`,
-                                        borderRadius: 8,
+                                        borderRadius: 10,
                                         color: TEXT_PRIMARY,
                                         fontSize: 13,
                                         textAlign: 'center',
@@ -661,7 +661,7 @@ function CaseRow({
                                     fontSize: 12,
                                     fontWeight: 600,
                                     padding: '6px 12px',
-                                    borderRadius: 8,
+                                    borderRadius: 10,
                                     cursor: caseItem.status === s ? 'default' : 'pointer',
                                     opacity: caseItem.status === s ? 0.55 : 1,
                                     background: caseItem.status === s ? STATUS_PILL_BG[s] : SURFACE_2,
@@ -708,7 +708,7 @@ function CaseRow({
                                 background: COPPER,
                                 color: '#fff',
                                 border: 'none',
-                                borderRadius: 8,
+                                borderRadius: 10,
                                 cursor: 'pointer',
                                 opacity: (savingNotes || notes === (caseItem.admin_notes ?? '')) ? 0.5 : 1,
                             }}
@@ -760,7 +760,7 @@ function UserRow({ user }: { user: AdminUserSummary }) {
                 gap: 12,
                 textDecoration: 'none',
                 color: 'inherit',
-                borderRadius: 8,
+                borderRadius: 10,
                 transition: 'background-color 160ms ease',
             }}
             onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)')}

@@ -371,7 +371,7 @@ export default function NotesPage() {
               return (
                 <div key={tagId} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '8px 12px', borderRadius: 8,
+                  padding: '8px 12px', borderRadius: 12,
                   backgroundColor: 'rgba(255,255,255,0.025)', border: 'none',
                 }}>
                   <div>
@@ -393,7 +393,7 @@ export default function NotesPage() {
           return (
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '8px 12px', borderRadius: 8, marginTop: 8,
+              padding: '8px 12px', borderRadius: 12, marginTop: 8,
               backgroundColor: 'rgba(255,255,255,0.025)', border: 'none',
             }}>
               <div>
@@ -415,7 +415,7 @@ export default function NotesPage() {
         {showTechniquePicker && (
           <div style={{
             marginTop: 10, maxHeight: 200, overflowY: 'auto',
-            backgroundColor: 'rgba(255,255,255,0.025)', borderRadius: 8, padding: '8px 10px',
+            backgroundColor: 'rgba(255,255,255,0.025)', borderRadius: 12, padding: '8px 10px',
           }}>
             <input
               autoFocus
@@ -454,7 +454,7 @@ export default function NotesPage() {
         {showSessionPicker && (
           <div style={{
             marginTop: 10, maxHeight: 220, overflowY: 'auto',
-            backgroundColor: 'rgba(255,255,255,0.025)', borderRadius: 8, padding: '8px 10px',
+            backgroundColor: 'rgba(255,255,255,0.025)', borderRadius: 12, padding: '8px 10px',
           }}>
             <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: TEXT_HINT, marginBottom: 8 }}>Recent sessions</p>
             {recentSessions.slice(0, 20).map(s => (
@@ -597,7 +597,7 @@ export default function NotesPage() {
         <>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
             <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: TEXT_HINT }}>Pinned</span>
-            <span style={{ flex: 1, height: 1, backgroundColor: 'rgba(196,145,95,0.2)', borderRadius: 1 }} />
+            <span style={{ flex: 1, height: 1, backgroundColor: 'rgba(196,145,95,0.2)', borderRadius: 2 }} />
           </div>
           {pinned.map(note => (
             <NoteRow key={note.id} note={note} onTap={() => openEditor(note)} onDelete={handleDelete} searchQuery={searchText} />
@@ -611,7 +611,7 @@ export default function NotesPage() {
           {pinned.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 20, marginBottom: 10 }}>
               <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: TEXT_HINT }}>Recent</span>
-              <span style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 1 }} />
+              <span style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 2 }} />
             </div>
           )}
           {(() => {
@@ -789,7 +789,7 @@ function NoteRow({ note, onTap, onDelete, searchQuery = '' }: { note: TrainingNo
                   fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
                   color: 'rgba(196,145,95,0.60)',
                   backgroundColor: 'rgba(196,145,95,0.08)',
-                  borderRadius: 4, padding: '1px 5px',
+                  borderRadius: 6, padding: '1px 5px',
                 }}
               >
                 {tag}

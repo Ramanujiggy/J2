@@ -75,7 +75,7 @@ export default function OnboardingBeltPage() {
                   textAlign: 'left',
                   backgroundColor: SURFACE_2,
                   border: `1px solid ${active ? COPPER : SURFACE_2_BORDER}`,
-                  borderRadius: 14,
+                  borderRadius: 10,
                   padding: '14px 16px',
                   display: 'flex', alignItems: 'center', gap: 14,
                   cursor: 'pointer',
@@ -87,7 +87,7 @@ export default function OnboardingBeltPage() {
                 <div
                   aria-hidden
                   style={{
-                    width: 26, height: 14, borderRadius: 3,
+                    width: 26, height: 14, borderRadius: 6,
                     background: b.tint,
                     border: `1px solid rgba(255,255,255,0.08)`,
                     flexShrink: 0,
@@ -128,7 +128,7 @@ export default function OnboardingBeltPage() {
             backgroundColor: selected ? COPPER : 'rgba(196,145,95,0.25)',
             color: selected ? '#fff' : 'rgba(255,255,255,0.4)',
             fontSize: 16, fontWeight: 600,
-            padding: '14px 24px', borderRadius: 12,
+            padding: '14px 24px', borderRadius: 10,
             border: `1px solid ${selected ? COPPER_BORDER : 'transparent'}`,
             cursor: selected === null || busy ? 'not-allowed' : 'pointer',
             width: '100%',

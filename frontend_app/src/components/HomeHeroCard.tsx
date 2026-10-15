@@ -39,7 +39,7 @@ const SWIPE_THRESHOLD_PX = 50;
 const CARD_STYLE: React.CSSProperties = {
   position: 'relative',
   height: CARD_HEIGHT,
-  borderRadius: 18,
+  borderRadius: 16,
   border: '1px solid rgba(255,255,255,0.1)',
   background: 'radial-gradient(120% 130% at 20% -10%, #1d3b2b 0%, #14291e 55%, #0f2016 100%)',
   padding: 16,
@@ -50,7 +50,7 @@ const CARD_STYLE: React.CSSProperties = {
 
 const PILL_STYLE: React.CSSProperties = {
   padding: '6px 12px',
-  borderRadius: 20,
+  borderRadius: 999,
   background: 'rgba(255,255,255,0.07)',
   fontSize: 10.5,
   fontWeight: 700,
@@ -70,7 +70,7 @@ const MICRO_LABEL: React.CSSProperties = {
 const CTA_STYLE: React.CSSProperties = {
   height: 44,
   padding: '0 18px',
-  borderRadius: 11,
+  borderRadius: 10,
   background: BRAND_ORANGE,
   color: '#fff',
   fontWeight: 600,
@@ -147,14 +147,14 @@ function Peeks({ onTurn }: { onTurn?: () => void }) {
   // Without it they stay decorative (mobile turns the deck by swiping).
   const far: React.CSSProperties = {
     position: 'absolute', right: -15, top: 24, bottom: 24, width: 26,
-    borderRadius: 14,
+    borderRadius: 16,
     border: '1px solid rgba(255,255,255,0.06)', borderRight: 'none',
     background: 'linear-gradient(to right, #122419, #0f2016)',
     opacity: 0.5,
   };
   const near: React.CSSProperties = {
     position: 'absolute', right: -8, top: 14, bottom: 14, width: 26,
-    borderRadius: 14,
+    borderRadius: 16,
     border: '1px solid rgba(255,255,255,0.1)', borderRight: 'none',
     background: 'linear-gradient(to right, #162c20, #12241a)',
     opacity: 0.9,
@@ -543,7 +543,7 @@ function PastIntentionCard({ intention, techniques, onOpen }: {
               key={t.id}
               style={{
                 fontSize: 11, fontWeight: 600,
-                padding: '4px 10px', borderRadius: 20,
+                padding: '4px 10px', borderRadius: 999,
                 border: '1px solid rgba(196,145,95,0.35)',
                 color: COPPER, whiteSpace: 'nowrap',
               }}

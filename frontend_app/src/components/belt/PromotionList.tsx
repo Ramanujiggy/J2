@@ -79,7 +79,7 @@ export default function PromotionList({ entries, onRemove, removingId, size = 'f
                 className="touch-manipulation"
                 style={{
                   fontSize: 10.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
-                  padding: '4px 8px', borderRadius: 7, whiteSpace: 'nowrap',
+                  padding: '4px 8px', borderRadius: 10, whiteSpace: 'nowrap',
                   border: isArmed ? '1px solid rgba(224,117,96,0.5)' : '1px solid transparent',
                   background: isArmed ? 'rgba(224,117,96,0.12)' : 'none',
                   color: isArmed ? '#E07560' : 'rgba(255,255,255,0.30)',

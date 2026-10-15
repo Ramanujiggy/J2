@@ -41,7 +41,7 @@ export default function Last30IntensityCard({ sessions }: Props) {
           const c = INT_COLORS[(i + 1) as 1 | 2 | 3 | 4 | 5];
           return (
             <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: '100%', height: h, background: c, borderRadius: 5, boxShadow: `0 0 12px ${c}60` }} />
+              <div style={{ width: '100%', height: h, background: c, borderRadius: 2, boxShadow: `0 0 12px ${c}60` }} />
               <div style={{ fontSize: 13, color: TEXT_TERTIARY, letterSpacing: '0.1em' }}>{n}</div>
             </div>
           );

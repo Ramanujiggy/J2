@@ -227,7 +227,7 @@ export default function PromotionSheet({
             onClick={onClose}
             disabled={saving}
             style={{
-              flex: 1, height: 46, borderRadius: 13,
+              flex: 1, height: 46, borderRadius: 10,
               border: '1px solid rgba(255,255,255,0.1)',
               background: 'none', color: TEXT_SECONDARY,
               fontSize: 14, fontWeight: 700, cursor: 'pointer',
@@ -240,7 +240,7 @@ export default function PromotionSheet({
             onClick={commit}
             disabled={saving}
             style={{
-              flex: 1, height: 46, borderRadius: 13,
+              flex: 1, height: 46, borderRadius: 10,
               background: COPPER, color: '#12130e', border: 'none',
               fontSize: 14, fontWeight: 700,
               cursor: saving ? 'default' : 'pointer',

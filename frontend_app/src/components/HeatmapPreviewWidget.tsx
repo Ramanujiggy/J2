@@ -170,7 +170,7 @@ export default function HeatmapPreviewWidget({ sessions }: HeatmapPreviewWidgetP
                   key={`${wIdx}-${dIdx}`}
                   className={isStreak ? 'j2-streak-cell' : undefined}
                   style={{
-                    borderRadius: 3,
+                    borderRadius: 2,
                     backgroundColor: bg,
                     ...(isToday ? {
                       outline: '1.5px solid rgba(196,145,95,0.7)',

@@ -23,7 +23,7 @@ interface Props {
 export default function EffortMeter({ value, onChange }: Props) {
   const color = INT_COLORS[(value as 1 | 2 | 3 | 4 | 5)] ?? INT_COLORS[3];
   return (
-    <div style={{ background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, padding: '14px 14px 12px' }}>
+    <div style={{ background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '14px 14px 12px' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14, gap: 10 }}>
         <span style={{ fontFamily: FONT_EDITORIAL, fontSize: 23, fontWeight: 600, letterSpacing: '-0.01em', color }}>
           {INT_LABELS[value] ?? ''}
@@ -46,7 +46,7 @@ export default function EffortMeter({ value, onChange }: Props) {
               style={{
                 flex: 1,
                 height: h,
-                borderRadius: 5,
+                borderRadius: 2,
                 background: on ? color : TEXT_DISABLED,
                 border: `1px solid ${on ? color : TEXT_DISABLED}`,
                 opacity: on ? Number((0.5 + 0.5 * level / value).toFixed(2)) : 1,
