@@ -52,50 +52,147 @@ lighter green surfaces (`#152E22`).
 | `PALE_YELLOW` | `#F2E4A8` | All page titles, nav active labels, stat numbers |
 | `COPPER` | `#C4915F` | Card borders, wave SVG arcs, decorative strokes |
 | `COPPER_BORDER` | `rgba(196,145,95,0.45)` | Standard card border (45% opacity) |
+| `SAGE` | `#8FB56A` | Journal-page time markers — entry dates, elapsed-time readouts, session-type marker. See role note below |
 | `brand.orange` | `#DA7422` | Active button state, CTA, selected pill |
-| `brand.green` | `#6FD08C` | Success, Gi tag, high-intensity heatmap cell |
-| `brand.light-green` | `#CDDFA0` | Light / easy intensity cells |
+| `brand.green` | `#6FD08C` | **Legacy.** Live only as the 12/16-week gate colour in `EIGHT_GATES`. Not success (use `STATUS_SUCCESS`), not heatmap intensity (use `INT_COLORS`) |
+| `brand.light-green` | `#CDDFA0` | **Legacy.** Live only as a defensive `??` fallback behind `INT_COLORS`. Do not reach for it in new work |
 | `brand.dark` | `#0D1A14` | Same as PAGE_BG — Tailwind alias |
 
-### Intention Category Colors
+**The `SAGE` role.** Sage marks *when* something happened. It is what makes a
+list read as journal pages rather than table rows, so it stays on time markers
+and nothing else:
 
-Used on category badges (text + `20` opacity background):
+- entry and session dates (`HomeEntryList`, `IntentionsDesk`, `JournalDesktop`)
+- elapsed-time readouts (`SessionVideoBlock` timestamps, `PositionTagger` tagged-coverage)
+- the session-type marker (`JournalDesktop` type key, the `Session` eyebrow label)
 
-| Category | Color |
-|----------|-------|
-| technical | `#60a5fa` (blue) |
-| physical | `#f87171` (red) |
-| mental | `#a78bfa` (violet) |
-| positional | `#34d399` (emerald) |
-| competitive | `#fbbf24` (amber) |
+Sage is never a border, never a CTA, never body text, and never a status. If
+what you are colouring is not a date, a duration, or a session-type marker,
+sage is the wrong token. Import it from `theme.ts` — `#8FB56A` written as a
+literal is a failure even where the role is correct.
+
+### Intention Categories — No Colour Encoding
+
+**Retired — do not cite, do not extend.** The shipped palette
+(`CATEGORY_COLORS` in `src/lib/constants.ts`) is a Tailwind rainbow that
+contradicts this document and `CLAUDE.md`:
+
+| Category | Shipped value | Why it is wrong |
+|----------|---------------|-----------------|
+| technical | `#60a5fa` | Blue. `CLAUDE.md` permits no blue except `PRESTIGE_BLUE` on streaks |
+| mental | `#a78bfa` | Violet. Cool-toned; §7 forbids introducing purple |
+| physical | `#f87171` | The retired cold red — see Status / Feedback above |
+| positional | `#34d399` | Tailwind emerald; outside the warm forest register |
+| competitive | `#fbbf24` | Tailwind amber; outside the register |
+| presence | `#4BA862` | Ships today, never documented here |
+
+**The replacement is not another palette. Category is no longer encoded as
+colour at all.** Decided by the founder on 2026-10-13, resolving JOU-40 item 2.
+
+The rule:
+
+```
+background: rgba(196,145,95,0.12)        (COPPER at 12% — one value, all six categories)
+border:     1px solid rgba(196,145,95,0.45)  (COPPER_BORDER)
+color:      rgba(242,228,168,0.70)       (PALE_YELLOW at 70%)
+padding:    2px 6px
+border-radius: 999px
+font:       10px / 500 / capitalize
+```
+
+**The label carries the distinction.** `technical`, `physical`, `mental`,
+`positional`, `competitive`, `presence` are six readable words; they do not need
+six hues to be told apart. Do not reintroduce a per-category colour, a glyph
+set, or a hue ramp "just for the pill".
+
+Why it went this way, so it is not relitigated:
+
+- The warm forest register is already fully spoken for. A category swatch may not
+  collide with `PALE_YELLOW` (titles), `BRAND_ORANGE` (the only colour allowed on
+  a tappable affordance), `SAGE` (time markers), any `STATUS_*` value, or any
+  `INT_COLORS` step — or the pill reads as a title, a button, a date, an error,
+  or an intensity. Six *mutually* distinguishable warm hues cannot be drawn from
+  what is left, so any six-hue set would have pairs that read alike at 10px.
+- Six-colour coding is a dashboard idiom. Journada is a journal. A colour key the
+  reader has to learn is a tracker's affordance, not a record's.
+
+`CATEGORY_COLORS` in `src/lib/constants.ts` is therefore slated for deletion, not
+revision — see the code-side normalisation issue linked from JOU-40. Its two
+consumers (`JournalEntryPage.tsx:226`, `IntentionsMobileView.tsx:258`) move to
+the single copper pill above.
 
 ### Intensity / Heatmap Scale
 
-| Intensity | Color | Label |
-|-----------|-------|-------|
-| None / rest | `#0A1610` | — |
-| 1–2 | `#CDDFA0` | Very Light / Light |
-| 3 | `#6FD08C` | Moderate |
-| 4–5 | `#DA7422` | Hard / Max Effort |
+Single source of truth: `INT_COLORS` / `INT_LABELS` in `theme.ts` (aliased as
+`INTENSITY_COLOR` in `sessionUtils.ts`). The ladder walks **moss → champagne →
+copper**, staying inside the brand register. The earlier lime-green →
+fluorescent-orange ramp was deliberately abandoned — do not reintroduce it.
+
+| Intensity | Token | Color | Label |
+|-----------|-------|-------|-------|
+| 0 | `INT_COLORS[0]` | `rgba(255,255,255,0.06)` | — (rest / empty swatch) |
+| 1 | `INT_COLORS[1]` | `#5E8A5C` | Drill |
+| 2 | `INT_COLORS[2]` | `#7BA177` | Light |
+| 3 | `INT_COLORS[3]` | `#A8B97A` | Steady |
+| 4 | `INT_COLORS[4]` | `#D4B86A` | Intense |
+| 5 | `INT_COLORS[5]` | `#C4915F` | Hard roll (= `COPPER`) |
+
+Calendar empty / future cell *backgrounds* remain `HEATMAP_REST` and
+`HEATMAP_FUTURE` from the Background Surfaces table above.
 
 ### Text Scale
 
-| Role | Value |
-|------|-------|
-| Primary title | `#F2E4A8` (PALE_YELLOW) |
-| Body text | `rgba(255,255,255,0.80)` |
-| Secondary / labels | `rgba(255,255,255,0.60)` |
-| Muted / metadata | `rgba(255,255,255,0.35)` |
-| Placeholder | `rgba(255,255,255,0.20)` |
-| Disabled / ghost | `rgba(255,255,255,0.15)` |
+Import these from `theme.ts` — a raw `rgba(255,255,255,…)` as a text colour is a
+failure, exactly like a raw hex. The previous version of this table listed five
+values that the app had already abandoned (`0.80` had 8 uses while the
+undocumented `0.40` had 63), which made the scale unenforceable. The values
+below instead ratify the scale 13 files had already converged on by hand.
+
+| Token | Value | Role |
+|-------|-------|------|
+| `PALE_YELLOW` | `#F2E4A8` | Titles, stat numbers (not an opacity — see Accent & Brand) |
+| `TEXT_PRIMARY` | `rgba(255,255,255,0.92)` | Emphasis values, read-view body |
+| `TEXT_BODY` | `rgba(255,255,255,0.80)` | Long-form prose, journal body |
+| `TEXT_SECONDARY` | `rgba(255,255,255,0.66)` | Field labels, sub-values |
+| `TEXT_TERTIARY` | `rgba(255,255,255,0.46)` | Metadata, timestamps, counts |
+| `TEXT_HINT` | `rgba(255,255,255,0.26)` | Placeholders, empty-state hints |
+| `TEXT_DISABLED` | `rgba(255,255,255,0.15)` | Disabled / ghost |
+
+**Why these exact values.** `TEXT_PRIMARY` / `TEXT_SECONDARY` / `TEXT_TERTIARY` /
+`TEXT_HINT` already exist as copy-pasted local `const` declarations in 13
+component files, and 11 of them agree on `0.66` / `0.46`. This table adopts that
+consensus rather than inventing a new ramp. `LandingPage.tsx` is the one file
+that drifted — it defines the *same names* at `0.90` / `0.60` / `0.40`, which is
+precisely the failure real tokens prevent.
+
+**Normalising an off-scale value:** round to the nearest step. Where a value sits
+equidistant between two steps, take the lighter one — contrast on `CARD_BG` is
+already tight at the bottom of the scale.
+
+Opacity is for *white* text only. Champagne text that needs de-emphasis uses
+`rgba(242,228,168,…)` (see the narrative-line row in §3), not a `TEXT_*` token.
 
 ### Status / Feedback
 
-| State | Color |
-|-------|-------|
-| Error | `#f87171` (red-400) |
-| Success toast | `brand.orange` `#DA7422` |
-| Offline warning | amber / `rgba(251,191,36,…)` |
+Import these from `theme.ts` — never write the literal. The palette stays inside
+the warm forest register: error is a desaturated terracotta, **not** Tailwind
+cold-red. `#f87171` / `rgba(248,113,113,…)` / `text-red-400` are retired; the
+`STATUS_*` tokens exist specifically to replace them.
+
+| State | Token | Value |
+|-------|-------|-------|
+| Error / destructive | `STATUS_ERROR` | `#E07560` |
+| Error background | `STATUS_ERROR_BG` | `rgba(224,117,96,0.10)` |
+| Error border | `STATUS_ERROR_BORDER` | `rgba(224,117,96,0.30)` |
+| Success / saved / sent | `STATUS_SUCCESS` | `#A8B97A` (moss-3 from `INT_COLORS`) |
+| Success background | `STATUS_SUCCESS_BG` | `rgba(168,185,122,0.10)` |
+| Success border | `STATUS_SUCCESS_BORDER` | `rgba(168,185,122,0.30)` |
+| Info / noteworthy notice | `STATUS_INFO` | `#C4915F` (= `COPPER`) |
+| Info background | `STATUS_INFO_BG` | `rgba(196,145,95,0.10)` |
+| Info border | `STATUS_INFO_BORDER` | `rgba(196,145,95,0.30)` |
+
+Offline / queued state uses the copper info register (`OfflineBanner.tsx`), not
+amber. Tailwind exposes the error colour as `error` (`#E07560`) for class strings.
 
 ---
 
@@ -172,7 +269,7 @@ one of these two tiers, it is probably not an uppercase label.
 background: #DA7422  (brand.orange)
 text: white
 padding: 8px 16px  (py-2 px-4)
-border-radius: 8px  (rounded-lg)
+border-radius: 10px  (Control band — §5)
 font: 14px / 500
 hover: rgba(218,116,34,0.90)
 disabled: opacity-50
@@ -183,17 +280,20 @@ disabled: opacity-50
 background: rgba(255,255,255,0.10)
 text: rgba(255,255,255,0.60)
 padding: 8px 16px
-border-radius: 8px
+border-radius: 10px
 hover: rgba(255,255,255,0.20)
 ```
 
 **Destructive / Danger**
 ```
-background: rgba(248,113,113,0.15)
-text: #f87171
-border: 1px solid rgba(248,113,113,0.30)
-border-radius: 8px
+background: rgba(224,117,96,0.10)        (STATUS_ERROR_BG)
+text: #E07560                            (STATUS_ERROR)
+border: 1px solid rgba(224,117,96,0.30)  (STATUS_ERROR_BORDER)
+border-radius: 10px
 ```
+Import the three `STATUS_ERROR*` tokens rather than retyping the values. This is
+the shipped pattern in `ProfilePage`, `ProfileDesktop`, `LoginPage`,
+`ReportProblemModal`, `AdminDashboardPage`, and `AdminUserDetailPage`.
 
 **Ghost / Text-only**
 ```
@@ -205,9 +305,11 @@ padding: 10px 16px
 
 **Pill / Toggle (time range, view tabs)**
 ```
-Active:   background rgba(218,116,34,0.80), text white, border-radius 6px
-Inactive: background transparent, text rgba(255,255,255,0.50), border-radius 6px
+Active:   background rgba(218,116,34,0.80), text white, border-radius 10px
+Inactive: background transparent, text rgba(255,255,255,0.50), border-radius 10px
 ```
+A toggle is tappable, so it takes the Control band (`10`) — not the Badge band
+(`6`). §5's "interactive beats containing" rule decides this.
 
 ### Cards
 
@@ -229,7 +331,7 @@ background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 20%),
 ```
 background: rgba(255,255,255,0.10)
 border: 1px solid rgba(255,255,255,0.10)
-border-radius: 8px  (rounded-lg)
+border-radius: 10px  (Control band — §5)
 padding: 10px 16px  (py-2.5 px-4)
 text: white
 placeholder: rgba(255,255,255,0.30)
@@ -264,6 +366,18 @@ Modal box:
   animation: j2-modal-in 400ms cubic-bezier(0.16,1,0.3,1) 80ms both
 ```
 
+**Sheets are modals.** There is no separate full-bleed, slide-up, or drawer
+surface class in Journada. A panel that covers the screen edge-to-edge, slides
+up from the bottom, or anchors to an edge is a modal and conforms to the box
+above: centred horizontally, `max-width: 28rem` (or `42rem` for the large
+variant), `border-radius: 16px`, `COPPER_BORDER`, on the blurred
+`rgba(13,26,20,0.85)` backdrop with `items-start` + `overflow-y: auto`.
+
+A component named `*Sheet` is not exempt — the name describes where it came
+from, not a different spec. Full-bleed panels read as a native OS surface rather
+than an object resting on the page, which is the opposite of the "card floating
+on forest" model everything else follows.
+
 ### Navigation
 
 **Mobile — bottom tab bar**
@@ -297,12 +411,17 @@ Rail items (top to bottom): Today, Journal, Intentions, Atlas, Profile, Admin
 ### Badges / Category Pills
 
 ```
-background: {categoryColor}20  (color at 12.5% opacity)
-color: {categoryColor}
+background: rgba(196,145,95,0.12)            (COPPER at 12%)
+border: 1px solid rgba(196,145,95,0.45)      (COPPER_BORDER)
+color: rgba(242,228,168,0.70)                (PALE_YELLOW at 70%)
 padding: 2px 6px
-border-radius: 9999px  (rounded-full)
+border-radius: 999px  (Pill band — §5)
 font: 10px / 500 / capitalize
 ```
+
+**One pill, all six categories.** There is no `{categoryColor}` — the label
+carries the distinction. See §2 *Intention Categories — No Colour Encoding* for
+the decision and why it is not up for relitigation.
 
 ### Skill Tag Buttons (multi-select)
 
@@ -312,7 +431,7 @@ naturally on narrow mobile widths.
 ### Heatmap Cells
 
 ```
-border-radius: 3–4px
+border-radius: 2px  (Micro band — §5)
 min-height: 14px (mobile) / 16px (desktop)
 transition: opacity 200ms
 Color: see Intensity scale above
@@ -323,7 +442,7 @@ Today: pulsing copper border (j2-today-pulse animation)
 
 ```
 background: rgba(255,255,255,0.05)
-border-radius: 8px
+border-radius: inherit from the element it stands in for  (§5)
 animation: j2-shimmer 1.2s ease-out  (shimmer sweep)
 ```
 
@@ -364,13 +483,49 @@ through. Never use white space as separation; use the dark forest as breathing r
 
 ### Border Radius Scale
 
-| Size | Value | Use |
-|------|-------|-----|
-| Micro | 3–4px | Heatmap cells |
-| Small | 6px (`rounded`) | Pill toggle states, small badges |
-| Standard | 8px (`rounded-lg`) | Buttons, inputs, small cards |
-| Card | 16px (`rounded-2xl`) | All cards and modals |
-| Full pill | 9999px (`rounded-full`) | Category badges, filter chips |
+**Six bands, assigned by role.** This table replaces the earlier
+3–4 / 6 / 8 / 16 / 9999 scale, which described neither the app nor any
+deliberate decision — it predated most of the UI. The bands below were chosen
+from the shipped distribution (see note), so the common case is already correct
+and the rule is enforceable.
+
+| Band | Value | Role — what it goes on |
+|------|-------|------------------------|
+| Micro | `2` | Heatmap cells, hairline meters, progress fills |
+| Badge | `6` | Small static badges, inline chips that are not pills |
+| Control | `10` | Anything the finger lands on: buttons, inputs, selects, textareas, icon buttons, tag/toggle buttons |
+| Container | `12` | Inset panels inside a card — info boxes, grouped rows, sub-surfaces |
+| Card | `16` | Cards, modals, sheets (see §4 Modals / Dialogs) |
+| Pill | `999` | Fully-rounded pills: category badges, filter chips, avatars |
+
+Rules for applying it:
+
+- **Interactive beats containing.** If an element is both tappable and a
+  container, it is a Control (`10`), not a Container (`12`).
+- **Concentric nesting wins over the band.** A child inside a `16` card with
+  tight padding may take the next band down to stay concentric. That is the one
+  sanctioned reason to deviate, and only to an adjacent band.
+- **Skeletons inherit** the radius of the element they stand in for, not a fixed
+  value.
+- **Write the number, not a Tailwind alias.** `rounded-lg` is `8`, which is no
+  longer a band. Inline `borderRadius` is the shipped convention here.
+- **Pill is `999`, not `9999`.** Both clamp identically; `999` is what the app
+  writes in all 23 pill sites and there is no reason to carry two spellings.
+
+> **Distribution this was derived from** (`borderRadius: N` across
+> `frontend_app/src/**/*.tsx` on `main`, 270 declarations, 23 distinct values):
+> `10`×39, `8`×33, `12`×26, `999`×23, `2`×23, `16`×22, `14`×19, `18`×11,
+> `13`×11, `1`×11, `4`×9, `6`×8, `20`×7, then 10 values with ≤4 uses each.
+> The six bands cover **141 of 270**. The remaining **129 are off-band** and are
+> to be normalised — not left as precedent. Of those, `8`×33 is a single
+> systematic collapse into Control (`8` and `10` are used for the *same* roles
+> today, which is the clearest evidence of the drift); the other 96 are scattered
+> one-offs across 16 values.
+>
+> Normalisation is tracked as a code-side issue linked from JOU-40 and is **not**
+> something to do opportunistically mid-feature. There is no visual regression
+> coverage — neither `tsc` nor `vite build` catches a radius change — so it needs
+> a deliberate pass with on-device review, not a find-and-replace.
 
 ---
 
@@ -422,6 +577,10 @@ on card surfaces.
 - Don't apply `GLOW_*` as `box-shadow` — only `text-shadow` on text elements
 - Don't use `items-center` on modal backdrops — use `items-start` + `overflow-y-auto` so tall modals scroll rather than clip
 - Don't hardcode colors in component files — use theme tokens
+- Don't write `rgba(255,255,255,0.X)` as a text colour — use a `TEXT_*` token (§2 Text Scale)
+- Don't declare a token-named `const` locally (`const TEXT_SECONDARY = …`) — import it, or the same name drifts to different values across files
+- Don't build a full-bleed, slide-up, or drawer surface — a sheet is a modal and conforms to the modal box (§4)
+- Don't spend `SAGE` on anything that isn't a date, a duration, or a session-type marker
 - Don't add `resize` to textareas — always `resize-none` with auto-grow via `scrollHeight`
 - Don't use more than two fonts (Plus Jakarta Sans + Cormorant Garamond), and don't let the serif escape its two roles: upright = display, italic = one narrative line. Never serif on buttons, inputs, or inline values.
 - Don't use white or light backgrounds anywhere in the app shell
@@ -484,11 +643,14 @@ Card border:        rgba(196,145,95,0.45)
 Card shadow:        0 2px 4px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.35)
 Modal backdrop:     rgba(13,26,20,0.85) + blur(12px) saturate(1.2)
 Title text:         #F2E4A8  (+ GLOW_SOFT text-shadow)
-Body text:          rgba(255,255,255,0.80)
-Muted text:         rgba(255,255,255,0.35)
+Body text:          rgba(255,255,255,0.80)  (TEXT_BODY)
+Label text:         rgba(255,255,255,0.66)  (TEXT_SECONDARY)
+Metadata text:      rgba(255,255,255,0.46)  (TEXT_TERTIARY)
+Date / duration:    #8FB56A  (SAGE — time markers only)
 Active / CTA:       #DA7422  (brand.orange)
-Success / Gi:       #6FD08C  (brand.green)
-Light / easy:       #CDDFA0  (brand.light-green)
+Error:              #E07560  (STATUS_ERROR)
+Success / saved:    #A8B97A  (STATUS_SUCCESS)
+Intensity ladder:   #5E8A5C → #7BA177 → #A8B97A → #D4B86A → #C4915F  (INT_COLORS 1–5)
 Copper border:      #C4915F  (COPPER)
 ```
 
@@ -504,7 +666,7 @@ Copper border:      #C4915F  (COPPER)
 > `<h2>` in `#F2E4A8`, 24px bold, `tracking-tight`, `text-shadow: 0 0 14px rgba(242,228,168,0.3), 0 0 30px rgba(242,228,168,0.14)`.
 
 **Build a primary button:**
-> `background: #DA7422`, white text, `padding: 10px 24px`, `border-radius: 8px`,
+> `background: #DA7422`, white text, `padding: 10px 24px`, `border-radius: 10px`,
 > `font-size: 14px`, `font-weight: 500`. Hover: `rgba(218,116,34,0.90)`. Disabled: `opacity: 0.50`.
 
 **Build a modal:**
@@ -512,11 +674,13 @@ Copper border:      #C4915F  (COPPER)
 > Box: `background: #152E22; border: 1px solid rgba(196,145,95,0.45); border-radius: 16px; width: 100%; max-width: 28rem; max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem); overflow-y: auto; padding: 24px`.
 
 **Build an input:**
-> `background: rgba(255,255,255,0.10); border: 1px solid rgba(255,255,255,0.10); border-radius: 8px; padding: 10px 16px; color: white; placeholder: rgba(255,255,255,0.30)`. Focus: `outline: none; box-shadow: 0 0 0 2px #DA7422`.
+> `background: rgba(255,255,255,0.10); border: 1px solid rgba(255,255,255,0.10); border-radius: 10px; padding: 10px 16px; color: white; placeholder: rgba(255,255,255,0.26)` (`TEXT_HINT`). Focus: `outline: none; box-shadow: 0 0 0 2px #DA7422`.
 
 **Build a category badge:**
-> `background: {color}20; color: {color}; padding: 2px 6px; border-radius: 9999px; font-size: 10px; font-weight: 500; text-transform: capitalize`.
-> Category colors — technical: `#60a5fa`, physical: `#f87171`, mental: `#a78bfa`, positional: `#34d399`, competitive: `#fbbf24`.
+> `background: rgba(196,145,95,0.12); border: 1px solid rgba(196,145,95,0.45); color: rgba(242,228,168,0.70); padding: 2px 6px; border-radius: 999px; font-size: 10px; font-weight: 500; text-transform: capitalize`.
+> **There is no `{color}` to fill in.** One copper pill serves all six
+> categories; the label carries the distinction. Do not reintroduce a
+> per-category hue — see §2 *Intention Categories — No Colour Encoding*.
 
 **Build a mobile table → card list:**
 > On mobile (`< 640px`): each row is `rounded-xl bg-white/[0.03] border border-white/[0.07] px-3 py-3 mb-2`.
