@@ -24,6 +24,7 @@ import { toDateString, addDays } from '../lib/sessionUtils.ts';
 import {
   findUnfinishedEntry,
   findMemoryEntry,
+  findPromotionAnniversary,
   buildRecentEntries,
   buildTechniqueCards,
   findRecentIntentions,
@@ -37,6 +38,7 @@ import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import { useStamps } from '../hooks/useStamps.ts';
 import SealRevealSheet from '../components/seal/SealRevealSheet.tsx';
 import { STAMP_DIES } from '../lib/stampDies.ts';
+import { useBeltHistory } from '../hooks/useBeltHistory.ts';
 
 // ── PathAheadPage ──────────────────────────────────────────────────────────
 
@@ -140,6 +142,13 @@ export default function PathAheadPage() {
   const memoryEntry = useMemo(
     () => findMemoryEntry(allSessions, new Date()),
     [allSessions],
+  );
+
+  // A promotion tied on this day in an earlier year leads the hero deck.
+  const { entries: promotions } = useBeltHistory();
+  const anniversary = useMemo(
+    () => findPromotionAnniversary(promotions, allSessions, new Date()),
+    [promotions, allSessions],
   );
 
   // Desktop's margin column carries a second memory beside the hero's. Run
@@ -335,6 +344,7 @@ export default function PathAheadPage() {
         totalSessions={totalSessions}
         unfinishedEntry={unfinishedEntry}
         memoryEntry={memoryEntry}
+        anniversary={anniversary}
         marginMemory={marginMemory}
         recentEntries={recentEntries}
         portraitShapes={portraitShapes}
@@ -363,6 +373,7 @@ export default function PathAheadPage() {
       totalSessions={totalSessions}
       unfinishedEntry={unfinishedEntry}
       memoryEntry={memoryEntry}
+      anniversary={anniversary}
       recentEntries={recentEntries}
       portraitShapes={portraitShapes}
       intentionsEnabled={intentionsEnabled}

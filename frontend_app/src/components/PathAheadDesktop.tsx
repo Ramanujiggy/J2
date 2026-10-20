@@ -27,7 +27,7 @@ import DesktopPathAheadSkeleton from './DesktopPathAheadSkeleton.tsx';
 import RepRouletteFab from './RepRouletteFab.tsx';
 import { COPPER, FONT_EDITORIAL, PALE_YELLOW, BRAND_ORANGE, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_TERTIARY, TEXT_HINT } from '../lib/theme.ts';
 import { excerptOf } from '../lib/homeViewModel.ts';
-import type { MemoryEntry, RecentEntry, TechniqueCard } from '../lib/homeViewModel.ts';
+import type { MemoryEntry, PromotionAnniversary, RecentEntry, TechniqueCard } from '../lib/homeViewModel.ts';
 import type { Intention, PillarDistribution, SessionSummary, UserTag } from '../types/api.ts';
 
 const HAIRLINE       = '1px solid rgba(255,255,255,0.06)';
@@ -95,6 +95,8 @@ interface Props {
   totalSessions: number;
   unfinishedEntry: SessionSummary | null;
   memoryEntry: MemoryEntry | null;
+  /** A promotion tied on this day in an earlier year. */
+  anniversary: PromotionAnniversary | null;
   /** A second, different memory for the margin — the hero already has one. */
   marginMemory: MemoryEntry | null;
   recentEntries: RecentEntry[];
@@ -116,6 +118,7 @@ export default function PathAheadDesktop({
   totalSessions,
   unfinishedEntry,
   memoryEntry,
+  anniversary,
   marginMemory,
   recentEntries,
   portraitShapes,
@@ -168,7 +171,8 @@ export default function PathAheadDesktop({
   // Mirrors HomeHeroCard's own deck assembly; a hint pointing at a single
   // card would be a lie.
   const deckSize =
-    (unfinishedEntry ? 1 : 0)
+    (anniversary ? 1 : 0)
+    + (unfinishedEntry ? 1 : 0)
     + (intentionsEnabled && activeIntention ? 1 : 0)
     + (memoryEntry ? 1 : 0)
     + techniqueCards.length
@@ -211,6 +215,7 @@ export default function PathAheadDesktop({
               <HomeHeroCard
                 unfinishedEntry={unfinishedEntry}
                 memoryEntry={memoryEntry}
+                anniversary={anniversary}
                 activeIntention={intentionsEnabled ? activeIntention : null}
                 intentionWeeksIn={intentionWeeksIn}
                 intentionTouchedCount={intentionTouchedCount}

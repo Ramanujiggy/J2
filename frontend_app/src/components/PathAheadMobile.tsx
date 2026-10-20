@@ -23,7 +23,7 @@ import HomeEntryList from './HomeEntryList.tsx';
 import HomePortrait from './HomePortrait.tsx';
 import RepRouletteFab from './RepRouletteFab.tsx';
 import PageContent from './PageContent.tsx';
-import type { MemoryEntry, RecentEntry, TechniqueCard } from '../lib/homeViewModel.ts';
+import type { MemoryEntry, PromotionAnniversary, RecentEntry, TechniqueCard } from '../lib/homeViewModel.ts';
 import type { Intention, PillarDistribution, SessionSummary, UserTag } from '../types/api.ts';
 
 interface Props {
@@ -31,6 +31,8 @@ interface Props {
   totalSessions: number;
   unfinishedEntry: SessionSummary | null;
   memoryEntry: MemoryEntry | null;
+  /** A promotion tied on this day in an earlier year. */
+  anniversary: PromotionAnniversary | null;
   recentEntries: RecentEntry[];
   portraitShapes: PillarDistribution[];
   /** Profile feature flag. When off, the intention card must not reach the
@@ -56,6 +58,7 @@ export default function PathAheadMobile({
   totalSessions,
   unfinishedEntry,
   memoryEntry,
+  anniversary,
   recentEntries,
   portraitShapes,
   intentionsEnabled,
@@ -117,6 +120,7 @@ export default function PathAheadMobile({
         <HomeHeroCard
           unfinishedEntry={unfinishedEntry}
           memoryEntry={memoryEntry}
+          anniversary={anniversary}
           activeIntention={intentionsEnabled ? activeIntention : null}
           intentionWeeksIn={intentionWeeksIn}
           intentionTouchedCount={intentionTouchedCount}

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   findUnfinishedEntry,
   findMemoryEntry,
+  findPromotionAnniversary,
   buildRecentEntries,
   excerptOf,
   isExcerptTruncated,
@@ -10,7 +11,7 @@ import {
   intentionTechniques,
   portraitDistributions,
 } from '../homeViewModel.ts';
-import type { Intention, SessionSummary, UserTag } from '../../types/api.ts';
+import type { BeltHistoryEntry, Intention, SessionSummary, UserTag } from '../../types/api.ts';
 
 const TODAY = new Date(2026, 6, 25); // Sat 25 Jul 2026 — local time, like the app
 
@@ -81,6 +82,16 @@ describe('findMemoryEntry — the resurfacing chain', () => {
     expect(found?.tier).toBe('year_ago_today');
     expect(found?.session.id).toBe('exact');
     expect(found?.label).toBe('A year ago today');
+  });
+
+  it('reaches further back for this day in an earlier year, nearest year first', () => {
+    const found = findMemoryEntry([
+      session({ id: 'three', date: '2023-07-25', notes: 'Three years back.' }),
+      session({ id: 'two',   date: '2024-07-25', notes: 'Two years back.' }),
+      session({ id: 'month', date: '2025-07-10', notes: 'Same month last year.' }),
+    ], TODAY);
+    expect(found?.session.id).toBe('two');
+    expect(found?.label).toBe('2 years ago today');
   });
 
   it('falls back to the same month last year, closest day-of-month first', () => {
@@ -323,5 +334,35 @@ describe('portraitDistributions', () => {
       session({ id: `s${i}`, date: '2026-07-01', pillar_distribution: { guard: 1 } }));
     expect(portraitDistributions(many)).toHaveLength(60);
     expect(portraitDistributions(many, 10)).toHaveLength(10);
+  });
+});
+
+describe('findPromotionAnniversary', () => {
+  const promo = (over: Partial<BeltHistoryEntry> & { id: string; promoted_at: string }): BeltHistoryEntry => ({
+    belt_rank: 'blue', stripes: 0, notes: null, session_id: null, ...over,
+  });
+
+  it('finds a promotion tied on this day in an earlier year', () => {
+    const found = findPromotionAnniversary([promo({ id: 'p', promoted_at: '2025-07-25' })], [], TODAY);
+    expect(found?.promotion.id).toBe('p');
+    expect(found?.label).toBe('A year ago today');
+    expect(found?.session).toBeNull();
+  });
+
+  it('ignores today, other days, and the current year', () => {
+    expect(findPromotionAnniversary([
+      promo({ id: 'today', promoted_at: '2026-07-25' }),
+      promo({ id: 'other', promoted_at: '2025-07-24' }),
+    ], [], TODAY)).toBeNull();
+  });
+
+  it('prefers the oldest promotion on the same day and links its session', () => {
+    const found = findPromotionAnniversary([
+      promo({ id: 'blue', promoted_at: '2023-07-25', session_id: 's1' }),
+      promo({ id: 'purple', promoted_at: '2025-07-25', belt_rank: 'purple' }),
+    ], [session({ id: 's1', date: '2023-07-25', notes: 'Tied on after class.' })], TODAY);
+    expect(found?.promotion.id).toBe('blue');
+    expect(found?.label).toBe('3 years ago today');
+    expect(found?.session?.id).toBe('s1');
   });
 });

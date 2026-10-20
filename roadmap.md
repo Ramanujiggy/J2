@@ -63,7 +63,7 @@ Cut items stay in their tables marked `[-]` with the reason, so the decision is 
 | `[-]` | **Goal tracking** | **Cut 2026-10-20: mat-hour targets are productivity framing; they measure volume, not the journey.** Original idea: Set a weekly or monthly mat-hours target. Show progress toward it on the Path Ahead summary card (e.g. "4.5 of 6h goal"). |
 | `[x]` | **Analytics custom date range** | `TimeRangeBar` component provides 7D/14D/30D/90D/180D/1Y presets plus a custom date-range picker (start + end date inputs). |
 | `[x]` | **Session search + filter** | `GET /api/sessions/search` endpoint with ILIKE text search + filter chips (gi/nogi, type, pillar, intensity). `SessionSearchPanel` integrated into CalendarPage behind a search toggle. Offline fallback via `filterSessionsLocal`. |
-| `[ ]` | **"On this day" resurfacing** | Core (Product Focus). Surface what happened on this date in past years (a belt promotion, a breakthrough entry) as the Home memory card on rest days. Builds on the existing memory card and on belt rank milestones. |
+| `[x]` | **"On this day" resurfacing** | Built 2026-10-20. Home's memory chain now reaches any earlier year on this day ("3 years ago today"), nearest year first, before falling back to the same month last year. A promotion tied on this day in an earlier year leads the hero deck as its own card (belt name, the words written that day, "Read it" when the promotion is linked to an entry). `findPromotionAnniversary()` / `AnniversaryCard`. |
 | `[x]` | **CSV data export** | `exportSessionsCsv()` and `exportIntentionsCsv()` on ProfilePage using PapaParse. Human-readable column headers, chronological sort. Mirrors the existing CSV import for data symmetry / trust. |
 
 ---

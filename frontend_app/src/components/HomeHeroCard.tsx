@@ -24,7 +24,8 @@ import { excerptOf, isExcerptTruncated } from '../lib/homeViewModel.ts';
 import { STAMP_DIES, bandDate } from '../lib/stampDies.ts';
 import SealStamp from './seal/SealStamp.tsx';
 import SealRevealSheet from './seal/SealRevealSheet.tsx';
-import type { MemoryEntry, TechniqueCard } from '../lib/homeViewModel.ts';
+import type { MemoryEntry, PromotionAnniversary, TechniqueCard } from '../lib/homeViewModel.ts';
+import { beltDisplayName, isBeltRank } from '../lib/beltCloth.ts';
 import type { Intention, SessionSummary, UserTag } from '../types/api.ts';
 
 /** Fixed across every card type — the page below must never jump on swipe.
@@ -348,6 +349,78 @@ function MemoryCard({ memory, onRead, onLogToday }: {
   );
 }
 
+/** A promotion tied on this day in an earlier year — MemoryCard's shape, with
+ *  the belt as the headline. "Read it" appears only when the promotion is
+ *  linked to the entry logged that day; otherwise logging today leads. */
+function AnniversaryCard({ anniversary, onRead, onLogToday }: {
+  anniversary: PromotionAnniversary;
+  onRead: (session: SessionSummary) => void;
+  onLogToday: () => void;
+}) {
+  const { promotion, session } = anniversary;
+  const rank = isBeltRank(promotion.belt_rank) ? promotion.belt_rank : 'white';
+  const tiedOn = new Date(promotion.promoted_at.slice(0, 10) + 'T00:00:00');
+  const words = promotion.notes?.trim() || (session ? excerptOf(session, 160) : null);
+
+  return (
+    <div style={CARD_STYLE}>
+      <CardHeader
+        pill={anniversary.label}
+        right={
+          <span style={{ ...MICRO_LABEL, color: COPPER }}>
+            Promotion
+          </span>
+        }
+      />
+
+      <div
+        style={{
+          fontFamily: FONT_EDITORIAL, fontSize: 24, fontWeight: 600,
+          color: PALE_YELLOW, marginTop: 16, lineHeight: 1.15,
+        }}
+      >
+        {beltDisplayName(rank, promotion.stripes)}
+        <span
+          style={{
+            display: 'block', fontSize: 14, fontWeight: 500,
+            color: TEXT_SECONDARY,
+            fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif',
+          }}
+        >
+          Tied on {tiedOn.getFullYear()}
+        </span>
+      </div>
+
+      <div
+        style={{
+          ...QUOTE_STYLE, fontSize: 16, marginTop: 12, maxWidth: 280,
+          display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+        }}
+      >
+        {words ?? 'The day the belt changed.'}
+      </div>
+
+      <div style={{ marginTop: 'auto', display: 'flex', gap: 8 }}>
+        {session ? (
+          <>
+            <button type="button" style={CTA_STYLE} onClick={() => onRead(session)}>
+              Read it <ArrowIcon />
+            </button>
+            <button type="button" style={GHOST_STYLE} onClick={onLogToday}>
+              Log today
+            </button>
+          </>
+        ) : (
+          <button type="button" style={CTA_STYLE} onClick={onLogToday}>
+            Log today <ArrowIcon />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function IntentionCard({ intention, weeksIn, touchedCount, onOpen }: {
   intention: Intention;
   weeksIn: number;
@@ -620,6 +693,8 @@ function ordinal(n: number): string {
 interface Props {
   unfinishedEntry: SessionSummary | null;
   memoryEntry: MemoryEntry | null;
+  /** A promotion tied on this day in an earlier year — leads the deck. */
+  anniversary?: PromotionAnniversary | null;
   activeIntention: Intention | null;
   intentionWeeksIn: number;
   intentionTouchedCount: number;
@@ -644,6 +719,7 @@ interface Props {
 export default function HomeHeroCard({
   unfinishedEntry,
   memoryEntry,
+  anniversary = null,
   activeIntention,
   intentionWeeksIn,
   intentionTouchedCount,
@@ -675,7 +751,18 @@ export default function HomeHeroCard({
   // land on, then the intention (the thing you asked for), then a memory.
   // Every card after the first is something to read, and the first can be
   // swiped past — declining to write is a valid answer.
+  // A promotion anniversary comes once a year, so on that day it leads.
   const deck: React.ReactNode[] = [];
+  if (anniversary) {
+    deck.push(
+      <AnniversaryCard
+        key={`anniversary-${anniversary.promotion.id}`}
+        anniversary={anniversary}
+        onRead={onReadEntry}
+        onLogToday={onLog}
+      />,
+    );
+  }
   if (unfinishedEntry) {
     deck.push(
       <TaskCard
