@@ -222,7 +222,6 @@ export default function SessionVideoBlock({ sessionId, sessionLabel }: Props) {
           ref={fileInputRef}
           type="file"
           accept="video/*"
-          capture="environment"
           style={{ display: 'none' }}
           onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''; }}
         />
