@@ -22,6 +22,7 @@ import {
 import type { SessionVideo, PositionSegment } from '../types/api.ts';
 import PositionTagger, { POSITION_COLOR, POSITION_DEFS } from './PositionTagger.tsx';
 import type { DraftSegment } from './PositionTagger.tsx';
+import FilmingGuide, { hasSeenFilmingGuide, markFilmingGuideSeen } from './FilmingGuide.tsx';
 
 interface Props {
   sessionId: string;
@@ -37,6 +38,7 @@ export default function SessionVideoBlock({ sessionId, sessionLabel }: Props) {
   const [playbackUrls, setPlaybackUrls] = useState<Record<string, string>>({});
   const [taggingVideoId, setTaggingVideoId] = useState<string | null>(null);
   const [savingSegments, setSavingSegments] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
 
   const openTagger = (videoId: string) => setTaggingVideoId(videoId);
   const closeTagger = () => setTaggingVideoId(null);
@@ -84,6 +86,14 @@ export default function SessionVideoBlock({ sessionId, sessionLabel }: Props) {
       if (v.video_status === 'ready' && !segments[v.id]) loadSegments(v.id);
     }
   }, [videos, playbackUrls, segments, loadPlaybackUrl, loadSegments]);
+
+  // First attach shows the filming guide; after that the picker opens directly.
+  const attachFootage = () => {
+    if (hasSeenFilmingGuide()) { fileInputRef.current?.click(); return; }
+    setGuideOpen(true);
+  };
+  const closeGuide = () => { markFilmingGuideSeen(); setGuideOpen(false); };
+  const chooseFromGuide = () => { closeGuide(); fileInputRef.current?.click(); };
 
   const handleFile = async (file: File) => {
     setUploadError(null);
@@ -180,16 +190,30 @@ export default function SessionVideoBlock({ sessionId, sessionLabel }: Props) {
             </div>
           </div>
         ) : (
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            style={{
-              width: '100%', padding: '14px 0', marginTop: videos.length > 0 ? 10 : 0,
-              background: SURFACE_2, border: `1px dashed ${SURFACE_2_BORDER}`, borderRadius: 10,
-              color: TEXT_TERTIARY, fontSize: 13, cursor: 'pointer',
-            }}
-          >
-            + Attach footage
-          </button>
+          <>
+            <button
+              onClick={attachFootage}
+              className="touch-manipulation"
+              style={{
+                width: '100%', padding: '14px 0', minHeight: 44, marginTop: videos.length > 0 ? 10 : 0,
+                background: SURFACE_2, border: `1px dashed ${SURFACE_2_BORDER}`, borderRadius: 10,
+                color: TEXT_TERTIARY, fontSize: 13, cursor: 'pointer',
+              }}
+            >
+              + Attach footage
+            </button>
+            <button
+              onClick={() => setGuideOpen(true)}
+              className="touch-manipulation"
+              style={{
+                display: 'block', margin: '2px auto 0', minHeight: 44, padding: '0 12px',
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: COPPER, fontSize: 12, fontWeight: 600,
+              }}
+            >
+              How to film a roll
+            </button>
+          </>
         )}
 
         {uploadError && <p style={{ fontSize: 12, color: STATUS_ERROR, marginTop: 6 }}>{uploadError}</p>}
@@ -203,6 +227,10 @@ export default function SessionVideoBlock({ sessionId, sessionLabel }: Props) {
           onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''; }}
         />
       </div>
+
+      {guideOpen && (
+        <FilmingGuide actionLabel="Choose footage" onAction={chooseFromGuide} onClose={closeGuide} />
+      )}
 
       {/* Tagging overlay — §4 modal box (large 42rem variant), portal above the session modal */}
       {taggingVideoId && createPortal(
