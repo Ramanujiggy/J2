@@ -1,14 +1,11 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { useProfile } from '../context/ProfileContext.tsx';
 import SeigaihaPattern from './visuals/SeigaihaPattern.tsx';
 import BeltBar, { type BeltRank, BELT_COLORS, PATCH_COLORS } from './BeltBar.tsx';
-import { PAGE_BG, PALE_YELLOW, GLOW_TITLE, GLOW_NAV, BRAND_ORANGE } from '../lib/theme.ts';
+import { PAGE_BG, PALE_YELLOW, GLOW_TITLE, BRAND_ORANGE, TEXT_TERTIARY, NAV_BAR_BG, NAV_HAIRLINE, NAV_PILL_BG, NAV_RAIL_PILL_BG } from '../lib/theme.ts';
 import { isFromProfile } from '../lib/navOrigin.ts';
-
-/** Bottom-nav ground — a shade below the page so the bar reads as beneath it. */
-const NAV_BG = '#0B1712' as const;
 import PageTransition from './PageTransition.tsx';
 import OfflineBanner from './OfflineBanner.tsx';
 import { useOnlineSync } from '../hooks/useOnlineSync.ts';
@@ -167,24 +164,6 @@ function MobileAppShell({ children }: Props) {
     setLogDate(null);
   }, []);
 
-  // ── Desktop sliding tab indicator ──
-  const desktopNavRef = useRef<HTMLElement>(null);
-  const desktopTabRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
-  const [indicator, setIndicator] = useState({ left: 0, width: 0 });
-  const hasInitialized = useRef(false);
-
-  const updateIndicator = useCallback(() => {
-    const btn = desktopTabRefs.current.get(activeTab);
-    const nav = desktopNavRef.current;
-    if (!btn || !nav) return;
-    const navRect = nav.getBoundingClientRect();
-    const btnRect = btn.getBoundingClientRect();
-    setIndicator({ left: btnRect.left - navRect.left, width: btnRect.width });
-    hasInitialized.current = true;
-  }, [activeTab]);
-
-  useEffect(() => { updateIndicator(); }, [updateIndicator]);
-
   return (
     <>
     <style>{`
@@ -241,21 +220,23 @@ function MobileAppShell({ children }: Props) {
           </div>
         </div>
 
-        {/* Desktop nav tabs — hidden on mobile — with sliding indicator */}
-        <nav ref={desktopNavRef} className="relative z-10 hidden sm:flex px-6 pb-0 gap-1">
+        {/* Tablet nav tabs — hidden on mobile, replaced by the rail on desktop.
+            Matches the bottom bar's pill register: champagne-tinted active
+            background, no glow, 44px tap target. */}
+        <nav className="relative z-10 hidden sm:flex px-6 pb-0 gap-1">
           {TABS.map(({ path, label, Icon }) => {
             const isActive = activeTab === path;
             return (
               <button
                 key={path}
-                ref={el => { if (el) desktopTabRefs.current.set(path, el); }}
                 onClick={() => navigate(path)}
-                className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium rounded-t-lg relative"
+                className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium relative"
                 style={{
-                  color: isActive ? PALE_YELLOW : 'rgba(255,255,255,0.4)',
-                  textShadow: isActive ? GLOW_NAV : 'none',
-                  backgroundColor: isActive ? 'rgba(242,228,168,0.06)' : 'transparent',
-                  transition: 'color 0.3s ease, text-shadow 0.3s ease, background-color 0.3s ease',
+                  minHeight: 44,
+                  color: isActive ? PALE_YELLOW : TEXT_TERTIARY,
+                  backgroundColor: isActive ? NAV_RAIL_PILL_BG : 'transparent',
+                  borderRadius: 10,
+                  transition: 'color 0.3s ease, background-color 0.3s ease',
                 }}
               >
                 <Icon active={isActive} />
@@ -263,25 +244,6 @@ function MobileAppShell({ children }: Props) {
               </button>
             );
           })}
-          {/* Sliding gold bar indicator */}
-          <div
-            style={{
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              width: indicator.width,
-              height: 2,
-              borderRadius: 2,
-              backgroundColor: PALE_YELLOW,
-              boxShadow: '0 0 8px rgba(242,228,168,0.6), 0 0 16px rgba(196,145,95,0.3)',
-              transform: `translateX(${indicator.left}px)`,
-              transition: hasInitialized.current
-                ? 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.3s ease'
-                : 'none',
-              pointerEvents: 'none',
-              willChange: 'transform',
-            }}
-          />
         </nav>
       </header>
 
@@ -302,16 +264,19 @@ function MobileAppShell({ children }: Props) {
       </main>
 
       {/* ── Mobile bottom nav — hidden on sm+ ────────────────────────
-          Quiet, flat, and solid. It sits under the whole app, so it earns
-          nothing by competing with the page: one hairline, one active
-          state (champagne icon on a champagne-tinted pill), and no glow.
-          The frosted blur, copper stitched seam and sliding lit indicator
-          it used to carry were three separate accents doing the job of one. */}
+          Quiet and frosted. It sits under the whole app, so it earns nothing
+          by competing with the page: one hairline, one active state (champagne
+          icon on a champagne-tinted pill), and no glow. The frosted blur is
+          back by founder request (JOU-64); the copper stitched seam and
+          sliding lit indicator it once carried stay gone — the pill is the
+          entire active treatment. */}
       <nav
         className="sm:hidden fixed bottom-0 left-0 right-0 flex border-t z-40"
         style={{
-          backgroundColor: NAV_BG,
-          borderTopColor: 'rgba(255,255,255,0.06)',
+          backgroundColor: NAV_BAR_BG,
+          backdropFilter: 'saturate(180%) blur(12px)',
+          WebkitBackdropFilter: 'saturate(180%) blur(12px)',
+          borderTopColor: NAV_HAIRLINE,
           paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 10px)',
           paddingTop: 8,
         }}
@@ -370,9 +335,9 @@ function MobileAppShell({ children }: Props) {
                 style={{
                   gap: 5,
                   paddingTop: 4, paddingBottom: 4,
-                  // 0.46 is the small-text contrast floor; the old 0.40 sat
-                  // under it on this background.
-                  color: isActive ? PALE_YELLOW : 'rgba(255,255,255,0.46)',
+                  // TEXT_TERTIARY (0.46) is the small-text contrast floor; the
+                  // old 0.40 sat under it on this background.
+                  color: isActive ? PALE_YELLOW : TEXT_TERTIARY,
                   transition: 'color 0.2s ease',
                   background: 'transparent',
                   border: 'none',
@@ -385,7 +350,7 @@ function MobileAppShell({ children }: Props) {
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     width: 34, height: 30, borderRadius: 10,
-                    background: isActive ? 'rgba(242,228,168,0.10)' : 'transparent',
+                    background: isActive ? NAV_PILL_BG : 'transparent',
                     transition: 'background 0.2s ease',
                   }}
                 >

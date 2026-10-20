@@ -155,6 +155,32 @@ export const PAIR_PARTNER = BRAND_ORANGE;
 export const PAIR_YOU_GLOW = 'rgba(242,228,168,0.55)' as const;
 export const PAIR_PARTNER_GLOW = 'rgba(218,116,34,0.55)' as const;
 
+// ─── Navigation ────────────────────────────────────────────────────────────
+//
+// The three nav surfaces — mobile bottom bar, tablet header row, desktop rail —
+// share one active treatment (a champagne-tinted pill) and one inactive colour
+// (`TEXT_TERTIARY` on all three). See DESIGN.md §4. The pill comes in two
+// weights on purpose: the icon-only bottom-bar pill sits a shade stronger
+// (0.10) than the horizontal icon+label pill the rail and tablet row use (0.07)
+// — the distinction is the pill's shape, not a typo. Backgrounds are frosted;
+// pair each with its `backdrop-filter` blur in the component.
+
+/** Mobile bottom tab-bar background — frosted forest. */
+export const NAV_BAR_BG = 'rgba(21,46,34,0.82)' as const;
+
+/** Desktop rail background — frosted, dimmer than the bar. */
+export const NAV_RAIL_BG = 'rgba(10,21,16,0.7)' as const;
+
+/** Nav hairline — the top border on the mobile bar and the right border on the rail. */
+export const NAV_HAIRLINE = 'rgba(255,255,255,0.06)' as const;
+
+/** Active-tab pill on the mobile bottom bar — champagne behind an icon-only tab. */
+export const NAV_PILL_BG = 'rgba(242,228,168,0.10)' as const;
+
+/** Active pill on the desktop rail and the tablet header row — the horizontal
+ *  icon+label shape, a shade quieter than the bottom bar's pill. */
+export const NAV_RAIL_PILL_BG = 'rgba(242,228,168,0.07)' as const;
+
 // ─── Heatmap cells ────────────────────────────────────────────────────────────
 
 /** Rest / empty day cell — slightly darker than page background. */

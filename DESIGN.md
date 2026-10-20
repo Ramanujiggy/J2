@@ -380,26 +380,49 @@ on forest" model everything else follows.
 
 ### Navigation
 
-**Mobile — bottom tab bar**
+Three nav surfaces, one active treatment. The active state is a champagne-tinted
+pill behind the icon — never a glow, an underline, or a sliding lit indicator.
+Those were three separate accents doing the job of one. Inactive is
+`TEXT_TERTIARY` on all three surfaces. Despite its name, `GLOW_NAV` is not a nav
+token (see the glow table below) — do not reintroduce it here.
+
+**Mobile — bottom tab bar** (`< 640px`, `AppShell.tsx`)
 ```
 position: fixed bottom-0
-background: rgba(13,26,20,0.92) + backdrop-blur
-border-top: 1px solid rgba(196,145,95,0.15)
-padding-bottom: env(safe-area-inset-bottom)
+background: rgba(21,46,34,0.82) + backdrop-filter: saturate(180%) blur(12px)
+border-top: 1px solid rgba(255,255,255,0.06)
+padding: 8px top / calc(env(safe-area-inset-bottom, 0px) + 10px) bottom
 4 tabs: Home, Journal, Calendar, Profile
   — plus a centre "+" Log FAB inserted between Journal and Calendar
   — Journal also lights for /notes, /library, /techniques
   — /intentions and /atlas have no mobile tab (side trips from Home)
-Active tab: icon + label in #F2E4A8 with GLOW_NAV text-shadow
-Inactive tab: rgba(255,255,255,0.40) / no glow
+Icons: 20px, stroke 2 active / 1.6 idle
+Active tab: PALE_YELLOW icon on a rgba(242,228,168,0.10) pill — 34x30, radius 9
+Inactive tab: TEXT_TERTIARY
+Label: 10px / 600 / 0.06em tracking, 5px below the pill
 ```
 
-**Desktop — left sidebar rail**
+**Tablet — header tab row** (`640px – 1023px`, `AppShell.tsx`)
 ```
-width: 240px
-background: #0D1A14 (same as page)
-border-right: 1px solid rgba(196,145,95,0.15)
-Nav links: 14px, PALE_YELLOW when active + GLOW_NAV
+Everything below 1024px renders the mobile/tablet shell. From 640px up the
+bottom bar is hidden and this header row is the only nav.
+Same 4 tabs as the bottom bar, without the centre FAB.
+row: header-level, 24px side padding, 4px gap between tabs
+tab: min-height 44px, 0 16px padding, radius 10, 14px / 500, icon + label
+Active tab: PALE_YELLOW on a rgba(242,228,168,0.07) pill — the rail's pill,
+            because this is the rail's horizontal icon+label shape
+Inactive tab: TEXT_TERTIARY
+```
+
+**Desktop — left sidebar rail** (`≥ 1024px`, `DesktopAppShell.tsx`)
+```
+width: var(--rail-w) = 236px
+background: rgba(10,21,16,0.7) + backdrop-filter: blur(6px)
+border-right: 1px solid rgba(255,255,255,0.06)
+nav padding: 8px 12px, 2px gap between rows
+Nav rows: 44px tall, 0 12px padding, radius 10, 13.5px / 600, 12px icon gap
+Active row: PALE_YELLOW on a rgba(242,228,168,0.07) pill
+Inactive row: TEXT_TERTIARY, hover TEXT_SECONDARY
 Rail items (top to bottom): Today, Journal, Intentions, Atlas, Profile, Admin
   — /home is labelled "Today" on the rail and "Home" on the mobile bar
   — Journal also lights for /notes, /library, /techniques
@@ -552,7 +575,7 @@ on card surfaces.
 |------------|-------|-----|
 | `GLOW_TITLE` | `0 0 14px rgba(242,228,168,0.45), 0 0 32px rgba(242,228,168,0.2)` | Hero titles, app wordmark |
 | `GLOW_SOFT` | `0 0 14px rgba(242,228,168,0.3), 0 0 30px rgba(242,228,168,0.14)` | Section h2, stat numbers |
-| `GLOW_NAV` | `0 0 12px rgba(242,228,168,0.5), 0 0 24px rgba(242,228,168,0.22)` | Active nav links |
+| `GLOW_NAV` | `0 0 12px rgba(242,228,168,0.5), 0 0 24px rgba(242,228,168,0.22)` | The "For Intentional Grappling" tagline under the wordmark. **Not nav** — the name is historical; see §4 Navigation |
 
 ---
 
