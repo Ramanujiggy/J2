@@ -236,3 +236,101 @@ export const replaceSegments = async (
     );
     return result.rows;
 };
+
+// ── Pose tracks (mig 041) ──────────────────────────────────────────────────
+
+export type PoseTrackStatus = 'pending' | 'ready' | 'failed';
+
+export interface PoseTrackSeed {
+    seed_sec: number;
+    first_x: number;
+    first_y: number;
+    second_x: number;
+    second_y: number;
+}
+
+export interface PoseTrack extends PoseTrackSeed {
+    video_id: string;
+    user_id: string;
+    status: PoseTrackStatus;
+    status_message: string | null;
+    processing_started_at: Date | string | null;
+    fps: number | null;
+    frames: Array<[number[] | null, number[] | null]> | null;
+    model: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export const getPoseTrack = async (userId: string, videoId: string): Promise<PoseTrack | null> => {
+    const result = await query(
+        `SELECT * FROM video_pose_tracks WHERE video_id = $1 AND user_id = $2`,
+        [videoId, userId],
+    );
+    return result.rows[0] ?? null;
+};
+
+/** Store a new pick and queue it, replacing any earlier track for the video. */
+export const queuePoseTrack = async (userId: string, videoId: string, seed: PoseTrackSeed): Promise<PoseTrack> => {
+    const result = await query(
+        `INSERT INTO video_pose_tracks (video_id, user_id, seed_sec, first_x, first_y, second_x, second_y)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT (video_id) DO UPDATE
+            SET status = 'pending', status_message = NULL, processing_started_at = NULL,
+                seed_sec = EXCLUDED.seed_sec,
+                first_x = EXCLUDED.first_x, first_y = EXCLUDED.first_y,
+                second_x = EXCLUDED.second_x, second_y = EXCLUDED.second_y,
+                fps = NULL, frames = NULL, model = NULL, updated_at = NOW()
+         RETURNING *`,
+        [videoId, userId, seed.seed_sec, seed.first_x, seed.first_y, seed.second_x, seed.second_y],
+    );
+    return result.rows[0];
+};
+
+/** Next pending track whose video is ready, with the encoded video's key.
+ *  Same claim pattern as transcodes: SKIP LOCKED + a stale guard so a job
+ *  whose worker died is picked up again. */
+export const claimNextPoseJob = async (): Promise<(PoseTrack & { video_storage_key: string }) | null> => {
+    const result = await query(
+        // Millisecond precision so the claim time survives the round trip
+        // through a JS Date and can guard the write-back below.
+        `UPDATE video_pose_tracks t
+            SET processing_started_at = date_trunc('milliseconds', NOW())
+           FROM session_videos v
+          WHERE t.video_id = (
+            SELECT pt.video_id FROM video_pose_tracks pt
+              JOIN session_videos sv ON sv.id = pt.video_id
+             WHERE pt.status = 'pending'
+               AND sv.video_status = 'ready' AND sv.video_storage_key IS NOT NULL
+               AND (pt.processing_started_at IS NULL OR pt.processing_started_at < NOW() - INTERVAL '30 minutes')
+             ORDER BY pt.updated_at ASC
+             LIMIT 1
+             FOR UPDATE OF pt SKIP LOCKED
+          )
+            AND v.id = t.video_id
+          RETURNING t.*, v.video_storage_key`,
+    );
+    return result.rows[0] ?? null;
+};
+
+/** Only lands if the pick was not replaced while the job ran. */
+export const markPoseTrackReady = async (
+    videoId: string, claimedAt: Date | string, data: { fps: number; frames: unknown; model: string },
+): Promise<void> => {
+    await query(
+        `UPDATE video_pose_tracks
+            SET status = 'ready', fps = $1, frames = $2, model = $3,
+                status_message = NULL, processing_started_at = NULL, updated_at = NOW()
+          WHERE video_id = $4 AND processing_started_at = $5`,
+        [data.fps, JSON.stringify(data.frames), data.model, videoId, claimedAt],
+    );
+};
+
+export const markPoseTrackFailed = async (videoId: string, claimedAt: Date | string, reason: string): Promise<void> => {
+    await query(
+        `UPDATE video_pose_tracks
+            SET status = 'failed', status_message = $1, processing_started_at = NULL, updated_at = NOW()
+          WHERE video_id = $2 AND processing_started_at = $3`,
+        [reason.length > 1000 ? reason.slice(0, 1000) + '…' : reason, videoId, claimedAt],
+    );
+};

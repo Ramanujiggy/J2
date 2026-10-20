@@ -24,12 +24,19 @@
 //   • mig 025 — gi_nogi='both' rejected by a similar auto-named CHECK that
 //     survived migration 006's original definition. Test #2 below.
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { Pool } from 'pg';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
+import * as sessionVideoModel from '../src/models/sessionVideoModel.js';
+
+// Model functions query through config/db.js; route them to the test pool so
+// their real SQL runs against the migrated test database.
+vi.mock('../src/config/db.js', () => ({
+  query: (text: string, params?: unknown[]) => pool.query(text, params),
+}));
 
 // Load .env.test if present so TEST_DATABASE_URL can live there.
 dotenv.config({ path: '.env.test' });
@@ -422,6 +429,83 @@ describeRegressions('Regression tests (real-DB, mig 024 + 025 + 027 + 028 + 029)
       // planning is preserved from the original INSERT; attended is set by the UPSERT
       expect(upserted.rows[0].planning).toBe('yes');
       expect(upserted.rows[0].attended).toBe('yes');
+    } finally {
+      await cleanupUser(pool, userId);
+    }
+  }, 30_000);
+});
+
+describeRegressions('Pose tracks (real-DB, mig 041)', () => {
+  beforeAll(async () => {
+    pool = new Pool({ connectionString: TEST_DB_URL, ssl: sslForConnectionString(TEST_DB_URL), max: 4 });
+    await applyMigrations(pool);
+  }, 60_000);
+
+  afterAll(async () => {
+    if (pool) await pool.end();
+  });
+
+  async function readyVideo(userId: string): Promise<string> {
+    const s = await pool.query(
+      `INSERT INTO training_sessions (user_id, date, duration, gi_nogi, intensity, session_type, tags)
+       VALUES ($1, '2026-10-20', 60, 'gi', 3, 'class', '{}') RETURNING id`, [userId]);
+    const v = await pool.query(
+      `INSERT INTO session_videos (session_id, user_id, video_status, video_storage_key)
+       VALUES ($1, $2, 'ready', 'k') RETURNING id`, [s.rows[0].id, userId]);
+    return v.rows[0].id;
+  }
+
+  async function claim(videoId: string) {
+    // A shared test DB may hold other pending tracks; claim until ours.
+    let job = await sessionVideoModel.claimNextPoseJob();
+    while (job && job.video_id !== videoId) job = await sessionVideoModel.claimNextPoseJob();
+    return job;
+  }
+
+  it('queues a pick, lets a worker claim it, and stores the frames', async () => {
+    const userId = await createTestUser(pool);
+    try {
+      const videoId = await readyVideo(userId);
+      const seed = { seed_sec: 5, first_x: 0.4, first_y: 0.5, second_x: 0.6, second_y: 0.5 };
+      expect((await sessionVideoModel.queuePoseTrack(userId, videoId, seed)).status).toBe('pending');
+
+      const job = await claim(videoId);
+      expect(job?.video_storage_key).toBe('k');
+
+      const frames = [[Array(51).fill(1), null]];
+      await sessionVideoModel.markPoseTrackReady(videoId, job!.processing_started_at!, { fps: 4, frames, model: 'rtmo-s' });
+      const track = await sessionVideoModel.getPoseTrack(userId, videoId);
+      expect(track?.status).toBe('ready');
+      expect(track?.frames).toEqual(frames);
+    } finally {
+      await cleanupUser(pool, userId);
+    }
+  }, 30_000);
+
+  it('drops a stale result when the pair was re-picked mid-job', async () => {
+    const userId = await createTestUser(pool);
+    try {
+      const videoId = await readyVideo(userId);
+      const seed = { seed_sec: 1, first_x: 0.1, first_y: 0.1, second_x: 0.2, second_y: 0.2 };
+      await sessionVideoModel.queuePoseTrack(userId, videoId, seed);
+      const job = await claim(videoId);
+
+      await sessionVideoModel.queuePoseTrack(userId, videoId, { ...seed, seed_sec: 2 });
+      await sessionVideoModel.markPoseTrackReady(videoId, job!.processing_started_at!, { fps: 4, frames: [], model: 'rtmo-s' });
+      const track = await sessionVideoModel.getPoseTrack(userId, videoId);
+      expect(track?.status).toBe('pending');
+      expect(track?.seed_sec).toBe(2);
+    } finally {
+      await cleanupUser(pool, userId);
+    }
+  }, 30_000);
+
+  it('rejects taps outside the frame (CHECK constraints)', async () => {
+    const userId = await createTestUser(pool);
+    try {
+      const videoId = await readyVideo(userId);
+      await expect(sessionVideoModel.queuePoseTrack(userId, videoId,
+        { seed_sec: 0, first_x: 1.5, first_y: 0.5, second_x: 0.5, second_y: 0.5 })).rejects.toThrow();
     } finally {
       await cleanupUser(pool, userId);
     }

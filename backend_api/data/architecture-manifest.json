@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-09T02:37:13.074Z",
+  "generatedAt": "2026-10-20T03:53:53.431Z",
   "apiRoutes": [
     {
       "method": "GET",
@@ -366,6 +366,20 @@
       "auth": "user"
     },
     {
+      "method": "PUT",
+      "path": "/api/sessions/:sessionId/videos/:videoId/pair",
+      "file": "routes/sessionVideoRoutes.ts",
+      "handler": "pickPair",
+      "auth": "user"
+    },
+    {
+      "method": "GET",
+      "path": "/api/sessions/:sessionId/videos/:videoId/pose",
+      "file": "routes/sessionVideoRoutes.ts",
+      "handler": "getPoseTrack",
+      "auth": "user"
+    },
+    {
       "method": "POST",
       "path": "/api/sessions/:sessionId/videos/:videoId/retry",
       "file": "routes/sessionVideoRoutes.ts",
@@ -728,6 +742,10 @@
     {
       "file": "040_session_videos.sql",
       "title": "040: Session videos + position segments."
+    },
+    {
+      "file": "041_video_pose_tracks.sql",
+      "title": "041: Pose tracks for session videos."
     }
   ],
   "models": [
@@ -1651,6 +1669,37 @@
       ]
     },
     {
+      "name": "PoseTrackSeed",
+      "file": "models/sessionVideoModel.ts",
+      "fields": [
+        {
+          "name": "seed_sec",
+          "optional": false,
+          "type": "number"
+        },
+        {
+          "name": "first_x",
+          "optional": false,
+          "type": "number"
+        },
+        {
+          "name": "first_y",
+          "optional": false,
+          "type": "number"
+        },
+        {
+          "name": "second_x",
+          "optional": false,
+          "type": "number"
+        },
+        {
+          "name": "second_y",
+          "optional": false,
+          "type": "number"
+        }
+      ]
+    },
+    {
       "name": "PositionSegment",
       "file": "models/sessionVideoModel.ts",
       "fields": [
@@ -2370,7 +2419,7 @@
   ],
   "topology": {
     "mermaid": "graph LR\n    Browser[\"Browser (PWA)\"]\n    Vercel[\"Vercel CDN\"]\n    Railway[\"Railway API\"]\n    Postgres[\"PostgreSQL (Neon)\"]\n    R2[\"Cloudflare R2\"]\n\n    Browser -->|\"HTTPS\"| Vercel\n    Browser -->|\"API calls\"| Railway\n    Vercel -->|\"Static assets\"| Browser\n    Railway -->|\"SQL\"| Postgres\n    Railway -->|\"Video upload/stream\"| R2\n\n    subgraph Frontend\n        Vercel\n    end\n\n    subgraph Backend\n        Railway\n        Postgres\n        R2\n    end",
-    "lastEdited": "2026-07-15T11:39:31.407Z",
+    "lastEdited": "2026-10-20T01:44:28.268Z",
     "raw": "# Architecture Topology\n\n```mermaid\ngraph LR\n    Browser[\"Browser (PWA)\"]\n    Vercel[\"Vercel CDN\"]\n    Railway[\"Railway API\"]\n    Postgres[\"PostgreSQL (Neon)\"]\n    R2[\"Cloudflare R2\"]\n\n    Browser -->|\"HTTPS\"| Vercel\n    Browser -->|\"API calls\"| Railway\n    Vercel -->|\"Static assets\"| Browser\n    Railway -->|\"SQL\"| Postgres\n    Railway -->|\"Video upload/stream\"| R2\n\n    subgraph Frontend\n        Vercel\n    end\n\n    subgraph Backend\n        Railway\n        Postgres\n        R2\n    end\n```\n\n## Services\n\n| Service | Provider | Purpose |\n|---------|----------|---------|\n| Frontend | Vercel | React SPA, static hosting |\n| API | Railway | Express server, auth, business logic |\n| Database | Neon PostgreSQL | User data, sessions, intentions, tags |\n| Object Storage | Cloudflare R2 | Technique video clips |\n| Transcoding | Railway (in-process) | ffmpeg worker for video encoding |\n| Push Notifications | Web Push (VAPID) | Class-time reminders |\n"
   },
   "warnings": []
