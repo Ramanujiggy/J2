@@ -73,7 +73,7 @@ Cut items stay in their tables marked `[-]` with the reason, so the decision is 
 | Status | Area | Description |
 |---|---|---|
 | `[ ]` | **Tournament record** | Log competition results: event name, weight class, wins/losses. The `competition_training` session type exists but there's no competition results model. |
-| `[ ]` | **Belt rank milestones** | Timeline of when each belt/stripe was achieved, either inferred from profile change history or manually entered. Show on Profile ("Blue belt for 14 months"). |
+| `[x]` | **Belt rank milestones** | Built: `belt_history` (migrations 038–039) with one row per rank+stripes, the promotion sheet and reveal ceremony, a removable promotions list on Profile, and promotions as entries in the journal stream. 2026-10-20 added time at the current belt under the belt on Profile ("Tied on March 2025 · 1 year, 7 months at this belt") via `timeAtBeltLabel()` in `lib/belt.ts`. |
 | `[-]` | **Positional sparring tracker** | **Cut 2026-10-20: more fields to fill at log time; position tags on footage already cover it.** Original idea: Quick-log specific positions trained (e.g. "20 min closed guard top"). Complements existing session tags with finer granularity. |
 
 ---

@@ -20,6 +20,7 @@ import PromotionList from './belt/PromotionList.tsx';
 import SealStamp from './seal/SealStamp.tsx';
 import { STAMP_DIES, bandDate } from '../lib/stampDies.ts';
 import { beltDisplayName, isBeltRank, type BeltRankKey } from '../lib/beltCloth.ts';
+import { timeAtBeltLabel } from '../lib/belt.ts';
 import { PALE_YELLOW, FONT_EDITORIAL, STATUS_ERROR, STATUS_ERROR_BG, STATUS_ERROR_BORDER, TEXT_SECONDARY, TEXT_TERTIARY, TEXT_HINT } from '../lib/theme.ts';
 import type { BeltHistoryEntry, EarnedStamp } from '../types/api.ts';
 
@@ -141,7 +142,7 @@ export default function ProfileDesktop({
             />
           </div>
           <div style={{ fontSize: 11.5, color: TEXT_TERTIARY, marginTop: 10 }}>
-            {tiedOnLabel ? `Tied on ${tiedOnLabel} · ` : ''}click the belt to record a promotion
+            {tiedOnLabel && tiedOn ? `Tied on ${tiedOnLabel} · ${timeAtBeltLabel(tiedOn)} · ` : ''}click the belt to record a promotion
           </div>
 
           {/* Promotions — the ladder so far, newest first. Bounded by
