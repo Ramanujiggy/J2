@@ -2,7 +2,30 @@
 
 Development areas identified from codebase assessment. Updated as work progresses.
 
-**Status key:** `[ ]` not started · `[~]` in progress · `[x]` done
+**Status key:** `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` cut (decided against; see Product Focus)
+
+---
+
+## Product Focus (decided 2026-10-20)
+
+**The one job:** Journada makes it effortless to keep an honest record of your jiu jitsu, and gives that record back to you in a way that means something. Every feature serves **capture** or **reflection**, or it is not core. Full reasoning: [Product Thesis](https://claude.ai/code/artifact/5eae3fe3-3fe6-4b0f-97d7-4123f9c30001).
+
+**The moat is the record**, built in layers: the record → reflection → insight from your own words → insight from video. Video analytics is a research bet that only pays off on top of a deep record; pose analysis runs as a short experiment on mixed-angle footage before any further investment.
+
+**Feature rules** (a feature passes all five or waits):
+1. It makes capture easier or the record richer, or gives the record back meaningfully.
+2. The builder would use it this month.
+3. It adds dignity to the record: no streak pressure, ranking, optimizing or nagging.
+4. Capture works on a phone, after class, in under a minute.
+5. Insight features stand on data that already exists.
+
+| Call | Items |
+|---|---|
+| **Core** | Frontend testing · E2E for the log-a-session journey in CI · Intention alignment heuristic · Single active intention per week · Belt rank milestones · Coach notes / video links · First-run onboarding *(new)* · "On this day" resurfacing *(new)* |
+| **Later** | Future-week intentions · Tournament record · Position model training (gated on the pose experiment) · Eight Gates × Intention · Foundation Reps filter · Gold `@mention` styling |
+| **Cut** | Goal tracking · Push reminders · Positional sparring tracker · Full Commitment hours stat · The Drop PR effect |
+
+Cut items stay in their tables marked `[-]` with the reason, so the decision is not re-litigated.
 
 ---
 
@@ -14,6 +37,7 @@ Development areas identified from codebase assessment. Updated as work progresse
 | `[x]` | **Password reset token hashing** | Reset tokens are stored as SHA-256 hashes. Raw token travels only in the email link; DB never holds the plaintext token. |
 | `[~]` | **Frontend testing** | 10 test files, 105 tests, all passing as of 2026-10-06 (`cd frontend_app && npx vitest run`): component tests (`HomePage`, `LoginPage`, `PathAheadPage`, `CaptureComposer`) plus lib unit tests (`atlasVerdicts`, `composerKernel`, `homeViewModel`, `journalStream`, `prismGeometry`, `selectionsToDistribution`). High-value additions still missing: `api.ts` (offline queue/cache — riskiest untested code), `SessionDetailModal` (complex 3D flip, just had a bug), all hooks, shared test render wrapper with providers. |
 | `[~]` | **E2E testing (Playwright)** | Two Playwright suites as of 2026-10-06: `e2e/` (10 spec files, ~85 `test()` blocks — auth, CSV import, form/intentions/session-detail audits, visual screenshots, usage, interaction) and `frontend_app/playwright/tests/` (3 spec files, 19 `test()` blocks — chip input, first-run hint, intention). Counts are static (grep of `test()` blocks); E2E is not run in CI and was not executed to produce these numbers, so pass/fail is unverified here. Core journeys still thin on coverage: edit/delete session, profile updates. Also needs: E2E in CI, test data cleanup, rate-limit handling, consolidation of the two suites. |
+| `[ ]` | **First-run onboarding** | Core (Product Focus): other people start using Journada in the next three months. A first-time user should understand the one job and log a first session without help. |
 | `[x]` | **CI/CD pipeline** | `.github/workflows/ci.yml` runs on every push and PR (JOU-4). Two jobs — `backend_api` and `frontend_app` — each run `tsc --noEmit` then `vitest run` on Node 24 with `npm ci`. Playwright E2E is **not** yet wired into CI (see E2E row). |
 | `[x]` | **Pagination on session fetch** | `GET /api/sessions` supports optional `?from` and `?to` date params (YYYY-MM-DD). CalendarPage scopes to the selected year; AnalyticsPage scopes to the active time window (7D–1Y or custom range); PathAheadPage fetches 168 days back (covers the 24-week heatmap preview widget) through 5 days ahead — full session history is never loaded in a single payload. |
 | `[x]` | **PWA / offline support** | Installable PWA with Workbox service worker (vite-plugin-pwa), web manifest + icons, IndexedDB offline write queue with auto-sync on reconnect, offline UI indicators (`OfflineBanner` + sync toasts), application-level read cache (IndexedDB, 24h expiry) for data persistence across offline navigation, optimistic pending sessions (sessions logged offline appear immediately in UI via localStorage + `usePendingSessions` hook). |
@@ -36,9 +60,10 @@ Development areas identified from codebase assessment. Updated as work progresse
 | Status | Area | Description |
 |---|---|---|
 | `[x]` | **Streaks & consistency stats** | Current streak + longest streak computed in `computeStats` (`TrainingHeatmap.tsx`). Both surface in `StatStrip`: streak cell shows "best: Xd" sub-label, or "personal best" when current streak equals all-time best in the loaded window. |
-| `[ ]` | **Goal tracking** | Set a weekly or monthly mat-hours target. Show progress toward it on the Path Ahead summary card (e.g. "4.5 of 6h goal"). |
+| `[-]` | **Goal tracking** | **Cut 2026-10-20: mat-hour targets are productivity framing; they measure volume, not the journey.** Original idea: Set a weekly or monthly mat-hours target. Show progress toward it on the Path Ahead summary card (e.g. "4.5 of 6h goal"). |
 | `[x]` | **Analytics custom date range** | `TimeRangeBar` component provides 7D/14D/30D/90D/180D/1Y presets plus a custom date-range picker (start + end date inputs). |
 | `[x]` | **Session search + filter** | `GET /api/sessions/search` endpoint with ILIKE text search + filter chips (gi/nogi, type, pillar, intensity). `SessionSearchPanel` integrated into CalendarPage behind a search toggle. Offline fallback via `filterSessionsLocal`. |
+| `[ ]` | **"On this day" resurfacing** | Core (Product Focus). Surface what happened on this date in past years (a belt promotion, a breakthrough entry) as the Home memory card on rest days. Builds on the existing memory card and on belt rank milestones. |
 | `[x]` | **CSV data export** | `exportSessionsCsv()` and `exportIntentionsCsv()` on ProfilePage using PapaParse. Human-readable column headers, chronological sort. Mirrors the existing CSV import for data symmetry / trust. |
 
 ---
@@ -49,7 +74,7 @@ Development areas identified from codebase assessment. Updated as work progresse
 |---|---|---|
 | `[ ]` | **Tournament record** | Log competition results: event name, weight class, wins/losses. The `competition_training` session type exists but there's no competition results model. |
 | `[ ]` | **Belt rank milestones** | Timeline of when each belt/stripe was achieved, either inferred from profile change history or manually entered. Show on Profile ("Blue belt for 14 months"). |
-| `[ ]` | **Positional sparring tracker** | Quick-log specific positions trained (e.g. "20 min closed guard top"). Complements existing session tags with finer granularity. |
+| `[-]` | **Positional sparring tracker** | **Cut 2026-10-20: more fields to fill at log time; position tags on footage already cover it.** Original idea: Quick-log specific positions trained (e.g. "20 min closed guard top"). Complements existing session tags with finer granularity. |
 
 ---
 
@@ -123,7 +148,7 @@ Full diagnostic rationale and implementation detail for each item lives in `impl
 
 | Status | Area | Description |
 |---|---|---|
-| `[ ]` | **Push notifications / reminders** | "You haven't logged in 5 days" or "Set your intention for this week." Web Push API, or a simple email digest via the existing Nodemailer service. |
+| `[-]` | **Push notifications / reminders** | **Cut 2026-10-20: "you haven't logged in N days" is nagging. A gentle weekly intention prompt may return later as its own item.** Original idea: "You haven't logged in 5 days" or "Set your intention for this week." Web Push API, or a simple email digest via the existing Nodemailer service. |
 | `[ ]` | **Coach notes / video links** | Attach a YouTube link or coach note to a session or intention. Could use the existing `notes` field with a structured prefix, or a separate DB field. |
 | `[ ]` | **Gold `@mention` styling in the entry prose** | Deferred 2026-07-25. Color partner `@mentions` copper in the Margin Notes entry so tags stand out. A `<textarea>` can't style part of its text; approach chosen = **highlight-overlay** (mirror div behind a transparent-text textarea colors each `@Ash`; keeps the textarea so voice/mobile/caret stay bulletproof — the `@` stays visible). `contenteditable` was rejected as too fragile for this voice-fed mobile input. Single file: `MarginNotesEntry.tsx`. |
 
@@ -152,8 +177,8 @@ A subtle thematic tribute to a character whose ethos aligns with BJJ culture: pu
 | `[ ]` | **Eight Gates × Intention alignment** | Revisit after Eight Gates ships: weeks that are both consistent AND intention-aligned could amplify the gate reward (brighter glow, extra particle) rather than gate the milestone itself. Blocked on alignment heuristic fix first (see Intentions section). |
 | `[ ]` | **Foundation Reps — Rep Roulette filter** | Add a `tier: 'foundation' \| 'chain'` field to `ROULETTE_DRILLS` in `constants.ts`. A "Foundation ✿" filter tab in Rep Roulette surfaces only the 6 pure-movement drills (hip escape, tech stand-up, etc.). |
 | `[x]` | **"Presence" intention category** | Added as sixth category in `SetIntentionModal`. Color: `#52B56C` (mat green, distinct from all other categories). For weeks where the goal is simply to show up and be present on the mat. |
-| `[ ]` | **Full Commitment hours stat** | Extend `computeStats()` with `fullEffortMinutes` (intensity 4–5 only). Display as a secondary stat alongside total hours. |
-| `[ ]` | **The Drop — PR particle effect** | On logging a personal record (longest session, first intensity-5, or Nth milestone), small circle "weights" animate briefly downward. Uses existing particle system in `particles.ts`. |
+| `[-]` | **Full Commitment hours stat** | **Cut 2026-10-20: an intensity score rewards optimizing over honest record-keeping.** Original idea: Extend `computeStats()` with `fullEffortMinutes` (intensity 4–5 only). Display as a secondary stat alongside total hours. |
+| `[-]` | **The Drop — PR particle effect** | **Cut 2026-10-20: "personal record" is fitness-app language.** Original idea: On logging a personal record (longest session, first intensity-5, or Nth milestone), small circle "weights" animate briefly downward. Uses existing particle system in `particles.ts`. |
 
 ---
 
