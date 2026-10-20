@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { COPPER, TEXT_SECONDARY, TEXT_TERTIARY } from '../../lib/theme.ts';
 import { toDateString, addDays, getWeekStart } from '../../lib/sessionUtils.ts';
+import { pickActiveIntention } from '../../lib/analyticsUtils.ts';
 import type { Intention, Pillar, SessionSummary } from '../../types/api.ts';
 import PageContent from '../PageContent.tsx';
 import SetIntentionModal from '../SetIntentionModal.tsx';
@@ -81,13 +82,10 @@ export default function IntentionsDesktopView({
   // SessionDetailModal state — clicking a row/era opens a session.
   const [openSession, setOpenSession] = useState<SessionSummary | null>(null);
 
-  const activeIntention = useMemo(() => {
-    return intentions.find(i => {
-      const start = i.week_start.slice(0, 10);
-      const end = addDays(start, (i.duration_days ?? 7) - 1);
-      return todayStr >= start && todayStr <= end;
-    }) ?? null;
-  }, [intentions, todayStr]);
+  const activeIntention = useMemo(
+    () => pickActiveIntention(intentions, todayStr, sessions),
+    [intentions, todayStr, sessions],
+  );
 
   // Years that contain at least one intention. Counts are pre-filter so the
   // tabs don't shrink/grow as you flip focus chips — they reflect raw history.

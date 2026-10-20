@@ -16,7 +16,7 @@ import type { SessionSummary, Intention, SessionsResponse } from '../types/api.t
 import { toast } from '../hooks/use-toast.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import { useActiveIntention } from '../context/ActiveIntentionContext.tsx';
-import { isIntentionComplete, sessionTouchesHeading } from '../lib/analyticsUtils.ts';
+import { pickActiveIntention, sessionTouchesHeading } from '../lib/analyticsUtils.ts';
 import PathAheadModals from '../components/PathAheadModals.tsx';
 import PathAheadMobile from '../components/PathAheadMobile.tsx';
 import PathAheadDesktop from '../components/PathAheadDesktop.tsx';
@@ -221,13 +221,7 @@ export default function PathAheadPage() {
   // AND, for non-'days' completion modes, that hasn't hit its target yet.
   // For 'days' mode, the calendar window IS the completion criterion.
   const todayStr = toDateString(today);
-  const activeIntention = intentions.find(i => {
-    const start = i.week_start.slice(0, 10);
-    const end   = addDays(start, (i.duration_days ?? 7) - 1);
-    if (todayStr < start || todayStr > end) return false;
-    if (i.completion_type !== 'days' && isIntentionComplete(i, allSessions)) return false;
-    return true;
-  }) ?? null;
+  const activeIntention = pickActiveIntention(intentions, todayStr, allSessions);
 
   // Sessions that have touched the intention since it was set — the anchor
   // sentence on home's intention card. Counted over the FULL session list

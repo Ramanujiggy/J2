@@ -22,7 +22,8 @@ import SessionDetailModal from '../components/SessionDetailModal.tsx';
 import JournalEmptyHero from '../components/empty/JournalEmptyHero.tsx';
 import SegmentedToggle from '../components/SegmentedToggle.tsx';
 import { SKILL_TAGS } from '../lib/constants.ts';
-import { toDateString, addDays, DAY_NAMES, SESSION_TYPE_LABELS, INTENSITY_COLOR, formatDuration, formatGiNogi } from '../lib/sessionUtils.ts';
+import { pickActiveIntention } from '../lib/analyticsUtils.ts';
+import { toDateString, DAY_NAMES, SESSION_TYPE_LABELS, INTENSITY_COLOR, formatDuration, formatGiNogi } from '../lib/sessionUtils.ts';
 import { PALE_YELLOW, COPPER, CARD_BG, FONT_EDITORIAL, GLOW_SOFT, STATUS_ERROR, TEXT_PRIMARY, TEXT_TERTIARY } from '../lib/theme.ts';
 import type { SessionSummary } from '../types/api.ts';
 
@@ -73,11 +74,7 @@ export default function JournalIndexPage() {
   const { entries: promotions, refetch: refetchPromotions } = useBeltHistory();
 
   const todayStr = toDateString(new Date());
-  const activeIntention = intentions.find(i => {
-    const start = i.week_start.slice(0, 10);
-    const end = addDays(start, (i.duration_days ?? 7) - 1);
-    return todayStr >= start && todayStr <= end;
-  }) ?? null;
+  const activeIntention = pickActiveIntention(intentions, todayStr, allSessions);
 
   const totalHours = useMemo(
     () => Math.round(allSessions.reduce((a, s) => a + (s.duration ?? 0), 0) / 60),

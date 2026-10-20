@@ -6,13 +6,16 @@
 // PathAheadPage, IntentionsPage, or a modal.
 //
 // The context fetches `/api/intentions` once on mount and again whenever a
-// consumer calls `refresh()`. It intentionally does NOT fetch sessions —
-// pages that need alignment/session data fetch those independently.
+// consumer calls `refresh()`. It reads sessions from SessionsContext (so it
+// must sit inside SessionsProvider) only to drop intentions whose session or
+// training-week target is already met — see `pickActiveIntention`.
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { api, ApiError } from '../lib/api.ts';
 import type { Intention, IntentionsResponse } from '../types/api.ts';
-import { toDateString, addDays } from '../lib/sessionUtils.ts';
+import { toDateString } from '../lib/sessionUtils.ts';
+import { pickActiveIntention } from '../lib/analyticsUtils.ts';
+import { useSessions } from './SessionsContext.tsx';
 
 interface ActiveIntentionContextValue {
   /** Intention whose [week_start, week_start + duration_days - 1] covers today, or null. */
@@ -54,14 +57,11 @@ export function ActiveIntentionProvider({ children }: { children: React.ReactNod
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  const activeIntention = useMemo(() => {
-    const todayStr = toDateString(new Date());
-    return intentions.find(i => {
-      const start = i.week_start.slice(0, 10);
-      const end = addDays(start, (i.duration_days ?? 7) - 1);
-      return todayStr >= start && todayStr <= end;
-    }) ?? null;
-  }, [intentions]);
+  const { sessions } = useSessions();
+  const activeIntention = useMemo(
+    () => pickActiveIntention(intentions, toDateString(new Date()), sessions),
+    [intentions, sessions],
+  );
 
   const value = useMemo<ActiveIntentionContextValue>(
     () => ({ activeIntention, intentions, loading, refresh }),
