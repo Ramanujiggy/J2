@@ -87,6 +87,20 @@ export interface SessionVideo {
   video_notes: string | null;
 }
 
+// ── Pose tracks (migration 041) ────────────────────────────────────────────
+
+/** One skeleton: 17 COCO keypoints × [x per-mille, y per-mille, confidence %]. */
+export type PackedSkeleton = number[];
+
+/** GET /api/sessions/:id/videos/:videoId/pose → { track }. `frames[i]` is
+ *  [the person tapped first (you), your partner] at time i / fps. */
+export interface PoseTrack {
+  status: 'pending' | 'ready' | 'failed';
+  message: string | null;
+  fps: number | null;
+  frames: Array<[PackedSkeleton | null, PackedSkeleton | null]> | null;
+}
+
 export interface PositionSegment {
   id: string;
   video_id: string;

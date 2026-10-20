@@ -145,6 +145,16 @@ export const GLOW_SOFT = '0 0 14px rgba(242,228,168,0.3), 0 0 30px rgba(242,228,
 /** Nav glow — used on smaller nav links and buttons. */
 export const GLOW_NAV = '0 0 12px rgba(242,228,168,0.5), 0 0 24px rgba(242,228,168,0.22)' as const;
 
+// ─── Pair skeleton overlay (session video review) ─────────────────────────────
+
+/** You: champagne gold, the app's own voice. Partner: burnt orange. Both
+ *  warm, so the overlay stays inside the palette (no blue, no white). */
+export const PAIR_YOU = PALE_YELLOW;
+export const PAIR_PARTNER = BRAND_ORANGE;
+/** Canvas shadow colours for the two skeletons (warm halo, per §6). */
+export const PAIR_YOU_GLOW = 'rgba(242,228,168,0.55)' as const;
+export const PAIR_PARTNER_GLOW = 'rgba(218,116,34,0.55)' as const;
+
 // ─── Heatmap cells ────────────────────────────────────────────────────────────
 
 /** Rest / empty day cell — slightly darker than page background. */

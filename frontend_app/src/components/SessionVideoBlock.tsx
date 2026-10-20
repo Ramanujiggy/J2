@@ -294,6 +294,7 @@ export default function SessionVideoBlock({ sessionId, sessionLabel }: Props) {
                 onSave={(segs) => saveSegments(taggingVideoId, segs)}
                 onCancel={closeTagger}
                 saving={savingSegments}
+                pairSource={{ sessionId, videoId: taggingVideoId }}
               />
             ) : (
               <div style={{ padding: '40px 0', textAlign: 'center', fontSize: 13, color: TEXT_HINT }}>
