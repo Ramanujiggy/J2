@@ -9,7 +9,7 @@
 //
 // Auth bounce: logged-in users hitting `/` get redirected to `/home`.
 // CTA routing:
-//   - "Begin your record" / "See a sample journal" → /login?mode=register
+//   - "Begin your record" → /login?mode=register
 //   - "Open Journada", "Sign in" → /login
 //   - Footer/nav idea/journal/field-notes/contact links are inert (no anchors yet)
 
@@ -96,7 +96,7 @@ const HOW_IT_WORKS = [
   {
     kicker: '01 · Record',
     title: 'A session is a paragraph, not a stat',
-    body: "Quickly note what you drilled, who you rolled with, and the detail that finally clicked. Five lines, while it's fresh — that's all.",
+    body: "Quickly note what you drilled, who you rolled with, and the detail that finally clicked. Two lines, while it's fresh — that's all.",
   },
   {
     kicker: '02 · Reflect',
@@ -119,7 +119,7 @@ const BELIEFS = [
 ] as const;
 
 const NOT_THIS = [
-  'Streaks, leaderboards, levels',
+  'Leaderboards and levels',
   'Calorie rings and tap counts',
   'Fitness-tracker dashboards',
   '"Optimize your performance"',
@@ -241,7 +241,6 @@ export default function LandingPage() {
         </p>
         <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
           <CTAPrimary to={registerHref}>Begin your record</CTAPrimary>
-          <CTAGhost to={registerHref}>See a sample journal →</CTAGhost>
         </div>
         <div
           style={{
@@ -251,7 +250,7 @@ export default function LandingPage() {
             letterSpacing: '0.06em',
           }}
         >
-          Free through your first belt · $6/month after · No ads. No leaderboards. No streaks.
+          Free through your first belt · $6/month after · No ads. No leaderboards.
         </div>
       </section>
 

@@ -451,7 +451,7 @@ function PillarSection({
             >
               {filterActive
                 ? `No ${PILLAR_LABELS[pillar].toLowerCase()} techniques match this filter.`
-                : `No ${PILLAR_LABELS[pillar].toLowerCase()} techniques yet — add one from the Log Session form.`}
+                : `No ${PILLAR_LABELS[pillar].toLowerCase()} techniques yet — tag one the next time you log a session.`}
             </p>
           ) : (
             <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
