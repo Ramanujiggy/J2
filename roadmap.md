@@ -151,7 +151,7 @@ Full diagnostic rationale and implementation detail for each item lives in `impl
 | Status | Area | Description |
 |---|---|---|
 | `[-]` | **Push notifications / reminders** | **Cut 2026-10-20: "you haven't logged in N days" is nagging. A gentle weekly intention prompt may return later as its own item.** Original idea: "You haven't logged in 5 days" or "Set your intention for this week." Web Push API, or a simple email digest via the existing Nodemailer service. |
-| `[ ]` | **Coach notes / video links** | Attach a YouTube link or coach note to a session or intention. Could use the existing `notes` field with a structured prefix, or a separate DB field. |
+| `[x]` | **Coach notes / video links** | Built 2026-10-20, no schema change. Links pasted into an entry now render as links in the read view, and YouTube links (watch, youtu.be, shorts) are listed under the prose as "Linked video" rows (`lib/entryLinks.ts`, `EntryReadView`). Coach notes stay in the entry itself rather than a separate field: one more field at log time breaks the under-a-minute capture rule. |
 | `[ ]` | **Gold `@mention` styling in the entry prose** | Deferred 2026-07-25. Color partner `@mentions` copper in the Margin Notes entry so tags stand out. A `<textarea>` can't style part of its text; approach chosen = **highlight-overlay** (mirror div behind a transparent-text textarea colors each `@Ash`; keeps the textarea so voice/mobile/caret stay bulletproof — the `@` stays visible). `contenteditable` was rejected as too fragile for this voice-fed mobile input. Single file: `MarginNotesEntry.tsx`. |
 
 ---

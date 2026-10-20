@@ -23,6 +23,7 @@ import { STAMP_DIES, bandDate } from '../lib/stampDies.ts';
 import SealStamp from './seal/SealStamp.tsx';
 import SealRevealSheet from './seal/SealRevealSheet.tsx';
 import type { Pillar, SessionSummary } from '../types/api.ts';
+import { splitLinks, videoLinks } from '../lib/entryLinks.ts';
 
 /** The contrast floor. Small text never goes below this. */
 const HAIRLINE_2     = 'rgba(255,255,255,0.1)';
@@ -247,8 +248,46 @@ export default function EntryReadView({
               textWrap: 'pretty',
             }}
           >
-            {prose}
+            {splitLinks(prose).map((seg, i) => (seg.kind === 'link' ? (
+              <a
+                key={i}
+                href={seg.value}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: COPPER, textDecoration: 'underline', textUnderlineOffset: 3, wordBreak: 'break-all' }}
+              >
+                {seg.value}
+              </a>
+            ) : seg.value))}
           </div>
+
+          {/* ── Videos linked in the writing ─────────────────────────── */}
+          {videoLinks(prose).length > 0 && (
+            <div style={{ marginTop: 18 }}>
+              <div style={{ ...MICRO, color: COPPER, letterSpacing: '0.12em', marginBottom: 8 }}>
+                Linked video
+              </div>
+              {videoLinks(prose).map(url => (
+                <a
+                  key={url}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10, minHeight: 44,
+                    padding: '0 14px', marginTop: 6, borderRadius: 12,
+                    border: `1px solid ${HAIRLINE_2}`, color: TEXT_PRIMARY,
+                    fontSize: 13.5, textDecoration: 'none', touchAction: 'manipulation',
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+                    <path d="M3.5 2.2v9.6L11.5 7z" fill={COPPER} />
+                  </svg>
+                  Watch on YouTube
+                </a>
+              ))}
+            </div>
+          )}
         </>
       ) : (
         /* ── Logged, but nothing written yet ────────────────────────── */
