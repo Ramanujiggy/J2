@@ -17,6 +17,7 @@ import PromotionSheet from '../components/belt/PromotionSheet.tsx';
 import PromotionRevealSheet from '../components/belt/PromotionRevealSheet.tsx';
 import PromotionList, { formatPromotionMonth } from '../components/belt/PromotionList.tsx';
 import { isBeltRank } from '../lib/beltCloth.ts';
+import { timeAtBeltLabel } from '../lib/belt.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { toast } from '../hooks/use-toast.ts';
@@ -452,7 +453,7 @@ export default function ProfilePage() {
                 title="Record a promotion"
               />
               <p style={{ fontSize: 11.5, color: TEXT_TERTIARY, marginTop: 10 }}>
-                {tiedOnLabel ? `Tied on ${tiedOnLabel} · ` : ''}
+                {tiedOnLabel && tiedOn ? `Tied on ${tiedOnLabel} · ${timeAtBeltLabel(tiedOn)} · ` : ''}
                 {isDesktop ? 'click' : 'tap'} the belt to record a promotion
               </p>
 

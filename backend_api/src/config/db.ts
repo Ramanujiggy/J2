@@ -15,9 +15,11 @@ types.setTypeParser(types.builtins.DATE, (val: string) => val);
 // 2. configure the connection pool
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: {
-        rejectUnauthorized: false // required for Supabase / cloud providers
-    },
+    // Required for Supabase / cloud providers. DATABASE_SSL=false is for a
+    // local or CI Postgres that has no TLS (the e2e job's service container).
+    ssl: process.env.DATABASE_SSL === 'false'
+        ? false
+        : { rejectUnauthorized: false },
     max: 20,                        // max concurrent connections (pg default is 10)
     idleTimeoutMillis: 30_000,      // close idle connections after 30s
     connectionTimeoutMillis: 5_000, // fail fast if pool is exhausted

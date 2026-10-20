@@ -9,6 +9,8 @@ import {
     deleteVideo,
     getSegments,
     saveSegments,
+    pickPair,
+    getPoseTrack,
 } from '../controllers/sessionVideoController.js';
 
 const router = Router({ mergeParams: true });
@@ -27,5 +29,9 @@ router.delete('/:videoId',                  deleteVideo);
 // Position segments
 router.get('/:videoId/segments',            getSegments);
 router.put('/:videoId/segments',            saveSegments);
+
+// Pose track: pick the pair, then read the skeletons
+router.put('/:videoId/pair',                pickPair);
+router.get('/:videoId/pose',                getPoseTrack);
 
 export default router;

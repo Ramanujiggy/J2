@@ -16,7 +16,7 @@ import type { SessionSummary, Intention, SessionsResponse } from '../types/api.t
 import { toast } from '../hooks/use-toast.ts';
 import { useProfile } from '../context/ProfileContext.tsx';
 import { useActiveIntention } from '../context/ActiveIntentionContext.tsx';
-import { isIntentionComplete, sessionTouchesHeading } from '../lib/analyticsUtils.ts';
+import { pickActiveIntention, sessionTouchesHeading } from '../lib/analyticsUtils.ts';
 import PathAheadModals from '../components/PathAheadModals.tsx';
 import PathAheadMobile from '../components/PathAheadMobile.tsx';
 import PathAheadDesktop from '../components/PathAheadDesktop.tsx';
@@ -24,6 +24,7 @@ import { toDateString, addDays } from '../lib/sessionUtils.ts';
 import {
   findUnfinishedEntry,
   findMemoryEntry,
+  findPromotionAnniversary,
   buildRecentEntries,
   buildTechniqueCards,
   findRecentIntentions,
@@ -37,6 +38,7 @@ import { useIsDesktop } from '../hooks/useIsDesktop.ts';
 import { useStamps } from '../hooks/useStamps.ts';
 import SealRevealSheet from '../components/seal/SealRevealSheet.tsx';
 import { STAMP_DIES } from '../lib/stampDies.ts';
+import { useBeltHistory } from '../hooks/useBeltHistory.ts';
 
 // ── PathAheadPage ──────────────────────────────────────────────────────────
 
@@ -142,6 +144,13 @@ export default function PathAheadPage() {
     [allSessions],
   );
 
+  // A promotion tied on this day in an earlier year leads the hero deck.
+  const { entries: promotions } = useBeltHistory();
+  const anniversary = useMemo(
+    () => findPromotionAnniversary(promotions, allSessions, new Date()),
+    [promotions, allSessions],
+  );
+
   // Desktop's margin column carries a second memory beside the hero's. Run
   // the same chain with the hero's entry removed so the two never quote the
   // same session back at the reader.
@@ -221,13 +230,7 @@ export default function PathAheadPage() {
   // AND, for non-'days' completion modes, that hasn't hit its target yet.
   // For 'days' mode, the calendar window IS the completion criterion.
   const todayStr = toDateString(today);
-  const activeIntention = intentions.find(i => {
-    const start = i.week_start.slice(0, 10);
-    const end   = addDays(start, (i.duration_days ?? 7) - 1);
-    if (todayStr < start || todayStr > end) return false;
-    if (i.completion_type !== 'days' && isIntentionComplete(i, allSessions)) return false;
-    return true;
-  }) ?? null;
+  const activeIntention = pickActiveIntention(intentions, todayStr, allSessions);
 
   // Sessions that have touched the intention since it was set — the anchor
   // sentence on home's intention card. Counted over the FULL session list
@@ -341,6 +344,7 @@ export default function PathAheadPage() {
         totalSessions={totalSessions}
         unfinishedEntry={unfinishedEntry}
         memoryEntry={memoryEntry}
+        anniversary={anniversary}
         marginMemory={marginMemory}
         recentEntries={recentEntries}
         portraitShapes={portraitShapes}
@@ -369,6 +373,7 @@ export default function PathAheadPage() {
       totalSessions={totalSessions}
       unfinishedEntry={unfinishedEntry}
       memoryEntry={memoryEntry}
+      anniversary={anniversary}
       recentEntries={recentEntries}
       portraitShapes={portraitShapes}
       intentionsEnabled={intentionsEnabled}

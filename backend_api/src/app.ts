@@ -50,23 +50,30 @@ if (!process.env.FRONTEND_URL) {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = path.resolve(__dirname, '..', 'migrations');
 
+// Legacy: password_reset_tokens predates the numbered migrations and is
+// created inline. It references users(id), so on an empty database (CI, a
+// fresh local DB) it can only be created once 000 has made the users table.
+async function ensurePasswordResetTokens() {
+    await query(`
+        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+            id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            token      TEXT NOT NULL UNIQUE,
+            expires_at TIMESTAMPTZ NOT NULL,
+            used       BOOLEAN NOT NULL DEFAULT false,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+    `);
+    await query(`
+        CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_token
+        ON password_reset_tokens(token)
+    `);
+}
+
 async function runMigrations() {
     try {
-        // Legacy: ensure password_reset_tokens exists (was inline before migration system)
-        await query(`
-            CREATE TABLE IF NOT EXISTS password_reset_tokens (
-                id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                token      TEXT NOT NULL UNIQUE,
-                expires_at TIMESTAMPTZ NOT NULL,
-                used       BOOLEAN NOT NULL DEFAULT false,
-                created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-            )
-        `);
-        await query(`
-            CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_token
-            ON password_reset_tokens(token)
-        `);
+        const usersExists = await query(`SELECT to_regclass('public.users') AS t`);
+        if (usersExists.rows[0]?.t) await ensurePasswordResetTokens();
 
         // Version tracking table
         await query(`
@@ -115,6 +122,7 @@ async function runMigrations() {
             const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, file), 'utf-8');
             await query(sql);
             await query('INSERT INTO schema_migrations (name) VALUES ($1)', [file]);
+            if (file.startsWith('000_')) await ensurePasswordResetTokens();
             console.log(`  ✅ Applied migration: ${file}`);
             newCount++;
         }

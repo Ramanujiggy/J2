@@ -6,6 +6,7 @@
 // the data flywheel (Phase 2: model-pre-filled segments that users correct).
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import PairTrackedVideo from './PairTrackedVideo.tsx';
 import { BRAND_ORANGE, COPPER, PALE_YELLOW, SAGE, SURFACE_2, SURFACE_3, SURFACE_2_BORDER, TEXT_TERTIARY, TEXT_HINT, TEXT_DISABLED } from '../lib/theme.ts';
 
 // ── Position taxonomy ──────────────────────────────────────────────────────
@@ -45,6 +46,11 @@ export interface DraftSegment {
   position_label: string;
 }
 
+const VIDEO_STYLE: React.CSSProperties = {
+  display: 'block', width: '100%', borderRadius: 10, background: '#000',
+  maxHeight: 'clamp(140px, 28vh, 280px)', objectFit: 'contain',
+};
+
 interface Props {
   videoUrl: string;
   durationSecs: number | null;
@@ -52,9 +58,11 @@ interface Props {
   onSave: (segments: Array<{ start_sec: number; end_sec: number; position_label: string }>) => Promise<void>;
   onCancel: () => void;
   saving?: boolean;
+  /** When given, the video gets tap-to-pick-the-pair and the skeleton overlay. */
+  pairSource?: { sessionId: string; videoId: string };
 }
 
-export default function PositionTagger({ videoUrl, durationSecs, initialSegments = [], onSave, onCancel, saving = false }: Props) {
+export default function PositionTagger({ videoUrl, durationSecs, initialSegments = [], onSave, onCancel, saving = false, pairSource }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [segments, setSegments] = useState<DraftSegment[]>(initialSegments);
   const [currentTime, setCurrentTime] = useState(0);
@@ -119,13 +127,17 @@ export default function PositionTagger({ videoUrl, durationSecs, initialSegments
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minHeight: '100%' }}>
 
       {/* Video */}
-      <video
-        ref={videoRef}
-        src={videoUrl}
-        controls
-        playsInline
-        style={{ width: '100%', borderRadius: 10, background: '#000', maxHeight: 'clamp(140px, 28vh, 280px)', objectFit: 'contain' }}
-      />
+      {pairSource ? (
+        <PairTrackedVideo
+          videoRef={videoRef}
+          videoUrl={videoUrl}
+          sessionId={pairSource.sessionId}
+          videoId={pairSource.videoId}
+          videoStyle={VIDEO_STYLE}
+        />
+      ) : (
+        <video ref={videoRef} src={videoUrl} controls playsInline style={VIDEO_STYLE} />
+      )}
 
       {/* Timeline bar */}
       <div style={{ position: 'relative', height: 24, borderRadius: 2, overflow: 'hidden', background: 'rgba(255,255,255,0.10)' }}>

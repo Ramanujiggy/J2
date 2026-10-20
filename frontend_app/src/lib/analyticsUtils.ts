@@ -1,5 +1,6 @@
 import { SKILL_TAGS, MONTH_NAMES } from './constants.ts';
 import type { SessionSummary, Intention } from '../types/api.ts';
+import { addDays } from './sessionUtils.ts';
 
 // ── Date normalisation ───────────────────────────────────────────────────────
 
@@ -243,4 +244,29 @@ export function isIntentionComplete(intention: Intention, sessions: SessionSumma
   const progress = computeIntentionProgress(intention, sessions);
   if (!progress) return false;
   return progress.completed >= progress.target;
+}
+
+/**
+ * The one intention that owns today. Every surface (home, rail, journal,
+ * intentions page) reads it through here so they never disagree.
+ *
+ * Covers today = todayStr falls inside [week_start, week_start + duration_days - 1].
+ * When `sessions` is given, a 'sessions' / 'training_weeks' intention that has
+ * already hit its target leaves the slot early. When several still qualify,
+ * the most recently started wins: it is the one the user set last.
+ */
+export function pickActiveIntention(
+  intentions: Intention[],
+  todayStr: string,
+  sessions?: SessionSummary[],
+): Intention | null {
+  let best: Intention | null = null;
+  for (const i of intentions) {
+    const start = i.week_start.slice(0, 10);
+    const end = addDays(start, (i.duration_days ?? 7) - 1);
+    if (todayStr < start || todayStr > end) continue;
+    if (sessions && i.completion_type !== 'days' && isIntentionComplete(i, sessions)) continue;
+    if (!best || start > best.week_start.slice(0, 10)) best = i;
+  }
+  return best;
 }

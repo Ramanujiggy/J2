@@ -71,7 +71,7 @@ All color tokens live in `frontend_app/src/lib/theme.ts`. Always import from the
 ## Dev Conventions
 
 **Migrations**
-- Numbered sequentially: `001`, `002`, … currently at `040`
+- Numbered sequentially: `001`, `002`, … currently at `041`
 - Auto-applied on server boot via `runMigrations()` in `server.ts`
 - Always check the last migration number before writing a new one: `ls backend_api/migrations/ | sort | tail -5`
 - SQL files only — no inline migration code

@@ -5,7 +5,7 @@
 // functions turn the raw session list into exactly those three shapes.
 // Kept pure (no React, no Date.now defaults) so they can be unit-tested.
 
-import type { Intention, PillarDistribution, SessionSummary, UserTag } from '../types/api.ts';
+import type { BeltHistoryEntry, Intention, PillarDistribution, SessionSummary, UserTag } from '../types/api.ts';
 import { toDateString } from './sessionUtils.ts';
 
 /** Sessions whose logged date is more than this old stop owning the hero. */
@@ -84,7 +84,7 @@ const MIN_MEMORY_AGE_DAYS = 5;
 
 /**
  * The resurfacing chain, longest reach first:
- *   1. an entry from a year ago today
+ *   1. an entry from this day in an earlier year (nearest year first)
  *   2. the same calendar month last year (closest day-of-month)
  *   3. about a month ago
  *   4. about a week ago
@@ -122,12 +122,15 @@ export function findMemoryEntry(
     d: new Date(sessionDateKey(s) + 'T00:00:00'),
   }));
 
-  // 1 — a year ago today.
-  const yearAgoKey = toDateString(
-    new Date(today.getFullYear() - 1, today.getMonth(), today.getDate()),
-  );
-  const exact = dated.find(({ key }) => key === yearAgoKey);
-  if (exact) return build(exact.s, 'year_ago_today', 'A year ago today');
+  // 1 — this day in an earlier year, nearest year first.
+  const oldestYear = Math.min(...dated.map(({ d }) => d.getFullYear()));
+  for (let years = 1; today.getFullYear() - years >= oldestYear; years++) {
+    const key = toDateString(
+      new Date(today.getFullYear() - years, today.getMonth(), today.getDate()),
+    );
+    const exact = dated.find(entry => entry.key === key);
+    if (exact) return build(exact.s, 'year_ago_today', yearsAgoTodayLabel(years));
+  }
 
   // 2 — same calendar month, previous year; closest day-of-month wins.
   const sameMonth = dated
@@ -170,6 +173,48 @@ export function findMemoryEntry(
   if (earlier.length > 0) return build(earlier[0]!.s, 'earlier', 'Earlier');
 
   return null;
+}
+
+/** "A year ago today", "3 years ago today". */
+export function yearsAgoTodayLabel(years: number): string {
+  return years === 1 ? 'A year ago today' : `${years} years ago today`;
+}
+
+export interface PromotionAnniversary {
+  promotion: BeltHistoryEntry;
+  years: number;
+  /** Pill copy, same voice as the memory tiers. */
+  label: string;
+  /** The entry logged that day, when the promotion is linked to one (mig 039). */
+  session: SessionSummary | null;
+}
+
+/**
+ * A promotion tied on this calendar day in an earlier year. The rarest and
+ * heaviest thing Home can resurface, so it leads the deck when it exists.
+ * When several fall on the same day, the oldest wins — the longer road.
+ */
+export function findPromotionAnniversary(
+  promotions: BeltHistoryEntry[],
+  sessions: SessionSummary[],
+  today: Date,
+): PromotionAnniversary | null {
+  const month = today.getMonth() + 1;
+  const day = today.getDate();
+  let best: PromotionAnniversary | null = null;
+  for (const promotion of promotions) {
+    const [y, m, d] = promotion.promoted_at.slice(0, 10).split('-').map(Number) as [number, number, number];
+    const years = today.getFullYear() - y;
+    if (m !== month || d !== day || years < 1) continue;
+    if (best && years <= best.years) continue;
+    best = {
+      promotion,
+      years,
+      label: yearsAgoTodayLabel(years),
+      session: sessions.find(s => s.id === promotion.session_id) ?? null,
+    };
+  }
+  return best;
 }
 
 export interface RecentEntry {

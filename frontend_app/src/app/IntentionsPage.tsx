@@ -13,7 +13,7 @@ import { useActiveIntention } from '../context/ActiveIntentionContext.tsx';
 import { useSessions } from '../context/SessionsContext.tsx';
 import { useCoachmark } from '../hooks/useCoachmark.ts';
 import { toDateString, addDays } from '../lib/sessionUtils.ts';
-import { topTagInRange, computeAlignment, tagHoursInRange } from '../lib/analyticsUtils.ts';
+import { topTagInRange, computeAlignment, tagHoursInRange, pickActiveIntention } from '../lib/analyticsUtils.ts';
 import type { Intention, SessionSummary } from '../types/api.ts';
 import { toast } from '../hooks/use-toast.ts';
 import {
@@ -89,10 +89,10 @@ export default function IntentionsPage() {
   // Active = its calendar window contains today. Everything else that has
   // already started is an era that ran, newest first.
   const todayStr = toDateString(new Date());
-  const activeIntention = useMemo(() => intentions.find(i => {
-    const start = i.week_start.slice(0, 10);
-    return todayStr >= start && todayStr <= addDays(start, (i.duration_days ?? 7) - 1);
-  }) ?? null, [intentions, todayStr]);
+  const activeIntention = useMemo(
+    () => pickActiveIntention(intentions, todayStr, sessions),
+    [intentions, todayStr, sessions],
+  );
 
   const pastIntentions = useMemo(
     () => intentions

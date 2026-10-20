@@ -183,3 +183,57 @@ export const saveSegments = async (req: Request, res: Response) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
+// ── Pose tracks (mig 041) ──────────────────────────────────────────────────
+
+const unit = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 1;
+
+/** The user picked the pair: queue a track from that frame. */
+export const pickPair = async (req: Request, res: Response) => {
+    try {
+        const userId = req.user!.id;
+        const videoId = req.params['videoId'];
+        if (!videoId) return res.status(400).json({ message: 'videoId is required.' });
+
+        const video = await sessionVideoModel.findSessionVideoById(userId, videoId);
+        if (!video) return res.status(404).json({ message: 'Video not found.' });
+        if (video.video_status !== 'ready') return res.status(409).json({ message: 'Video is not ready yet.' });
+
+        const { seed_sec, first, second } = req.body ?? {};
+        if (typeof seed_sec !== 'number' || !Number.isFinite(seed_sec) || seed_sec < 0) {
+            return res.status(400).json({ message: 'seed_sec must be a non-negative number.' });
+        }
+        if (!unit(first?.x) || !unit(first?.y) || !unit(second?.x) || !unit(second?.y)) {
+            return res.status(400).json({ message: 'first and second need x and y between 0 and 1.' });
+        }
+
+        const track = await sessionVideoModel.queuePoseTrack(userId, videoId, {
+            seed_sec, first_x: first.x, first_y: first.y, second_x: second.x, second_y: second.y,
+        });
+        res.status(202).json({ track: { status: track.status } });
+    } catch (err) {
+        console.error('❌ Error queueing pose track:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+export const getPoseTrack = async (req: Request, res: Response) => {
+    try {
+        const userId = req.user!.id;
+        const videoId = req.params['videoId'];
+        if (!videoId) return res.status(400).json({ message: 'videoId is required.' });
+        const track = await sessionVideoModel.getPoseTrack(userId, videoId);
+        if (!track) return res.status(200).json({ track: null });
+        res.status(200).json({
+            track: {
+                status: track.status,
+                message: track.status === 'failed' ? track.status_message : null,
+                fps: track.fps,
+                frames: track.frames,
+            },
+        });
+    } catch (err) {
+        console.error('❌ Error fetching pose track:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+};

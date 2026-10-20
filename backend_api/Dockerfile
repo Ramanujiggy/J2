@@ -29,7 +29,8 @@ WORKDIR /app
 # Install deps first so the layer cache only invalidates when package.json
 # / package-lock.json change. Source-only changes reuse the cached deps
 # layer and finish builds in well under a minute.
-COPY package*.json ./
+# .npmrc tells onnxruntime-node (pose worker) to skip its CUDA download.
+COPY package*.json .npmrc ./
 RUN npm ci --include=dev
 
 # Copy source + build the TypeScript output to dist/. Mirrors the

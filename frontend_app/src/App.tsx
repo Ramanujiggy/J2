@@ -89,13 +89,13 @@ function ProtectedShell({ children }: { children: React.ReactNode }) {
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   return (
     <ProfileProvider>
-      <ActiveIntentionProvider>
-        <SessionsProvider>
+      <SessionsProvider>
+        <ActiveIntentionProvider>
           <OnboardingGate>
             <AppShell>{children}</AppShell>
           </OnboardingGate>
-        </SessionsProvider>
-      </ActiveIntentionProvider>
+        </ActiveIntentionProvider>
+      </SessionsProvider>
     </ProfileProvider>
   );
 }

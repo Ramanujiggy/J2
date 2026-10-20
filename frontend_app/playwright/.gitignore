@@ -1,3 +1,5 @@
 .auth/
 test-results/
 playwright-report/
+ci/.results/
+ci/.report/

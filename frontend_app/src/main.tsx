@@ -38,9 +38,13 @@ const updateSW = registerSW({
 });
 
 // After a new SW activates and claims this tab, reload so the page
-// fetches fresh assets from the new precache.
+// fetches fresh assets from the new precache. Only for an UPDATE: on a
+// first-ever visit there is no controller yet, the page already runs the
+// current assets, and reloading would wipe whatever the person is doing
+// (it aborted sign-up mid-request in the e2e journey).
 if ('serviceWorker' in navigator) {
+  const hadController = navigator.serviceWorker.controller !== null;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    window.location.reload();
+    if (hadController) window.location.reload();
   });
 }
