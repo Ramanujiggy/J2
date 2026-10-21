@@ -355,7 +355,7 @@ export default function ProfilePage() {
             {
               heading: 'Your data',
               rows: [
-                { title: 'Import training history', subtitle: 'Upload a CSV of past sessions.', onClick: () => setImportOpen(true) },
+                { title: 'Import training history', subtitle: 'Upload a CSV, JSON or Numbers file of past sessions.', onClick: () => setImportOpen(true) },
                 { title: 'Export everything', subtitle: 'Sessions and intentions as CSV — your words are yours.', onClick: () => { void handleExportAll(); } },
               ],
             },
@@ -697,8 +697,8 @@ export default function ProfilePage() {
             <p className="text-sm font-semibold text-white mb-1">Import Training History</p>
           )}
           <p className={isDesktop ? 'text-[13px] text-white/45 mb-5 leading-relaxed' : 'text-xs text-white/40 mb-4'}>
-            Upload a CSV spreadsheet to import your historical sessions.
-            Duplicates are flagged so you can review before committing.
+            Upload a CSV, JSON or Numbers file of past sessions.
+            Duplicates are flagged so you can review every row before it's saved.
           </p>
           <button
             onClick={async () => {
