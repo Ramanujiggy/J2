@@ -1,53 +1,55 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../lib/api.ts';
 import { useOnlineRefetch } from '../hooks/useOnlineRefetch.ts';
 import { usePendingSessions } from '../hooks/usePendingSessions.ts';
-import TrainingHeatmap from '../components/TrainingHeatmap.tsx';
-import CalendarHeatmapView from '../components/CalendarHeatmapView.tsx';
+import { useBeltHistory } from '../hooks/useBeltHistory.ts';
+import { useProfile } from '../context/ProfileContext.tsx';
 import CaptureComposer from '../components/composer/CaptureComposer.tsx';
 import ErrorBoundary from '../components/ErrorBoundary.tsx';
-import { LayoutGrid, CalendarDays, Search, X } from 'lucide-react';
+import YearBook from '../components/calendar/YearBook.tsx';
+import ChapterView from '../components/calendar/ChapterView.tsx';
+import WeekSpread from '../components/calendar/WeekSpread.tsx';
+import { Search, X } from 'lucide-react';
 import SessionSearchPanel from '../components/SessionSearchPanel.tsx';
 import Coachmark from '../components/Coachmark.tsx';
 import { useCoachmark } from '../hooks/useCoachmark.ts';
-import { PALE_YELLOW, GLOW_SOFT, COPPER, SURFACE_2 } from '../lib/theme.ts';
+import { COPPER, SURFACE_2 } from '../lib/theme.ts';
 import { useIsDesktop } from '../hooks/useIsDesktop.ts';
-import type { SessionSummary, CalendarIntention, SessionsResponse, IntentionsResponse } from '../types/api.ts';
+import { toDateString } from '../lib/sessionUtils.ts';
+import { sessionDateKey } from '../lib/analyticsUtils.ts';
+import { MONTH_FULL, buildChapters, shiftDays } from '../lib/calendarBook.ts';
+import type { Chapter } from '../lib/calendarBook.ts';
+import type { SessionSummary, Intention, SessionsResponse, IntentionsResponse } from '../types/api.ts';
 
+// The Calendar reads the year as a book: year → chapter → week → entry.
+// Which page is open lives in the URL (?chapter=, ?month=, ?week=) so the
+// phone's back gesture walks back up the book.
 export default function CalendarPage() {
   const isDesktop = useIsDesktop();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [params, setParams] = useSearchParams();
+  const { intentionsEnabled } = useProfile();
   const calendarCoachmark = useCoachmark('calendar');
   const [sessions,    setSessions]    = useState<SessionSummary[]>([]);
-  const [intentions,  setIntentions]  = useState<CalendarIntention[]>([]);
+  const [intentions,  setIntentions]  = useState<Intention[]>([]);
   const [loading,     setLoading]     = useState(true);
   const [fetchError,  setFetchError]  = useState<string | null>(null);
   const [displayYear, setDisplayYear] = useState(new Date().getFullYear());
   const [flipDir,     setFlipDir]     = useState<'forward' | 'back' | null>(null);
   const [logDate,     setLogDate]     = useState<string | null>(null); // YYYY-MM-DD for log-from-calendar
   const [searchOpen,  setSearchOpen]  = useState(false);
+  const topRef = useRef<HTMLDivElement>(null);
 
-  type CalendarViewMode = 'heatmap' | 'detailed';
-  const [calView, setCalView] = useState<CalendarViewMode>(
-    () => {
-      const stored = localStorage.getItem('j2_cal_view');
-      if (stored === 'heatmap' || stored === 'detailed') return stored;
-      return 'heatmap';
-    }
-  );
-  const handleCalViewChange = useCallback((mode: CalendarViewMode) => {
-    setCalView(mode);
-    localStorage.setItem('j2_cal_view', mode);
-  }, []);
+  const todayStr = toDateString(new Date());
+  const currentYear = new Date().getFullYear();
 
   const navigateYear = (dir: 1 | -1) => {
     setFlipDir(dir === 1 ? 'forward' : 'back');
     setDisplayYear(y => y + dir);
   };
 
-  const currentYear = new Date().getFullYear();
-  // Stable callbacks for CalendarHeatmapView (per Tier 3 perf audit:
-  // inline arrow props defeat React.memo on the heatmap children).
-  const handleGoToToday  = useCallback(() => setDisplayYear(currentYear), [currentYear]);
   const handleLogSession = useCallback((dateKey: string) => setLogDate(dateKey), []);
 
   const fetchAll = useCallback(async () => {
@@ -73,11 +75,83 @@ export default function CalendarPage() {
   useOnlineRefetch(fetchAll);
 
   const pendingSessions = usePendingSessions();
-  const allSessions = useMemo(() => [...sessions, ...pendingSessions], [sessions, pendingSessions]);
+  const allSessions = useMemo(
+    () => [...sessions, ...pendingSessions].filter(s => sessionDateKey(s).slice(0, 4) === String(displayYear)),
+    [sessions, pendingSessions, displayYear],
+  );
+
+  const { entries: beltHistory } = useBeltHistory();
+  const promotions = useMemo(
+    () => beltHistory.filter(p => p.promoted_at.slice(0, 4) === String(displayYear)),
+    [beltHistory, displayYear],
+  );
+
+  const chapters = useMemo(
+    () => buildChapters(allSessions, intentionsEnabled ? intentions : [], displayYear, todayStr),
+    [allSessions, intentions, intentionsEnabled, displayYear, todayStr],
+  );
+
+  // ── Which page of the book is open ────────────────────────────────────────
+  const chapterKey = params.get('chapter');
+  const monthParam = params.get('month');
+  const weekParam = params.get('week');
+
+  const openChapter: Chapter | null = useMemo(() => {
+    if (chapterKey) return chapters.find(c => c.key === chapterKey) ?? null;
+    if (monthParam != null) {
+      const m = Number(monthParam);
+      if (!Number.isInteger(m) || m < 0 || m > 11) return null;
+      const prefix = `${displayYear}-${String(m + 1).padStart(2, '0')}`;
+      const start = `${prefix}-01`;
+      const end = `${prefix}-${String(new Date(displayYear, m + 1, 0).getDate()).padStart(2, '0')}`;
+      return {
+        key: `book-${prefix}`,
+        kind: 'month',
+        title: MONTH_FULL[m]!,
+        pillar: null,
+        start,
+        end,
+        ongoing: todayStr >= start && todayStr <= end,
+        number: null,
+        intention: null,
+        sessions: allSessions
+          .filter(s => sessionDateKey(s).startsWith(prefix))
+          .sort((a, b) => sessionDateKey(a).localeCompare(sessionDateKey(b))),
+      };
+    }
+    return null;
+  }, [chapterKey, monthParam, chapters, allSessions, displayYear, todayStr]);
+
+  const weekMonday = weekParam && /^\d{4}-\d{2}-\d{2}$/.test(weekParam) ? weekParam : null;
+
+  const goTo = useCallback((next: Record<string, string>) => {
+    setParams(next, { state: { calendarNav: true } });
+  }, [setParams]);
+
+  // Back walks up one level: through history when we pushed it, else by URL
+  const goBack = useCallback((fallback: Record<string, string>) => {
+    if ((location.state as { calendarNav?: boolean } | null)?.calendarNav) navigate(-1);
+    else setParams(fallback, { replace: true });
+  }, [location.state, navigate, setParams]);
+
+  const chapterParams: Record<string, string> = chapterKey
+    ? { chapter: chapterKey }
+    : monthParam != null ? { month: monthParam } : {};
+
+  // A new page starts at its top
+  useEffect(() => {
+    topRef.current?.scrollIntoView({ block: 'start' });
+  }, [chapterKey, monthParam, weekParam]);
+
+  const handleMoveWeek = useCallback((monday: string) => {
+    const year = Number(shiftDays(monday, 3).slice(0, 4));
+    if (year !== displayYear) setDisplayYear(year);
+    setParams({ ...chapterParams, week: monday }, { replace: true, state: location.state });
+  }, [displayYear, setParams, chapterParams, location.state]);
 
   return (
     <>
-    {/* Log session modal — triggered from empty calendar cells */}
+    {/* Log session modal — triggered from a rest day in a week */}
     {logDate && (
       <div
         data-no-page-swipe=""
@@ -106,94 +180,25 @@ export default function CalendarPage() {
       </div>
     )}
 
-    <div className={`space-y-5 ${isDesktop ? 'j2-page-container' : 'mx-auto max-w-5xl px-4 sm:px-6'}`} style={isDesktop ? { paddingTop: 20, paddingBottom: 20 } : { paddingTop: 24, paddingBottom: 24 }}>
-
-      {/* Header row */}
-      <div className="flex items-center justify-between">
-        {calView !== 'heatmap' && (
-          <h2
-            className="text-2xl font-display font-bold tracking-tight"
-            style={{ color: PALE_YELLOW, textShadow: GLOW_SOFT }}
-          >
-            {displayYear} Mat Time
-          </h2>
-        )}
-        {calView === 'heatmap' && <div />}
-
-        <div className="flex items-center gap-2">
-          {/* Search toggle */}
-          <button
-            onClick={() => setSearchOpen(v => !v)}
-            className="flex items-center justify-center rounded-lg transition-colors touch-manipulation"
-            style={{
-              width: 34,
-              height: 30,
-              backgroundColor: searchOpen ? COPPER : SURFACE_2,
-              color: searchOpen ? '#fff' : 'rgba(242,228,168,0.45)',
-            }}
-            aria-label={searchOpen ? 'Close search' : 'Search sessions'}
-          >
-            {searchOpen ? <X size={14} /> : <Search size={14} />}
-          </button>
-
-          {/* View toggle — heatmap (density scan) vs detailed (book mode) */}
-          <div className="flex gap-0.5 p-0.5 rounded-lg" style={{ backgroundColor: SURFACE_2, border: '1px solid rgba(255,255,255,0.06)' }}>
-            {([
-              { id: 'heatmap' as const, Icon: LayoutGrid },
-              { id: 'detailed' as const, Icon: CalendarDays },
-            ]).map(({ id, Icon }) => {
-              const isActive = calView === id;
-              return (
-                <button
-                  key={id}
-                  onClick={() => handleCalViewChange(id)}
-                  className="flex items-center justify-center rounded-md transition-colors touch-manipulation"
-                  style={{
-                    width: 34,
-                    height: 30,
-                    backgroundColor: isActive ? COPPER : 'transparent',
-                    color: isActive ? '#fff' : 'rgba(255,255,255,0.35)',
-                    transition: 'background-color 200ms ease, color 200ms ease',
-                  }}
-                  aria-label={id === 'heatmap' ? 'Heatmap view' : 'Detailed view'}
-                >
-                  <Icon size={14} strokeWidth={isActive ? 2 : 1.5} />
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Year navigation — hidden when heatmap renders its own */}
-          {calView !== 'heatmap' && <div className="flex items-center p-0.5 rounded-lg" style={{ backgroundColor: SURFACE_2 }}>
-            <button
-              onClick={() => navigateYear(-1)}
-              aria-label="Previous year"
-              className="p-1.5 rounded-md hover:bg-white/5 transition-colors touch-manipulation"
-              style={{ color: 'rgba(242,228,168,0.45)' }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
-            </button>
-            <span
-              className="w-10 text-center select-none"
-              style={{ fontSize: 13, fontWeight: 600, color: 'rgba(242,228,168,0.85)' }}
-            >
-              {displayYear}
-            </span>
-            <button
-              onClick={() => navigateYear(1)}
-              disabled={displayYear >= currentYear}
-              aria-label="Next year"
-              className="p-1.5 rounded-md hover:bg-white/5 transition-colors disabled:opacity-20 disabled:cursor-not-allowed touch-manipulation"
-              style={{ color: 'rgba(242,228,168,0.45)' }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 18l6-6-6-6" />
-              </svg>
-            </button>
-          </div>}
-        </div>
+    <div
+      ref={topRef}
+      className={`space-y-5 ${isDesktop ? 'j2-page-container' : 'mx-auto px-4 sm:px-6'}`}
+      style={{ maxWidth: 640, marginInline: 'auto', ...(isDesktop ? { paddingTop: 20, paddingBottom: 20 } : { paddingTop: 16, paddingBottom: 24 }) }}
+    >
+      <div className="flex items-center justify-end">
+        <button
+          onClick={() => setSearchOpen(v => !v)}
+          className="flex items-center justify-center rounded-lg transition-colors touch-manipulation"
+          style={{
+            width: 44,
+            height: 44,
+            backgroundColor: searchOpen ? COPPER : SURFACE_2,
+            color: searchOpen ? '#fff' : 'rgba(242,228,168,0.45)',
+          }}
+          aria-label={searchOpen ? 'Close search' : 'Search sessions'}
+        >
+          {searchOpen ? <X size={16} /> : <Search size={16} />}
+        </button>
       </div>
 
       {fetchError && <p className="text-sm text-error">{fetchError}</p>}
@@ -205,34 +210,48 @@ export default function CalendarPage() {
         />
       ) : (
         <ErrorBoundary>
-          <div
-            key={displayYear}
-            onAnimationEnd={() => setFlipDir(null)}
-            style={flipDir ? {
-              animation: `j2PageFlip${flipDir === 'forward' ? 'Forward' : 'Back'} 380ms ease-out both`,
-            } : undefined}
-          >
-            {calView === 'heatmap' ? (
-              <CalendarHeatmapView
-                sessions={allSessions}
+          {weekMonday ? (
+            <WeekSpread
+              monday={weekMonday}
+              sessions={allSessions}
+              todayStr={todayStr}
+              backLabel={openChapter?.title ?? String(displayYear)}
+              onBack={() => goBack(chapterParams)}
+              onMoveWeek={handleMoveWeek}
+              onLogSession={handleLogSession}
+              onSessionUpdated={fetchAll}
+            />
+          ) : openChapter ? (
+            <ChapterView
+              chapter={openChapter}
+              year={displayYear}
+              todayStr={todayStr}
+              promotions={promotions}
+              onBack={() => goBack({})}
+              onOpenWeek={monday => goTo({ ...chapterParams, week: monday })}
+            />
+          ) : (
+            <div
+              key={displayYear}
+              onAnimationEnd={() => setFlipDir(null)}
+              style={flipDir ? {
+                animation: `j2PageFlip${flipDir === 'forward' ? 'Forward' : 'Back'} 380ms ease-out both`,
+              } : undefined}
+            >
+              <YearBook
                 year={displayYear}
-                loading={loading}
-                onYearChange={setDisplayYear}
-                onLogSession={handleLogSession}
-                onSessionUpdated={fetchAll}
-              />
-            ) : (
-              <TrainingHeatmap
+                todayStr={todayStr}
                 sessions={allSessions}
-                intentions={intentions}
+                chapters={chapters}
+                promotions={promotions}
                 loading={loading}
-                onSessionUpdated={fetchAll}
-                onGoToToday={handleGoToToday}
-                onLogSession={handleLogSession}
-                year={displayYear}
+                canGoForward={displayYear < currentYear}
+                onYearChange={navigateYear}
+                onOpenChapter={c => goTo({ chapter: c.key })}
+                onOpenMonth={m => goTo({ month: String(m) })}
               />
-            )}
-          </div>
+            </div>
+          )}
         </ErrorBoundary>
       )}
     </div>
@@ -241,8 +260,8 @@ export default function CalendarPage() {
       open={calendarCoachmark.isOpen}
       onDismiss={calendarCoachmark.dismiss}
       eyebrow="◇ Calendar"
-      title="Every session lands here."
-      body="Tap a date to log one or open it. Swipe through months in the grid to look back."
+      title="Your year, as a book."
+      body="Each intention is a chapter. Open one to read it back week by week, or tap a month on the shelf."
     />
     </>
   );
